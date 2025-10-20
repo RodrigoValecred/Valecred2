@@ -67,12 +67,17 @@ import re
 import unicodedata
 
 def load_manual_file_to_bronze(source_filename, target_table_name):
-    """
-    Lê um arquivo da pasta de uploads manuais, converte para um DataFrame Spark e salva na camada Silver.
+    """Lê um arquivo da pasta de uploads manuais, converte para um DataFrame Spark e salva na camada Silver.
+
+    A função localiza um arquivo (Excel ou CSV) no diretório `Files/manual_uploads`,
+    o carrega com pandas, padroniza os nomes de suas colunas para o formato `snake_case`
+    compatível com Delta Lake, o converte para um DataFrame Spark e o salva como uma
+    tabela Delta na camada Silver, sobrescrevendo qualquer versão anterior.
 
     Args:
-        source_filename (str): O nome do arquivo a ser lido (ex: 'meu_arquivo.xlsx').
-        target_table_name (str): O nome completo da tabela de destino (ex: 'LH_Silver.minha_tabela').
+        source_filename (str): O nome do arquivo a ser lido (ex: 'sup_regiao.xlsx').
+        target_table_name (str): O nome completo da tabela de destino no formato
+                                 `lakehouse.tabela` (ex: 'LH_Silver.sup_regiao').
     """
     base_path = "/lakehouse/default/Files/manual_uploads"
     file_path = f"{base_path}/{source_filename}"
@@ -98,6 +103,14 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
         print(f"Arquivo '{source_filename}' lido com sucesso usando pandas.")
         # Padroniza os nomes das colunas para serem compatíveis com o formato Delta
         def sanitize_column_name(col_name):
+            """Padroniza um nome de coluna para o formato snake_case.
+
+            Args:
+                col_name (str): O nome da coluna original.
+
+            Returns:
+                str: O nome da coluna padronizado.
+            """
             # Normaliza para remover acentos (ex: 'ç' -> 'c')
             nfkd_form = unicodedata.normalize('NFKD', str(col_name))
             sanitized = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])

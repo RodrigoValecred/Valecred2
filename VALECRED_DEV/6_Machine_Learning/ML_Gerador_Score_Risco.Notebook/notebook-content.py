@@ -112,8 +112,22 @@ print("Tabela mestra criada.")
 # CELL ********************
 
 def gerar_score_e_alertas(cpf_cnpj, df_mestra_spark, model_pipeline, model_features):
-    """
-    Calcula o score de risco para os títulos em aberto de um cliente e gera alertas.
+    """Calcula o score de risco para os títulos em aberto de um cliente, exibe os resultados e gera alertas.
+
+    A função filtra a tabela mestra para um CPF/CNPJ específico, seleciona apenas os títulos
+    em aberto e aplica o modelo de machine learning treinado para prever a probabilidade de
+    inadimplência (score de risco) de cada título. Ao final, exibe um resumo com o score
+    médio, os principais fatores de risco identificados e uma lista detalhada dos títulos
+    com seus respectivos scores.
+
+    Args:
+        cpf_cnpj (str): O CPF ou CNPJ do cliente a ser analisado.
+        df_mestra_spark (pyspark.sql.DataFrame): O DataFrame Spark contendo os dados
+                                                 consolidados de títulos, operações e clientes.
+        model_pipeline (sklearn.pipeline.Pipeline): O pipeline do modelo treinado (joblib),
+                                                    pronto para fazer previsões.
+        model_features (list): Uma lista de strings com os nomes das features que o
+                               modelo espera, na ordem correta.
     """
     print(f"\nIniciando análise para o cliente: {cpf_cnpj}")
 
