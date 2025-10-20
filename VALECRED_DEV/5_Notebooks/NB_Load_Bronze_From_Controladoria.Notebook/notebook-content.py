@@ -59,6 +59,12 @@ import unicodedata
 def sanitize_for_table_name(path_name):
     """
     Padroniza um caminho de arquivo para um nome de tabela compatível com Delta.
+
+    Args:
+        path_name (str): O caminho do arquivo a ser convertido.
+
+    Returns:
+        str: Um nome de tabela limpo e seguro para uso no Delta Lake.
     """
     # Remove a extensão do arquivo
     name_without_ext = os.path.splitext(path_name)[0]
@@ -77,12 +83,17 @@ def sanitize_for_table_name(path_name):
     return sanitized
 
 def load_controladoria_file_to_bronze(file_path, base_path):
-    """
-    Lê um arquivo da pasta da controladoria, converte para um DataFrame Spark e salva na camada Bronze.
+    """Lê um arquivo da pasta da controladoria, converte para um DataFrame Spark e salva na camada Bronze.
+
+    A função lê um arquivo (Excel ou CSV) do caminho especificado, padroniza os nomes das colunas
+    para um formato compatível com Delta Lake, converte o conteúdo para um DataFrame Spark e o
+    salva como uma tabela Delta na camada Bronze. O nome da tabela de destino é gerado
+    dinamicamente a partir do caminho relativo do arquivo para garantir unicidade.
 
     Args:
-        file_path (str): O caminho completo do arquivo a ser lido.
-        base_path (str): O caminho base da controladoria para gerar o nome da tabela.
+        file_path (str): O caminho completo do arquivo a ser processado.
+        base_path (str): O caminho base do diretório da controladoria, usado para
+                         calcular o nome relativo da tabela.
     """
     source_filename = os.path.basename(file_path)
     relative_path = os.path.relpath(file_path, base_path)

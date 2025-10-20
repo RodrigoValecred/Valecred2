@@ -2,6 +2,59 @@
 
 Este repositório contém o código-fonte da Plataforma de Dados Valecred, uma solução completa de engenharia e análise de dados construída no Microsoft Fabric. A plataforma processa dados brutos de sistemas operacionais, refina-os através de uma arquitetura medalhão e os disponibiliza para usuários finais para aplicações de análise e aprendizado de máquina.
 
+## Visão Geral
+
+O objetivo desta plataforma é centralizar e democratizar o acesso aos dados da Valecred, garantindo qualidade, governança e agilidade. Através de um fluxo de dados bem definido, transformamos dados brutos em insights acionáveis, alimentando desde dashboards de BI até modelos avançados de machine learning para previsão de risco.
+
+## Como Começar
+
+Para começar a trabalhar com a plataforma, siga os passos abaixo.
+
+### Pré-requisitos
+
+*   **Acesso ao Microsoft Fabric**: Você precisará de permissões adequadas no workspace da Valecred.
+*   **Git**: O Git deve estar instalado e configurado na sua máquina local para clonar o repositório.
+*   **Conhecimento em PySpark e SQL**: Familiaridade com essas tecnologias é essencial para o desenvolvimento de notebooks e dataflows.
+
+### Instalação e Configuração
+
+1.  **Clone o Repositório**:
+    ```bash
+    git clone <URL_DO_REPOSITORIO>
+    cd nome-do-repositorio
+    ```
+2.  **Sincronize com o Microsoft Fabric**: Conecte seu ambiente de desenvolvimento local ao workspace do Fabric para garantir que as alterações sejam sincronizadas. Siga as [diretrizes oficiais da Microsoft](https://docs.microsoft.com/fabric/git-integration/git-integration-overview) para configurar a integração.
+3.  **Explore os Artefatos**: Navegue pelas pastas numeradas para entender a organização dos dataflows, notebooks e pipelines. Comece pela pasta `1_Dataflows` e siga a sequência numérica para entender o fluxo de dados.
+
+## Estrutura do Repositório
+
+O projeto é organizado em uma estrutura de pastas numeradas que reflete o fluxo de processamento dos dados.
+
+```
+/
+├── 1_Dataflows/         # Dataflows para ingestão e transformação leve (Camada Silver)
+├── 2_Pipelines/         # Pipelines para orquestração de ponta a ponta
+├── 3_Lakehouses/        # Definições dos Lakehouses (Bronze, Silver, Gold)
+├── 4_Warehouses/        # Definições dos Warehouses (Gold)
+├── 5_Notebooks/         # Notebooks PySpark para transformações complexas e análises
+├── 6_Machine_Learning/  # Modelos de ML e notebooks de inferência
+├── 7_Dados_Externos/    # Notebooks para ingestão de dados de fontes públicas
+└── README.md            # Documentação do projeto
+```
+
+## Como Contribuir
+
+Agradecemos o interesse em contribuir com a plataforma! Para garantir a qualidade e a consistência do código, siga os passos abaixo:
+
+1.  **Crie uma Branch**: Nunca trabalhe diretamente na branch `main`. Crie uma nova branch a partir da `main` com um nome descritivo:
+    ```bash
+    git checkout -b feature/sua-nova-feature
+    ```
+2.  **Desenvolva e Teste**: Implemente suas alterações e teste-as exaustivamente no ambiente de desenvolvimento do Fabric.
+3.  **Documente seu Código**: Adicione comentários claros e, se estiver criando novas funções, inclua docstrings completas.
+4.  **Abra um Pull Request (PR)**: Após concluir o desenvolvimento, envie um Pull Request para a branch `main`. Descreva suas alterações detalhadamente e marque um revisor.
+5.  **Aguarde a Revisão**: Seu código será revisado. Esteja preparado para fazer ajustes com base no feedback recebido.
+
 ## Arquitetura
 
 A plataforma segue uma **Arquitetura Medalhão**, que organiza os dados em camadas Bronze, Prata (Silver) e Ouro (Gold). Essa abordagem garante a qualidade, governança e escalabilidade dos dados.

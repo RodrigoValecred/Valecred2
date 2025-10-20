@@ -122,6 +122,15 @@ print(f"Universo de análise contém {len(df_filtrado)} títulos liquidados.")
 
 # Criando a variável Target
 def classificar_inadimplencia(row):
+    """
+    Classifica um título como adimplente (0) ou inadimplente (1) com base no motivo da baixa e no tipo de operação.
+
+    Args:
+        row (pd.Series): Uma linha de um DataFrame do Pandas, contendo as colunas 'MOTIVO' e 'TTO_OPERACAO'.
+
+    Returns:
+        int: Retorna 0 se o título for considerado adimplente e 1 se for inadimplente.
+    """
     motivo = row['MOTIVO']
     tto_operacao = row['TTO_OPERACAO']
     if motivo == 'PG': return 0

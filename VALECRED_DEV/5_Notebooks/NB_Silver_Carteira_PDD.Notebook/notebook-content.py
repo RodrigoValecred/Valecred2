@@ -76,9 +76,21 @@ from functools import reduce
 import re
 
 def safe_load_table(table_name, schema):
-    """
-    Carrega uma tabela de forma segura. Se a tabela não existir,
-    cria um DataFrame vazio com o schema especificado.
+    """Carrega uma tabela Spark de forma segura, retornando um DataFrame vazio se a tabela não existir.
+
+    Esta função tenta carregar uma tabela Delta usando `spark.read.table`. Se a operação
+    falhar porque a tabela não foi encontrada, em vez de lançar uma exceção, ela cria
+    e retorna um DataFrame Spark vazio com o schema fornecido. Para qualquer outro erro,
+    a exceção original é relançada.
+
+    Args:
+        table_name (str): O nome completo da tabela a ser carregada (ex: 'LH_Bronze.minha_tabela').
+        schema (StructType): O schema a ser usado para criar o DataFrame vazio
+                             caso a tabela não exista.
+
+    Returns:
+        DataFrame: O DataFrame carregado da tabela ou um DataFrame vazio com o schema
+                   especificado se a tabela não for encontrada.
     """
     try:
         return spark.read.table(table_name)
