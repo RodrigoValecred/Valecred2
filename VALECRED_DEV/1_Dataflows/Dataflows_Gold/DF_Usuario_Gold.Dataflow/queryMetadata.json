@@ -1,0 +1,44 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Usuario_Gold",
+  "queryGroups": [
+    {
+      "id": "50000000-0000-0000-0000-000000000001",
+      "name": "00 - Sources",
+      "description": "Queries connecting to Bronze/Silver lakehouse tables."
+    },
+    {
+      "id": "50000000-0000-0000-0000-000000000003",
+      "name": "02 - Dimension",
+      "description": "Final dimension query."
+    }
+  ],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "source_cad_usuarios": {
+      "queryId": "g1000001-0000-0000-0000-000000000000",
+      "queryName": "source_cad_usuarios",
+      "queryGroupId": "50000000-0000-0000-0000-000000000001",
+      "loadEnabled": false
+    },
+    "dim_usuario": {
+      "queryId": "g3000001-0000-0000-0000-000000000000",
+      "queryName": "dim_usuario",
+      "queryGroupId": "50000000-0000-0000-0000-000000000003"
+    },
+    "dim_usuario_DataDestination": {
+      "queryId": "g4000001-0000-0000-0000-000000000000",
+      "queryName": "dim_usuario_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    }
+  ]
+}

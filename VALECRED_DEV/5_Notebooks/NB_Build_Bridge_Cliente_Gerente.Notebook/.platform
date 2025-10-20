@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "NB_Build_Bridge_Cliente_Gerente",
+    "description": "Cria uma tabela com o histórico de trocas de gerentes dos clientes, cria colunas de data de inicio e fim, a partir de 19/junho/2025 na tab_operacoes o codigo do broker fica registrado na coluna CODBROKER.\nIdentificado que operações de Prorrogação, Recompras não estão registrando os CODBROKER na tab_operacoes, será necessário continuar atualizando."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "632d2054-d334-8393-40fa-f86abef3590e"
+  }
+}

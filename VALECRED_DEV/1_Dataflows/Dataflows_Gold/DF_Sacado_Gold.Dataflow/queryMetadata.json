@@ -1,0 +1,79 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Sacado_Gold",
+  "queryGroups": [
+    {
+      "id": "30000000-0000-0000-0000-000000000001",
+      "name": "00 - Sources",
+      "description": "Queries connecting to Bronze/Silver lakehouse tables."
+    },
+    {
+      "id": "30000000-0000-0000-0000-000000000002",
+      "name": "01 - Staging",
+      "description": "Intermediate queries for cleaning and preparation."
+    },
+    {
+      "id": "30000000-0000-0000-0000-000000000003",
+      "name": "02 - Dimension",
+      "description": "Final dimension query."
+    }
+  ],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "source_tab_titulos": {
+      "queryId": "e1000001-0000-0000-0000-000000000000",
+      "queryName": "source_tab_titulos",
+      "queryGroupId": "30000000-0000-0000-0000-000000000001",
+      "loadEnabled": false
+    },
+    "source_cad_geral": {
+      "queryId": "e1000002-0000-0000-0000-000000000000",
+      "queryName": "source_cad_geral",
+      "queryGroupId": "30000000-0000-0000-0000-000000000001",
+      "loadEnabled": false
+    },
+    "source_cad_enderecos": {
+      "queryId": "e1000003-0000-0000-0000-000000000000",
+      "queryName": "source_cad_enderecos",
+      "queryGroupId": "30000000-0000-0000-0000-000000000001",
+      "loadEnabled": false
+    },
+    "staging_titulos_limpa": {
+      "queryId": "e2000001-0000-0000-0000-000000000000",
+      "queryName": "staging_titulos_limpa",
+      "queryGroupId": "30000000-0000-0000-0000-000000000002",
+      "loadEnabled": false
+    },
+    "staging_cad_geral_limpa": {
+      "queryId": "e2000002-0000-0000-0000-000000000000",
+      "queryName": "staging_cad_geral_limpa",
+      "queryGroupId": "30000000-0000-0000-0000-000000000002",
+      "loadEnabled": false
+    },
+    "staging_enderecos_limpa": {
+      "queryId": "e2000003-0000-0000-0000-000000000000",
+      "queryName": "staging_enderecos_limpa",
+      "queryGroupId": "30000000-0000-0000-0000-000000000002",
+      "loadEnabled": false
+    },
+    "dim_sacado": {
+      "queryId": "e3000001-0000-0000-0000-000000000000",
+      "queryName": "dim_sacado",
+      "queryGroupId": "30000000-0000-0000-0000-000000000003"
+    },
+    "dim_sacado_DataDestination": {
+      "queryId": "e4000001-0000-0000-0000-000000000000",
+      "queryName": "dim_sacado_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    }
+  ]
+}

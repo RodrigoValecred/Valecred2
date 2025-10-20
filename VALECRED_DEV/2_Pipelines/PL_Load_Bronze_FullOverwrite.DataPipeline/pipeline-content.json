@@ -1,0 +1,255 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "DelimitedTextSource",
+            "formatSettings": {
+              "type": "DelimitedTextReadSettings"
+            },
+            "storeSettings": {
+              "type": "LakehouseReadSettings",
+              "recursive": false,
+              "enablePartitionDiscovery": false
+            }
+          },
+          "datasetSettings": {
+            "type": "DelimitedText",
+            "typeProperties": {
+              "location": {
+                "type": "LakehouseLocation",
+                "folderPath": "_control_files",
+                "fileName": "controle_tabelas_bronze.csv"
+              },
+              "columnDelimiter": ",",
+              "quoteChar": "\"",
+              "escapeChar": "\\",
+              "firstRowAsHeader": true
+            },
+            "schema": [],
+            "linkedService": {
+              "name": "LH_Bronze",
+              "properties": {
+                "type": "Lakehouse",
+                "typeProperties": {
+                  "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
+                  "workspaceId": "00000000-0000-0000-0000-000000000000",
+                  "rootFolder": "Files"
+                },
+                "annotations": []
+              }
+            },
+            "annotations": []
+          },
+          "firstRowOnly": false
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Lookup_GetTableList",
+        "dependsOn": []
+      },
+      {
+        "type": "ForEach",
+        "typeProperties": {
+          "batchCount": 10,
+          "items": {
+            "value": "@activity('Lookup_GetTableList').output.value",
+            "type": "Expression"
+          },
+          "activities": [
+            {
+              "type": "Copy",
+              "typeProperties": {
+                "source": {
+                  "type": "MySqlSource",
+                  "query": {
+                    "value": "@concat('SELECT * FROM ', item().TableName)",
+                    "type": "Expression"
+                  },
+                  "queryTimeout": "02:00:00",
+                  "datasetSettings": {
+                    "type": "MySqlTable",
+                    "schema": [],
+                    "externalReferences": {
+                      "connection": "44a3c055-a006-453e-8038-01652e18ab84"
+                    },
+                    "annotations": []
+                  }
+                },
+                "sink": {
+                  "type": "LakehouseTableSink",
+                  "tableActionOption": "OverwriteSchema",
+                  "partitionOption": "None",
+                  "datasetSettings": {
+                    "type": "LakehouseTable",
+                    "typeProperties": {
+                      "table": {
+                        "value": "@item().TableName",
+                        "type": "Expression"
+                      }
+                    },
+                    "schema": [],
+                    "linkedService": {
+                      "name": "LH_Bronze",
+                      "properties": {
+                        "type": "Lakehouse",
+                        "typeProperties": {
+                          "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
+                          "workspaceId": "00000000-0000-0000-0000-000000000000",
+                          "rootFolder": "Tables"
+                        },
+                        "annotations": []
+                      }
+                    },
+                    "annotations": []
+                  }
+                },
+                "translator": {
+                  "type": "TabularTranslator",
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowDataTruncation": true,
+                    "treatBooleanAsNumber": false
+                  }
+                },
+                "enableStaging": false
+              },
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureInput": false,
+                "secureOutput": false
+              },
+              "name": "Copy data1",
+              "dependsOn": []
+            }
+          ]
+        },
+        "name": "ForEach_CopyTable",
+        "dependsOn": [
+          {
+            "activity": "Lookup_GetTableList",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "MySqlSource",
+            "query": "SELECT MAX(DATAINCLUSAO) as NewWatermark FROM tab_operacoes"
+          },
+          "datasetSettings": {
+            "type": "MySqlTable",
+            "schema": [],
+            "externalReferences": {
+              "connection": "44a3c055-a006-453e-8038-01652e18ab84"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Lookup_GetNewWatermark",
+        "description": "Encontrar o valor máximo da data de modificação de TODOS os dados que acabamos de copiar.",
+        "dependsOn": [
+          {
+            "activity": "ForEach_CopyTable",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "TargetProcessingDate",
+          "value": {
+            "value": "@activity('Lookup_GetNewWatermark').output.firstRow.NewWatermark",
+            "type": "Expression"
+          }
+        },
+        "policy": {
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Set_Variable_TargetProcessingDate",
+        "description": "Armazenar este novo valor máximo na nossa variável.",
+        "dependsOn": [
+          {
+            "activity": "Lookup_GetNewWatermark",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Script",
+        "typeProperties": {
+          "scripts": [
+            {
+              "text": {
+                "value": "UPDATE etl_watermark_control\nSET LastWatermarkValue = '@{variables('TargetProcessingDate')}'\nWHERE PipelineName = 'PL_Load_Bronze_MVP'",
+                "type": "Expression"
+              },
+              "type": "Query"
+            }
+          ],
+          "scriptBlockExecutionTimeout": "02:00:00"
+        },
+        "linkedService": {
+          "name": "WH_Gold",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
+              "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Update_WatermarkControlTable",
+        "description": "Atualizar nossa tabela de controle com o novo valor, para que a próxima execução comece a partir daqui.",
+        "dependsOn": [
+          {
+            "activity": "Set_Variable_TargetProcessingDate",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ],
+    "variables": {
+      "TargetProcessingDate": {
+        "type": "String"
+      }
+    }
+  }
+}

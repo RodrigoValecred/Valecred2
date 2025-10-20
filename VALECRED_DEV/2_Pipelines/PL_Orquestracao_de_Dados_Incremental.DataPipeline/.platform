@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataPipeline",
+    "displayName": "PL_Orquestracao_de_Dados_Incremental"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "d7ce0a03-346f-a787-464b-444b3b81b453"
+  }
+}

@@ -1,0 +1,431 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "DelimitedTextSource",
+            "formatSettings": {
+              "type": "DelimitedTextReadSettings"
+            },
+            "storeSettings": {
+              "type": "LakehouseReadSettings",
+              "recursive": false,
+              "enablePartitionDiscovery": false
+            }
+          },
+          "datasetSettings": {
+            "type": "DelimitedText",
+            "typeProperties": {
+              "location": {
+                "type": "LakehouseLocation",
+                "folderPath": "_control_files",
+                "fileName": "controle_tabelas_bronze.csv"
+              },
+              "columnDelimiter": ",",
+              "quoteChar": "\"",
+              "escapeChar": "\\",
+              "firstRowAsHeader": true
+            },
+            "schema": [],
+            "linkedService": {
+              "name": "LH_Bronze",
+              "properties": {
+                "type": "Lakehouse",
+                "typeProperties": {
+                  "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
+                  "workspaceId": "00000000-0000-0000-0000-000000000000",
+                  "rootFolder": "Files"
+                },
+                "annotations": []
+              }
+            },
+            "annotations": []
+          },
+          "firstRowOnly": false
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Lookup_GetTableList",
+        "dependsOn": [
+          {
+            "activity": "Set_Variable_TargetProcessingDate",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "ForEach",
+        "typeProperties": {
+          "batchCount": 50,
+          "items": {
+            "value": "@activity('Filter_FullOverwriteTables').output.value",
+            "type": "Expression"
+          },
+          "activities": [
+            {
+              "type": "Copy",
+              "typeProperties": {
+                "source": {
+                  "type": "MySqlSource",
+                  "query": {
+                    "value": "@concat('SELECT * FROM ', item().TableName)",
+                    "type": "Expression"
+                  },
+                  "datasetSettings": {
+                    "type": "MySqlTable",
+                    "schema": [],
+                    "externalReferences": {
+                      "connection": "44a3c055-a006-453e-8038-01652e18ab84"
+                    },
+                    "annotations": []
+                  }
+                },
+                "sink": {
+                  "type": "LakehouseTableSink",
+                  "tableActionOption": "OverwriteSchema",
+                  "partitionOption": "None",
+                  "datasetSettings": {
+                    "type": "LakehouseTable",
+                    "typeProperties": {
+                      "table": {
+                        "value": "@item().TableName",
+                        "type": "Expression"
+                      }
+                    },
+                    "schema": [],
+                    "linkedService": {
+                      "name": "LH_Bronze",
+                      "properties": {
+                        "type": "Lakehouse",
+                        "typeProperties": {
+                          "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
+                          "workspaceId": "00000000-0000-0000-0000-000000000000",
+                          "rootFolder": "Tables"
+                        },
+                        "annotations": []
+                      }
+                    },
+                    "annotations": []
+                  }
+                },
+                "translator": {
+                  "type": "TabularTranslator",
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowDataTruncation": true,
+                    "treatBooleanAsNumber": false
+                  }
+                },
+                "enableStaging": false
+              },
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureInput": false,
+                "secureOutput": false
+              },
+              "name": "Copy data1",
+              "dependsOn": []
+            }
+          ]
+        },
+        "name": "ForEach_FullOverwriteCopy",
+        "dependsOn": [
+          {
+            "activity": "Filter_FullOverwriteTables",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "DataWarehouseSource",
+            "sqlReaderQuery": "SELECT LastWatermarkValue FROM etl_watermark_control WHERE PipelineName = 'PL_Load_Bronze_MVP'",
+            "partitionOption": "None",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "DataWarehouseTable",
+            "schema": [],
+            "linkedService": {
+              "name": "WH_Gold",
+              "properties": {
+                "type": "DataWarehouse",
+                "typeProperties": {
+                  "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
+                  "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
+                  "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
+                },
+                "annotations": []
+              }
+            },
+            "annotations": []
+          },
+          "firstRowOnly": true
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Lookup_GetLastRunDate",
+        "description": "Ler o último valor salvo na nossa tabela de controle.",
+        "dependsOn": []
+      },
+      {
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "LastRunDate",
+          "value": {
+            "value": "@formatDateTime(activity('Lookup_GetLastRunDate').output.firstRow.LastWatermarkValue, 'yyyy-MM-dd')",
+            "type": "Expression"
+          }
+        },
+        "policy": {
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Set_Variable_LastRunDate",
+        "description": "Armazenar o valor lido pela atividade anterior na nossa variável de pipeline.",
+        "dependsOn": [
+          {
+            "activity": "Lookup_GetLastRunDate",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Script",
+        "typeProperties": {
+          "scripts": [
+            {
+              "text": {
+                "value": "UPDATE etl_watermark_control SET LastWatermarkValue= '@{variables('TargetProcessingDate')}' WHERE PipelineName = 'PL_Load_Bronze_Incremental'",
+                "type": "Expression"
+              },
+              "type": "Query"
+            }
+          ],
+          "scriptBlockExecutionTimeout": "02:00:00"
+        },
+        "linkedService": {
+          "name": "WH_Gold",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
+              "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Update_ControlTable",
+        "description": "Atualizar nossa tabela de controle com o novo valor, para que a próxima execução comece a partir daqui.",
+        "dependsOn": [
+          {
+            "activity": "ForEach_FullOverwriteCopy",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "ForEach_IncrementalCopy",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "TargetProcessingDate",
+          "value": {
+            "value": "@formatDateTime(addDays(utcNow(),0 ),'yyy-MM-dd')",
+            "type": "Expression"
+          }
+        },
+        "policy": {
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Set_Variable_TargetProcessingDate",
+        "description": "Armazenar o valor lido pela atividade anterior na nossa variável de pipeline.",
+        "dependsOn": [
+          {
+            "activity": "Set_Variable_LastRunDate",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Filter",
+        "typeProperties": {
+          "items": {
+            "value": "@activity('Lookup_GetTableList').output.value",
+            "type": "Expression"
+          },
+          "condition": {
+            "value": "@not(empty(item().InclusionWatermark))",
+            "type": "Expression"
+          }
+        },
+        "name": "Filter_IncrementalTables",
+        "description": "A atividade Filter pega uma lista (um array) e cria uma nova lista contendo apenas os itens que atendem a uma condição.",
+        "dependsOn": [
+          {
+            "activity": "Lookup_GetTableList",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Filter",
+        "typeProperties": {
+          "items": {
+            "value": "@activity('Lookup_GetTableList').output.value",
+            "type": "Expression"
+          },
+          "condition": {
+            "value": "@empty(item().InclusionWatermark)",
+            "type": "Expression"
+          }
+        },
+        "name": "Filter_FullOverwriteTables",
+        "description": "A atividade Filter pega uma lista (um array) e cria uma nova lista contendo apenas os itens que atendem a uma condição.",
+        "dependsOn": [
+          {
+            "activity": "Lookup_GetTableList",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "ForEach",
+        "typeProperties": {
+          "batchCount": 50,
+          "items": {
+            "value": "@activity('Filter_IncrementalTables').output.value",
+            "type": "Expression"
+          },
+          "activities": [
+            {
+              "type": "Copy",
+              "typeProperties": {
+                "source": {
+                  "type": "MySqlSource",
+                  "query": {
+                    "value": "@concat(\n    'SELECT * FROM ', item().TableName,\n    ' WHERE ',\n    'GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' > ''', variables('LastRunDate'), '''',\n    ' AND GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' <= ''', variables('TargetProcessingDate'), ''''\n)",
+                    "type": "Expression"
+                  },
+                  "datasetSettings": {
+                    "type": "MySqlTable",
+                    "schema": [],
+                    "externalReferences": {
+                      "connection": "44a3c055-a006-453e-8038-01652e18ab84"
+                    },
+                    "annotations": []
+                  }
+                },
+                "sink": {
+                  "type": "LakehouseTableSink",
+                  "tableActionOption": "Append",
+                  "datasetSettings": {
+                    "type": "LakehouseTable",
+                    "typeProperties": {
+                      "table": {
+                        "value": "@item().TableName",
+                        "type": "Expression"
+                      }
+                    },
+                    "schema": [],
+                    "linkedService": {
+                      "name": "LH_Bronze",
+                      "properties": {
+                        "type": "Lakehouse",
+                        "typeProperties": {
+                          "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
+                          "workspaceId": "00000000-0000-0000-0000-000000000000",
+                          "rootFolder": "Tables"
+                        },
+                        "annotations": []
+                      }
+                    },
+                    "annotations": []
+                  }
+                },
+                "translator": {
+                  "type": "TabularTranslator",
+                  "typeConversion": true,
+                  "typeConversionSettings": {
+                    "allowDataTruncation": true,
+                    "treatBooleanAsNumber": false
+                  }
+                },
+                "enableStaging": false
+              },
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureInput": false,
+                "secureOutput": false
+              },
+              "name": "Copy data",
+              "dependsOn": []
+            }
+          ]
+        },
+        "name": "ForEach_IncrementalCopy",
+        "dependsOn": [
+          {
+            "activity": "Filter_IncrementalTables",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ],
+    "variables": {
+      "LastRunDate": {
+        "type": "String"
+      },
+      "TargetProcessingDate": {
+        "type": "String"
+      }
+    }
+  }
+}

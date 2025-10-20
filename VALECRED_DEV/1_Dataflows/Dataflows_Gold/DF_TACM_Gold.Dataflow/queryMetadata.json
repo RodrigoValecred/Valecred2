@@ -1,0 +1,46 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Tarifas_Esporadicas_Gold",
+  "queryGroups": [],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "dim_usuario": {
+      "queryId": "c43030f0-6009-4ab4-a3d2-6d9bbd2899bc",
+      "queryName": "dim_usuario",
+      "loadEnabled": false
+    },
+    "staging_tac_m": {
+      "queryId": "c8ca46fc-a833-4122-922e-26b5c2b6029f",
+      "queryName": "staging_tac_m",
+      "loadEnabled": false
+    },
+    "fato_tac_m": {
+      "queryId": "5dd1ac3a-6cf3-4d65-9b3b-cc3c614db420",
+      "queryName": "fato_tac_m"
+    },
+    "staging_operacoes_limpa": {
+      "queryId": "57023202-967e-4ec0-9313-457a735b5e8a",
+      "queryName": "staging_operacoes_limpa",
+      "loadEnabled": false
+    },
+    "fato_tac_m_DataDestination": {
+      "queryId": "121bf233-1664-4dba-a61c-690d13f1bf8f",
+      "queryName": "fato_tac_m_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    },
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"01775304-8871-4350-8cfd-17ec16ba0c06\"}"
+    }
+  ]
+}

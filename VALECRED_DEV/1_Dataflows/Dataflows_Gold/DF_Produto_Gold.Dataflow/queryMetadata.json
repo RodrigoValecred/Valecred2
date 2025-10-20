@@ -1,0 +1,76 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Produto_Gold",
+  "queryGroups": [
+    {
+      "id": "1",
+      "name": "00 - Sources"
+    },
+    {
+      "id": "2",
+      "name": "01 - Staging"
+    },
+    {
+      "id": "3",
+      "name": "02 - Dimension"
+    }
+  ],
+  "documentLocale": "pt-BR",
+  "gatewayObjectId": "104f5ce9-b851-4389-8c57-0eea21c99a73",
+  "queriesMetadata": {
+    "staging_operacoes_limpa": {
+      "queryId": "a2bc383e-0326-423a-a53c-d3c582249920",
+      "queryName": "staging_operacoes_limpa",
+      "queryGroupId": "1",
+      "loadEnabled": false
+    },
+    "Bronze_tab_tipooperacao": {
+      "queryId": "cae7b1ad-c396-4423-ac9e-0da11f8c4945",
+      "queryName": "Bronze_tab_tipooperacao",
+      "queryGroupId": "1",
+      "loadEnabled": false
+    },
+    "Bronze_tab_subtipooperacao": {
+      "queryId": "0ab7c5d0-4cec-4565-afcc-04efeea4fdae",
+      "queryName": "Bronze_tab_subtipooperacao",
+      "queryGroupId": "1",
+      "loadEnabled": false
+    },
+    "staging_produto_lbfactor": {
+      "queryId": "476faa22-67fe-409c-bf69-d37fbd78303a",
+      "queryName": "staging_produto_lbfactor",
+      "queryGroupId": "2",
+      "loadEnabled": false
+    },
+    "dim_produto_manual": {
+      "queryId": "66ddd763-cd10-485b-b0cf-60d00ed455df",
+      "queryName": "dim_produto_manual",
+      "queryGroupId": "2",
+      "loadEnabled": false
+    },
+    "dim_produto": {
+      "queryId": "39c3827d-ae26-43c1-bb9d-ef268c48be61",
+      "queryName": "dim_produto",
+      "queryGroupId": "3"
+    },
+    "dim_produto_DataDestination": {
+      "queryId": "b02cf090-3513-4d34-b4b7-e3adf041111e",
+      "queryName": "dim_produto_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    },
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"01775304-8871-4350-8cfd-17ec16ba0c06\"}"
+    }
+  ]
+}

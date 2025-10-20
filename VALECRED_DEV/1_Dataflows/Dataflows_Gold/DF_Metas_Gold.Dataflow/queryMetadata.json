@@ -1,0 +1,41 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Metas_Gold",
+  "queryGroups": [],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "sup_metas": {
+      "queryId": "b3c21771-8601-4c3e-b002-884ab53a694d",
+      "queryName": "sup_metas",
+      "loadEnabled": false
+    },
+    "dim_calendario": {
+      "queryId": "28dca1c1-cfc1-4cd9-b935-1e7861311fdd",
+      "queryName": "dim_calendario",
+      "loadEnabled": false
+    },
+    "fato_metas": {
+      "queryId": "0635cfcc-bd0b-46c7-95b6-604d6b054bf3",
+      "queryName": "fato_metas"
+    },
+    "fato_metas_DataDestination": {
+      "queryId": "89317e2c-dc68-4929-a40e-ce5c0adfcbeb",
+      "queryName": "fato_metas_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    },
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"01775304-8871-4350-8cfd-17ec16ba0c06\"}"
+    }
+  ]
+}

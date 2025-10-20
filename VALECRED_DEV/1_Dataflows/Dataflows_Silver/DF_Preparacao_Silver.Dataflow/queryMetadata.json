@@ -1,0 +1,348 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_VALECRED_Silver",
+  "queryGroups": [
+    {
+      "id": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "name": "00 - Sources (Bronze)",
+      "description": "Consultas que se conectam diretamente às tabelas no LH_Bronze. A padronização para snake_case é aplicada aqui."
+    },
+    {
+      "id": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "name": "01 - Staging (Silver)",
+      "description": "Consultas intermediárias que preparam e limpam os dados para as dimensões e fatos.",
+      "order": 1
+    }
+  ],
+  "documentLocale": "pt-BR",
+  "gatewayObjectId": "104f5ce9-b851-4389-8c57-0eea21c99a73",
+  "queriesMetadata": {
+    "staging_tac_m": {
+      "queryId": "e1a78456-2d16-454d-ad4f-b7b061890f58",
+      "queryName": "staging_tac_m",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
+    },
+    "staging_tab_titulos_confirmacao": {
+      "queryId": "2b2daa32-2c79-4bde-b58f-9b6e272b6082",
+      "queryName": "staging_tab_titulos_confirmacao",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_rlc_titulos_ocorrencias_cobranca": {
+      "queryId": "2c909fc4-cf5c-4a5d-9c68-d61b69d68377",
+      "queryName": "staging_rlc_titulos_ocorrencias_cobranca",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_notificacoes": {
+      "queryId": "f2941411-c9eb-451a-88f2-a24970cec58f",
+      "queryName": "staging_notificacoes",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_titulos_baixas": {
+      "queryId": "2a958cdf-8251-448f-9607-e87e5e565a22",
+      "queryName": "staging_titulos_baixas",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_clientes": {
+      "queryId": "5deeab07-b550-447c-b3e5-07f6d6f5112b",
+      "queryName": "staging_clientes",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_abatimentos": {
+      "queryId": "95019cc5-e2ec-4b5d-8aea-f61e2ace0e37",
+      "queryName": "staging_abatimentos",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_contratos_clientes": {
+      "queryId": "b265797d-5032-4bdc-881c-02ddebe9f04b",
+      "queryName": "staging_contratos_clientes",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_eventos_protesto_limpa": {
+      "queryId": "3eea59e2-2e06-4e8b-999d-6c01cc55a811",
+      "queryName": "staging_eventos_protesto_limpa",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_enderecos": {
+      "queryId": "bff04b24-478a-43c0-948d-1e16de40ff27",
+      "queryName": "staging_enderecos",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_cad_geral": {
+      "queryId": "18e5e382-50f7-4278-8f82-d7a01dbad49f",
+      "queryName": "staging_cad_geral",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_status_clientes_esteira": {
+      "queryId": "e6dfc30a-0b0f-404c-ad37-65d3582f00c4",
+      "queryName": "staging_status_clientes_esteira",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_operacoes": {
+      "queryId": "a2bc383e-0326-423a-a53c-d3c582249920",
+      "queryName": "staging_operacoes",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
+    },
+    "staging_titulos": {
+      "queryId": "d67e9cdf-f103-4895-a2b3-210ff6f3c2fd",
+      "queryName": "staging_titulos",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
+    },
+    "staging_pareceres_alteracao_status": {
+      "queryId": "f1b1b3a8-1b1b-4b1b-8b1b-1b1b1b1b1b1b",
+      "queryName": "staging_pareceres_alteracao_status",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_esteira_propostas": {
+      "queryId": "f2c2c4b8-2c2c-4c2c-8c2c-2c2c2c2c2c2c",
+      "queryName": "staging_esteira_propostas",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_boletos_titulos": {
+      "queryId": "b3468e74-2f1c-4cd5-9ae5-3b68753b32d8",
+      "queryName": "staging_boletos_titulos",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
+    },
+    "staging_chave_danfe_detalhada": {
+      "queryId": "821dccbd-e2c1-4334-9fe9-f4c67e50e519",
+      "queryName": "staging_chave_danfe_detalhada",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "source_cad_agencias": {
+      "queryId": "3d53e20d-2a99-4797-b4ad-376291202ac4",
+      "queryName": "source_cad_agencias",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_brokers": {
+      "queryId": "d84d0e07-c888-413a-9526-dcb0498f1cfd",
+      "queryName": "source_cad_brokers",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_conta_cobranca_ocorrencia": {
+      "queryId": "0de7a4d0-4b36-4dd5-b806-7596e5306ece",
+      "queryName": "source_cad_conta_cobranca_ocorrencia",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_contratos_clientes": {
+      "queryId": "b3caf72b-3eb2-44cf-af85-f9313af6ac1d",
+      "queryName": "source_cad_contratos_clientes",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_geral": {
+      "queryId": "01c82f5e-6f53-46c5-9ad3-fd1dfa97c3e0",
+      "queryName": "source_cad_geral",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_enderecos": {
+      "queryId": "fe64c62f-1b9b-4134-9d6a-3fdd5e6b591b",
+      "queryName": "source_cad_enderecos",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_geral_pareceres": {
+      "queryId": "527da553-9182-401f-a736-f179668a8822",
+      "queryName": "source_cad_geral_pareceres",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_usuarios": {
+      "queryId": "88b28cce-1624-4438-86ed-968e978ba272",
+      "queryName": "source_cad_usuarios",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_rlc_clientes_sacados_limites": {
+      "queryId": "6a614754-ba26-4f8a-9a2e-21917cc18c27",
+      "queryName": "source_rlc_clientes_sacados_limites",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_rlc_titulos_ocorrencias_cobranca": {
+      "queryId": "b2d2f620-01ab-4055-b53e-99e3828dc470",
+      "queryName": "source_rlc_titulos_ocorrencias_cobranca",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_atividades": {
+      "queryId": "968454c9-bb9a-48c6-84ae-ab0224665eb0",
+      "queryName": "source_tab_atividades",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_titulos_baixas": {
+      "queryId": "eeba4988-bc53-48a7-98c9-9d757541e72b",
+      "queryName": "source_titulos_baixas",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_estudo_op": {
+      "queryId": "14d64c0a-3178-4d4e-af71-9cbbdba423fb",
+      "queryName": "source_tab_estudo_op",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_feriados": {
+      "queryId": "d405d31a-4004-4138-86e1-d7861578c97f",
+      "queryName": "source_tab_feriados",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_operacoes_tarifas_extras": {
+      "queryId": "cce5a51c-a0bf-43ea-af3c-ae6a3eb2f78a",
+      "queryName": "source_tab_operacoes_tarifas_extras",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_geral_pendencias": {
+      "queryId": "1720b2b2-c9b0-429c-849f-07cb76ed5a2b",
+      "queryName": "source_tab_geral_pendencias",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_operacoes_devolucoes": {
+      "queryId": "5640833a-6422-47aa-8e30-c2ed15d08934",
+      "queryName": "source_tab_operacoes_devolucoes",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_operacoes_prorrogacao": {
+      "queryId": "5324fad4-e65c-4f2e-9e2e-6088714a79dc",
+      "queryName": "source_tab_operacoes_prorrogacao",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_statusoperacao": {
+      "queryId": "2b3a3326-43e9-460a-bef3-2ea8c9da36d1",
+      "queryName": "source_tab_statusoperacao",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_titulos": {
+      "queryId": "9f904033-afd1-4997-8158-4b518e19e1a6",
+      "queryName": "source_tab_titulos",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_subtipooperacao": {
+      "queryId": "0ab7c5d0-4cec-4565-afcc-04efeea4fdae",
+      "queryName": "source_tab_subtipooperacao",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_tipooperacao": {
+      "queryId": "cae7b1ad-c396-4423-ac9e-0da11f8c4945",
+      "queryName": "source_tab_tipooperacao",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_tipoparecer": {
+      "queryId": "22536aea-dcbb-44fe-81d3-f6ebe022da2c",
+      "queryName": "source_tab_tipoparecer",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_titulos_abatimento": {
+      "queryId": "501de025-b606-4462-92ab-f424bfe7cb6a",
+      "queryName": "source_tab_titulos_abatimento",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_titulos_cobranca": {
+      "queryId": "3d646643-7398-4dc9-944b-d28364e0a732",
+      "queryName": "source_tab_titulos_cobranca",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_titulos_confirmacao": {
+      "queryId": "c3c3a647-4a58-424d-b82f-6b3bfb2490f9",
+      "queryName": "source_tab_titulos_confirmacao",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_tab_operacoes": {
+      "queryId": "32d56277-f7f1-4b76-8e59-8b85f51177b7",
+      "queryName": "source_tab_operacoes",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "sup_status_de_clientes_da_esteira": {
+      "queryId": "fe87d877-f049-4569-a6ed-78815fbe1e79",
+      "queryName": "sup_status_de_clientes_da_esteira",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_clientes": {
+      "queryId": "77e3aa3b-2ad9-40dd-8651-cf4dfad105c8",
+      "queryName": "source_cad_clientes",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "staging_gerentes": {
+      "queryId": "5918e9e3-f711-4284-9fae-1d8eddea8380",
+      "queryName": "staging_gerentes",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "staging_plataformas": {
+      "queryId": "5898f9d7-904b-4649-837e-e680020ae7a2",
+      "queryName": "staging_plataformas",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+    },
+    "sup_gestor_de_plataforma": {
+      "queryId": "103493b3-5485-4484-b6c9-fec72012b52a",
+      "queryName": "sup_gestor_de_plataforma",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "staging_cad_geral_DataDestination": {
+      "queryId": "d6f610b2-75a5-470d-b3e9-31552a6e3d60",
+      "queryName": "staging_cad_geral_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staging_operacoes_DataDestination": {
+      "queryId": "3caef43a-2488-47b6-a9f4-c89e490cd216",
+      "queryName": "staging_operacoes_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staging_boletos_titulos_DataDestination": {
+      "queryId": "5b1fb300-00cd-4762-a3bd-6d911cfea3c0",
+      "queryName": "staging_boletos_titulos_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staging_titulos_DataDestination": {
+      "queryId": "6720b651-9208-4203-b90a-4a1f36b432ec",
+      "queryName": "staging_titulos_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staging_tac_m_DataDestination": {
+      "queryId": "417ed6b5-e194-4572-8086-918382d12084",
+      "queryName": "staging_tac_m_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    },
+    {
+      "path": "https://valecred.sharepoint.com/sites/ValeCred_/Documentos%20Compartilhados/E.%20Tecnologia%20e%20Infraestrutura/06.%20Ci%C3%AAncia%20de%20Dados/99.%20Fontes%20de%20Dados%20Interdepartamentais/Gest%C3%A3o%20de%20Riscos%20de%20Cr%C3%A9dito%20e%20Antifraude/DIVIS%C3%83O%20CARTEIRA%20NO.xlsx",
+      "kind": "Web",
+      "connectionId": "{\"ClusterId\":\"104f5ce9-b851-4389-8c57-0eea21c99a73\",\"DatasourceId\":\"60dc7440-9932-4bb5-a710-e48d39a38c09\"}"
+    }
+  ]
+}

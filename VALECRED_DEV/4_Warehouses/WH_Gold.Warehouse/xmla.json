@@ -1,0 +1,1109 @@
+{
+  "name": "{{Dataset_Name}}",
+  "compatibilityLevel": 1604,
+  "model": {
+    "name": "{{Dataset_Name}}",
+    "culture": "en-US",
+    "collation": "Latin1_General_100_BIN2_UTF8",
+    "dataAccessOptions": {
+      "legacyRedirects": true,
+      "returnErrorValuesAsNull": true
+    },
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "sourceQueryCulture": "en-US",
+    "tables": [
+      {
+        "name": "dim_calendario",
+        "sourceLineageTag": "[dbo].[dim_calendario]",
+        "columns": [
+          {
+            "name": "sk_data",
+            "dataType": "int64",
+            "sourceColumn": "sk_data",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "sk_data",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "data",
+            "dataType": "dateTime",
+            "sourceColumn": "data",
+            "formatString": "General Date",
+            "sourceProviderType": "date",
+            "sourceLineageTag": "data",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "ano",
+            "dataType": "int64",
+            "sourceColumn": "ano",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "ano",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "trimestre",
+            "dataType": "int64",
+            "sourceColumn": "trimestre",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "trimestre",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "mes",
+            "dataType": "int64",
+            "sourceColumn": "mes",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "mes",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "dia",
+            "dataType": "int64",
+            "sourceColumn": "dia",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "dia",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "dia_semana",
+            "dataType": "string",
+            "sourceColumn": "dia_semana",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "dia_semana",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "numero_dia_semana",
+            "dataType": "int64",
+            "sourceColumn": "numero_dia_semana",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "numero_dia_semana",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "nome_mes",
+            "dataType": "string",
+            "sourceColumn": "nome_mes",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "nome_mes",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "mes_ano_abrev",
+            "dataType": "string",
+            "sourceColumn": "mes_ano_abrev",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "mes_ano_abrev",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "fim_de_semana",
+            "dataType": "string",
+            "sourceColumn": "fim_de_semana",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "fim_de_semana",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "{{Partition_Name}}",
+            "mode": "directLake",
+            "source": {
+              "type": "entity",
+              "entityName": "dim_calendario",
+              "expressionSource": "DatabaseQuery",
+              "schemaName": "dbo"
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "IsTableInBiModel",
+            "value": "True"
+          }
+        ]
+      },
+      {
+        "name": "dim_produto",
+        "sourceLineageTag": "[dbo].[dim_produto]",
+        "columns": [
+          {
+            "name": "ProdutoInformacaoMercado",
+            "dataType": "string",
+            "sourceColumn": "ProdutoInformacaoMercado",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "ProdutoInformacaoMercado",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "Produto",
+            "dataType": "string",
+            "sourceColumn": "Produto",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "Produto",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "chave_produto",
+            "dataType": "string",
+            "sourceColumn": "chave_produto",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "chave_produto",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "sk_produto",
+            "dataType": "int64",
+            "sourceColumn": "sk_produto",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "sk_produto",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "{{Partition_Name}}",
+            "mode": "directLake",
+            "source": {
+              "type": "entity",
+              "entityName": "dim_produto",
+              "expressionSource": "DatabaseQuery",
+              "schemaName": "dbo"
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "IsTableInBiModel",
+            "value": "False"
+          }
+        ]
+      },
+      {
+        "name": "etl_watermark_control",
+        "sourceLineageTag": "[dbo].[etl_watermark_control]",
+        "columns": [
+          {
+            "name": "PipelineName",
+            "dataType": "string",
+            "sourceColumn": "PipelineName",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "PipelineName",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "LastWatermarkValue",
+            "dataType": "dateTime",
+            "sourceColumn": "LastWatermarkValue",
+            "formatString": "General Date",
+            "sourceProviderType": "datetime2",
+            "sourceLineageTag": "LastWatermarkValue",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "{{Partition_Name}}",
+            "mode": "directLake",
+            "source": {
+              "type": "entity",
+              "entityName": "etl_watermark_control",
+              "expressionSource": "DatabaseQuery",
+              "schemaName": "dbo"
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "IsTableInBiModel",
+            "value": "False"
+          }
+        ]
+      },
+      {
+        "name": "fato_metas",
+        "sourceLineageTag": "[dbo].[fato_metas]",
+        "columns": [
+          {
+            "name": "sk_data",
+            "dataType": "int64",
+            "sourceColumn": "sk_data",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "sk_data",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "sk_empresa",
+            "dataType": "int64",
+            "sourceColumn": "sk_empresa",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "sk_empresa",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "sk_plataforma",
+            "dataType": "int64",
+            "sourceColumn": "sk_plataforma",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "sk_plataforma",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "vop_meta",
+            "dataType": "int64",
+            "sourceColumn": "vop_meta",
+            "formatString": "0",
+            "sourceProviderType": "bigint",
+            "sourceLineageTag": "vop_meta",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "{{Partition_Name}}",
+            "mode": "directLake",
+            "source": {
+              "type": "entity",
+              "entityName": "fato_metas",
+              "expressionSource": "DatabaseQuery",
+              "schemaName": "dbo"
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "IsTableInBiModel",
+            "value": "False"
+          }
+        ]
+      },
+      {
+        "name": "fato_operacoes",
+        "sourceLineageTag": "[dbo].[fato_operacoes]",
+        "columns": [
+          {
+            "name": "cod_operacao",
+            "dataType": "int64",
+            "sourceColumn": "cod_operacao",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_operacao",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "data_inclusao",
+            "dataType": "dateTime",
+            "sourceColumn": "data_inclusao",
+            "formatString": "General Date",
+            "sourceProviderType": "date",
+            "sourceLineageTag": "data_inclusao",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "tarifas_de_operacao",
+            "dataType": "double",
+            "sourceColumn": "tarifas_de_operacao",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "tarifas_de_operacao",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "vop",
+            "dataType": "double",
+            "sourceColumn": "vop",
+            "sourceProviderType": "float",
+            "sourceLineageTag": "vop",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "chave_produto",
+            "dataType": "string",
+            "sourceColumn": "chave_produto",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "chave_produto",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "tac_mesa",
+            "dataType": "double",
+            "sourceColumn": "tac_mesa",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "tac_mesa",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "{{Partition_Name}}",
+            "mode": "directLake",
+            "source": {
+              "type": "entity",
+              "entityName": "fato_operacoes",
+              "expressionSource": "DatabaseQuery",
+              "schemaName": "dbo"
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "IsTableInBiModel",
+            "value": "False"
+          }
+        ]
+      },
+      {
+        "name": "fato_operacoes_recompra",
+        "sourceLineageTag": "[dbo].[fato_operacoes_recompra]",
+        "columns": [
+          {
+            "name": "cod_operacao",
+            "dataType": "int64",
+            "sourceColumn": "cod_operacao",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_operacao",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cod_empresa",
+            "dataType": "int64",
+            "sourceColumn": "cod_empresa",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_empresa",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cod_cliente",
+            "dataType": "int64",
+            "sourceColumn": "cod_cliente",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_cliente",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cpf_cnpj_cliente",
+            "dataType": "string",
+            "sourceColumn": "cpf_cnpj_cliente",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "cpf_cnpj_cliente",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "usua_st_analise",
+            "dataType": "int64",
+            "sourceColumn": "usua_st_analise",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "usua_st_analise",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "data_analise",
+            "dataType": "dateTime",
+            "sourceColumn": "data_analise",
+            "formatString": "General Date",
+            "sourceProviderType": "datetime2",
+            "sourceLineageTag": "data_analise",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cpf_cnpj_cedente",
+            "dataType": "string",
+            "sourceColumn": "cpf_cnpj_cedente",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "cpf_cnpj_cedente",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "valor",
+            "dataType": "double",
+            "sourceColumn": "valor",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "valor",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "amortizacoes",
+            "dataType": "double",
+            "sourceColumn": "amortizacoes",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "amortizacoes",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "liquidacao",
+            "dataType": "dateTime",
+            "sourceColumn": "liquidacao",
+            "formatString": "General Date",
+            "sourceProviderType": "datetime2",
+            "sourceLineageTag": "liquidacao",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "tto",
+            "dataType": "string",
+            "sourceColumn": "tto",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "tto",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "operacao_informal",
+            "dataType": "boolean",
+            "sourceColumn": "operacao_informal",
+            "formatString": "\"TRUE\";\"TRUE\";\"FALSE\"",
+            "sourceProviderType": "bit",
+            "sourceLineageTag": "operacao_informal",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cod_gerente",
+            "dataType": "int64",
+            "sourceColumn": "cod_gerente",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_gerente",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cod_titulo",
+            "dataType": "int64",
+            "sourceColumn": "cod_titulo",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_titulo",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "n_doc",
+            "dataType": "string",
+            "sourceColumn": "n_doc",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "n_doc",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cpf_cnpj_sacado",
+            "dataType": "string",
+            "sourceColumn": "cpf_cnpj_sacado",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "cpf_cnpj_sacado",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "data_inclusao",
+            "dataType": "dateTime",
+            "sourceColumn": "data_inclusao",
+            "formatString": "General Date",
+            "sourceProviderType": "datetime2",
+            "sourceLineageTag": "data_inclusao",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "usua_inclusao",
+            "dataType": "int64",
+            "sourceColumn": "usua_inclusao",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "usua_inclusao",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "data_alteracao",
+            "dataType": "dateTime",
+            "sourceColumn": "data_alteracao",
+            "formatString": "General Date",
+            "sourceProviderType": "datetime2",
+            "sourceLineageTag": "data_alteracao",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "nota_servico",
+            "dataType": "string",
+            "sourceColumn": "nota_servico",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "nota_servico",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "contrato_fisico",
+            "dataType": "string",
+            "sourceColumn": "contrato_fisico",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "contrato_fisico",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "n_bordero",
+            "dataType": "int64",
+            "sourceColumn": "n_bordero",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "n_bordero",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "n_docs_recompra",
+            "dataType": "int64",
+            "sourceColumn": "n_docs_recompra",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "n_docs_recompra",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "pmp",
+            "dataType": "double",
+            "sourceColumn": "pmp",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "pmp",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "tot_adval",
+            "dataType": "double",
+            "sourceColumn": "tot_adval",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "tot_adval",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "tot_tar",
+            "dataType": "double",
+            "sourceColumn": "tot_tar",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "tot_tar",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "nota_fiscal",
+            "dataType": "int64",
+            "sourceColumn": "nota_fiscal",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "nota_fiscal",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "usua_trava",
+            "dataType": "int64",
+            "sourceColumn": "usua_trava",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "usua_trava",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "data_aceite",
+            "dataType": "dateTime",
+            "sourceColumn": "data_aceite",
+            "formatString": "General Date",
+            "sourceProviderType": "datetime2",
+            "sourceLineageTag": "data_aceite",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "stto",
+            "dataType": "string",
+            "sourceColumn": "stto",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "stto",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "fator",
+            "dataType": "double",
+            "sourceColumn": "fator",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "fator",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "tarifa",
+            "dataType": "double",
+            "sourceColumn": "tarifa",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "tarifa",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "tarifa_recompra",
+            "dataType": "double",
+            "sourceColumn": "tarifa_recompra",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "tarifa_recompra",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "n_docs",
+            "dataType": "int64",
+            "sourceColumn": "n_docs",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "n_docs",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "{{Partition_Name}}",
+            "mode": "directLake",
+            "source": {
+              "type": "entity",
+              "entityName": "fato_operacoes_recompra",
+              "expressionSource": "DatabaseQuery",
+              "schemaName": "dbo"
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "IsTableInBiModel",
+            "value": "False"
+          }
+        ]
+      }
+    ],
+    "expressions": [
+      {
+        "name": "DatabaseQuery",
+        "kind": "m",
+        "expression": "let\n    database = {{TDS_Endpoint}}\nin\n    database\n"
+      }
+    ],
+    "annotations": [
+      {
+        "name": "__PBI_TimeIntelligenceEnabled",
+        "value": "0"
+      },
+      {
+        "name": "SourceLineageTagType",
+        "value": "DatabaseFullyQualifiedName"
+      }
+    ]
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Fato_Operacoes_Gold",
+  "queryGroups": [
+    {
+      "id": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "name": "00 - Sources"
+    },
+    {
+      "id": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "name": "01 - Staging"
+    },
+    {
+      "id": "bb223f31-68fb-4c2b-91a2-b2faceee308b",
+      "name": "02 - Dimensions"
+    },
+    {
+      "id": "b70d4e2b-623f-4e46-8b18-aa4640143e4a",
+      "name": "03 - Fact"
+    }
+  ],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "staging_titulos": {
+      "queryId": "569eaae1-e007-49f5-ab6f-71baf9b358a7",
+      "queryName": "staging_titulos",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "staging_tac_m": {
+      "queryId": "17ec1a14-39a7-4f59-9b95-3f4307ca35cb",
+      "queryName": "staging_tac_m",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "staging_operacoes": {
+      "queryId": "da19b422-4d56-4115-839a-f58f8f193519",
+      "queryName": "staging_operacoes",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "fato_operacoes": {
+      "queryId": "f2a24c56-089c-4b21-9d6f-7e8c3e8a4a51",
+      "queryName": "fato_operacoes",
+      "queryGroupId": "b70d4e2b-623f-4e46-8b18-aa4640143e4a"
+    },
+    "staging_operacoes_recompras": {
+      "queryId": "021660a3-c829-4119-90df-883e266a501c",
+      "queryName": "staging_operacoes_recompras",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
+    },
+    "staging_titulos_boletos": {
+      "queryId": "a3003cc4-1f68-4084-ac88-50191df075be",
+      "queryName": "staging_titulos_boletos",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
+    },
+    "fato_operacoes_recompra": {
+      "queryId": "9d190332-2384-44e9-8a7f-36d381ac72c3",
+      "queryName": "fato_operacoes_recompra",
+      "queryGroupId": "b70d4e2b-623f-4e46-8b18-aa4640143e4a"
+    },
+    "fato_operacoes_recompra_DataDestination": {
+      "queryId": "a4b631c5-4340-434e-8601-3ca1dbf3646a",
+      "queryName": "fato_operacoes_recompra_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "fato_operacoes_DataDestination": {
+      "queryId": "2779d3bc-241f-439e-aca9-86af21c99e6d",
+      "queryName": "fato_operacoes_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    },
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"01775304-8871-4350-8cfd-17ec16ba0c06\"}"
+    }
+  ]
+}
