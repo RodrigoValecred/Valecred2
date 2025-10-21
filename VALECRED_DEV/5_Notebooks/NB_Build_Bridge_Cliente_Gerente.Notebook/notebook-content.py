@@ -126,13 +126,12 @@ runner.run(suite)
 # MARKDOWN ********************
 
 # ## Bug Report
-
 # * **File:** `VALECRED_DEV/5_Notebooks/NB_Build_Bridge_Cliente_Gerente.Notebook/notebook-content.py`
 # * **Line:** Cell 4
 # * **Description:** The original code used `lag("DataInicioVigencia", -1, "9999-12-31")` to calculate the end date of a customer-manager relationship. This is a non-standard use of the `lag` function to look ahead in a window partition. The standard and correct function for this is `lead("DataInicioVigencia", 1, "9999-12-31")`. This incorrect usage caused a bug where relationships starting after the 9th of the month were not being correctly terminated, leaving their `DataFimVigencia` as `'9999-12-31'`.
 # * **Fix:** Replaced `lag` with `lead` to correctly calculate the end date.
-
 # ## Célula 2: Leitura e União dos Dados Brutos
+
 
 # CELL ********************
 

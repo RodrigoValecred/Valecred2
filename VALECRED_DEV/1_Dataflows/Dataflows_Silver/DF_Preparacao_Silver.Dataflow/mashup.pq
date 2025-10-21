@@ -329,9 +329,10 @@ shared source_tab_operacoes = let
   Origem = Lakehouse.Contents(null),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
   #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
-  #"Navegação 2" = #"Navegação 1"{[Id = "staging_operacoes_limpa", ItemKind = "Table"]}[Data]
+  #"Navegação 2" = #"Navegação 1"{[Id = "staging_operacoes_limpa", ItemKind = "Table"]}[Data],
+  #"Linhas classificadas" = Table.Sort(#"Navegação 2", {{"DATAANALISE", Order.Descending}})
 in
-  #"Navegação 2";
+  #"Linhas classificadas";
 shared sup_status_de_clientes_da_esteira = let
   Origem = Lakehouse.Contents(null),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],

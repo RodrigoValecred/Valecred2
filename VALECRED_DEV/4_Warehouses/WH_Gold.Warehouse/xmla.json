@@ -516,6 +516,34 @@
                 "value": "{\"isGeneralNumber\":true}"
               }
             ]
+          },
+          {
+            "name": "desagio",
+            "dataType": "decimal",
+            "sourceColumn": "desagio",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "desagio",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "total_tarifas",
+            "dataType": "decimal",
+            "sourceColumn": "total_tarifas",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "total_tarifas",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
           }
         ],
         "partitions": [

@@ -3,11 +3,9 @@ shared staging_titulos = let
   Origem = Lakehouse.Contents([]),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
   #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
-  #"Navegação 2" = #"Navegação 1"{[Id = "staging_titulos", ItemKind = "Table"]}[Data],
-  #"Linhas classificadas" = Table.Sort(#"Navegação 2", {{"cod_titulo", Order.Descending}}),
-  #"Duplicatas removidas" = Table.Distinct(#"Linhas classificadas", {"cod_titulo"})
+  #"Navegação 2" = #"Navegação 1"{[Id = "staging_titulos", ItemKind = "Table"]}[Data]
 in
-  #"Duplicatas removidas";
+  #"Navegação 2";
 shared staging_tac_m = let
   Origem = Lakehouse.Contents(null),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -22,7 +20,7 @@ shared staging_operacoes = let
   #"Navegação 1" = Navegação{[Id = "staging_operacoes", ItemKind = "Table"]}[Data]
 in
     #"Navegação 1";
-[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "fato_operacoes_DataDestination", IsNewTarget = false], Settings = [Kind = "Manual", AllowCreation = false, ColumnSettings = [Mappings = {[SourceColumnName = "cod_operacao", DestinationColumnName = "cod_operacao"], [SourceColumnName = "data_analise", DestinationColumnName = "data_inclusao"], [SourceColumnName = "tarifas_de_operacao", DestinationColumnName = "tarifas_de_operacao"], [SourceColumnName = "vop", DestinationColumnName = "vop"], [SourceColumnName = "chave_produto", DestinationColumnName = "chave_produto"], [SourceColumnName = "tac_mesa", DestinationColumnName = "tac_mesa"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "fato_operacoes_DataDestination", IsNewTarget = false], Settings = [Kind = "Manual", AllowCreation = false, ColumnSettings = [Mappings = {[SourceColumnName = "cod_operacao", DestinationColumnName = "cod_operacao"], [SourceColumnName = "data_analise", DestinationColumnName = "data_inclusao"], [SourceColumnName = "tarifas_de_operacao", DestinationColumnName = "tarifas_de_operacao"], [SourceColumnName = "vop", DestinationColumnName = "vop"], [SourceColumnName = "chave_produto", DestinationColumnName = "chave_produto"], [SourceColumnName = "tac_mesa", DestinationColumnName = "tac_mesa"], [SourceColumnName = "desagio", DestinationColumnName = "desagio"], [SourceColumnName = "total_tarifas", DestinationColumnName = "total_tarifas"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
 shared fato_operacoes = let
     // 1. Pré-agregar Títulos para evitar fan-out
     FonteTitulos = staging_titulos,
@@ -37,7 +35,7 @@ shared fato_operacoes = let
 
     // 3. Juntar Operações com Títulos Agregados
     JuntarOperacoesTitulos = Table.NestedJoin(ColunasOperacoes, {"cod_operacao"}, GrupoTitulos, {"cod_operacao"}, "TitulosAgregados", JoinKind.Inner),
-    ExpandirTitulos = Table.ExpandTableColumn(JuntarOperacoesTitulos, "TitulosAgregados", {"vop"}, {"vop"}),
+    ExpandirTitulos = Table.ExpandTableColumn(JuntarOperacoesTitulos, "TitulosAgregados", {"vop","desagio"}, {"vop","desagio"}),
 
     // 4. Adicionar Dimensões
     AdicionarChaveProduto = Table.AddColumn(ExpandirTitulos, "chave_produto", each Text.Combine({[tto], [stto]}), type text),
@@ -48,9 +46,13 @@ shared fato_operacoes = let
   #"Colunas renomeadas" = Table.RenameColumns(#"Colunas removidas", {{"tot_tar", "tarifas_de_operacao"}}),
   #"Consultas mescladas" = Table.NestedJoin(#"Colunas renomeadas", {"cod_operacao"}, staging_tac_m, {"cod_operacao"}, "staging_tac_m", JoinKind.LeftOuter),
   #"Expandido staging_tac_m" = Table.ExpandTableColumn(#"Consultas mescladas", "staging_tac_m", {"total"}, {"tac_mesa"}),
-  #"Linhas classificadas" = Table.Sort(#"Expandido staging_tac_m", {{"data_analise", Order.Descending}})
+  #"Valor substituído" = Table.ReplaceValue(#"Expandido staging_tac_m", null, 0, Replacer.ReplaceValue, {"tac_mesa"}),
+  #"Linhas classificadas" = Table.Sort(#"Valor substituído", {{"data_analise", Order.Descending}}),
+  #"Personalização adicionada" = Table.AddColumn(#"Linhas classificadas", "tarifas_da_operacao", each [tarifas_de_operacao] - [tac_mesa]),
+  #"Tipo de coluna alterado" = Table.TransformColumnTypes(#"Personalização adicionada", {{"tarifas_da_operacao", type number}}),
+  #"Colunas renomeadas 1" = Table.RenameColumns(#"Tipo de coluna alterado", {{"tarifas_de_operacao", "total_tarifas"}, {"tarifas_da_operacao", "tarifas_de_operacao"}})
 in
-    #"Linhas classificadas";
+    #"Colunas renomeadas 1";
 shared staging_operacoes_recompras = let
   Origem = staging_operacoes,
   #"Linhas filtradas" = Table.SelectRows(Origem, each ([tto] = "RC" or [tto] = "RE") and ([status_analise] = "D")),

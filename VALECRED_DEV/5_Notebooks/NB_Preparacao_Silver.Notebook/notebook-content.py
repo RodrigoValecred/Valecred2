@@ -81,7 +81,6 @@ import datetime
 
 # ## Seção 11: Teste de Verificação da Correção do Watermark
 # **Objetivo:** Esta seção contém um teste automatizado para verificar a correção do bug no cálculo do watermark. O teste simula o cenário problemático e valida que a nova lógica funciona como esperado.
-#
 # **Cenário de Teste:**
 # 1.  **Carga Inicial:** Simula uma primeira carga com um registro datado de `2024-01-01`. O watermark inicial é `1900-01-01`.
 # 2.  **Verificação da Carga Inicial:** O teste verifica se o watermark avança corretamente para `2024-01-01`.
@@ -89,6 +88,7 @@ import datetime
 # 4.  **Verificação da Correção:**
 #     - **Com a lógica antiga (bug):** O watermark não avançaria, permanecendo em `2024-01-01`, pois `max(DATAINCLUSAO)` não mudou.
 #     - **Com a lógica nova (corrigida):** O teste afirma que o watermark deve avançar para a `DATAALTERACAO` (`2024-02-01`), provando que o bug foi corrigido.
+
 
 # CELL ********************
 
@@ -182,6 +182,13 @@ suite = unittest.TestSuite()
 suite.addTest(unittest.makeSuite(TestWatermarkBugFix))
 runner = unittest.TextTestRunner()
 runner.run(suite)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # MARKDOWN ********************
 
@@ -673,16 +680,13 @@ print(f"Tabela 'fato_baixas' construída e salva com sucesso em: {output_path_fa
 
 #  ## Seção 8: Processamento Incremental de Pareceres
 #  **Objetivo:** Processar a tabela `cad_geral_pareceres` de forma incremental para evitar timeouts e problemas de performance. A tabela `esteira_de_propostas` é reconstruída a cada execução a partir dos dados atualizados.
-#
 #  ---
 #  ### **Relatório de Bug e Correção**
-#
 #  **Bug Identificado:** A lógica de carga incremental original continha um erro no cálculo do *watermark* (a data de controle para processar novos dados). O watermark estava sendo calculado usando apenas o `max(DATAINCLUSAO)`, ignorando a `DATAALTERACAO`.
-#
 #  **Impacto:** Se um registro antigo fosse alterado, sua `DATAALTERACAO` seria atualizada, mas a `DATAINCLUSAO` permaneceria a mesma. Como resultado, o watermark não avançava, e o mesmo registro alterado era reprocessado a cada execução do notebook, causando ineficiência e consumo desnecessário de recursos.
-#
 #  **Correção Aplicada:** A lógica foi alterada para calcular o novo watermark com base na data mais recente entre `DATAINCLUSAO` e `DATAALTERACAO` para cada registro. Isso foi implementado usando a função `greatest(coalesce(DATAINCLUSAO), coalesce(DATAALTERACAO))`, garantindo que tanto novos registros quanto registros atualizados avancem o watermark corretamente.
 #  ---
+
 
 # CELL ********************
 
