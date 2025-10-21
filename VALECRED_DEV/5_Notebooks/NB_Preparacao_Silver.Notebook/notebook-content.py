@@ -63,7 +63,7 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max
+    lead, date_add, lag, max, coalesce
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from functools import reduce
@@ -76,6 +76,112 @@ import datetime
 # META   "language": "python",
 # META   "language_group": "synapse_pyspark"
 # META }
+
+# MARKDOWN ********************
+
+# ## Seção 11: Teste de Verificação da Correção do Watermark
+# **Objetivo:** Esta seção contém um teste automatizado para verificar a correção do bug no cálculo do watermark. O teste simula o cenário problemático e valida que a nova lógica funciona como esperado.
+#
+# **Cenário de Teste:**
+# 1.  **Carga Inicial:** Simula uma primeira carga com um registro datado de `2024-01-01`. O watermark inicial é `1900-01-01`.
+# 2.  **Verificação da Carga Inicial:** O teste verifica se o watermark avança corretamente para `2024-01-01`.
+# 3.  **Carga Incremental com Atualização:** Simula uma segunda carga onde o mesmo registro é *atualizado* em `2024-02-01` (`DATAALTERACAO`), mas sua data de criação (`DATAINCLUSAO`) permanece `2024-01-01`.
+# 4.  **Verificação da Correção:**
+#     - **Com a lógica antiga (bug):** O watermark não avançaria, permanecendo em `2024-01-01`, pois `max(DATAINCLUSAO)` não mudou.
+#     - **Com a lógica nova (corrigida):** O teste afirma que o watermark deve avançar para a `DATAALTERACAO` (`2024-02-01`), provando que o bug foi corrigido.
+
+# CELL ********************
+
+import unittest
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, StringType, TimestampType, IntegerType
+import datetime
+
+# Função de processamento incremental refatorada e corrigida
+def process_incremental_pareceres_fixed(spark, df_pareceres_raw, last_watermark):
+    """
+    Processa um DataFrame de pareceres de forma incremental, aplicando a lógica de
+    cálculo de watermark corrigida.
+    """
+    df_pareceres_incremental = df_pareceres_raw.filter(
+        (col("DATAINCLUSAO") > last_watermark) | (col("DATAALTERACAO") > last_watermark)
+    )
+
+    record_count = df_pareceres_incremental.count()
+
+    if record_count > 0:
+        new_watermark_df = df_pareceres_incremental.withColumn(
+            "latest_date",
+            greatest(
+                coalesce(col("DATAINCLUSAO"), lit(datetime.datetime(1900, 1, 1))),
+                coalesce(col("DATAALTERACAO"), lit(datetime.datetime(1900, 1, 1)))
+            )
+        ).agg(max("latest_date").alias("NewWatermark"))
+        new_watermark = new_watermark_df.collect()[0]["NewWatermark"]
+    else:
+        new_watermark = last_watermark
+
+    return new_watermark, record_count
+
+
+class TestWatermarkBugFix(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.spark = SparkSession.builder.appName("WatermarkTest").getOrCreate()
+
+    def test_watermark_advances_on_updated_records(self):
+        """
+        Valida que o watermark avança corretamente quando um registro antigo é atualizado.
+        """
+        # --- Estrutura dos dados de teste ---
+        schema = StructType([
+            StructField("CODPARECER", IntegerType(), True),
+            StructField("DATAINCLUSAO", TimestampType(), True),
+            StructField("DATAALTERACAO", TimestampType(), True)
+        ])
+
+        # --- Cenário 1: Carga Inicial ---
+        initial_load_data = [(1, datetime.datetime(2024, 1, 1, 10, 0, 0), datetime.datetime(2024, 1, 1, 10, 0, 0))]
+        df_initial = self.spark.createDataFrame(initial_load_data, schema)
+
+        # Watermark inicial muito antigo
+        watermark_run1 = datetime.datetime(1900, 1, 1)
+
+        # Executa o processamento
+        new_watermark_run1, count_run1 = process_incremental_pareceres_fixed(self.spark, df_initial, watermark_run1)
+
+        print(f"Execução 1: Watermark Inicial = {watermark_run1}, Registros Processados = {count_run1}, Novo Watermark = {new_watermark_run1}")
+        self.assertEqual(count_run1, 1)
+        self.assertEqual(new_watermark_run1, datetime.datetime(2024, 1, 1, 10, 0, 0))
+
+        # --- Cenário 2: Carga Incremental com Registro Atualizado ---
+        # O mesmo registro agora tem uma DATAALTERACAO mais recente
+        updated_load_data = [(1, datetime.datetime(2024, 1, 1, 10, 0, 0), datetime.datetime(2024, 2, 1, 12, 0, 0))]
+        df_updated = self.spark.createDataFrame(updated_load_data, schema)
+
+        # O watermark agora é o da primeira execução
+        watermark_run2 = new_watermark_run1
+
+        # Executa o processamento com a lógica corrigida
+        new_watermark_run2, count_run2 = process_incremental_pareceres_fixed(self.spark, df_updated, watermark_run2)
+
+        print(f"Execução 2: Watermark Inicial = {watermark_run2}, Registros Processados = {count_run2}, Novo Watermark = {new_watermark_run2}")
+
+        # Verificações
+        self.assertEqual(count_run2, 1, "O registro atualizado deveria ter sido processado.")
+
+        # Esta é a asserção chave que falharia com a lógica antiga e passa com a nova.
+        # A lógica antiga retornaria `2024-01-01` como novo watermark, pois `max(DATAINCLUSAO)` não mudou.
+        self.assertEqual(new_watermark_run2, datetime.datetime(2024, 2, 1, 12, 0, 0), "O watermark deveria ter avançado para a DATAALTERACAO.")
+        print("\nTeste concluído com sucesso. A lógica de watermark corrigida funciona como esperado.")
+
+
+# Executar os testes
+suite = unittest.TestSuite()
+suite.addTest(unittest.makeSuite(TestWatermarkBugFix))
+runner = unittest.TextTestRunner()
+runner.run(suite)
 
 # MARKDOWN ********************
 
@@ -567,6 +673,16 @@ print(f"Tabela 'fato_baixas' construída e salva com sucesso em: {output_path_fa
 
 #  ## Seção 8: Processamento Incremental de Pareceres
 #  **Objetivo:** Processar a tabela `cad_geral_pareceres` de forma incremental para evitar timeouts e problemas de performance. A tabela `esteira_de_propostas` é reconstruída a cada execução a partir dos dados atualizados.
+#
+#  ---
+#  ### **Relatório de Bug e Correção**
+#
+#  **Bug Identificado:** A lógica de carga incremental original continha um erro no cálculo do *watermark* (a data de controle para processar novos dados). O watermark estava sendo calculado usando apenas o `max(DATAINCLUSAO)`, ignorando a `DATAALTERACAO`.
+#
+#  **Impacto:** Se um registro antigo fosse alterado, sua `DATAALTERACAO` seria atualizada, mas a `DATAINCLUSAO` permaneceria a mesma. Como resultado, o watermark não avançava, e o mesmo registro alterado era reprocessado a cada execução do notebook, causando ineficiência e consumo desnecessário de recursos.
+#
+#  **Correção Aplicada:** A lógica foi alterada para calcular o novo watermark com base na data mais recente entre `DATAINCLUSAO` e `DATAALTERACAO` para cada registro. Isso foi implementado usando a função `greatest(coalesce(DATAINCLUSAO), coalesce(DATAALTERACAO))`, garantindo que tanto novos registros quanto registros atualizados avancem o watermark corretamente.
+#  ---
 
 # CELL ********************
 
@@ -610,7 +726,18 @@ df_pareceres_incremental = df_pareceres_raw.filter(
 record_count = df_pareceres_incremental.count()
 
 if record_count > 0:
-    new_watermark_df = df_pareceres_incremental.agg(max("DATAINCLUSAO").alias("NewWatermark"))
+        # CORREÇÃO: Usa a função `greatest` para considerar a maior data entre
+        # `DATAINCLUSAO` e `DATAALTERACAO` para o cálculo do novo watermark.
+        # Isso corrige o bug que impedia o avanço do watermark quando apenas
+        # registros antigos eram atualizados.
+        new_watermark_df = df_pareceres_incremental.withColumn(
+            "latest_date",
+            greatest(
+                coalesce(col("DATAINCLUSAO"), lit(datetime.datetime(1900, 1, 1))),
+                coalesce(col("DATAALTERACAO"), lit(datetime.datetime(1900, 1, 1)))
+            )
+        ).agg(max("latest_date").alias("NewWatermark"))
+
     new_watermark = new_watermark_df.collect()[0]["NewWatermark"]
     print(f"Leitura incremental concluída. {record_count} registros a serem processados.")
     print(f"Novo watermark a ser gravado: {new_watermark}")
