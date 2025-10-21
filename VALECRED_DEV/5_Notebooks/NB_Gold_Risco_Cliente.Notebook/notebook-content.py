@@ -60,7 +60,8 @@ df_operacoes = df_operacoes.withColumnRenamed("TTO", "TTO_OPERACAO")
 df_mestra_spark = df_titulos.join(df_operacoes, on="CODOPERACAO", how="left")
 
 # Join com a dimensão de cliente para obter o CODCLIENTE
-df_mestra_spark = df_mestra_spark.join(df_cedentes.select("CODCLIENTE", "CPFCNPJ"), on="CODCLIENTE", how="left")
+df_cedentes_deduplicado = df_cedentes.dropDuplicates(["CODCLIENTE"])
+df_mestra_spark = df_mestra_spark.join(df_cedentes_deduplicado.select("CODCLIENTE", "CPFCNPJ"), on="CODCLIENTE", how="left")
 
 # METADATA ********************
 
