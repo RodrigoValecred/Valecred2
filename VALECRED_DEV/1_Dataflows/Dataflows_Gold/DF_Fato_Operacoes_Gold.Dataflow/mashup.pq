@@ -3,9 +3,11 @@ shared staging_titulos = let
   Origem = Lakehouse.Contents([]),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
   #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
-  #"Navegação 2" = #"Navegação 1"{[Id = "staging_titulos", ItemKind = "Table"]}[Data]
+  #"Navegação 2" = #"Navegação 1"{[Id = "staging_titulos", ItemKind = "Table"]}[Data],
+  #"Linhas classificadas" = Table.Sort(#"Navegação 2", {{"cod_titulo", Order.Descending}}),
+  #"Duplicatas removidas" = Table.Distinct(#"Linhas classificadas", {"cod_titulo"})
 in
-  #"Navegação 2";
+  #"Duplicatas removidas";
 shared staging_tac_m = let
   Origem = Lakehouse.Contents(null),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -29,7 +31,8 @@ shared fato_operacoes = let
 
     // 2. Filtrar Operações
     FonteOperacoes = staging_operacoes,
-    FiltroOperacoes = Table.SelectRows(FonteOperacoes, each [status_aceite] = "A" and [status_analise] = "D" ),
+  #"Linhas filtradas" = Table.SelectRows(FonteOperacoes, each ([tto] = "CM" or [tto] = "FC" or [tto] = "GR" or [tto] = "NO")),
+    FiltroOperacoes = Table.SelectRows(#"Linhas filtradas", each [status_aceite] = "A" and [status_analise] = "D" ),
     ColunasOperacoes = Table.SelectColumns(FiltroOperacoes, {"cod_operacao", "data_analise", "tto", "stto","tot_tar"}),
 
     // 3. Juntar Operações com Títulos Agregados
@@ -44,9 +47,10 @@ shared fato_operacoes = let
   #"Colunas removidas" = Table.RemoveColumns(AlterarTipoData, {"tto", "stto"}),
   #"Colunas renomeadas" = Table.RenameColumns(#"Colunas removidas", {{"tot_tar", "tarifas_de_operacao"}}),
   #"Consultas mescladas" = Table.NestedJoin(#"Colunas renomeadas", {"cod_operacao"}, staging_tac_m, {"cod_operacao"}, "staging_tac_m", JoinKind.LeftOuter),
-  #"Expandido staging_tac_m" = Table.ExpandTableColumn(#"Consultas mescladas", "staging_tac_m", {"total"}, {"tac_mesa"})
+  #"Expandido staging_tac_m" = Table.ExpandTableColumn(#"Consultas mescladas", "staging_tac_m", {"total"}, {"tac_mesa"}),
+  #"Linhas classificadas" = Table.Sort(#"Expandido staging_tac_m", {{"data_analise", Order.Descending}})
 in
-    #"Expandido staging_tac_m";
+    #"Linhas classificadas";
 shared staging_operacoes_recompras = let
   Origem = staging_operacoes,
   #"Linhas filtradas" = Table.SelectRows(Origem, each ([tto] = "RC" or [tto] = "RE") and ([status_analise] = "D")),
