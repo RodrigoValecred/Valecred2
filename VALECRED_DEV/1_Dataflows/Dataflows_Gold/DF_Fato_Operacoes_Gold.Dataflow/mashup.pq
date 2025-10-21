@@ -20,12 +20,16 @@ shared staging_operacoes = let
   #"Navegação 1" = Navegação{[Id = "staging_operacoes", ItemKind = "Table"]}[Data]
 in
     #"Navegação 1";
-[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "fato_operacoes_DataDestination", IsNewTarget = false], Settings = [Kind = "Manual", AllowCreation = false, ColumnSettings = [Mappings = {[SourceColumnName = "cod_operacao", DestinationColumnName = "cod_operacao"], [SourceColumnName = "data_analise", DestinationColumnName = "data_inclusao"], [SourceColumnName = "tarifas_de_operacao", DestinationColumnName = "tarifas_de_operacao"], [SourceColumnName = "vop", DestinationColumnName = "vop"], [SourceColumnName = "chave_produto", DestinationColumnName = "chave_produto"], [SourceColumnName = "tac_mesa", DestinationColumnName = "tac_mesa"], [SourceColumnName = "desagio", DestinationColumnName = "desagio"], [SourceColumnName = "total_tarifas", DestinationColumnName = "total_tarifas"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "fato_operacoes_DataDestination", IsNewTarget = false], Settings = [Kind = "Manual", AllowCreation = false, ColumnSettings = [Mappings = {[SourceColumnName = "cod_operacao", DestinationColumnName = "cod_operacao"], [SourceColumnName = "data_analise", DestinationColumnName = "data_inclusao"], [SourceColumnName = "tarifas_de_operacao", DestinationColumnName = "tarifas_de_operacao"], [SourceColumnName = "vop", DestinationColumnName = "vop"], [SourceColumnName = "chave_produto", DestinationColumnName = "chave_produto"], [SourceColumnName = "tac_mesa", DestinationColumnName = "tac_mesa"], [SourceColumnName = "desagio", DestinationColumnName = "desagio"], [SourceColumnName = "total_tarifas", DestinationColumnName = "total_tarifas"], [SourceColumnName = "valor_x_prazo", DestinationColumnName = "valor_x_prazo"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
 shared fato_operacoes = let
     // 1. Pré-agregar Títulos para evitar fan-out
     FonteTitulos = staging_titulos,
     FiltroTitulos = Table.SelectRows(FonteTitulos, each [aceito] = "S" and [t_doc] <> "BL"),
-    GrupoTitulos = Table.Group(FiltroTitulos, {"cod_operacao"}, {{"vop", each List.Sum([valor]), type number},{"desagio", each List.Sum([desagio]), type number}}),
+  #"Personalização adicionada 1" = Table.TransformColumnTypes(Table.AddColumn(FiltroTitulos, "valor_x_prazo", each [valor] * [prazo]), {{"valor_x_prazo", type number}}),
+    GrupoTitulos = Table.Group(#"Personalização adicionada 1", {"cod_operacao"}, {
+    {"vop", each List.Sum([valor]), type number},
+    {"desagio", each List.Sum([desagio]), type number},
+    {"valor_x_prazo", each List.Sum([valor_x_prazo]), type number }}),
 
     // 2. Filtrar Operações
     FonteOperacoes = staging_operacoes,
@@ -35,7 +39,7 @@ shared fato_operacoes = let
 
     // 3. Juntar Operações com Títulos Agregados
     JuntarOperacoesTitulos = Table.NestedJoin(ColunasOperacoes, {"cod_operacao"}, GrupoTitulos, {"cod_operacao"}, "TitulosAgregados", JoinKind.Inner),
-    ExpandirTitulos = Table.ExpandTableColumn(JuntarOperacoesTitulos, "TitulosAgregados", {"vop","desagio"}, {"vop","desagio"}),
+    ExpandirTitulos = Table.ExpandTableColumn(JuntarOperacoesTitulos, "TitulosAgregados", {"vop","desagio","valor_x_prazo"}, {"vop","desagio","valor_x_prazo"}),
 
     // 4. Adicionar Dimensões
     AdicionarChaveProduto = Table.AddColumn(ExpandirTitulos, "chave_produto", each Text.Combine({[tto], [stto]}), type text),

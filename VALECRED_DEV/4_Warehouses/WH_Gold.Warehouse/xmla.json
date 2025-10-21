@@ -544,6 +544,20 @@
                 "value": "Automatic"
               }
             ]
+          },
+          {
+            "name": "valor_x_prazo",
+            "dataType": "decimal",
+            "sourceColumn": "valor_x_prazo",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "valor_x_prazo",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
           }
         ],
         "partitions": [

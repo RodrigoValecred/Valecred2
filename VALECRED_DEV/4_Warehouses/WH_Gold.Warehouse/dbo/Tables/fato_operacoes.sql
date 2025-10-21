@@ -7,5 +7,6 @@ CREATE TABLE [dbo].[fato_operacoes] (
 	[chave_produto] varchar(8000) NULL, 
 	[tac_mesa] decimal(38,6) NULL, 
 	[desagio] decimal(10,2) NULL, 
-	[total_tarifas] decimal(10,2) NULL
+	[total_tarifas] decimal(10,2) NULL, 
+	[valor_x_prazo] decimal(10,2) NULL
 );
