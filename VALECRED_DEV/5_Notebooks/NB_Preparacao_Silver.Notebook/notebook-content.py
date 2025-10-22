@@ -679,12 +679,15 @@ print(f"Tabela 'fato_baixas' construída e salva com sucesso em: {output_path_fa
 # MARKDOWN ********************
 
 #  ## Seção 8: Processamento Incremental de Pareceres
+# 
 #  **Objetivo:** Processar a tabela `cad_geral_pareceres` de forma incremental para evitar timeouts e problemas de performance. A tabela `esteira_de_propostas` é reconstruída a cada execução a partir dos dados atualizados.
-#  ---
-#  ### **Relatório de Bug e Correção**
-#  **Bug Identificado:** A lógica de carga incremental original continha um erro no cálculo do *watermark* (a data de controle para processar novos dados). O watermark estava sendo calculado usando apenas o `max(DATAINCLUSAO)`, ignorando a `DATAALTERACAO`.
-#  **Impacto:** Se um registro antigo fosse alterado, sua `DATAALTERACAO` seria atualizada, mas a `DATAINCLUSAO` permaneceria a mesma. Como resultado, o watermark não avançava, e o mesmo registro alterado era reprocessado a cada execução do notebook, causando ineficiência e consumo desnecessário de recursos.
-#  **Correção Aplicada:** A lógica foi alterada para calcular o novo watermark com base na data mais recente entre `DATAINCLUSAO` e `DATAALTERACAO` para cada registro. Isso foi implementado usando a função `greatest(coalesce(DATAINCLUSAO), coalesce(DATAALTERACAO))`, garantindo que tanto novos registros quanto registros atualizados avancem o watermark corretamente.
+# 
+# **Relatório de Bug e Correção**
+# 
+# **Bug Identificado:** A lógica de carga incremental original continha um erro no cálculo do *watermark* (a data de controle para processar novos dados). O watermark estava sendo calculado usando apenas o `max
+# (DATAINCLUSAO)`, ignorando a `DATAALTERACAO`.
+# **Impacto:** Se um registro antigo fosse alterado, sua `DATAALTERACAO` seria atualizada, mas a `DATAINCLUSAO` permaneceria a mesma. Como resultado, o watermark não avançava, e o mesmo registro alterado era reprocessado a cada execução do notebook, causando ineficiência e consumo desnecessário de recursos.
+# **Correção Aplicada:** A lógica foi alterada para calcular o novo watermark com base na data mais recente entre `DATAINCLUSAO` e `DATAALTERACAO` para cada registro. Isso foi implementado usando a função `greatest(coalesce(DATAINCLUSAO), coalesce(DATAALTERACAO))`, garantindo que tanto novos registros quanto registros atualizados avancem o watermark corretamente.
 #  ---
 
 
@@ -705,7 +708,12 @@ print(f"Lendo o watermark da tabela: {watermark_table_name}")
 try:
     df_watermark = spark.read.table(watermark_table_name)
     last_watermark_str = df_watermark.filter(col("TableName") == notebook_name).select("LastWatermarkValue").collect()[0][0]
-    last_watermark = datetime.datetime.strptime(last_watermark_str, "%Y-%m-%d %H:%M:%S.%f")
+    # Tenta fazer o parse com microsegundos, se falhar, tenta sem.
+    # Isso torna a leitura robusta a formatos de data salvos anteriormente.
+    try:
+        last_watermark = datetime.datetime.strptime(last_watermark_str, "%Y-%m-%d %H:%M:%S.%f")
+    except ValueError:
+        last_watermark = datetime.datetime.strptime(last_watermark_str, "%Y-%m-%d %H:%M:%S")
     print(f"Watermark encontrado: {last_watermark}")
 except Exception as e:
     last_watermark = datetime.datetime(1900, 1, 1)
@@ -742,9 +750,9 @@ if record_count > 0:
             )
         ).agg(max("latest_date").alias("NewWatermark"))
 
-    new_watermark = new_watermark_df.collect()[0]["NewWatermark"]
-    print(f"Leitura incremental concluída. {record_count} registros a serem processados.")
-    print(f"Novo watermark a ser gravado: {new_watermark}")
+        new_watermark = new_watermark_df.collect()[0]["NewWatermark"]
+        print(f"Leitura incremental concluída. {record_count} registros a serem processados.")
+        print(f"Novo watermark a ser gravado: {new_watermark}")
 else:
     new_watermark = last_watermark
     print("Nenhum dado novo encontrado. O processo continuará, pois as etapas subsequentes são projetadas para lidar com um dataframe vazio.")
@@ -827,7 +835,9 @@ print(f"Tabela final '{target_esteira_table_name}' reconstruída e salva com suc
 # Célula 8.7: Atualização do Watermark
 # -----------------------------------
 print(f"Atualizando o watermark para {new_watermark}...")
-new_watermark_data = [(notebook_name, str(new_watermark))]
+# Garante que o formato de data sempre incluirá os microsegundos
+new_watermark_str = new_watermark.strftime("%Y-%m-%d %H:%M:%S.%f")
+new_watermark_data = [(notebook_name, new_watermark_str)]
 df_new_watermark = spark.createDataFrame(new_watermark_data, ["TableName", "LastWatermarkValue"])
 if spark.catalog.tableExists(watermark_table_name):
     delta_watermark_table = DeltaTable.forName(spark, watermark_table_name)
