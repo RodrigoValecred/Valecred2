@@ -75,7 +75,7 @@ shared fato_operacoes_recompra = let
   Origem = Table.NestedJoin(staging_operacoes_recompras, {"cod_operacao"}, staging_titulos_boletos, {"cod_operacao"}, "fato_boletos", JoinKind.LeftOuter),
   #"Expandido fato_boletos" = Table.ExpandTableColumn(Origem, "fato_boletos", {"cod_titulo", "n_doc", "cpf_cnpj_sacado", "cpf_cnpj_cedente", "valor", "amortizacoes", "liquidacao"}, {"cod_titulo", "n_doc", "cpf_cnpj_sacado", "cpf_cnpj_cedente", "valor", "amortizacoes", "liquidacao"}),
   #"Colunas removidas" = Table.RemoveColumns(#"Expandido fato_boletos", {"status_analise", "status_aceite", "data_envio_email"}),
-  #"Personalização adicionada" = Table.AddColumn(#"Colunas removidas", "tarifas_de_recompra", each [tot_tar] / [n_docs_recompra])
+  #"Personalização adicionada" = Table.AddColumn(#"Colunas removidas", "tarifas_de_recompra", each if [n_docs_recompra] > 0 then [tot_tar] / [n_docs_recompra] else 0)
 in
   #"Personalização adicionada";
 shared fato_operacoes_recompra_DataDestination = let
