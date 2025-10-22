@@ -558,6 +558,20 @@
                 "value": "Automatic"
               }
             ]
+          },
+          {
+            "name": "pmp",
+            "dataType": "decimal",
+            "sourceColumn": "pmp",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "pmp",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
           }
         ],
         "partitions": [

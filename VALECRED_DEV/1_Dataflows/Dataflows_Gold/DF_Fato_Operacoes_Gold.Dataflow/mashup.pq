@@ -35,7 +35,7 @@ shared fato_operacoes = let
     FonteOperacoes = staging_operacoes,
   #"Linhas filtradas" = Table.SelectRows(FonteOperacoes, each ([tto] = "CM" or [tto] = "FC" or [tto] = "GR" or [tto] = "NO")),
     FiltroOperacoes = Table.SelectRows(#"Linhas filtradas", each [status_aceite] = "A" and [status_analise] = "D" ),
-    ColunasOperacoes = Table.SelectColumns(FiltroOperacoes, {"cod_operacao", "data_analise", "tto", "stto","tot_tar"}),
+    ColunasOperacoes = Table.SelectColumns(FiltroOperacoes, {"cod_operacao", "data_analise", "tto", "stto","tot_tar","pmp"}),
 
     // 3. Juntar Operações com Títulos Agregados
     JuntarOperacoesTitulos = Table.NestedJoin(ColunasOperacoes, {"cod_operacao"}, GrupoTitulos, {"cod_operacao"}, "TitulosAgregados", JoinKind.Inner),
