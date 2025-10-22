@@ -546,30 +546,38 @@
             ]
           },
           {
-            "name": "valor_x_prazo",
-            "dataType": "decimal",
-            "sourceColumn": "valor_x_prazo",
-            "sourceProviderType": "decimal",
-            "sourceLineageTag": "valor_x_prazo",
-            "summarizeBy": "sum",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
             "name": "pmp",
-            "dataType": "decimal",
+            "dataType": "double",
             "sourceColumn": "pmp",
-            "sourceProviderType": "decimal",
+            "sourceProviderType": "float",
             "sourceLineageTag": "pmp",
             "summarizeBy": "sum",
             "annotations": [
               {
                 "name": "SummarizationSetBy",
                 "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "valor_x_prazo",
+            "dataType": "double",
+            "sourceColumn": "valor_x_prazo",
+            "sourceProviderType": "float",
+            "sourceLineageTag": "valor_x_prazo",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
               }
             ]
           }
