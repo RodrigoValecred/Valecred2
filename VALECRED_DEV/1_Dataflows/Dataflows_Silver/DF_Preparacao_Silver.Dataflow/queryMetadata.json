@@ -57,7 +57,8 @@
     "staging_contratos_clientes": {
       "queryId": "b265797d-5032-4bdc-881c-02ddebe9f04b",
       "queryName": "staging_contratos_clientes",
-      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
     },
     "staging_eventos_protesto_limpa": {
       "queryId": "3eea59e2-2e06-4e8b-999d-6c01cc55a811",
@@ -67,7 +68,8 @@
     "staging_enderecos": {
       "queryId": "bff04b24-478a-43c0-948d-1e16de40ff27",
       "queryName": "staging_enderecos",
-      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
     },
     "staging_cad_geral": {
       "queryId": "18e5e382-50f7-4278-8f82-d7a01dbad49f",
@@ -121,6 +123,12 @@
     "source_cad_brokers": {
       "queryId": "d84d0e07-c888-413a-9526-dcb0498f1cfd",
       "queryName": "source_cad_brokers",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_clientes": {
+      "queryId": "77e3aa3b-2ad9-40dd-8651-cf4dfad105c8",
+      "queryName": "source_cad_clientes",
       "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
       "loadEnabled": false
     },
@@ -280,12 +288,6 @@
       "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
       "loadEnabled": false
     },
-    "source_cad_clientes": {
-      "queryId": "77e3aa3b-2ad9-40dd-8651-cf4dfad105c8",
-      "queryName": "source_cad_clientes",
-      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
-      "loadEnabled": false
-    },
     "staging_gerentes": {
       "queryId": "5918e9e3-f711-4284-9fae-1d8eddea8380",
       "queryName": "staging_gerentes",
@@ -329,6 +331,18 @@
     "staging_tac_m_DataDestination": {
       "queryId": "417ed6b5-e194-4572-8086-918382d12084",
       "queryName": "staging_tac_m_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staging_enderecos_DataDestination": {
+      "queryId": "007dfc45-8c3e-40d2-b545-9b7d67b078d6",
+      "queryName": "staging_enderecos_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staging_contratos_clientes_DataDestination": {
+      "queryId": "16fec8a1-0559-46be-bd4c-960ab27950a4",
+      "queryName": "staging_contratos_clientes_DataDestination",
       "isHidden": true,
       "loadEnabled": false
     }

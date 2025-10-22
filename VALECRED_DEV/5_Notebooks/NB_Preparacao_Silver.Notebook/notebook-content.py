@@ -681,14 +681,6 @@ print(f"Tabela 'fato_baixas' construída e salva com sucesso em: {output_path_fa
 #  ## Seção 8: Processamento Incremental de Pareceres
 # 
 #  **Objetivo:** Processar a tabela `cad_geral_pareceres` de forma incremental para evitar timeouts e problemas de performance. A tabela `esteira_de_propostas` é reconstruída a cada execução a partir dos dados atualizados.
-# 
-# **Relatório de Bug e Correção**
-# 
-# **Bug Identificado:** A lógica de carga incremental original continha um erro no cálculo do *watermark* (a data de controle para processar novos dados). O watermark estava sendo calculado usando apenas o `max
-# (DATAINCLUSAO)`, ignorando a `DATAALTERACAO`.
-# **Impacto:** Se um registro antigo fosse alterado, sua `DATAALTERACAO` seria atualizada, mas a `DATAINCLUSAO` permaneceria a mesma. Como resultado, o watermark não avançava, e o mesmo registro alterado era reprocessado a cada execução do notebook, causando ineficiência e consumo desnecessário de recursos.
-# **Correção Aplicada:** A lógica foi alterada para calcular o novo watermark com base na data mais recente entre `DATAINCLUSAO` e `DATAALTERACAO` para cada registro. Isso foi implementado usando a função `greatest(coalesce(DATAINCLUSAO), coalesce(DATAALTERACAO))`, garantindo que tanto novos registros quanto registros atualizados avancem o watermark corretamente.
-#  ---
 
 
 # CELL ********************
@@ -868,7 +860,7 @@ print("Watermark atualizado com sucesso.")
 # Célula 9.1: Parâmetros e Leitura
 # ------------------------------------------------
 source_table_contratos = "cad_contratos_clientes"
-target_table_contratos = "staging_contratos_clientes"
+target_table_contratos = "staging_contratos_clientes_limpa"
 print(f"\nIniciando o processamento da tabela: {source_lakehouse}.{source_table_contratos}")
 df_bronze_contratos = spark.read.table(f"{source_lakehouse}.{source_table_contratos}")
 

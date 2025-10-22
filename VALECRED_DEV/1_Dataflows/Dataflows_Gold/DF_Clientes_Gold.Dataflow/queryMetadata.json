@@ -21,27 +21,27 @@
   ],
   "documentLocale": "pt-BR",
   "queriesMetadata": {
-    "source_cad_clientes": {
+    "staging_clientes": {
       "queryId": "c1000001-0000-0000-0000-000000000000",
-      "queryName": "source_cad_clientes",
+      "queryName": "staging_clientes",
       "queryGroupId": "10000000-0000-0000-0000-000000000001",
       "loadEnabled": false
     },
-    "source_cad_geral": {
+    "staging_cad_geral": {
       "queryId": "c1000002-0000-0000-0000-000000000000",
-      "queryName": "source_cad_geral",
+      "queryName": "staging_cad_geral",
       "queryGroupId": "10000000-0000-0000-0000-000000000001",
       "loadEnabled": false
     },
-    "source_cad_contratos_clientes": {
+    "staging_contratos_clientes": {
       "queryId": "c1000003-0000-0000-0000-000000000000",
-      "queryName": "source_cad_contratos_clientes",
+      "queryName": "staging_contratos_clientes",
       "queryGroupId": "10000000-0000-0000-0000-000000000001",
       "loadEnabled": false
     },
-    "source_cad_enderecos": {
+    "staging_enderecos": {
       "queryId": "c1000004-0000-0000-0000-000000000000",
-      "queryName": "source_cad_enderecos",
+      "queryName": "staging_enderecos",
       "queryGroupId": "10000000-0000-0000-0000-000000000001",
       "loadEnabled": false
     },
@@ -49,30 +49,6 @@
       "queryId": "c1000005-0000-0000-0000-000000000000",
       "queryName": "sup_status_de_clientes_da_esteira",
       "queryGroupId": "10000000-0000-0000-0000-000000000001",
-      "loadEnabled": false
-    },
-    "staging_clientes_limpa": {
-      "queryId": "c2000001-0000-0000-0000-000000000000",
-      "queryName": "staging_clientes_limpa",
-      "queryGroupId": "10000000-0000-0000-0000-000000000002",
-      "loadEnabled": false
-    },
-    "staging_cad_geral_limpa": {
-      "queryId": "c2000002-0000-0000-0000-000000000000",
-      "queryName": "staging_cad_geral_limpa",
-      "queryGroupId": "10000000-0000-0000-0000-000000000002",
-      "loadEnabled": false
-    },
-    "staging_contratos_clientes_limpa": {
-      "queryId": "c2000003-0000-0000-0000-000000000000",
-      "queryName": "staging_contratos_clientes_limpa",
-      "queryGroupId": "10000000-0000-0000-0000-000000000002",
-      "loadEnabled": false
-    },
-    "staging_enderecos_limpa": {
-      "queryId": "c2000004-0000-0000-0000-000000000000",
-      "queryName": "staging_enderecos_limpa",
-      "queryGroupId": "10000000-0000-0000-0000-000000000002",
       "loadEnabled": false
     },
     "staging_status_clientes_esteira_limpa": {
@@ -91,6 +67,12 @@
       "queryName": "dim_cliente_DataDestination",
       "isHidden": true,
       "loadEnabled": false
+    },
+    "dim_cliente_DataDestination (2)": {
+      "queryId": "91bfcbf7-2b3b-46a7-b7a4-811e344c08fe",
+      "queryName": "dim_cliente_DataDestination (2)",
+      "isHidden": true,
+      "loadEnabled": false
     }
   },
   "connections": [
@@ -98,6 +80,11 @@
       "path": "Lakehouse",
       "kind": "Lakehouse",
       "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    },
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"01775304-8871-4350-8cfd-17ec16ba0c06\"}"
     }
   ]
 }

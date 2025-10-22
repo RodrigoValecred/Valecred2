@@ -580,6 +580,21 @@
                 "value": "{\"isGeneralNumber\":true}"
               }
             ]
+          },
+          {
+            "name": "cod_cliente",
+            "dataType": "int64",
+            "sourceColumn": "cod_cliente",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_cliente",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
           }
         ],
         "partitions": [

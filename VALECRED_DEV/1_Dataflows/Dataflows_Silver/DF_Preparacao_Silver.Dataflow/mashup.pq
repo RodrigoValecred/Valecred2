@@ -71,16 +71,19 @@ shared staging_abatimentos = let
   #"Data inserida" = Table.AddColumn(#"As outras colunas foram removidas", "Data", each DateTime.Date([DATAINCLUSAO]), type nullable date)
 in
   #"Data inserida";
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "staging_contratos_clientes_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
 shared staging_contratos_clientes = let
     origem = source_cad_contratos_clientes,
-    colunas_renomeadas = Table.RenameColumns(origem, List.Transform(Table.ColumnNames(origem), each {_, Text.Lower(Text.Replace(_, "_", " "))}))
+    colunas_renomeadas = Table.RenameColumns(origem, List.Transform(Table.ColumnNames(origem), each {_, Text.Lower(Text.Replace(_, "_", " "))})),
+  #"Colunas renomeadas" = Table.RenameColumns(colunas_renomeadas, {{"codcontrato", "cod_contrato"}, {"codcliente", "cod_cliente"}, {"dtinicontrato", "dt_ini_contrato"}, {"validadelimite", "validade_limite"}, {"limitefomento", "limite_fomento"}, {"limitecomissaria", "limite_comissaria"}, {"percconfirmacao", "perc_confirmacao"}, {"statusdiretoria", "status_diretoria"}})
 in
-    colunas_renomeadas;
+    #"Colunas renomeadas";
 shared staging_eventos_protesto_limpa = let
     origem = source_rlc_titulos_ocorrencias_cobranca,
     colunas_renomeadas = Table.RenameColumns(origem, {{"DATAINCLUSAO", "data_inclusao"}, {"CODTITULO", "cod_titulo"}, {"CODOCORINTERNA", "cod_ocor_interna"}, {"CODOCORCOBRBANCO", "cod_ocor_cobr_banco"}, {"TOCORRENCIA", "t_ocorrencia"}, {"CODCONTACOBRANCA", "cod_conta_cobranca"}, {"STATUS", "status"}})
 in
     colunas_renomeadas;
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "staging_enderecos_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
 shared staging_enderecos = let
   Origem = source_cad_enderecos,
   #"Colunas renomeadas" = Table.RenameColumns(Origem, {{"CPFCNPJ", "cpf_cnpj"}, {"ENDERECO", "endereco"}, {"NUMERO", "numero"}, {"COMPLEMENTO", "complemento"}, {"CODENDERECO", "cod_endereco"}, {"BAIRRO", "bairro"}, {"CIDADE", "cidade"}, {"CODMUNICIPIO", "cod_municipio"}, {"UF", "uf"}, {"CEP", "cep"}, {"DATAINCLUSAO", "data_inclusao"}, {"USUAINCLUSAO", "usua_inclusao"}}),
@@ -157,6 +160,13 @@ shared source_cad_brokers = let
     tabela_origem = navegacao_2{[Id = "cad_brokers", ItemKind = "Table"]}[Data]
 in
     tabela_origem;
+shared source_cad_clientes = let
+  Origem = Lakehouse.Contents(null),
+  Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  #"Navegação 1" = Navegação{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
+  #"Navegação 2" = #"Navegação 1"{[Id = "cad_clientes", ItemKind = "Table"]}[Data]
+in
+  #"Navegação 2";
 shared source_cad_conta_cobranca_ocorrencia = let
     origem = Lakehouse.Contents([]),
     navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -167,10 +177,10 @@ in
 shared source_cad_contratos_clientes = let
     origem = Lakehouse.Contents([]),
     navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
-    tabela_origem = navegacao_2{[Id = "cad_contratos_clientes", ItemKind = "Table"]}[Data]
+    navegacao_2 = navegacao_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  Navegação = navegacao_2{[Id = "staging_contratos_clientes_limpa", ItemKind = "Table"]}[Data]
 in
-    tabela_origem;
+    Navegação;
 shared source_cad_geral = let
   Origem = Lakehouse.Contents(null),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -340,13 +350,6 @@ shared sup_status_de_clientes_da_esteira = let
   #"Navegação 2" = #"Navegação 1"{[Id = "sup_status_de_clientes_da_esteira", ItemKind = "Table"]}[Data]
 in
   #"Navegação 2";
-shared source_cad_clientes = let
-  Origem = Lakehouse.Contents(null),
-  Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-  #"Navegação 1" = Navegação{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
-  #"Navegação 2" = #"Navegação 1"{[Id = "cad_clientes", ItemKind = "Table"]}[Data]
-in
-  #"Navegação 2";
 shared staging_gerentes = let
   Origem = source_cad_brokers,
     colunas_renomeadas = Table.RenameColumns(Origem, {{"CODBROKER", "cod_broker"}, {"CPFCNPJ", "cpf_cnpj"}, {"CODAGENCIA", "cod_agencia"}, {"DATAGARANTIDA", "data_garantida"}, {"DATAGP", "data_gp"}, {"CODBROKERNIVEL", "cod_broker_nivel"}, {"CONSULTAPESSOAL", "consulta_pessoal"}, {"CONSULTAEMPRESARIAL", "consulta_empresarial"}, {"CONSULTACLICK", "consulta_click"}, {"CONSULTACREDITBUREAU", "consulta_credit_bureau"}, {"CONSULTARECHEQUE", "consulta_recheque"}, {"USUAALTERACAO", "usua_alteracao"}, {"DATAALTERACAO", "data_alteracao"}, {"USUAINCLUSAO", "usua_inclusao"}, {"DATAINCLUSAO", "data_inclusao"}, {"OBSERVACAO", "observacao"}, {"CONSULTARELATO", "consulta_relato"}, {"COMISSAO", "comissao"}, {"TIPO", "tipo"}, {"GESTOR", "gestor"}, {"STATUS", "status"}, {"CODUSUARIO", "cod_usuario"}}),
@@ -402,5 +405,19 @@ shared staging_tac_m_DataDestination = let
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
   Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
   TableNavigation = Navigation_2{[Id = "staging_tac_m", ItemKind = "Table"]}[Data]
+in
+  TableNavigation;
+shared staging_enderecos_DataDestination = let
+  Pattern = Lakehouse.Contents([CreateNavigationProperties = false, EnableFolding = false]),
+  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  TableNavigation = Navigation_2{[Id = "staging_enderecos", ItemKind = "Table"]}?[Data]?
+in
+  TableNavigation;
+shared staging_contratos_clientes_DataDestination = let
+  Pattern = Lakehouse.Contents([CreateNavigationProperties = false, EnableFolding = false]),
+  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  TableNavigation = Navigation_2{[Id = "staging_contratos_clientes", ItemKind = "Table"]}?[Data]?
 in
   TableNavigation;

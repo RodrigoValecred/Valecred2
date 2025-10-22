@@ -9,5 +9,6 @@ CREATE TABLE [dbo].[fato_operacoes] (
 	[desagio] decimal(10,2) NULL, 
 	[total_tarifas] decimal(10,2) NULL, 
 	[pmp] float NULL, 
-	[valor_x_prazo] float NULL
+	[valor_x_prazo] float NULL, 
+	[cod_cliente] int NULL
 );
