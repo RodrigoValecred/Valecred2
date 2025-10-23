@@ -41,6 +41,7 @@ shared staging_status_clientes_esteira_limpa = let
 in
     #"Colunas renomeadas";
 [DataDestinations = {[Definition = [Kind = "Reference", QueryName = "dim_cliente_DataDestination (2)", IsNewTarget = false], Settings = [Kind = "Manual", AllowCreation = false, ColumnSettings = [Mappings = {[SourceColumnName = "sk_cliente", DestinationColumnName = "sk_cliente"], [SourceColumnName = "cod_cliente", DestinationColumnName = "cod_cliente"], [SourceColumnName = "cpf_cnpj", DestinationColumnName = "cpf_cnpj"], [SourceColumnName = "nome_cliente", DestinationColumnName = "nome_cliente"], [SourceColumnName = "cnae", DestinationColumnName = "cnae"], [SourceColumnName = "data_status", DestinationColumnName = "data_status"], [SourceColumnName = "status_cliente_esteira", DestinationColumnName = "status_cliente_esteira"], [SourceColumnName = "macroprocesso_esteira", DestinationColumnName = "macroprocesso_esteira"], [SourceColumnName = "fase_esteira", DestinationColumnName = "fase_esteira"], [SourceColumnName = "recuperacao_judicial", DestinationColumnName = "recuperacao_judicial"], [SourceColumnName = "endereco", DestinationColumnName = "endereco_rua"], [SourceColumnName = "numero", DestinationColumnName = "endereco_numero"], [SourceColumnName = "bairro", DestinationColumnName = "endereco_bairro"], [SourceColumnName = "cidade", DestinationColumnName = "endereco_cidade"], [SourceColumnName = "uf", DestinationColumnName = "endereco_uf"], [SourceColumnName = "cep", DestinationColumnName = "endereco_cep"], [SourceColumnName = "cod_contrato", DestinationColumnName = "cod_contrato"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "dim_cliente_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
 shared dim_cliente = let
     origem = staging_clientes,
     join_com_cad_geral = Table.NestedJoin(origem, {"cpf_cnpj"}, staging_cad_geral, {"cpf_cnpj"}, "cad_geral", JoinKind.LeftOuter),
@@ -59,7 +60,6 @@ shared dim_cliente = let
     remover_duplicatas = Table.Distinct(#"Tipo de coluna alterado", {"sk_cliente"})
 in
     remover_duplicatas;
-[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "dim_cliente_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
 shared dim_cliente_DataDestination = let
   Pattern = Lakehouse.Contents([CreateNavigationProperties = false, EnableFolding = false]),
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
