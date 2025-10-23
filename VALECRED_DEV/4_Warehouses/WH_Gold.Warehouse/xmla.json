@@ -202,21 +202,6 @@
         "sourceLineageTag": "[dbo].[dim_clientes]",
         "columns": [
           {
-            "name": "sk_cliente",
-            "dataType": "int64",
-            "sourceColumn": "sk_cliente",
-            "formatString": "0",
-            "sourceProviderType": "int",
-            "sourceLineageTag": "sk_cliente",
-            "summarizeBy": "sum",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
             "name": "cod_cliente",
             "dataType": "int64",
             "sourceColumn": "cod_cliente",
@@ -237,20 +222,6 @@
             "sourceColumn": "cpf_cnpj",
             "sourceProviderType": "varchar",
             "sourceLineageTag": "cpf_cnpj",
-            "summarizeBy": "none",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
-            "name": "nome_cliente",
-            "dataType": "string",
-            "sourceColumn": "nome_cliente",
-            "sourceProviderType": "varchar",
-            "sourceLineageTag": "nome_cliente",
             "summarizeBy": "none",
             "annotations": [
               {
@@ -289,68 +260,12 @@
             ]
           },
           {
-            "name": "endereco_bairro",
-            "dataType": "string",
-            "sourceColumn": "endereco_bairro",
-            "sourceProviderType": "varchar",
-            "sourceLineageTag": "endereco_bairro",
-            "summarizeBy": "none",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
-            "name": "endereco_cidade",
-            "dataType": "string",
-            "sourceColumn": "endereco_cidade",
-            "sourceProviderType": "varchar",
-            "sourceLineageTag": "endereco_cidade",
-            "summarizeBy": "none",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
-            "name": "endereco_uf",
-            "dataType": "string",
-            "sourceColumn": "endereco_uf",
-            "sourceProviderType": "varchar",
-            "sourceLineageTag": "endereco_uf",
-            "summarizeBy": "none",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
-            "name": "endereco_cep",
-            "dataType": "string",
-            "sourceColumn": "endereco_cep",
-            "sourceProviderType": "varchar",
-            "sourceLineageTag": "endereco_cep",
-            "summarizeBy": "none",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
-            "name": "cod_contrato",
+            "name": "cod_status_cliente",
             "dataType": "int64",
-            "sourceColumn": "cod_contrato",
+            "sourceColumn": "cod_status_cliente",
             "formatString": "0",
             "sourceProviderType": "int",
-            "sourceLineageTag": "cod_contrato",
+            "sourceLineageTag": "cod_status_cliente",
             "summarizeBy": "sum",
             "annotations": [
               {
@@ -360,11 +275,11 @@
             ]
           },
           {
-            "name": "status_cliente_esteira",
+            "name": "cod_rating",
             "dataType": "string",
-            "sourceColumn": "status_cliente_esteira",
+            "sourceColumn": "cod_rating",
             "sourceProviderType": "varchar",
-            "sourceLineageTag": "status_cliente_esteira",
+            "sourceLineageTag": "cod_rating",
             "summarizeBy": "none",
             "annotations": [
               {
@@ -374,11 +289,11 @@
             ]
           },
           {
-            "name": "macroprocesso_esteira",
+            "name": "cod_rating_sug",
             "dataType": "string",
-            "sourceColumn": "macroprocesso_esteira",
+            "sourceColumn": "cod_rating_sug",
             "sourceProviderType": "varchar",
-            "sourceLineageTag": "macroprocesso_esteira",
+            "sourceLineageTag": "cod_rating_sug",
             "summarizeBy": "none",
             "annotations": [
               {
@@ -388,11 +303,27 @@
             ]
           },
           {
-            "name": "fase_esteira",
-            "dataType": "string",
-            "sourceColumn": "fase_esteira",
-            "sourceProviderType": "varchar",
-            "sourceLineageTag": "fase_esteira",
+            "name": "data_inclusao",
+            "dataType": "dateTime",
+            "sourceColumn": "data_inclusao",
+            "formatString": "General Date",
+            "sourceProviderType": "datetime2",
+            "sourceLineageTag": "data_inclusao",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "data_alteracao",
+            "dataType": "dateTime",
+            "sourceColumn": "data_alteracao",
+            "formatString": "General Date",
+            "sourceProviderType": "datetime2",
+            "sourceLineageTag": "data_alteracao",
             "summarizeBy": "none",
             "annotations": [
               {
@@ -416,25 +347,11 @@
             ]
           },
           {
-            "name": "endereco_rua",
+            "name": "nome_cliente",
             "dataType": "string",
-            "sourceColumn": "endereco_rua",
+            "sourceColumn": "nome_cliente",
             "sourceProviderType": "varchar",
-            "sourceLineageTag": "endereco_rua",
-            "summarizeBy": "none",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
-            "name": "endereco_numero",
-            "dataType": "string",
-            "sourceColumn": "endereco_numero",
-            "sourceProviderType": "varchar",
-            "sourceLineageTag": "endereco_numero",
+            "sourceLineageTag": "nome_cliente",
             "summarizeBy": "none",
             "annotations": [
               {

@@ -1,0 +1,41 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Dim_Clientes_Gold",
+  "queryGroups": [],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "staging_clientes": {
+      "queryId": "ae1d3cf8-4157-43ac-a608-32793741a2b2",
+      "queryName": "staging_clientes",
+      "loadEnabled": false
+    },
+    "dim_clientes": {
+      "queryId": "d8e0a3d2-4e13-430b-b28c-819663cc1cad",
+      "queryName": "dim_clientes"
+    },
+    "staging_cad_geral": {
+      "queryId": "bd2a6aa4-be3b-48a1-b507-8f99653476f3",
+      "queryName": "staging_cad_geral",
+      "loadEnabled": false
+    },
+    "dim_clientes_DataDestination": {
+      "queryId": "b8cb03bb-0e94-4cb1-976a-e6184fa982e6",
+      "queryName": "dim_clientes_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    },
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"01775304-8871-4350-8cfd-17ec16ba0c06\"}"
+    }
+  ]
+}
