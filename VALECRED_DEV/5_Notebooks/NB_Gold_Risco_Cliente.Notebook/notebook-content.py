@@ -35,9 +35,9 @@
 
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED")
 spark.conf.set("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
-df_titulos = spark.read.table("LH_Silver.staging_titulos_limpa")
-df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa")
-df_cedentes = spark.read.table("LH_Silver.dim_cliente")
+df_titulos = spark.read.table("LH_Silver.staging_titulos")
+df_operacoes = spark.read.table("LH_Silver.staging_operacoes")
+df_cedentes = spark.read.table("LH_Silver.staging_clientes")
 from pyspark.sql.functions import col, when, sum, count, lit
 from functools import reduce
 
@@ -54,14 +54,14 @@ from functools import reduce
 
 # CELL ********************
 
-df_operacoes = df_operacoes.withColumnRenamed("TTO", "TTO_OPERACAO")
+df_operacoes = df_operacoes.withColumnRenamed("tto", "tto_operacao")
 
 # Join das tabelas de títulos e operações
-df_mestra_spark = df_titulos.join(df_operacoes, on="CODOPERACAO", how="left")
+df_mestra_spark = df_titulos.join(df_operacoes, on="cod_operacao", how="left")
 
 # Join com a dimensão de cliente para obter o CODCLIENTE
-df_cedentes_deduplicado = df_cedentes.dropDuplicates(["CODCLIENTE"])
-df_mestra_spark = df_mestra_spark.join(df_cedentes_deduplicado.select("CODCLIENTE", "CPFCNPJ"), on="CODCLIENTE", how="left")
+df_cedentes_deduplicado = df_cedentes.dropDuplicates(["cod_cliente"])
+df_mestra_spark = df_mestra_spark.join(df_cedentes_deduplicado.select("cod_cliente", "cpf_cnpj"), on="cod_cliente", how="left")
 
 # METADATA ********************
 
@@ -78,15 +78,15 @@ df_mestra_spark = df_mestra_spark.join(df_cedentes_deduplicado.select("CODCLIENT
 # CELL ********************
 
 df_risco_aberto = df_mestra_spark.filter(
-    (col('ACEITO') == 'S') &
-    (col('STATUSANALISE') == 'D') &
-    (col('STATUSACEITE') == 'A') &
-    (col('LIQUIDACAO').isNull())
+    (col('aceito') == 'S') &
+    (col('status_analise') == 'D') &
+    (col('status_aceite') == 'A') &
+    (col('liquidacao').isNull())
 )
 
 # Adicionando filtro para manter apenas os produtos de cliente especificados
 produtos_cliente = ['NO', 'FC', 'CM', 'RN', 'GR']
-df_risco_aberto = df_risco_aberto.filter(col('TTO_OPERACAO').isin(produtos_cliente))
+df_risco_aberto = df_risco_aberto.filter(col('tto_operacao').isin(produtos_cliente))
 
 # METADATA ********************
 
@@ -102,10 +102,10 @@ df_risco_aberto = df_risco_aberto.filter(col('TTO_OPERACAO').isin(produtos_clien
 
 # CELL ********************
 
-df_risco_produto = df_risco_aberto.groupBy("CODCLIENTE").pivot("TTO_OPERACAO").agg(sum("VALORDEVIDO")).na.fill(0)
+df_risco_produto = df_risco_aberto.groupBy("cod_cliente").pivot("tto_operacao").agg(sum("valor_devido")).na.fill(0)
 
 # Adicionando uma coluna de RiscoTotal que soma os valores de todas as colunas de TTO
-tto_cols = [col(c) for c in df_risco_produto.columns if c not in ['CODCLIENTE']]
+tto_cols = [col(c) for c in df_risco_produto.columns if c not in ['cod_cliente']]
 if tto_cols:
     df_risco_final = df_risco_produto.withColumn("RiscoTotal", reduce(lambda a, b: a + b, tto_cols))
 else:
