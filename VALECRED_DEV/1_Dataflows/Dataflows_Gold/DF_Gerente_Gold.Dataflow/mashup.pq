@@ -37,12 +37,8 @@ shared dim_gerente = let
   #"Colunas renomeadas" = Table.RenameColumns(#"Duplicatas removidas", {{"cod_broker", "cod_gerente"}, {"cod_agencia", "cod_plataforma"}}),
   #"Tipo de coluna alterado" = Table.TransformColumnTypes(#"Colunas renomeadas", {{"sk_gerente", Int64.Type}})
 in
-    texto_em_maiuscula;
-
-
-// ---------------- DATA DESTINATION ----------------
-[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "dim_gerente", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
-
+    #"Tipo de coluna alterado";
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "dim_gerente_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
 shared dim_gerente_DataDestination = let
   Pattern = Lakehouse.Contents([CreateNavigationProperties = false, EnableFolding = false]),
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
