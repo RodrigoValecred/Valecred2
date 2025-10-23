@@ -1,14 +1,15 @@
 CREATE TABLE [dbo].[fato_operacoes] (
 
 	[cod_operacao] int NULL, 
-	[data_inclusao] date NULL, 
-	[tarifas_de_operacao] decimal(38,6) NULL, 
-	[vop] float NULL, 
-	[chave_produto] varchar(8000) NULL, 
-	[tac_mesa] decimal(38,6) NULL, 
-	[desagio] decimal(10,2) NULL, 
-	[total_tarifas] decimal(10,2) NULL, 
+	[cod_cliente] int NULL, 
+	[data_analise] date NULL, 
+	[total_tarifas] decimal(18,2) NULL, 
 	[pmp] float NULL, 
+	[cod_gerente] int NULL, 
+	[vop] decimal(18,2) NULL, 
+	[desagio] decimal(18,2) NULL, 
 	[valor_x_prazo] float NULL, 
-	[cod_cliente] int NULL
+	[chave_produto] varchar(4) NULL, 
+	[tac_mesa] decimal(18,2) NULL, 
+	[tarifas_de_operacao] decimal(18,2) NULL
 );

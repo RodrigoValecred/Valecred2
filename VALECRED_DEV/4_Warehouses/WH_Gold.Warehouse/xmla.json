@@ -198,6 +198,412 @@
         ]
       },
       {
+        "name": "dim_clientes",
+        "sourceLineageTag": "[dbo].[dim_clientes]",
+        "columns": [
+          {
+            "name": "sk_cliente",
+            "dataType": "int64",
+            "sourceColumn": "sk_cliente",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "sk_cliente",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cod_cliente",
+            "dataType": "int64",
+            "sourceColumn": "cod_cliente",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_cliente",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cpf_cnpj",
+            "dataType": "string",
+            "sourceColumn": "cpf_cnpj",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "cpf_cnpj",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "nome_cliente",
+            "dataType": "string",
+            "sourceColumn": "nome_cliente",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "nome_cliente",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cnae",
+            "dataType": "string",
+            "sourceColumn": "cnae",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "cnae",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "data_status",
+            "dataType": "dateTime",
+            "sourceColumn": "data_status",
+            "formatString": "General Date",
+            "sourceProviderType": "datetime2",
+            "sourceLineageTag": "data_status",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "endereco_bairro",
+            "dataType": "string",
+            "sourceColumn": "endereco_bairro",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "endereco_bairro",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "endereco_cidade",
+            "dataType": "string",
+            "sourceColumn": "endereco_cidade",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "endereco_cidade",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "endereco_uf",
+            "dataType": "string",
+            "sourceColumn": "endereco_uf",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "endereco_uf",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "endereco_cep",
+            "dataType": "string",
+            "sourceColumn": "endereco_cep",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "endereco_cep",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cod_contrato",
+            "dataType": "int64",
+            "sourceColumn": "cod_contrato",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_contrato",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "status_cliente_esteira",
+            "dataType": "string",
+            "sourceColumn": "status_cliente_esteira",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "status_cliente_esteira",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "macroprocesso_esteira",
+            "dataType": "string",
+            "sourceColumn": "macroprocesso_esteira",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "macroprocesso_esteira",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "fase_esteira",
+            "dataType": "string",
+            "sourceColumn": "fase_esteira",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "fase_esteira",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "recuperacao_judicial",
+            "dataType": "string",
+            "sourceColumn": "recuperacao_judicial",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "recuperacao_judicial",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "endereco_rua",
+            "dataType": "string",
+            "sourceColumn": "endereco_rua",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "endereco_rua",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "endereco_numero",
+            "dataType": "string",
+            "sourceColumn": "endereco_numero",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "endereco_numero",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "{{Partition_Name}}",
+            "mode": "directLake",
+            "source": {
+              "type": "entity",
+              "entityName": "dim_clientes",
+              "expressionSource": "DatabaseQuery",
+              "schemaName": "dbo"
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "IsTableInBiModel",
+            "value": "False"
+          }
+        ]
+      },
+      {
+        "name": "dim_gerentes",
+        "sourceLineageTag": "[dbo].[dim_gerentes]",
+        "columns": [
+          {
+            "name": "sk_gerente",
+            "dataType": "int64",
+            "sourceColumn": "sk_gerente",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "sk_gerente",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cod_gerente",
+            "dataType": "int64",
+            "sourceColumn": "cod_gerente",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_gerente",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cpf_cnpj",
+            "dataType": "string",
+            "sourceColumn": "cpf_cnpj",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "cpf_cnpj",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "nome_gerente",
+            "dataType": "string",
+            "sourceColumn": "nome_gerente",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "nome_gerente",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "nome_plataforma",
+            "dataType": "string",
+            "sourceColumn": "nome_plataforma",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "nome_plataforma",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "gestor_da_plataforma",
+            "dataType": "string",
+            "sourceColumn": "gestor_da_plataforma",
+            "sourceProviderType": "varchar",
+            "sourceLineageTag": "gestor_da_plataforma",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cod_plataforma",
+            "dataType": "int64",
+            "sourceColumn": "cod_plataforma",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_plataforma",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "cod_usuario",
+            "dataType": "int64",
+            "sourceColumn": "cod_usuario",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_usuario",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "{{Partition_Name}}",
+            "mode": "directLake",
+            "source": {
+              "type": "entity",
+              "entityName": "dim_gerentes",
+              "expressionSource": "DatabaseQuery",
+              "schemaName": "dbo"
+            }
+          }
+        ],
+        "annotations": [
+          {
+            "name": "IsTableInBiModel",
+            "value": "False"
+          }
+        ]
+      },
+      {
         "name": "dim_produto",
         "sourceLineageTag": "[dbo].[dim_produto]",
         "columns": [
@@ -435,12 +841,27 @@
             ]
           },
           {
-            "name": "data_inclusao",
+            "name": "cod_cliente",
+            "dataType": "int64",
+            "sourceColumn": "cod_cliente",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_cliente",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "data_analise",
             "dataType": "dateTime",
-            "sourceColumn": "data_inclusao",
+            "sourceColumn": "data_analise",
             "formatString": "General Date",
             "sourceProviderType": "date",
-            "sourceLineageTag": "data_inclusao",
+            "sourceLineageTag": "data_analise",
             "summarizeBy": "none",
             "annotations": [
               {
@@ -450,11 +871,11 @@
             ]
           },
           {
-            "name": "tarifas_de_operacao",
+            "name": "total_tarifas",
             "dataType": "double",
-            "sourceColumn": "tarifas_de_operacao",
+            "sourceColumn": "total_tarifas",
             "sourceProviderType": "decimal",
-            "sourceLineageTag": "tarifas_de_operacao",
+            "sourceLineageTag": "total_tarifas",
             "summarizeBy": "sum",
             "annotations": [
               {
@@ -468,11 +889,80 @@
             ]
           },
           {
+            "name": "pmp",
+            "dataType": "double",
+            "sourceColumn": "pmp",
+            "sourceProviderType": "float",
+            "sourceLineageTag": "pmp",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "cod_gerente",
+            "dataType": "int64",
+            "sourceColumn": "cod_gerente",
+            "formatString": "0",
+            "sourceProviderType": "int",
+            "sourceLineageTag": "cod_gerente",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
             "name": "vop",
             "dataType": "double",
             "sourceColumn": "vop",
-            "sourceProviderType": "float",
+            "sourceProviderType": "decimal",
             "sourceLineageTag": "vop",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "desagio",
+            "dataType": "double",
+            "sourceColumn": "desagio",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "desagio",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "valor_x_prazo",
+            "dataType": "double",
+            "sourceColumn": "valor_x_prazo",
+            "sourceProviderType": "float",
+            "sourceLineageTag": "valor_x_prazo",
             "summarizeBy": "sum",
             "annotations": [
               {
@@ -518,39 +1008,11 @@
             ]
           },
           {
-            "name": "desagio",
-            "dataType": "decimal",
-            "sourceColumn": "desagio",
-            "sourceProviderType": "decimal",
-            "sourceLineageTag": "desagio",
-            "summarizeBy": "sum",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
-            "name": "total_tarifas",
-            "dataType": "decimal",
-            "sourceColumn": "total_tarifas",
-            "sourceProviderType": "decimal",
-            "sourceLineageTag": "total_tarifas",
-            "summarizeBy": "sum",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              }
-            ]
-          },
-          {
-            "name": "pmp",
+            "name": "tarifas_de_operacao",
             "dataType": "double",
-            "sourceColumn": "pmp",
-            "sourceProviderType": "float",
-            "sourceLineageTag": "pmp",
+            "sourceColumn": "tarifas_de_operacao",
+            "sourceProviderType": "decimal",
+            "sourceLineageTag": "tarifas_de_operacao",
             "summarizeBy": "sum",
             "annotations": [
               {
@@ -560,39 +1022,6 @@
               {
                 "name": "PBI_FormatHint",
                 "value": "{\"isGeneralNumber\":true}"
-              }
-            ]
-          },
-          {
-            "name": "valor_x_prazo",
-            "dataType": "double",
-            "sourceColumn": "valor_x_prazo",
-            "sourceProviderType": "float",
-            "sourceLineageTag": "valor_x_prazo",
-            "summarizeBy": "sum",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
-              },
-              {
-                "name": "PBI_FormatHint",
-                "value": "{\"isGeneralNumber\":true}"
-              }
-            ]
-          },
-          {
-            "name": "cod_cliente",
-            "dataType": "int64",
-            "sourceColumn": "cod_cliente",
-            "formatString": "0",
-            "sourceProviderType": "int",
-            "sourceLineageTag": "cod_cliente",
-            "summarizeBy": "sum",
-            "annotations": [
-              {
-                "name": "SummarizationSetBy",
-                "value": "Automatic"
               }
             ]
           }
