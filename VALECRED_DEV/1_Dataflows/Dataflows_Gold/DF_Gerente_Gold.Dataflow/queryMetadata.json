@@ -21,56 +21,39 @@
   ],
   "documentLocale": "pt-BR",
   "queriesMetadata": {
-    "source_cad_brokers": {
+    "staging_gerentes": {
       "queryId": "d1000001-0000-0000-0000-000000000000",
-      "queryName": "source_cad_brokers",
+      "queryName": "staging_gerentes",
       "queryGroupId": "20000000-0000-0000-0000-000000000001",
       "loadEnabled": false
     },
-    "source_cad_geral": {
+    "staging_cad_geral": {
       "queryId": "d1000002-0000-0000-0000-000000000000",
-      "queryName": "source_cad_geral",
+      "queryName": "staging_cad_geral",
       "queryGroupId": "20000000-0000-0000-0000-000000000001",
       "loadEnabled": false
     },
-    "source_cad_agencias": {
+    "staging_plataformas": {
       "queryId": "d1000003-0000-0000-0000-000000000000",
-      "queryName": "source_cad_agencias",
+      "queryName": "staging_plataformas",
       "queryGroupId": "20000000-0000-0000-0000-000000000001",
-      "loadEnabled": false
-    },
-    "sup_gestor_de_plataforma": {
-      "queryId": "d1000004-0000-0000-0000-000000000000",
-      "queryName": "sup_gestor_de_plataforma",
-      "queryGroupId": "20000000-0000-0000-0000-000000000001",
-      "loadEnabled": false
-    },
-    "staging_gerentes_limpa": {
-      "queryId": "d2000001-0000-0000-0000-000000000000",
-      "queryName": "staging_gerentes_limpa",
-      "queryGroupId": "20000000-0000-0000-0000-000000000002",
-      "loadEnabled": false
-    },
-    "staging_cad_geral_limpa": {
-      "queryId": "d2000002-0000-0000-0000-000000000000",
-      "queryName": "staging_cad_geral_limpa",
-      "queryGroupId": "20000000-0000-0000-0000-000000000002",
-      "loadEnabled": false
-    },
-    "staging_plataformas_limpa": {
-      "queryId": "d2000003-0000-0000-0000-000000000000",
-      "queryName": "staging_plataformas_limpa",
-      "queryGroupId": "20000000-0000-0000-0000-000000000002",
       "loadEnabled": false
     },
     "dim_gerente": {
       "queryId": "d3000001-0000-0000-0000-000000000000",
       "queryName": "dim_gerente",
-      "queryGroupId": "20000000-0000-0000-0000-000000000003"
+      "queryGroupId": "20000000-0000-0000-0000-000000000003",
+      "loadEnabled": false
     },
     "dim_gerente_DataDestination": {
       "queryId": "d4000001-0000-0000-0000-000000000000",
       "queryName": "dim_gerente_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "dim_gerente_DataDestination (2)": {
+      "queryId": "195639cf-ca98-46f9-ac6b-5c3eef24bbc5",
+      "queryName": "dim_gerente_DataDestination (2)",
       "isHidden": true,
       "loadEnabled": false
     }
@@ -80,6 +63,11 @@
       "path": "Lakehouse",
       "kind": "Lakehouse",
       "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    },
+    {
+      "path": "Warehouse",
+      "kind": "Warehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"01775304-8871-4350-8cfd-17ec16ba0c06\"}"
     }
   ]
 }

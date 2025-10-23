@@ -69,7 +69,7 @@
       "loadEnabled": false
     },
     "dim_cliente_DataDestination (2)": {
-      "queryId": "91bfcbf7-2b3b-46a7-b7a4-811e344c08fe",
+      "queryId": "b979665c-bf5b-4597-aeb3-a437af3560ba",
       "queryName": "dim_cliente_DataDestination (2)",
       "isHidden": true,
       "loadEnabled": false
