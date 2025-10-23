@@ -94,9 +94,10 @@ in
 shared staging_cad_geral = let
     origem = source_cad_geral,
     #"As outras colunas foram removidas" = Table.SelectColumns(origem, {"CPFCNPJ", "NOME", "DATAINCLUSAO", "USUAINCLUSAO"}),
-    colunas_renomeadas = Table.RenameColumns(#"As outras colunas foram removidas", {{"CPFCNPJ", "cpf_cnpj"}, {"NOME", "nome"}, {"DATAINCLUSAO", "data_inclusao"}, {"USUAINCLUSAO", "usua_inclusao"}})
+    colunas_renomeadas = Table.RenameColumns(#"As outras colunas foram removidas", {{"CPFCNPJ", "cpf_cnpj"}, {"NOME", "nome"}, {"DATAINCLUSAO", "data_inclusao"}, {"USUAINCLUSAO", "usua_inclusao"}}),
+  #"Texto em maiúscula" = Table.TransformColumns(colunas_renomeadas, {{"nome", each Text.Upper(_), type nullable text}})
 in
-    colunas_renomeadas;
+    #"Texto em maiúscula";
 shared staging_status_clientes_esteira = let
     origem = sup_status_de_clientes_da_esteira,
     colunas_renomeadas = Table.RenameColumns(origem, {{"codstatuscliente", "cod_status_cliente"}, {"status_do_cliente", "status_do_cliente"}, {"macroprocesso", "macroprocesso"}, {"fase", "fase"}})
