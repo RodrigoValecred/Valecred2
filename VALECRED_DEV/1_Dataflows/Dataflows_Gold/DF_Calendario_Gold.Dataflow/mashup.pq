@@ -1,8 +1,8 @@
 section Section1;
 [DataDestinations = {[Definition = [Kind = "Reference", QueryName = "dim_calendario_DataDestination", IsNewTarget = true], Settings = [Kind = "Manual", AllowCreation = true, ColumnSettings = [Mappings = {[SourceColumnName = "sk_data", DestinationColumnName = "sk_data"], [SourceColumnName = "data", DestinationColumnName = "data"], [SourceColumnName = "ano", DestinationColumnName = "ano"], [SourceColumnName = "trimestre", DestinationColumnName = "trimestre"], [SourceColumnName = "mes", DestinationColumnName = "mes"], [SourceColumnName = "dia", DestinationColumnName = "dia"], [SourceColumnName = "dia_semana", DestinationColumnName = "dia_semana"], [SourceColumnName = "numero_dia_semana", DestinationColumnName = "numero_dia_semana"], [SourceColumnName = "nome_mes", DestinationColumnName = "nome_mes"], [SourceColumnName = "mes_ano_abrev", DestinationColumnName = "mes_ano_abrev"], [SourceColumnName = "fim_de_semana", DestinationColumnName = "fim_de_semana"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
 shared dim_calendario = let
-    DataInicial = #date(2020, 1, 1),
-    DataFinal = #date(2030, 12, 31),
+    DataInicial = #date(2017, 1, 1),
+    DataFinal = #date(2025, 12, 31),
     NumeroDeDias = Duration.Days(DataFinal - DataInicial) + 1,
     ListaDeDatas = List.Dates(DataInicial, NumeroDeDias, #duration(1, 0, 0, 0)),
     TabelaDeDatas = Table.FromList(ListaDeDatas, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
