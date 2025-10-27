@@ -24,6 +24,12 @@
       "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
       "loadEnabled": false
     },
+    "staging_empresas": {
+      "queryId": "e4dabc9f-e7d2-4f43-ab63-54b48d8b2246",
+      "queryName": "staging_empresas",
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
+    },
     "staging_tab_titulos_confirmacao": {
       "queryId": "2b2daa32-2c79-4bde-b58f-9b6e272b6082",
       "queryName": "staging_tab_titulos_confirmacao",
@@ -147,6 +153,12 @@
     "source_cad_geral": {
       "queryId": "01c82f5e-6f53-46c5-9ad3-fd1dfa97c3e0",
       "queryName": "source_cad_geral",
+      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
+      "loadEnabled": false
+    },
+    "source_cad_empresas": {
+      "queryId": "20ff4690-3410-48a8-9d00-cdf04e960fed",
+      "queryName": "source_cad_empresas",
       "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
       "loadEnabled": false
     },
@@ -343,6 +355,12 @@
     "staging_contratos_clientes_DataDestination": {
       "queryId": "16fec8a1-0559-46be-bd4c-960ab27950a4",
       "queryName": "staging_contratos_clientes_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staging_empresas_DataDestination": {
+      "queryId": "2b2ecc23-080b-4677-a5bc-6559166cade6",
+      "queryName": "staging_empresas_DataDestination",
       "isHidden": true,
       "loadEnabled": false
     }

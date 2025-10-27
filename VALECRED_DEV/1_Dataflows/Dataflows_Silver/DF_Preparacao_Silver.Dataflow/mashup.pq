@@ -18,6 +18,14 @@ shared staging_tac_m = let
   #"Linhas classificadas" = Table.Sort(#"Linhas filtradas", {{"data_inclusao", Order.Descending}})
 in
     #"Linhas classificadas";
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "staging_empresas_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
+shared staging_empresas = let
+  Origem = source_cad_empresas,
+  #"As outras colunas foram removidas" = Table.SelectColumns(Origem, {"CODEMPRESA", "CNPJ"}),
+  #"Linhas filtradas" = Table.SelectRows(#"As outras colunas foram removidas", each ([CODEMPRESA] = 6 or [CODEMPRESA] = 14 or [CODEMPRESA] = 24 or [CODEMPRESA] = 25)),
+  #"Colunas renomeadas" = Table.RenameColumns(#"Linhas filtradas", {{"CODEMPRESA", "cod_empresa"}, {"CNPJ", "cnpj"}})
+in
+  #"Colunas renomeadas";
 shared staging_tab_titulos_confirmacao = let
     Origem = source_tab_titulos_confirmacao,
     #"Colunas Selecionadas" = Table.SelectColumns(Origem, {"CODOPERACAO", "CODTITULO", "CONFAO", "CODOCORCONFIRMACAO", "DATAINCLUSAO", "USUAINCLUSAO", "CODTITULOSCONFIRMACAO", "DOCCONFIRMADO", "OBSERVACAO"}),
@@ -189,6 +197,13 @@ shared source_cad_geral = let
   #"Navegação 2" = #"Navegação 1"{[Id = "cad_geral_pf_pj", ItemKind = "Table"]}[Data]
 in
   #"Navegação 2";
+shared source_cad_empresas = let
+    origem = Lakehouse.Contents([]),
+    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
+  Navegação = navegacao_2{[Id = "cad_empresas", ItemKind = "Table"]}[Data]
+in
+    Navegação;
 shared source_cad_enderecos = let
     origem = Lakehouse.Contents([]),
     navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -420,5 +435,12 @@ shared staging_contratos_clientes_DataDestination = let
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
   Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
   TableNavigation = Navigation_2{[Id = "staging_contratos_clientes", ItemKind = "Table"]}?[Data]?
+in
+  TableNavigation;
+shared staging_empresas_DataDestination = let
+  Pattern = Lakehouse.Contents([CreateNavigationProperties = false, EnableFolding = false]),
+  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  TableNavigation = Navigation_2{[Id = "staging_empresas", ItemKind = "Table"]}?[Data]?
 in
   TableNavigation;

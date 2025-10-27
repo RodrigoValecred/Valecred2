@@ -167,6 +167,10 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
 # Adicione novos arquivos a esta lista para que sejam processados automaticamente.
 files_to_process = [
     {
+        "source_filename": "apelido_empresas.xlsx",
+        "target_table_name": "LH_Silver.sup_apelido_empresas"
+    },
+    {
         "source_filename": "clientes_desconsiderados_do_pdd.xlsx",
         "target_table_name": "LH_Silver.sup_clientes_desconsiderados_do_pdd"
     },
