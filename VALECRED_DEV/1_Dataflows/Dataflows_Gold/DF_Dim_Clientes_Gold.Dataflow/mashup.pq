@@ -11,9 +11,10 @@ in
 shared dim_clientes = let
   Origem = staging_clientes,
   #"Consultas mescladas" = Table.NestedJoin(Origem, {"cpf_cnpj"}, staging_cad_geral, {"cpf_cnpj"}, "staging_cad_geral", JoinKind.LeftOuter),
-  #"Expandido staging_cad_geral" = Table.ExpandTableColumn(#"Consultas mescladas", "staging_cad_geral", {"nome"}, {"nome_cliente"})
+  #"Expandido staging_cad_geral" = Table.ExpandTableColumn(#"Consultas mescladas", "staging_cad_geral", {"nome"}, {"nome_cliente"}),
+  #"Duplicatas removidas" = Table.Distinct(#"Expandido staging_cad_geral", {"cod_cliente"})
 in
-  #"Expandido staging_cad_geral";
+  #"Duplicatas removidas";
 shared staging_cad_geral = let
   Origem = Lakehouse.Contents(null),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
