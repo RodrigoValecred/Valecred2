@@ -58,14 +58,15 @@ in
 shared dim_produto = let
     // Source from the main product query
     Source = staging_produto_lbfactor,
+    // Append manually defined products
+    AppendManualProducts = Table.Combine({Source, dim_produto_manual}),
+  #"Linhas filtradas" = Table.SelectRows(AppendManualProducts, each [Produto] <> null and [Produto] <> ""),
     // Add an index column to act as a surrogate key
-    AddIndexColumn = Table.AddIndexColumn(Source, "Índice", 0, 1, Int64.Type),
+    AddIndexColumn = Table.AddIndexColumn(#"Linhas filtradas", "Índice", 0, 1, Int64.Type),
     // Rename index to surrogate key
     RenameToSurrogateKey = Table.RenameColumns(AddIndexColumn,{{"Índice", "sk_produto"}}),
-    // Append manually defined products
-    AppendManualProducts = Table.Combine({RenameToSurrogateKey, dim_produto_manual}),
     // Remove duplicates based on the product key
-    RemoveDuplicateProducts = Table.Distinct(AppendManualProducts, {"chave_produto"})
+    RemoveDuplicateProducts = Table.Distinct(RenameToSurrogateKey, {"chave_produto"})
 in
     RemoveDuplicateProducts;
 shared dim_produto_DataDestination = let
