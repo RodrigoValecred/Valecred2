@@ -177,9 +177,109 @@ class TestWatermarkBugFix(unittest.TestCase):
         print("\nTeste concluído com sucesso. A lógica de watermark corrigida funciona como esperado.")
 
 
+# Função de processamento da esteira refatorada para ser testável
+def process_esteira_transitions(spark, df_pareceres_completa, use_lag_logic=False):
+    """
+    Executa a lógica de transição de status para construir a esteira de propostas.
+    Inclui um parâmetro para alternar entre a lógica original (lead) e a corrigida (lag).
+    """
+    # Lógica de janela: lead (incorreta) vs. lag (correta)
+    if use_lag_logic:
+        window_spec = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
+        df_com_anterior = df_pareceres_completa \
+            .withColumn("STATUS_DO_CLIENTE_ANTERIOR", lag("STATUS_DO_CLIENTE").over(window_spec)) \
+            .withColumn("DATALOG_ANTERIOR", lag("DATALOG").over(window_spec)) \
+            .withColumn("MACROPROCESSO_ANTERIOR", lag("MACROPROCESSO").over(window_spec)) \
+            .withColumn("FASE_ANTERIOR", lag("FASE").over(window_spec))
+    else: # Lógica original com bug
+        window_lead = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
+        df_com_anterior = df_pareceres_completa \
+            .withColumn("STATUS_DO_CLIENTE_ANTERIOR", lead("STATUS_DO_CLIENTE").over(window_lead)) \
+            .withColumn("DATALOG_ANTERIOR", lead("DATALOG").over(window_lead)) \
+            .withColumn("MACROPROCESSO_ANTERIOR", lead("MACROPROCESSO").over(window_lead)) \
+            .withColumn("FASE_ANTERIOR", lead("FASE").over(window_lead))
+
+    # Filtra apenas as transições de status válidas
+    df_transicoes = df_com_anterior.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
+
+    # Lógica de flags (corrigida para usar o estado atual vs. o anterior)
+    if use_lag_logic:
+        df_esteira_final = df_transicoes \
+            .withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)) \
+            .withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False))
+    else: # Lógica original com bug
+         df_esteira_final = df_transicoes \
+            .withColumn("DEVOLUCAO", when((col("MACROPROCESSO") == "CREDITO") & (col("MACROPROCESSO_ANTERIOR") == "COMERCIAL"), True).otherwise(False)) \
+            .withColumn("RECEBIDA", when((col("MACROPROCESSO") == "COMERCIAL") & (col("MACROPROCESSO_ANTERIOR") == "CREDITO"), True).otherwise(False))
+
+    return df_esteira_final.select(
+        "CODCLIENTE", "DATALOG", "STATUS_DO_CLIENTE",
+        "DATALOG_ANTERIOR", "STATUS_DO_CLIENTE_ANTERIOR",
+        "DEVOLUCAO", "RECEBIDA"
+    )
+
+class TestEsteiraLogicBugFix(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.spark = SparkSession.builder.appName("EsteiraLogicTest").getOrCreate()
+
+    def test_state_transition_logic(self):
+        """
+        Valida que a transição de status na esteira de propostas usa a lógica correta (lag).
+        """
+        schema = StructType([
+            StructField("CODCLIENTE", IntegerType(), True),
+            StructField("DATALOG", TimestampType(), True),
+            StructField("STATUS_DO_CLIENTE", StringType(), True),
+            StructField("MACROPROCESSO", StringType(), True),
+            StructField("FASE", StringType(), True),
+        ])
+
+        # Dados de teste simulando a jornada de um cliente
+        # 1. Entrada -> 2. Comercial -> 3. Crédito (Recebida) -> 4. Comercial (Devolução)
+        test_data = [
+            (101, datetime.datetime(2024, 1, 1, 9, 0, 0), "AGUARDANDO DOCUMENTAÇÃO", "COMERCIAL", "FASE 1"),
+            (101, datetime.datetime(2024, 1, 2, 10, 0, 0), "ANÁLISE DE CRÉDITO", "CREDITO", "FASE 2"),
+            (101, datetime.datetime(2024, 1, 3, 11, 0, 0), "PENDÊNCIA COMERCIAL", "COMERCIAL", "FASE 3"),
+            (101, datetime.datetime(2024, 1, 4, 12, 0, 0), "APROVADO", "CREDITO", "FASE 4"),
+        ]
+        df_pareceres_teste = self.spark.createDataFrame(test_data, schema)
+
+        # --- Verificação da Lógica com Bug (usando lead) ---
+        print("\nExecutando teste com a lógica original (lead)...")
+        df_result_bug = process_esteira_transitions(self.spark, df_pareceres_teste, use_lag_logic=False)
+
+        # Esta transição está errada. O `_ANTERIOR` é na verdade o estado *seguinte*.
+        # DEVOLUCAO é True, mas deveria ser RECEBIDA.
+        devolucao_bug_row = df_result_bug.filter(col("STATUS_DO_CLIENTE") == "AGUARDANDO DOCUMENTAÇÃO").collect()[0]
+        self.assertTrue(devolucao_bug_row["DEVOLUCAO"], "A lógica de 'DEVOLUCAO' com lead está incorreta.")
+        self.assertEqual(devolucao_bug_row["STATUS_DO_CLIENTE_ANTERIOR"], "ANÁLISE DE CRÉDITO")
+        print("A lógica com bug (lead) se comportou como esperado (incorretamente).")
+
+        # --- Verificação da Lógica Corrigida (usando lag) ---
+        print("\nExecutando teste com a lógica corrigida (lag)...")
+        df_result_fixed = process_esteira_transitions(self.spark, df_pareceres_teste, use_lag_logic=True)
+        df_result_fixed.show(truncate=False)
+
+        # Transição 1: COMERCIAL -> CREDITO (Deve ser RECEBIDA)
+        recebida_row = df_result_fixed.filter(col("STATUS_DO_CLIENTE") == "ANÁLISE DE CRÉDITO").collect()[0]
+        self.assertTrue(recebida_row["RECEBIDA"])
+        self.assertFalse(recebida_row["DEVOLUCAO"])
+        self.assertEqual(recebida_row["STATUS_DO_CLIENTE_ANTERIOR"], "AGUARDANDO DOCUMENTAÇÃO")
+
+        # Transição 2: CREDITO -> COMERCIAL (Deve ser DEVOLUCAO)
+        devolucao_row = df_result_fixed.filter(col("STATUS_DO_CLIENTE") == "PENDÊNCIA COMERCIAL").collect()[0]
+        self.assertTrue(devolucao_row["DEVOLUCAO"])
+        self.assertFalse(devolucao_row["RECEBIDA"])
+        self.assertEqual(devolucao_row["STATUS_DO_CLIENTE_ANTERIOR"], "ANÁLISE DE CRÉDITO")
+
+        print("\nTeste concluído com sucesso. A lógica da esteira corrigida (lag) funciona como esperado.")
+
+
 # Executar os testes
 suite = unittest.TestSuite()
 suite.addTest(unittest.makeSuite(TestWatermarkBugFix))
+suite.addTest(unittest.makeSuite(TestEsteiraLogicBugFix))
 runner = unittest.TextTestRunner()
 runner.run(suite)
 
@@ -794,16 +894,27 @@ else:
 # ---------------------------------------------------------
 print("Iniciando a reconstrução completa da tabela `esteira_de_propostas`...")
 df_pareceres_completa = spark.read.table(target_pareceres_status_table_name)
-window_lead = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
-df_com_lead = df_pareceres_completa \
-    .withColumn("STATUS_DO_CLIENTE_ANTERIOR", lead("STATUS_DO_CLIENTE").over(window_lead)) \
-    .withColumn("DATALOG_ANTERIOR", lead("DATALOG").over(window_lead)) \
-    .withColumn("MACROPROCESSO_ANTERIOR", lead("MACROPROCESSO").over(window_lead)) \
-    .withColumn("FASE_ANTERIOR", lead("FASE").over(window_lead))
-df_transicoes = df_com_lead.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
+
+# CORREÇÃO: A lógica foi alterada de `lead` para `lag`.
+# `lead` olhava para o evento *futuro*, mas a coluna era nomeada `_ANTERIOR`,
+# causando uma grande confusão de lógica. `lag` olha para o evento
+# *passado*, que é o comportamento esperado.
+window_lag = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
+df_com_lag = df_pareceres_completa \
+    .withColumn("STATUS_DO_CLIENTE_ANTERIOR", lag("STATUS_DO_CLIENTE").over(window_lag)) \
+    .withColumn("DATALOG_ANTERIOR", lag("DATALOG").over(window_lag)) \
+    .withColumn("MACROPROCESSO_ANTERIOR", lag("MACROPROCESSO").over(window_lag)) \
+    .withColumn("FASE_ANTERIOR", lag("FASE").over(window_lag))
+
+df_transicoes = df_com_lag.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
+
+# CORREÇÃO: A lógica das flags foi ajustada para a comparação correta
+# entre o estado ANTERIOR e o ATUAL.
+# DEVOLUÇÃO: O macroprocesso ANTERIOR era 'CREDITO' e o ATUAL é 'COMERCIAL'.
+# RECEBIDA: O macroprocesso ANTERIOR era 'COMERCIAL' e o ATUAL é 'CREDITO'.
 df_esteira_final = df_transicoes \
-    .withColumn("DEVOLUCAO", when((col("MACROPROCESSO") == "CREDITO") & (col("MACROPROCESSO_ANTERIOR") == "COMERCIAL"), True).otherwise(False)) \
-    .withColumn("RECEBIDA", when((col("MACROPROCESSO") == "COMERCIAL") & (col("MACROPROCESSO_ANTERIOR") == "CREDITO"), True).otherwise(False)) \
+    .withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)) \
+    .withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)) \
     .select(
         "INDICE",
         "CODCLIENTE",
