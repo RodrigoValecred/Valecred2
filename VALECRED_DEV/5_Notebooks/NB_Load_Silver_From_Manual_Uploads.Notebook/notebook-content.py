@@ -211,6 +211,10 @@ files_to_process = [
         "target_table_name": "LH_Silver.sup_motivos_de_indeferimento"
     },
     {
+        "source_filename": "municipios_com_regioes.csv",
+        "target_table_name": "LH_Silver.municipios_com_regioes"
+    },
+    {
         "source_filename": "NivelMaturidade.csv",
         "target_table_name": "LH_Silver.sup_nivel_maturidade"
     },
