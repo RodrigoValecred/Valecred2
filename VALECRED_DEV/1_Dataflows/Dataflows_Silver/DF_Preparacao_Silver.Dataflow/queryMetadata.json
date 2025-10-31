@@ -30,11 +30,6 @@
       "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
       "loadEnabled": false
     },
-    "staging_tab_titulos_confirmacao": {
-      "queryId": "2b2daa32-2c79-4bde-b58f-9b6e272b6082",
-      "queryName": "staging_tab_titulos_confirmacao",
-      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
-    },
     "staging_notificacoes": {
       "queryId": "f2941411-c9eb-451a-88f2-a24970cec58f",
       "queryName": "staging_notificacoes",
@@ -105,11 +100,6 @@
       "queryName": "staging_boletos_titulos",
       "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
       "loadEnabled": false
-    },
-    "staging_chave_danfe_detalhada": {
-      "queryId": "821dccbd-e2c1-4334-9fe9-f4c67e50e519",
-      "queryName": "staging_chave_danfe_detalhada",
-      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
     },
     "source_cad_agencias": {
       "queryId": "3d53e20d-2a99-4797-b4ad-376291202ac4",
@@ -264,12 +254,6 @@
     "source_tab_titulos_cobranca": {
       "queryId": "3d646643-7398-4dc9-944b-d28364e0a732",
       "queryName": "source_tab_titulos_cobranca",
-      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
-      "loadEnabled": false
-    },
-    "source_tab_titulos_confirmacao": {
-      "queryId": "c3c3a647-4a58-424d-b82f-6b3bfb2490f9",
-      "queryName": "source_tab_titulos_confirmacao",
       "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
       "loadEnabled": false
     },

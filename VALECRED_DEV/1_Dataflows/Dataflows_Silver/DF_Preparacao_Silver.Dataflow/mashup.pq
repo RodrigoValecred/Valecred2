@@ -26,14 +26,6 @@ shared staging_empresas = let
   #"Colunas renomeadas" = Table.RenameColumns(#"Linhas filtradas", {{"CODEMPRESA", "cod_empresa"}, {"CNPJ", "cnpj"}})
 in
   #"Colunas renomeadas";
-shared staging_tab_titulos_confirmacao = let
-    Origem = source_tab_titulos_confirmacao,
-    #"Colunas Selecionadas" = Table.SelectColumns(Origem, {"CODOPERACAO", "CODTITULO", "CONFAO", "CODOCORCONFIRMACAO", "DATAINCLUSAO", "USUAINCLUSAO", "CODTITULOSCONFIRMACAO", "DOCCONFIRMADO", "OBSERVACAO"}),
-    #"OBS Processada" = Table.TransformColumns(#"Colunas Selecionadas", {{"OBSERVACAO", each Text.FromBinary(_, 1252)}}),
-    #"Colunas Renomeadas" = Table.RenameColumns(#"OBS Processada", {{"OBSERVACAO", "observacao"}}),
-    #"Data Inserida" = Table.AddColumn(#"Colunas Renomeadas", "Data", each DateTime.Date([DATAINCLUSAO]), type nullable date)
-in
-    #"Data Inserida";
 shared staging_notificacoes = let
   Origem = source_tab_titulos_cobranca,
   #"As outras colunas foram removidas" = Table.SelectColumns(Origem, {"CODOPERACAO", "CODTITULO", "COBRADOAO", "CODOCORCOBRANCA", "OBSERVACAO", "DATAINCLUSAO", "USUAINCLUSAO"}),
@@ -138,13 +130,6 @@ shared staging_boletos_titulos = let
     colunas_removidas = Table.RemoveColumns(linhas_filtradas_data, {"venc_prorrogado", "prazo", "desagio", "data_conf", "usua_conf", "doc_confirmado", "chave_danfe"})
 in
     colunas_removidas;
-shared staging_chave_danfe_detalhada = let
-    origem = Lakehouse.Contents([]),
-    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-    navegacao_2 = navegacao_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
-    tabela_origem = navegacao_2{[Id = "staging_chave_danfe_detalhada", ItemKind = "Table"]}[Data]
-in
-    tabela_origem;
 shared source_cad_agencias = let
     origem = Lakehouse.Contents([]),
     navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -325,13 +310,6 @@ shared source_tab_titulos_cobranca = let
     navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
     navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
     tabela_origem = navegacao_2{[Id = "tab_titulos_cobranca", ItemKind = "Table"]}[Data]
-in
-    tabela_origem;
-shared source_tab_titulos_confirmacao = let
-    origem = Lakehouse.Contents([]),
-    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
-    tabela_origem = navegacao_2{[Id = "tab_titulos_confirmacao", ItemKind = "Table"]}[Data]
 in
     tabela_origem;
 shared source_tab_operacoes = let
