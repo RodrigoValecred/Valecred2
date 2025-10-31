@@ -8,8 +8,6 @@ shared source_tab_titulos_confirmacao = let
 in
     tabela_origem;
 shared staging_tab_titulos_confirmacao = let
-    Origem = source_tab_titulos_confirmacao,
-    #"Colunas Selecionadas" = Table.SelectColumns(Origem, {"CODOPERACAO", "CODTITULO", "CONFAO", "CODOCORCONFIRMACAO", "DATAINCLUSAO", "USUAINCLUSAO", "CODTITULOSCONFIRMACAO", "DOCCONFIRMADO", "OBSERVACAO"}),
-    #"OBS Processada" = Table.TransformColumns(#"Colunas Selecionadas", {{"OBSERVACAO", each Text.FromBinary(_, 1252), type text}})
+  Origem = source_tab_titulos_confirmacao
 in
-    #"OBS Processada";
+  Origem;
