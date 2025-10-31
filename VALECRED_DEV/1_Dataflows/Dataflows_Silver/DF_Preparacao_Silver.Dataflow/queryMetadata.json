@@ -35,11 +35,6 @@
       "queryName": "staging_tab_titulos_confirmacao",
       "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
     },
-    "staging_rlc_titulos_ocorrencias_cobranca": {
-      "queryId": "2c909fc4-cf5c-4a5d-9c68-d61b69d68377",
-      "queryName": "staging_rlc_titulos_ocorrencias_cobranca",
-      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
-    },
     "staging_notificacoes": {
       "queryId": "f2941411-c9eb-451a-88f2-a24970cec58f",
       "queryName": "staging_notificacoes",
@@ -53,7 +48,8 @@
     "staging_clientes": {
       "queryId": "5deeab07-b550-447c-b3e5-07f6d6f5112b",
       "queryName": "staging_clientes",
-      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
+      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
+      "loadEnabled": false
     },
     "staging_abatimentos": {
       "queryId": "95019cc5-e2ec-4b5d-8aea-f61e2ace0e37",
@@ -65,11 +61,6 @@
       "queryName": "staging_contratos_clientes",
       "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1",
       "loadEnabled": false
-    },
-    "staging_eventos_protesto_limpa": {
-      "queryId": "3eea59e2-2e06-4e8b-999d-6c01cc55a811",
-      "queryName": "staging_eventos_protesto_limpa",
-      "queryGroupId": "975ba1c0-a66d-4909-9a85-cb9a2cab68c1"
     },
     "staging_enderecos": {
       "queryId": "bff04b24-478a-43c0-948d-1e16de40ff27",
@@ -183,12 +174,6 @@
     "source_rlc_clientes_sacados_limites": {
       "queryId": "6a614754-ba26-4f8a-9a2e-21917cc18c27",
       "queryName": "source_rlc_clientes_sacados_limites",
-      "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
-      "loadEnabled": false
-    },
-    "source_rlc_titulos_ocorrencias_cobranca": {
-      "queryId": "b2d2f620-01ab-4055-b53e-99e3828dc470",
-      "queryName": "source_rlc_titulos_ocorrencias_cobranca",
       "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
       "loadEnabled": false
     },
@@ -361,6 +346,12 @@
     "staging_empresas_DataDestination": {
       "queryId": "2b2ecc23-080b-4677-a5bc-6559166cade6",
       "queryName": "staging_empresas_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    },
+    "staging_clientes_DataDestination": {
+      "queryId": "e8841814-545b-4d21-b44f-8d4dafbf0d03",
+      "queryName": "staging_clientes_DataDestination",
       "isHidden": true,
       "loadEnabled": false
     }

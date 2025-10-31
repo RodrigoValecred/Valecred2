@@ -34,12 +34,6 @@ shared staging_tab_titulos_confirmacao = let
     #"Data Inserida" = Table.AddColumn(#"Colunas Renomeadas", "Data", each DateTime.Date([DATAINCLUSAO]), type nullable date)
 in
     #"Data Inserida";
-shared staging_rlc_titulos_ocorrencias_cobranca = let
-  Origem = source_rlc_titulos_ocorrencias_cobranca,
-  #"Colunas mescladas" = Table.CombineColumns(Table.TransformColumnTypes(Origem, {{"CODBANCO", type text}, {"TOCORRENCIA", type text}, {"CODOCORINTERNA", type text}}), {"TOCORRENCIA", "CODOCORINTERNA", "CODBANCO"}, Combiner.CombineTextByDelimiter("-", QuoteStyle.None), "chave_ocorrencia"),
-  #"Colunas removidas" = Table.RemoveColumns(#"Colunas mescladas", {"VALORABATIM", "VALORDESCONTO", "VALORMORAJUROS", "VALORDESPCOBR", "DATAGRAVACAO", "DATACREDITO", "MOTIVOCONFINSTRUCAO", "MOTIVOCODOCORCOBRBANCO", "CODCONTACOBRANCA", "MD5", "BANCORECEBEDOR", "AGENCIARECEBEDORA", "VALORCREDITO", "VALOROUTROCRED", "VALOROUTRADESP"})
-in
-  #"Colunas removidas";
 shared staging_notificacoes = let
   Origem = source_tab_titulos_cobranca,
   #"As outras colunas foram removidas" = Table.SelectColumns(Origem, {"CODOPERACAO", "CODTITULO", "COBRADOAO", "CODOCORCOBRANCA", "OBSERVACAO", "DATAINCLUSAO", "USUAINCLUSAO"}),
@@ -66,11 +60,12 @@ shared staging_titulos_baixas = let
     valorPagoLiquidoAdicionado = Table.AddColumn(correcaoValoresTexto, "VALOR PAGO LIQUIDO", each [VLPAGO]-[JUROS]+[DESCONTO]-[TARIFARECOMPRA], type number)
 in
     valorPagoLiquidoAdicionado;
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "staging_clientes_DataDestination", IsNewTarget = false], Settings = [Kind = "Manual", AllowCreation = false, ColumnSettings = [Mappings = {[SourceColumnName = "cod_cliente", DestinationColumnName = "cod_cliente"], [SourceColumnName = "cpf_cnpj", DestinationColumnName = "cpf_cnpj"], [SourceColumnName = "cnae", DestinationColumnName = "cnae"], [SourceColumnName = "data_status", DestinationColumnName = "data_status"], [SourceColumnName = "cod_status_cliente", DestinationColumnName = "cod_status_cliente"], [SourceColumnName = "cod_rating", DestinationColumnName = "cod_rating"], [SourceColumnName = "cod_rating_sug", DestinationColumnName = "cod_rating_sug"], [SourceColumnName = "data_inclusao", DestinationColumnName = "data_inclusao"], [SourceColumnName = "data_alteracao", DestinationColumnName = "data_alteracao"], [SourceColumnName = "recuperacao_judicial", DestinationColumnName = "recuperacao_judicial"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
 shared staging_clientes = let
   Origem = source_cad_clientes,
   #"Linhas filtradas" = Table.SelectRows(Origem, each [CODCLIENTE] > 4),
-  #"Colunas removidas" = Table.RemoveColumns(#"Linhas filtradas", {"MEEPP", "CAPITALSOCIAL", "CONSTITUICAO", "CODTIPOCLI", "RAMOATIVIDADE", "CODNATJURIDICA", "CODREGIMETRIB", "CODATIVANFAC", "PROTESTACLI", "REAPRESENTACH", "CARTACOBRANCA", "COBRABANCARIA", "BLOQOPERACAO", "DTBLOQOPERACAO", "OBSERVACAOBLOQ", "GERACOMISSAO", "CONTACTB", "CONTACTBTRUSTEE", "CONTACTBPENDENCIAS", "CONTACTBCAUCAO", "STATUS", "OBSERVSTATUS", "OBSRATING", "DTHRRATING", "USUARATING", "PEFIN", "USUAINCPEFIN", "DTINCPEFIN", "BAIXADOPEFIN", "USUABXPEFIN", "OBSERVACOES", "FINGERPRINT", "DTULTPARECER", "CONTRATOFIDCANTIGO", "JUROSDIA", "SALDOOPERACIONALTITULOS", "PENDENCIASINICIAIS", "CREDITOSINICIAIS", "SALDOANTERIOREXTRATO", "MENSAGEM1", "MENSAGEM2", "MENSAGEM3", "MENSAGEM4", "MULTA", "FATORMULTA", "COBRACONSULTA", "UTILIZAGERALCONS", "MANTERCEDENTE", "VALORJUROSDIA", "CODCONTARETORNO", "FATURAMENTOMEDIO", "USUAATUALIZADOC", "ENDIVIDAMENTOMEDIO", "DTRESERVA", "DTRENOVACAO", "DTSEGUNDAREN", "PREIMPRESSO", "TAMANHORANGE", "RANGEDE", "RANGEATE", "STATUSPREIMPRESSO", "CONTRATOESPECIFICO", "BOLETOESPECIAL", "PRORROGACAO", "MPRORROGACAO", "VENCIMENTOMAXIMO", "VENCIMENTOMAXIMOFIDC", "NOTIFICACESSAOCREDITO", "USUACHK", "CODTIPOCLASSIFICACAO", "RECEBEBOLETO", "RECEBERETORNOBANCARIO", "FATORRECOMPRA", "FATORCESSAO", "OPERATRUSTEE", "CEDENTECCB", "TARIFARECOMPRA", "MOSTRARPESQUISA", "RIGIDO", "USUAINCLUSAO", "USUAALTERACAO"}),
-  #"Colunas renomeadas" = Table.RenameColumns(#"Colunas removidas", {{"CODCLIENTE", "cod_cliente"}, {"CPFCNPJ", "cpf_cnpj"}, {"CODATIVIDADE", "cnae"}, {"DATASTATUS", "data_status"}, {"CODSTATUSCLIENTE", "cod_status_cliente"}, {"CODRATING", "cod_rating"}, {"CODRATINGSUG", "cod_rating_sug"}, {"DATAINCLUSAO", "data_inclusao"}, {"DATAALTERACAO", "data_alteracao"}, {"RECUPERACAOJUDICIAL", "recuperacao_judicial"}})
+  #"As outras colunas foram removidas" = Table.SelectColumns(#"Linhas filtradas", {"CODCLIENTE","CPFCNPJ", "CODATIVIDADE", "DATASTATUS", "CODSTATUSCLIENTE", "CODRATING", "CODRATINGSUG", "DATAINCLUSAO", "DATAALTERACAO", "RECUPERACAOJUDICIAL"}),
+  #"Colunas renomeadas" = Table.RenameColumns(#"As outras colunas foram removidas", {{"CODCLIENTE", "cod_cliente"}, {"CPFCNPJ", "cpf_cnpj"}, {"CODATIVIDADE", "cnae"}, {"DATASTATUS", "data_status"}, {"CODSTATUSCLIENTE", "cod_status_cliente"}, {"CODRATING", "cod_rating"}, {"CODRATINGSUG", "cod_rating_sug"}, {"DATAINCLUSAO", "data_inclusao"}, {"DATAALTERACAO", "data_alteracao"}, {"RECUPERACAOJUDICIAL", "recuperacao_judicial"}})
 in
   #"Colunas renomeadas";
 shared staging_abatimentos = let
@@ -86,11 +81,6 @@ shared staging_contratos_clientes = let
   #"Colunas renomeadas" = Table.RenameColumns(colunas_renomeadas, {{"codcontrato", "cod_contrato"}, {"codcliente", "cod_cliente"}, {"dtinicontrato", "dt_ini_contrato"}, {"validadelimite", "validade_limite"}, {"limitefomento", "limite_fomento"}, {"limitecomissaria", "limite_comissaria"}, {"percconfirmacao", "perc_confirmacao"}, {"statusdiretoria", "status_diretoria"}})
 in
     #"Colunas renomeadas";
-shared staging_eventos_protesto_limpa = let
-    origem = source_rlc_titulos_ocorrencias_cobranca,
-    colunas_renomeadas = Table.RenameColumns(origem, {{"DATAINCLUSAO", "data_inclusao"}, {"CODTITULO", "cod_titulo"}, {"CODOCORINTERNA", "cod_ocor_interna"}, {"CODOCORCOBRBANCO", "cod_ocor_cobr_banco"}, {"TOCORRENCIA", "t_ocorrencia"}, {"CODCONTACOBRANCA", "cod_conta_cobranca"}, {"STATUS", "status"}})
-in
-    colunas_renomeadas;
 [DataDestinations = {[Definition = [Kind = "Reference", QueryName = "staging_enderecos_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
 shared staging_enderecos = let
   Origem = source_cad_enderecos,
@@ -230,13 +220,6 @@ shared source_rlc_clientes_sacados_limites = let
     navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
     navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
     tabela_origem = navegacao_2{[Id = "rlc_clientes_sacados_limites", ItemKind = "Table"]}[Data]
-in
-    tabela_origem;
-shared source_rlc_titulos_ocorrencias_cobranca = let
-    origem = Lakehouse.Contents([]),
-    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
-    tabela_origem = navegacao_2{[Id = "rlc_titulos_ocorrencias_cobranca", ItemKind = "Table"]}[Data]
 in
     tabela_origem;
 shared source_tab_atividades = let
@@ -442,5 +425,12 @@ shared staging_empresas_DataDestination = let
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
   Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
   TableNavigation = Navigation_2{[Id = "staging_empresas", ItemKind = "Table"]}?[Data]?
+in
+  TableNavigation;
+shared staging_clientes_DataDestination = let
+  Pattern = Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]),
+  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  TableNavigation = Navigation_2{[Id = "staging_clientes", ItemKind = "Table"]}[Data]
 in
   TableNavigation;
