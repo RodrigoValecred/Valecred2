@@ -1,0 +1,335 @@
+{
+  "properties": {
+    "jobMode": "CDC",
+    "source": {
+      "type": "MySqlTable",
+      "connectionSettings": {
+        "type": "MySql",
+        "externalReferences": {
+          "connection": "896b67c5-0c03-4327-acb3-5898f128acb5"
+        }
+      }
+    },
+    "destination": {
+      "type": "LakehouseTable",
+      "connectionSettings": {
+        "type": "Lakehouse",
+        "typeProperties": {
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
+          "rootFolder": "Tables"
+        },
+        "externalReferences": {
+          "connection": "d5e04140-4686-43fa-ae4d-a20dec5aec44"
+        }
+      }
+    },
+    "policy": {
+      "timeout": "0.12:00:00"
+    }
+  },
+  "activities": [
+    {
+      "id": "17b4eeac77a4f",
+      "properties": {
+        "source": {
+          "datasetSettings": {
+            "table": "`tab_titulos`"
+          },
+          "changeDataSettings": {
+            "readMethod": "SnapshotPlusIncremental",
+            "columns": [
+              {
+                "name": "CODTITULO",
+                "type": "Int32",
+                "physicalType": "Int32"
+              }
+            ]
+          }
+        },
+        "destination": {
+          "writeBehavior": "Append",
+          "datasetSettings": {
+            "table": "_tab_titulos_"
+          }
+        },
+        "enableStaging": false,
+        "translator": {
+          "type": "TabularTranslator",
+          "mappings": [
+            {
+              "source": {
+                "name": "CODTITULO",
+                "type": "Int32",
+                "physicalType": "Int32"
+              },
+              "destination": {
+                "name": "CODTITULO",
+                "physicalType": "integer"
+              }
+            },
+            {
+              "source": {
+                "name": "CODOPERACAO",
+                "type": "Int32",
+                "physicalType": "Int32"
+              },
+              "destination": {
+                "name": "CODOPERACAO",
+                "physicalType": "integer"
+              }
+            },
+            {
+              "source": {
+                "name": "NDOC",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "NDOC",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "TDOC",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "TDOC",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "TTO",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "TTO",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "VENCIMENTO",
+                "type": "DateTime",
+                "physicalType": "Date"
+              },
+              "destination": {
+                "name": "VENCIMENTO",
+                "physicalType": "timestamp"
+              }
+            },
+            {
+              "source": {
+                "name": "VENCPRORROGADO",
+                "type": "DateTime",
+                "physicalType": "Date"
+              },
+              "destination": {
+                "name": "VENCPRORROGADO",
+                "physicalType": "timestamp"
+              }
+            },
+            {
+              "source": {
+                "name": "PRAZO",
+                "type": "Int32",
+                "physicalType": "Int32"
+              },
+              "destination": {
+                "name": "PRAZO",
+                "physicalType": "integer"
+              }
+            },
+            {
+              "source": {
+                "name": "CPFCNPJSACADO",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "CPFCNPJSACADO",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "CPFCNPJCEDENTE",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "CPFCNPJCEDENTE",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "VALOR",
+                "type": "Decimal",
+                "physicalType": "NewDecimal"
+              },
+              "destination": {
+                "name": "VALOR",
+                "physicalType": "decimal"
+              }
+            },
+            {
+              "source": {
+                "name": "DESAGIO",
+                "type": "Decimal",
+                "physicalType": "NewDecimal"
+              },
+              "destination": {
+                "name": "DESAGIO",
+                "physicalType": "decimal"
+              }
+            },
+            {
+              "source": {
+                "name": "VALORDEVIDO",
+                "type": "Decimal",
+                "physicalType": "NewDecimal"
+              },
+              "destination": {
+                "name": "VALORDEVIDO",
+                "physicalType": "decimal"
+              }
+            },
+            {
+              "source": {
+                "name": "LIQUIDACAO",
+                "type": "DateTime",
+                "physicalType": "Date"
+              },
+              "destination": {
+                "name": "LIQUIDACAO",
+                "physicalType": "timestamp"
+              }
+            },
+            {
+              "source": {
+                "name": "ACEITO",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "ACEITO",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "DATAINCLUSAO",
+                "type": "DateTime",
+                "physicalType": "DateTime"
+              },
+              "destination": {
+                "name": "DATAINCLUSAO",
+                "physicalType": "timestamp"
+              }
+            },
+            {
+              "source": {
+                "name": "DATAALTERACAO",
+                "type": "DateTime",
+                "physicalType": "DateTime"
+              },
+              "destination": {
+                "name": "DATAALTERACAO",
+                "physicalType": "timestamp"
+              }
+            },
+            {
+              "source": {
+                "name": "DOCCONFIRMADO",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "DOCCONFIRMADO",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "FORMA",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "FORMA",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "MOTIVO",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "MOTIVO",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "PAGOPELO",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "PAGOPELO",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "TIPOBAIXA",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "TIPOBAIXA",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "PRACA",
+                "type": "String",
+                "physicalType": "VarChar"
+              },
+              "destination": {
+                "name": "PRACA",
+                "physicalType": "string"
+              }
+            },
+            {
+              "source": {
+                "name": "NF",
+                "type": "Int32",
+                "physicalType": "Int32"
+              },
+              "destination": {
+                "name": "NF",
+                "physicalType": "integer"
+              }
+            }
+          ]
+        },
+        "typeConversionSettings": {
+          "typeConversion": {
+            "allowDataTruncation": true,
+            "treatBooleanAsNumber": false
+          }
+        }
+      }
+    }
+  ]
+}

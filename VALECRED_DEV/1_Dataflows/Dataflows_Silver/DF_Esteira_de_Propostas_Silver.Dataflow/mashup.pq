@@ -7,7 +7,3 @@ shared source_tab_titulos_confirmacao = let
     tabela_origem = navegacao_2{[Id = "tab_titulos_confirmacao", ItemKind = "Table"]}[Data]
 in
     tabela_origem;
-shared staging_tab_titulos_confirmacao = let
-  Origem = source_tab_titulos_confirmacao
-in
-  Origem;

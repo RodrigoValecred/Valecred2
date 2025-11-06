@@ -8,10 +8,6 @@
     "source_tab_titulos_confirmacao": {
       "queryId": "63cd4bb1-b79c-4189-a8b3-408aef2f229e",
       "queryName": "source_tab_titulos_confirmacao"
-    },
-    "staging_tab_titulos_confirmacao": {
-      "queryId": "7696525d-a5de-44d7-9438-a7596285f103",
-      "queryName": "staging_tab_titulos_confirmacao"
     }
   },
   "connections": [
