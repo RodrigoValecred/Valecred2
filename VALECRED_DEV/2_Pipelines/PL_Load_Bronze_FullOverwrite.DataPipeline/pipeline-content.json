@@ -58,7 +58,7 @@
       {
         "type": "ForEach",
         "typeProperties": {
-          "batchCount": 10,
+          "isSequential": true,
           "items": {
             "value": "@activity('Lookup_GetTableList').output.value",
             "type": "Expression"
@@ -78,7 +78,7 @@
                     "type": "MySqlTable",
                     "schema": [],
                     "externalReferences": {
-                      "connection": "44a3c055-a006-453e-8038-01652e18ab84"
+                      "connection": "ddb03605-7bef-45d9-8c36-aa19be4e5ae4"
                     },
                     "annotations": []
                   }
@@ -154,7 +154,7 @@
             "type": "MySqlTable",
             "schema": [],
             "externalReferences": {
-              "connection": "44a3c055-a006-453e-8038-01652e18ab84"
+              "connection": "ddb03605-7bef-45d9-8c36-aa19be4e5ae4"
             },
             "annotations": []
           }
@@ -251,6 +251,7 @@
       "TargetProcessingDate": {
         "type": "String"
       }
-    }
+    },
+    "concurrency": 10
   }
 }

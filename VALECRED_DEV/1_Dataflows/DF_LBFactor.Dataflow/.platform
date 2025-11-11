@@ -1,11 +1,11 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
   "metadata": {
-    "type": "DataPipeline",
-    "displayName": "PL_Teste_Banco_de_dados_online"
+    "type": "Dataflow",
+    "displayName": "DF_LBFactor"
   },
   "config": {
     "version": "2.0",
-    "logicalId": "0481a9a6-198a-9769-4bcd-0552f89e682a"
+    "logicalId": "30e7d80e-158c-bc32-4699-3c7f30a620bb"
   }
 }
