@@ -30,17 +30,20 @@
       "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
       "loadEnabled": false
     },
-    "staging_gerentes": {
-      "queryId": "c0f31c7e-38d1-4ef6-83b6-99ab6bc398ae",
-      "queryName": "staging_gerentes",
-      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
-      "loadEnabled": false
+    "dim_gerentes": {
+      "queryId": "8b824402-f1b7-41b0-90c5-812039786601",
+      "queryName": "dim_gerentes",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
     },
-    "staging_plataformas": {
-      "queryId": "32844df3-2153-45e0-956a-b0543d037dcb",
-      "queryName": "staging_plataformas",
-      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
-      "loadEnabled": false
+    "dim_plataformas": {
+      "queryId": "f1bc3551-a7b4-4e9b-8793-47e0eef7f9ee",
+      "queryName": "dim_plataformas",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
+    },
+    "dim_usuarios": {
+      "queryId": "bbedadb8-0841-426b-867c-48db881e115d",
+      "queryName": "dim_usuarios",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
     },
     "gerente da operacao": {
       "queryId": "3f559609-a851-4cf9-8cff-cfe3a845910a",
@@ -50,7 +53,7 @@
     "operacoes": {
       "queryId": "e948e5f0-4228-4773-9202-e69fed8e4eb7",
       "queryName": "operacoes",
-      "queryGroupId": "5a6e2983-86b2-4a80-ae0d-704632ce751e",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
       "loadEnabled": false
     },
     "source_operacoes": {
@@ -65,45 +68,9 @@
       "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
       "loadEnabled": false
     },
-    "source_cad_usuarios": {
-      "queryId": "3664e710-5d31-455f-a951-df477fab3e66",
-      "queryName": "source_cad_usuarios",
-      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
-      "loadEnabled": false
-    },
-    "source_cad_agencias": {
-      "queryId": "cc7e02a1-023d-4382-8585-027558b6e07d",
-      "queryName": "source_cad_agencias",
-      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
-      "loadEnabled": false
-    },
     "sup_motivos_de_indeferimento": {
       "queryId": "caf1fb1d-6110-44be-869f-60751b33643a",
       "queryName": "sup_motivos_de_indeferimento",
-      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
-      "loadEnabled": false
-    },
-    "sup_nivel_usuario": {
-      "queryId": "56b83321-9b7a-495c-9eef-47f12287a608",
-      "queryName": "sup_nivel_usuario",
-      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
-      "loadEnabled": false
-    },
-    "sup_gestor_de_plataforma": {
-      "queryId": "056a46d4-7940-4c8c-bbc9-26c192af85a1",
-      "queryName": "sup_gestor_de_plataforma",
-      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
-      "loadEnabled": false
-    },
-    "source_cad_brokers": {
-      "queryId": "a9a982c2-34ee-473d-802e-1264749eae1d",
-      "queryName": "source_cad_brokers",
-      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
-      "loadEnabled": false
-    },
-    "source_cad_geral": {
-      "queryId": "b94f8a4a-635a-4fe1-8e7b-be7a50f2ca00",
-      "queryName": "source_cad_geral",
       "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
       "loadEnabled": false
     },
