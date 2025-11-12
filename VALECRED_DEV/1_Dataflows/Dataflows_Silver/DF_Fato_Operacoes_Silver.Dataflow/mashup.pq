@@ -76,18 +76,9 @@ plataformasMescladas = Table.NestedJoin(
     "Plataformas", JoinKind.LeftOuter
 ),
     // Expande as colunas 'plataforma' e 'nomeGestorPlataforma' da tabela 'Plataformas'.
-plataformasExpandidas = Table.ExpandTableColumn(plataformasMescladas, "Plataformas", {"plataforma", "gestor_da_plataforma"}, {"plataforma", "gestor"}),
-
-// Adiciona a coluna 'BASE' com o valor constante 40.
-baseAdicionada = Table.AddColumn(plataformasExpandidas, "BASE", each 40)
+plataformasExpandidas = Table.ExpandTableColumn(plataformasMescladas, "Plataformas", {"plataforma", "gestor_da_plataforma"}, {"plataforma", "gestor"})
 in
-    baseAdicionada;
-shared staging_cadastros = let
-    Fonte = source_cad_geral,
-    #"Texto Limpo" = Table.TransformColumns(Fonte,{{"NOME", Text.Clean, type text}}),
-  #"Duplicatas removidas" = Table.Distinct(#"Texto Limpo", {"CPFCNPJ"})
-in
-    #"Duplicatas removidas";
+    plataformasExpandidas;
 shared staging_plataformas = let
   Origem = source_cad_agencias,
     colunas_selecionadas = Table.SelectColumns(Origem, {"CODAGENCIA", "NOME"}),
@@ -108,19 +99,6 @@ shared #"gerente da operacao" = let
     #"Duplicatas Removidas" = Table.Distinct(#"plataformas Expandido", {"CODOPERACAO"})
 in
     #"Duplicatas Removidas";
-shared gerentes = let
-    Fonte = staging_gerentes,
-    #"Coluna Mesclada Inserida" = Table.AddColumn(Fonte, "chave_base_gerente", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODBROKER], "pt-BR")}), type text),
-    #"Coluna Mesclada Inserida1" = Table.AddColumn(#"Coluna Mesclada Inserida", "chave_base_plataforma", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODAGENCIA], "pt-BR")}), type text),
-    #"Coluna Mesclada Inserida2" = Table.AddColumn(#"Coluna Mesclada Inserida1", "chave_base_cadastro", each Text.Combine({Text.From([BASE], "pt-BR"), "-", [CPFCNPJ]}), type text),
-    #"Consultas Mescladas" = Table.NestedJoin(#"Coluna Mesclada Inserida2", {"CPFCNPJ"}, staging_cadastros, {"CPFCNPJ"}, "staging_cadastros", JoinKind.LeftOuter),
-    #"cadastros Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas", "staging_cadastros", {"NOME"}, {"Nome do Gerente"}),
-    #"Texto em Maiúscula" = Table.TransformColumns(#"cadastros Expandido",{{"Nome do Gerente", Text.Upper, type text}}),
-    #"Linhas Classificadas1" = Table.Sort(#"Texto em Maiúscula",{{"chave_base_gerente", Order.Ascending}}),
-    #"Consultas Mescladas1" = Table.NestedJoin(#"Linhas Classificadas1", {"CODAGENCIA"}, staging_plataformas, {"cod_agencia"}, "plataformas", JoinKind.LeftOuter),
-    #"plataformas Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas1", "plataformas", {"gestor_da_plataforma"}, {"Gestor"})
-in
-    #"plataformas Expandido";
 [DataDestinations = {[Definition = [Kind = "Reference", QueryName = "operacoes_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
 shared operacoes = let
     // Define a origem dos dados como a tabela Silver_Operacoes_Padronizado.
@@ -145,7 +123,7 @@ shared operacoes = let
     #"Colunas Removidas" = Table.RemoveColumns(#"Personalização Adicionada",{"CODBROKER", "gerente da operacao.GerenteID"}),
     #"Colunas Renomeadas" = Table.RenameColumns(#"Colunas Removidas",{{"Personalizar", "CODBROKER"}}),
     #"Tipo Alterado" = Table.TransformColumnTypes(#"Colunas Renomeadas",{{"CODBROKER", Int64.Type}, {"ERA", type text}}),
-    #"Consultas Mescladas1" = Table.NestedJoin(#"Tipo Alterado", {"CODBROKER"}, gerentes, {"CODBROKER"}, "gerentes", JoinKind.LeftOuter),
+    #"Consultas Mescladas1" = Table.NestedJoin(#"Tipo Alterado", {"CODBROKER"}, staging_gerentes, {"CODBROKER"}, "gerentes", JoinKind.LeftOuter),
     #"gerentes Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas1", "gerentes", {"nomeGerente", "plataforma", "gestor"}, {"Nome do gerente", "Plataforma da operação", "Gestor da operação"})
 in
     #"gerentes Expandido";
@@ -246,7 +224,8 @@ shared source_cad_brokers = let
     navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
     navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
     tabela_origem = navegacao_2{[Id = "cad_brokers", ItemKind = "Table"]}[Data],
-  #"As outras colunas foram removidas" = Table.SelectColumns(tabela_origem, {"CODBROKER", "CPFCNPJ", "STATUS", "CODAGENCIA"})
+  #"Linhas classificadas" = Table.Sort(tabela_origem, {{"CODBROKER", Order.Descending}}),
+  #"As outras colunas foram removidas" = Table.SelectColumns(#"Linhas classificadas", {"CODBROKER", "CPFCNPJ", "STATUS", "CODAGENCIA"})
 in
     #"As outras colunas foram removidas";
 shared source_cad_geral = let
@@ -254,9 +233,10 @@ shared source_cad_geral = let
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
   #"Navegação 1" = Navegação{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
   #"Navegação 2" = #"Navegação 1"{[Id = "cad_geral_pf_pj", ItemKind = "Table"]}[Data],
-  #"As outras colunas foram removidas" = Table.SelectColumns(#"Navegação 2", {"CPFCNPJ", "NOME", "RJ"})
+  #"As outras colunas foram removidas" = Table.SelectColumns(#"Navegação 2", {"CPFCNPJ", "NOME", "RJ"}),
+  #"Duplicatas removidas" = Table.Distinct(#"As outras colunas foram removidas", {"CPFCNPJ"})
 in
-  #"As outras colunas foram removidas";
+  #"Duplicatas removidas";
 shared operacoes_DataDestination = let
   Pattern = Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]),
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],

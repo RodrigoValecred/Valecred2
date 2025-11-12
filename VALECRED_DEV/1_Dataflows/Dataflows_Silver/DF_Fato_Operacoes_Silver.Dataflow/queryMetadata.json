@@ -36,12 +36,6 @@
       "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
       "loadEnabled": false
     },
-    "staging_cadastros": {
-      "queryId": "344f69d5-689d-471a-8d3e-12b97e885864",
-      "queryName": "staging_cadastros",
-      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
-      "loadEnabled": false
-    },
     "staging_plataformas": {
       "queryId": "32844df3-2153-45e0-956a-b0543d037dcb",
       "queryName": "staging_plataformas",
@@ -51,11 +45,6 @@
     "gerente da operacao": {
       "queryId": "3f559609-a851-4cf9-8cff-cfe3a845910a",
       "queryName": "gerente da operacao",
-      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
-    },
-    "gerentes": {
-      "queryId": "68a73b48-72a5-4c1d-98ea-373e583ad356",
-      "queryName": "gerentes",
       "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
     },
     "operacoes": {
