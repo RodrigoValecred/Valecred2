@@ -1,0 +1,266 @@
+[StagingDefinition = [Kind = "FastCopy"]]
+section Section1;
+shared staging_operacoes = let
+    // Conecta ao banco de dados SQL.
+    conexaoBancoDados = source_operacoes,
+    // Classifica as linhas pela data de análise em ordem decrescente.
+    linhasOrdenadasPorDataAnalise = Table.Sort(conexaoBancoDados,{{"DATAANALISE", Order.Descending}}),
+    // Altera o tipo da coluna 'base' para texto.
+    tipoColunaBaseAlterado = Table.TransformColumnTypes(linhasOrdenadasPorDataAnalise,{{"BASE", type text}}),
+
+    // Mescla com estudo de operações para obter TAXACADASTRO.
+    estudoOperacoesMesclado = Table.NestedJoin(tipoColunaBaseAlterado, {"CODOPERACAO"}, source_tab_estudo_op, {"CODOPERACAO"}, "estudoOpTabela", JoinKind.LeftOuter),
+    // Expande a coluna TAXACADASTRO.
+    taxaCadastroExpandida = Table.ExpandTableColumn(estudoOperacoesMesclado, "estudoOpTabela", {"FATOR"}, {"TAXACADASTRO"}),
+
+    // Mescla com usuários enriquecidos para dados de inclusão.
+    usuariosInclusaoMesclado = Table.NestedJoin(taxaCadastroExpandida, {"USUAINCLUSAO"}, source_cad_usuarios, {"CODUSUARIO"}, "usuariosInclusaoTabela", JoinKind.LeftOuter),
+    // Expande nome, função e nível do usuário de inclusão.
+    usuariosInclusaoExpandido = Table.ExpandTableColumn(usuariosInclusaoMesclado, "usuariosInclusaoTabela", {"NOME", "FUNCAO", "NIVEL"}, {"USUARIO_INCLUSAO", "INCLUIDO_POR", "NIVEL"}),
+
+    // Mescla com usuários enriquecidos para dados do analista.
+    usuariosAnaliseMesclado = Table.NestedJoin(usuariosInclusaoExpandido, {"USUASTANALISE"}, source_cad_usuarios, {"CODUSUARIO"}, "usuariosAnaliseTabela", JoinKind.LeftOuter),
+    // Expande o nome do analista.
+    analistaExpandido = Table.ExpandTableColumn(usuariosAnaliseMesclado, "usuariosAnaliseTabela", {"NOME"}, {"ANALISTA"}),
+
+    // Mescla com usuários enriquecidos para dados do analista que travou.
+    usuariosTravaMesclado = Table.NestedJoin(analistaExpandido, {"USUATRAVA"}, source_cad_usuarios, {"CODUSUARIO"}, "usuariosTravaTabela", JoinKind.LeftOuter),
+    // Expande o nome do analista que travou.
+    analistaTravaExpandido = Table.ExpandTableColumn(usuariosTravaMesclado, "usuariosTravaTabela", {"NOME"}, {"ANALISTA_TRAVA"}),
+
+    // Converte colunas de texto para maiúsculas.
+    textoParaMaiusculas = Table.TransformColumns(analistaTravaExpandido, {{"USUARIO_INCLUSAO", Text.Upper, type text}, {"INCLUIDO_POR", Text.Upper, type text}}),
+
+    // Mescla com grupos de indeferimento para obter motivos.
+    gruposIndeferimentoMesclado = Table.NestedJoin(textoParaMaiusculas, {"CODINDEFERIMENTO"}, sup_motivos_de_indeferimento, {"codindeferimento"}, "sup_motivos_de_indeferimento", JoinKind.LeftOuter),
+    // Expande colunas de motivo e grupo de indeferimento.
+    motivosIndeferimentoExpandido = Table.ExpandTableColumn(gruposIndeferimentoMesclado, "sup_motivos_de_indeferimento", {"motivo_indeferimento", "grupo_motivo_indeferimento"}, {"MOTIVO INDEFERIMENTO", "GRUPO MOTIVO INDEFERIMENTO"}),
+
+    // Adiciona a chave composta para cliente (BASE-CODCLIENTE).
+    chaveClienteAdicionada = Table.AddColumn(motivosIndeferimentoExpandido, "chave_base_cliente", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODCLIENTE], "pt-BR")}), type text),
+    // Adiciona a chave composta para operação (BASE-CODOPERACAO).
+    chaveOperacaoAdicionada = Table.AddColumn(chaveClienteAdicionada, "chave_base_operacao", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODOPERACAO], "pt-BR")}), type text),
+    // Adiciona a chave para o produto (TTO+STTO).
+    chaveProdutoAdicionada = Table.AddColumn(chaveOperacaoAdicionada, "chave_produto", each Text.Combine({[TTO], [STTO]}), type text),
+    // Adiciona a chave composta para empresa (BASE-CODEMPRESA).
+    chaveEmpresaAdicionada = Table.AddColumn(chaveProdutoAdicionada, "chave_base_empresa", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODEMPRESA], "pt-BR")}), type text),
+
+    // Extrai a data do campo DATAANALISE.
+    dataDeferimentoExtraida = Table.AddColumn(chaveEmpresaAdicionada, "Data deferimento", each Date.From([DATAANALISE]), type date),
+    // Classifica operações em "VALE S" ou "VALE N".
+    eraClassificada = Table.AddColumn(dataDeferimentoExtraida, "ERA", each if [Data deferimento] <> null and [Data deferimento] > #date(2023, 8, 31) then "VALE S" else "VALE N"),
+
+    // Substitui valores nulos por 0 nas colunas numéricas.
+    nulosNumericosSubstituidos = Table.ReplaceValue(eraClassificada, null, 0, Replacer.ReplaceValue, {"TAC", "TOTTAXAADM", "TOTADVAL", "TOTTAR", "NDOCSRECOMPRA"})
+in
+    nulosNumericosSubstituidos;
+shared staging_gerentes = let
+    Fonte = source_cad_brokers,
+
+// Mescla com a tabela geral de PF/PJ (replica_cad_geral_pf_pj) usando cpfCnpj.
+cadastrosMesclados = Table.NestedJoin(
+    Fonte, {"CPFCNPJ"}, // Chave de mesclagem em tiposDefinidos
+    source_cad_geral, {"CPFCNPJ"}, // Chave de mesclagem em replica_cad_geral_pf_pj
+    "Cadastros", JoinKind.LeftOuter
+),
+
+// Expande a coluna 'NOME' da tabela mesclada 'Cadastros' para 'nomeGerente'.
+nomeGerenteExpandido = Table.ExpandTableColumn(
+    cadastrosMesclados, "Cadastros", {"NOME"}, {"nomeGerente"}
+),
+
+// Mescla com Silver_Plataformas_Padronizacao usando codAgencia.
+plataformasMescladas = Table.NestedJoin(
+    nomeGerenteExpandido, {"CODAGENCIA"},
+    staging_plataformas, {"cod_agencia"},
+    "Plataformas", JoinKind.LeftOuter
+),
+    // Expande as colunas 'plataforma' e 'nomeGestorPlataforma' da tabela 'Plataformas'.
+plataformasExpandidas = Table.ExpandTableColumn(plataformasMescladas, "Plataformas", {"plataforma", "gestor_da_plataforma"}, {"plataforma", "gestor"}),
+
+// Adiciona a coluna 'BASE' com o valor constante 40.
+baseAdicionada = Table.AddColumn(plataformasExpandidas, "BASE", each 40)
+in
+    baseAdicionada;
+shared staging_cadastros = let
+    Fonte = source_cad_geral,
+    #"Texto Limpo" = Table.TransformColumns(Fonte,{{"NOME", Text.Clean, type text}}),
+  #"Duplicatas removidas" = Table.Distinct(#"Texto Limpo", {"CPFCNPJ"})
+in
+    #"Duplicatas removidas";
+shared staging_plataformas = let
+  Origem = source_cad_agencias,
+    colunas_selecionadas = Table.SelectColumns(Origem, {"CODAGENCIA", "NOME"}),
+    colunas_renomeadas = Table.RenameColumns(colunas_selecionadas, {{"CODAGENCIA", "cod_agencia"}, {"NOME", "nome_plataforma"}}),
+  #"Consultas mescladas" = Table.NestedJoin(colunas_renomeadas, {"cod_agencia"}, sup_gestor_de_plataforma, {"cod_agencia"}, "sup_gestor_de_plataforma", JoinKind.LeftOuter),
+  #"Expandido sup_gestor_de_plataforma" = Table.ExpandTableColumn(#"Consultas mescladas", "sup_gestor_de_plataforma", {"gestor_da_plataforma"}, {"gestor_da_plataforma"}),
+  #"Inserted Text After Delimiter" = Table.AddColumn(#"Expandido sup_gestor_de_plataforma", "plataforma", each Text.AfterDelimiter([nome_plataforma], " "), type text)
+in
+    #"Inserted Text After Delimiter";
+shared #"gerente da operacao" = let
+    // 1. Conecta-se à fonte de dados SQL do Azure Synapse Analytics (ou Fabric Data Warehouse).
+    Fonte = Sql.Database("gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com", "LH_Silver"),
+    // 1. Conecta-se à fonte de dados SQL do Azure Synapse Analytics (ou Fabric Data Warehouse).
+    dbo_fato_titulos_antecipados = Fonte{[Schema="dbo",Item="fato_titulos_antecipados"]}[Data],
+    #"Outras Colunas Removidas" = Table.SelectColumns(dbo_fato_titulos_antecipados,{"CODOPERACAO", "GerenteID", "NOMEPLATAFORMA", "NOMEGERENTE"}),
+    #"Consultas Mescladas" = Table.NestedJoin(#"Outras Colunas Removidas", {"NOMEPLATAFORMA"}, staging_plataformas, {"nome_plataforma"}, "plataformas", JoinKind.LeftOuter),
+    #"plataformas Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas", "plataformas", {"gestor_da_plataforma"}, {"GESTOR DA OPERACAO"}),
+    #"Duplicatas Removidas" = Table.Distinct(#"plataformas Expandido", {"CODOPERACAO"})
+in
+    #"Duplicatas Removidas";
+shared gerentes = let
+    Fonte = staging_gerentes,
+    #"Coluna Mesclada Inserida" = Table.AddColumn(Fonte, "chave_base_gerente", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODBROKER], "pt-BR")}), type text),
+    #"Coluna Mesclada Inserida1" = Table.AddColumn(#"Coluna Mesclada Inserida", "chave_base_plataforma", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODAGENCIA], "pt-BR")}), type text),
+    #"Coluna Mesclada Inserida2" = Table.AddColumn(#"Coluna Mesclada Inserida1", "chave_base_cadastro", each Text.Combine({Text.From([BASE], "pt-BR"), "-", [CPFCNPJ]}), type text),
+    #"Consultas Mescladas" = Table.NestedJoin(#"Coluna Mesclada Inserida2", {"CPFCNPJ"}, staging_cadastros, {"CPFCNPJ"}, "staging_cadastros", JoinKind.LeftOuter),
+    #"cadastros Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas", "staging_cadastros", {"NOME"}, {"Nome do Gerente"}),
+    #"Texto em Maiúscula" = Table.TransformColumns(#"cadastros Expandido",{{"Nome do Gerente", Text.Upper, type text}}),
+    #"Linhas Classificadas1" = Table.Sort(#"Texto em Maiúscula",{{"chave_base_gerente", Order.Ascending}}),
+    #"Consultas Mescladas1" = Table.NestedJoin(#"Linhas Classificadas1", {"CODAGENCIA"}, staging_plataformas, {"cod_agencia"}, "plataformas", JoinKind.LeftOuter),
+    #"plataformas Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas1", "plataformas", {"gestor_da_plataforma"}, {"Gestor"})
+in
+    #"plataformas Expandido";
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "operacoes_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
+shared operacoes = let
+    // Define a origem dos dados como a tabela Silver_Operacoes_Padronizado.
+    origem = staging_operacoes,
+
+    // Filtra linhas com tipos de operação específicos (CM, FC, NO, RN).
+    // Nota: O input 'Fonte' foi alterado para 'ttoColunaRenomeada' para seguir o fluxo da query.
+    linhasFiltradasTipoOperacao = Table.SelectRows(origem, each ([TTO] = "CM" or [TTO] = "FC" or [TTO] = "NO" or [TTO] = "RN" or [TTO] = "GR" or [TTO] = "CS")),
+    
+    // Insere a coluna 'chave_ano_mes' extraindo o ano e mês da 'Data deferimento'.
+    chaveAnoMesInserida = Table.AddColumn(linhasFiltradasTipoOperacao, "chave_ano_mes", each Text.BetweenDelimiters(Text.From([DATAANALISE], "pt-BR"), "/", " "), type text),
+    
+    // Insere a coluna 'chave_ano_mes_base_empresa' combinando chave_ano_mes e CODEMPRESA.
+    chaveAnoMesBaseEmpresaInserida = Table.AddColumn(chaveAnoMesInserida, "chave_ano_mes_base_empresa", each Text.Combine({[chave_ano_mes], "-", Text.From([CODEMPRESA], "pt-BR")}), type text),
+    
+    // Classifica as linhas pela 'Data deferimento' em ordem decrescente.
+    linhasClassificadas = Table.Sort(chaveAnoMesBaseEmpresaInserida,{{"DATAANALISE", Order.Descending}}),
+    #"Duplicatas Removidas" = Table.Distinct(linhasClassificadas, {"CODOPERACAO"}),
+    #"Consultas Mescladas" = Table.NestedJoin(#"Duplicatas Removidas", {"CODOPERACAO"}, #"gerente da operacao", {"CODOPERACAO"}, "gerente da operacao", JoinKind.LeftOuter),
+    #"gerente da operacao Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas", "gerente da operacao", {"GerenteID"}, {"gerente da operacao.GerenteID"}),
+    #"Personalização Adicionada" = Table.AddColumn(#"gerente da operacao Expandido", "Personalizar", each [CODBROKER] ?? [gerente da operacao.GerenteID]),
+    #"Colunas Removidas" = Table.RemoveColumns(#"Personalização Adicionada",{"CODBROKER", "gerente da operacao.GerenteID"}),
+    #"Colunas Renomeadas" = Table.RenameColumns(#"Colunas Removidas",{{"Personalizar", "CODBROKER"}}),
+    #"Tipo Alterado" = Table.TransformColumnTypes(#"Colunas Renomeadas",{{"CODBROKER", Int64.Type}, {"ERA", type text}}),
+    #"Consultas Mescladas1" = Table.NestedJoin(#"Tipo Alterado", {"CODBROKER"}, gerentes, {"CODBROKER"}, "gerentes", JoinKind.LeftOuter),
+    #"gerentes Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas1", "gerentes", {"nomeGerente", "plataforma", "gestor"}, {"Nome do gerente", "Plataforma da operação", "Gestor da operação"})
+in
+    #"gerentes Expandido";
+shared source_operacoes = let
+  Origem = Lakehouse.Contents(null),
+  Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  #"Navegação 2" = #"Navegação 1"{[Id = "staging_operacoes_limpa", ItemKind = "Table"]}[Data],
+  selecionarColunas = Table.SelectColumns(#"Navegação 2", {"NBORDERO","CODBROKER","CODOPERACAO","CODEMPRESA","DATAINCLUSAO","CODCLIENTE","CPFCNPJCLIENTE","STATUSANALISE","DATAANALISE","STATUSACEITE","DATAACEITE","DATAENVIOEMAIL","STTO","TTO","FATOR","TARIFA","TARIFARECOMPRA","TAC","NDOCS","NDOCSRECOMPRA","TOTADVAL","TOTTAXAADM","TOTTAR","APROVACAO1","DATAALTERACAO","CODINDEFERIMENTO","CONTRATOFISICO","USUAINCLUSAO","USUATRAVA","USUASTANALISE","NOTASERVICO"}),
+    // Filtra linhas com DATAANALISE posterior a 31/12/2020.
+  linhasDataAnaliseFiltradas = Table.SelectRows(selecionarColunas, each [DATAANALISE] > #datetime(2020, 12, 31, 0, 0, 0)),
+  // Adiciona a coluna "BASE" com o valor constante 40.
+  baseAdicionada = Table.AddColumn(linhasDataAnaliseFiltradas, "BASE", each 40),
+      // Adiciona uma coluna temporária 'TTO_Corrigido_Temp' com lógica de correção.
+  ttoCorrigidoAdicionado = Table.AddColumn(baseAdicionada, "TTO_Corrigido_Temp",
+      each if [CODOPERACAO] = 3042074 then "CS" else [TTO], type text),
+  // Remove a coluna 'TTO' original.
+  ttoOriginalRemovido = Table.RemoveColumns(ttoCorrigidoAdicionado, {"TTO"}),
+  // Renomeia a coluna temporária 'TTO_Corrigido_Temp' para 'TTO'.
+  ttoColunaRenomeada = Table.RenameColumns(ttoOriginalRemovido, {{"TTO_Corrigido_Temp", "TTO"}})
+in
+    ttoColunaRenomeada;
+shared source_tab_estudo_op = let
+    origem = Lakehouse.Contents([]),
+    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
+    tabela_origem = navegacao_2{[Id = "tab_estudo_op", ItemKind = "Table"]}[Data]
+in
+    tabela_origem;
+shared source_cad_usuarios = let
+    origem = Lakehouse.Contents([]),
+    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
+    tabela_origem = navegacao_2{[Id = "cad_usuarios", ItemKind = "Table"]}[Data],
+  // Remove colunas desnecessárias da tabela de usuários.
+    colunasRemovidas = Table.RemoveColumns(
+        tabela_origem,
+        {
+            "LOGIN",
+            "SENHA",
+            "STATUS",
+            "EXPIRADA",
+            "DATAEXPIRACAO",
+            "TIPO",
+            "CCUSTO",
+            "WALLPAPER",
+            "DATAINCLUSAO",
+            "USUAINCLUSAO",
+            "DATAALTERACAO",
+            "USUAALTERACAO",
+            "APELIDO"
+        }
+    ),
+
+    // Converte a coluna NOME para maiúsculas.
+    nomeEmMaiusculas = Table.TransformColumns(colunasRemovidas, {{"NOME", Text.Upper, type text}}),
+
+    // Converte a coluna FUNCAO para maiúsculas.
+    funcaoEmMaiusculas = Table.TransformColumns(nomeEmMaiusculas, {{"FUNCAO", Text.Upper, type nullable text}}),
+
+    // Mescla com Bronze_NivelUsuario_Manual para obter a descrição do nível.
+    nivelUsuarioMesclado = Table.NestedJoin(funcaoEmMaiusculas, {"NIVEL"}, sup_nivel_usuario, {"nivel"}, "sup_nivel_usuario", JoinKind.LeftOuter),
+    
+    // Expande a coluna 'descricao' do nível do usuário.
+    nivelUsuarioExpandido = Table.ExpandTableColumn(nivelUsuarioMesclado, "sup_nivel_usuario", {"descricao"}, {"nivel"})
+in
+    nivelUsuarioExpandido;
+shared source_cad_agencias = let
+    origem = Lakehouse.Contents([]),
+    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
+    tabela_origem = navegacao_2{[Id = "cad_agencias", ItemKind = "Table"]}[Data]
+in
+    tabela_origem;
+shared sup_motivos_de_indeferimento = let
+  Origem = Lakehouse.Contents(null),
+  Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  #"Navegação 2" = #"Navegação 1"{[Id = "sup_motivos_de_indeferimento", ItemKind = "Table"]}[Data]
+in
+  #"Navegação 2";
+shared sup_nivel_usuario = let
+  Origem = Lakehouse.Contents(null),
+  Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  #"Navegação 2" = #"Navegação 1"{[Id = "sup_nivel_usuario", ItemKind = "Table"]}[Data]
+in
+  #"Navegação 2";
+shared sup_gestor_de_plataforma = let
+  Origem = Lakehouse.Contents(null),
+  Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  #"Navegação 2" = #"Navegação 1"{[Id = "sup_gestor_de_plataforma", ItemKind = "Table"]}[Data]
+in
+  #"Navegação 2";
+shared source_cad_brokers = let
+    origem = Lakehouse.Contents([]),
+    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
+    tabela_origem = navegacao_2{[Id = "cad_brokers", ItemKind = "Table"]}[Data],
+  #"As outras colunas foram removidas" = Table.SelectColumns(tabela_origem, {"CODBROKER", "CPFCNPJ", "STATUS", "CODAGENCIA"})
+in
+    #"As outras colunas foram removidas";
+shared source_cad_geral = let
+  Origem = Lakehouse.Contents(null),
+  Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  #"Navegação 1" = Navegação{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
+  #"Navegação 2" = #"Navegação 1"{[Id = "cad_geral_pf_pj", ItemKind = "Table"]}[Data],
+  #"As outras colunas foram removidas" = Table.SelectColumns(#"Navegação 2", {"CPFCNPJ", "NOME", "RJ"})
+in
+  #"As outras colunas foram removidas";
+shared operacoes_DataDestination = let
+  Pattern = Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]),
+  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  Navigation_2 = Navigation_1{[lakehouseId = "ee40705b-0100-49bc-8f35-81d71839f042"]}[Data],
+  TableNavigation = Navigation_2{[Id = "operacoes", ItemKind = "Table"]}?[Data]?
+in
+  TableNavigation;

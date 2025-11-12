@@ -1,0 +1,145 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Conexao_LBFactor",
+  "queryGroups": [
+    {
+      "id": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "name": "00 - Sources (Bronze)",
+      "description": ""
+    },
+    {
+      "id": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
+      "name": "01 - Staging (Silver)",
+      "description": "",
+      "order": 1
+    },
+    {
+      "id": "5a6e2983-86b2-4a80-ae0d-704632ce751e",
+      "name": "02 - Dimensões (Gold)",
+      "description": "",
+      "order": 2
+    }
+  ],
+  "documentLocale": "pt-BR",
+  "gatewayObjectId": "104f5ce9-b851-4389-8c57-0eea21c99a73",
+  "queriesMetadata": {
+    "staging_operacoes": {
+      "queryId": "50cc2106-2d02-40ab-92b5-06e74dcb2b94",
+      "queryName": "staging_operacoes",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
+      "loadEnabled": false
+    },
+    "staging_gerentes": {
+      "queryId": "c0f31c7e-38d1-4ef6-83b6-99ab6bc398ae",
+      "queryName": "staging_gerentes",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
+      "loadEnabled": false
+    },
+    "staging_cadastros": {
+      "queryId": "344f69d5-689d-471a-8d3e-12b97e885864",
+      "queryName": "staging_cadastros",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
+      "loadEnabled": false
+    },
+    "staging_plataformas": {
+      "queryId": "32844df3-2153-45e0-956a-b0543d037dcb",
+      "queryName": "staging_plataformas",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
+      "loadEnabled": false
+    },
+    "gerente da operacao": {
+      "queryId": "3f559609-a851-4cf9-8cff-cfe3a845910a",
+      "queryName": "gerente da operacao",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
+    },
+    "gerentes": {
+      "queryId": "68a73b48-72a5-4c1d-98ea-373e583ad356",
+      "queryName": "gerentes",
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
+    },
+    "operacoes": {
+      "queryId": "e948e5f0-4228-4773-9202-e69fed8e4eb7",
+      "queryName": "operacoes",
+      "queryGroupId": "5a6e2983-86b2-4a80-ae0d-704632ce751e",
+      "loadEnabled": false
+    },
+    "source_operacoes": {
+      "queryId": "0ced2f85-0bce-4cb3-9aaa-1989d63163f8",
+      "queryName": "source_operacoes",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "loadEnabled": false
+    },
+    "source_tab_estudo_op": {
+      "queryId": "624d3691-5a10-4731-8e7c-7b306c483cb2",
+      "queryName": "source_tab_estudo_op",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "loadEnabled": false
+    },
+    "source_cad_usuarios": {
+      "queryId": "3664e710-5d31-455f-a951-df477fab3e66",
+      "queryName": "source_cad_usuarios",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "loadEnabled": false
+    },
+    "source_cad_agencias": {
+      "queryId": "cc7e02a1-023d-4382-8585-027558b6e07d",
+      "queryName": "source_cad_agencias",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "loadEnabled": false
+    },
+    "sup_motivos_de_indeferimento": {
+      "queryId": "caf1fb1d-6110-44be-869f-60751b33643a",
+      "queryName": "sup_motivos_de_indeferimento",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "loadEnabled": false
+    },
+    "sup_nivel_usuario": {
+      "queryId": "56b83321-9b7a-495c-9eef-47f12287a608",
+      "queryName": "sup_nivel_usuario",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "loadEnabled": false
+    },
+    "sup_gestor_de_plataforma": {
+      "queryId": "056a46d4-7940-4c8c-bbc9-26c192af85a1",
+      "queryName": "sup_gestor_de_plataforma",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "loadEnabled": false
+    },
+    "source_cad_brokers": {
+      "queryId": "a9a982c2-34ee-473d-802e-1264749eae1d",
+      "queryName": "source_cad_brokers",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "loadEnabled": false
+    },
+    "source_cad_geral": {
+      "queryId": "b94f8a4a-635a-4fe1-8e7b-be7a50f2ca00",
+      "queryName": "source_cad_geral",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
+      "loadEnabled": false
+    },
+    "operacoes_DataDestination": {
+      "queryId": "447ca41c-9b1c-4b33-a1e8-00dae75c60f0",
+      "queryName": "operacoes_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "56.125.147.185;lbfactor",
+      "kind": "MySql",
+      "connectionId": "{\"ClusterId\":\"104f5ce9-b851-4389-8c57-0eea21c99a73\",\"DatasourceId\":\"ddb03605-7bef-45d9-8c36-aa19be4e5ae4\"}"
+    },
+    {
+      "path": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com;LH_Silver",
+      "kind": "SQL",
+      "connectionId": "{\"ClusterId\":\"104f5ce9-b851-4389-8c57-0eea21c99a73\",\"DatasourceId\":\"2a4c9f05-f9cd-4b35-9339-48b0995a24b1\"}"
+    },
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    }
+  ]
+}
