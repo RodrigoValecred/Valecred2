@@ -1,0 +1,37 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Dim_Plataformas_Silver",
+  "queryGroups": [],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "dim_plataformas": {
+      "queryId": "f93e9547-c073-4508-ab55-ad67572045d6",
+      "queryName": "dim_plataformas",
+      "loadEnabled": false
+    },
+    "source_cad_agencias": {
+      "queryId": "d3095c5d-b060-4f8e-ad8c-6baa28c2aa06",
+      "queryName": "source_cad_agencias",
+      "loadEnabled": false
+    },
+    "sup_gestor_de_plataforma": {
+      "queryId": "44bbdded-4cc9-4da3-86e2-d40e9995b62f",
+      "queryName": "sup_gestor_de_plataforma",
+      "loadEnabled": false
+    },
+    "dim_plataformas_DataDestination": {
+      "queryId": "4cca9c6f-1bbe-4d42-99ad-fbab820b8c56",
+      "queryName": "dim_plataformas_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    }
+  ]
+}

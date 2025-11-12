@@ -1,0 +1,52 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Dim_Gerentes_Silver",
+  "queryGroups": [],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "dim_gerentes": {
+      "queryId": "21f877f2-db33-4513-a0ee-89eb3284d760",
+      "queryName": "dim_gerentes",
+      "loadEnabled": false
+    },
+    "staging_plataformas": {
+      "queryId": "dc1e13ed-d477-4e22-ab95-bb3bff066ee4",
+      "queryName": "staging_plataformas",
+      "loadEnabled": false
+    },
+    "source_cad_agencias": {
+      "queryId": "91ad474a-b601-47da-a94f-6f48b5b9a9fb",
+      "queryName": "source_cad_agencias",
+      "loadEnabled": false
+    },
+    "sup_gestor_de_plataforma": {
+      "queryId": "aa5b2912-c442-4c84-87e1-754afdb7dc6d",
+      "queryName": "sup_gestor_de_plataforma",
+      "loadEnabled": false
+    },
+    "source_cad_brokers": {
+      "queryId": "d2b5074f-1149-4b22-983d-fb533964645e",
+      "queryName": "source_cad_brokers",
+      "loadEnabled": false
+    },
+    "source_cad_geral": {
+      "queryId": "ff67a3e5-46ac-464d-bfde-194194b7bc43",
+      "queryName": "source_cad_geral",
+      "loadEnabled": false
+    },
+    "dim_gerentes_DataDestination": {
+      "queryId": "74aa4a83-fa5c-45c5-aae6-d48e69343ce1",
+      "queryName": "dim_gerentes_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    }
+  ]
+}
