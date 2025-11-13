@@ -611,7 +611,7 @@ df_status_clientes_esteira = spark.read.table("LH_Silver.sup_status_de_clientes_
 print("Leitura da tabela de status concluída.")
 
 df_pareceres_incremental = df_pareceres_raw.filter(
-    (col("DATAINCLUSAO") > last_watermark) | (col("DATAALTERACAO") > last_watermark)
+    (col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark)
 ).cache() # Cache para evitar recomputação com o .count()
 
 record_count = df_pareceres_incremental.count()
