@@ -147,119 +147,6 @@
         ]
       },
       {
-        "type": "Lookup",
-        "typeProperties": {
-          "source": {
-            "type": "DataWarehouseSource",
-            "sqlReaderQuery": "SELECT LastWatermarkValue FROM etl_watermark_control WHERE PipelineName = 'PL_Load_Bronze_MVP'",
-            "partitionOption": "None",
-            "queryTimeout": "02:00:00"
-          },
-          "datasetSettings": {
-            "type": "DataWarehouseTable",
-            "schema": [],
-            "linkedService": {
-              "name": "WH_Gold",
-              "properties": {
-                "type": "DataWarehouse",
-                "typeProperties": {
-                  "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
-                  "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
-                  "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
-                },
-                "annotations": []
-              }
-            },
-            "annotations": []
-          },
-          "firstRowOnly": true
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Lookup_GetLastRunDate",
-        "description": "Ler o último valor salvo na nossa tabela de controle.",
-        "dependsOn": []
-      },
-      {
-        "type": "SetVariable",
-        "typeProperties": {
-          "variableName": "LastRunDate",
-          "value": {
-            "value": "@formatDateTime(activity('Lookup_GetLastRunDate').output.firstRow.LastWatermarkValue, 'yyyy-MM-dd')",
-            "type": "Expression"
-          }
-        },
-        "policy": {
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Set_Variable_LastRunDate",
-        "description": "Armazenar o valor lido pela atividade anterior na nossa variável de pipeline.",
-        "dependsOn": [
-          {
-            "activity": "Lookup_GetLastRunDate",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "Script",
-        "typeProperties": {
-          "scripts": [
-            {
-              "text": {
-                "value": "UPDATE etl_watermark_control SET LastWatermarkValue= '@{variables('TargetProcessingDate')}' WHERE PipelineName = 'PL_Load_Bronze_Incremental'",
-                "type": "Expression"
-              },
-              "type": "Query"
-            }
-          ],
-          "scriptBlockExecutionTimeout": "02:00:00"
-        },
-        "linkedService": {
-          "name": "WH_Gold",
-          "properties": {
-            "type": "DataWarehouse",
-            "typeProperties": {
-              "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
-              "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
-              "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
-            },
-            "annotations": []
-          }
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Update_ControlTable",
-        "description": "Atualizar nossa tabela de controle com o novo valor, para que a próxima execução comece a partir daqui.",
-        "dependsOn": [
-          {
-            "activity": "ForEach_FullOverwriteCopy",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "ForEach_IncrementalCopy",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
         "type": "SetVariable",
         "typeProperties": {
           "variableName": "TargetProcessingDate",
@@ -274,14 +161,7 @@
         },
         "name": "Set_Variable_TargetProcessingDate",
         "description": "Armazenar o valor lido pela atividade anterior na nossa variável de pipeline.",
-        "dependsOn": [
-          {
-            "activity": "Set_Variable_LastRunDate",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
+        "dependsOn": []
       },
       {
         "type": "Filter",
@@ -339,11 +219,56 @@
           },
           "activities": [
             {
+              "type": "Lookup",
+              "typeProperties": {
+                "source": {
+                  "type": "DataWarehouseSource",
+                  "sqlReaderQuery": {
+                    "value": "@concat('SELECT LastWatermarkValue FROM etl_watermark_control WHERE PipelineName = ''', item().TableName, '''')",
+                    "type": "Expression"
+                  },
+                  "partitionOption": "None",
+                  "queryTimeout": "02:00:00"
+                },
+                "datasetSettings": {
+                  "type": "DataWarehouseTable",
+                  "schema": [],
+                  "linkedService": {
+                    "name": "WH_Gold",
+                    "properties": {
+                      "type": "DataWarehouse",
+                      "typeProperties": {
+                        "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
+                        "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
+                        "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
+                      },
+                      "annotations": []
+                    }
+                  },
+                  "annotations": []
+                },
+                "firstRowOnly": true
+              },
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureInput": false,
+                "secureOutput": false
+              },
+              "name": "Lookup_GetTableWatermark",
+              "description": "Busca o último valor de watermark para a tabela atual.",
+              "dependsOn": []
+            },
+            {
               "type": "Copy",
               "typeProperties": {
                 "source": {
                   "type": "MySqlSource",
-                  "query": "@concat(\n    'SELECT * FROM ', item().TableName,\n    ' WHERE ',\n    'GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' > ''', variables('LastRunDate'), '''',\n    ' AND GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' <= ''', variables('TargetProcessingDate'), ''''\n)",
+                  "query": {
+                    "value": "@concat(\n    'SELECT * FROM ', item().TableName,\n    ' WHERE ',\n    'GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' > ''', activity('Lookup_GetTableWatermark').output.firstRow.LastWatermarkValue, '''',\n    ' AND GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' <= ''', variables('TargetProcessingDate'), ''''\n)",
+                    "type": "Expression"
+                  },
                   "datasetSettings": {
                     "type": "MySqlTable",
                     "schema": [],
@@ -398,7 +323,58 @@
                 "secureOutput": false
               },
               "name": "Copy data",
-              "dependsOn": []
+              "dependsOn": [
+                {
+                  "activity": "Lookup_GetTableWatermark",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Script",
+              "typeProperties": {
+                "scripts": [
+                  {
+                    "text": {
+                      "value": "UPDATE etl_watermark_control SET LastWatermarkValue= '@{variables('TargetProcessingDate')}' WHERE PipelineName = '@{item().TableName}'",
+                      "type": "Expression"
+                    },
+                    "type": "Query"
+                  }
+                ],
+                "scriptBlockExecutionTimeout": "02:00:00"
+              },
+              "linkedService": {
+                "name": "WH_Gold",
+                "properties": {
+                  "type": "DataWarehouse",
+                  "typeProperties": {
+                    "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
+                    "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
+                    "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
+                  },
+                  "annotations": []
+                }
+              },
+              "policy": {
+                "timeout": "0.12:00:00",
+                "retry": 0,
+                "retryIntervalInSeconds": 30,
+                "secureInput": false,
+                "secureOutput": false
+              },
+              "name": "Update_TableWatermark",
+              "description": "Atualiza o watermark para a tabela atual na tabela de controle.",
+              "dependsOn": [
+                {
+                  "activity": "Copy data",
+                  "dependencyConditions": [
+                    "Succeeded"
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -414,9 +390,6 @@
       }
     ],
     "variables": {
-      "LastRunDate": {
-        "type": "String"
-      },
       "TargetProcessingDate": {
         "type": "String"
       }
