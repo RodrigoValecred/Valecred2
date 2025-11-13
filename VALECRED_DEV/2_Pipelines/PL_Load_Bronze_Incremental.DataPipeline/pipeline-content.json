@@ -294,7 +294,7 @@
             "type": "Expression"
           },
           "condition": {
-            "value": "@not(empty(item().InclusionWatermark))",
+            "value": "@equals(item().LoadType, 'Incremental')",
             "type": "Expression"
           }
         },
@@ -317,7 +317,7 @@
             "type": "Expression"
           },
           "condition": {
-            "value": "@empty(item().InclusionWatermark)",
+            "value": "@equals(item().LoadType, 'Full_Overwrite')",
             "type": "Expression"
           }
         },
