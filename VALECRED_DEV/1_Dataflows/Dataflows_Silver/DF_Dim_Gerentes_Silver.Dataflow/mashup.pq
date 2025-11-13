@@ -13,42 +13,21 @@ cadastrosMesclados = Table.NestedJoin(
 
 // Expande a coluna 'NOME' da tabela mesclada 'Cadastros' para 'nomeGerente'.
 nomeGerenteExpandido = Table.ExpandTableColumn(
-    cadastrosMesclados, "Cadastros", {"NOME"}, {"nomeGerente"}
+    cadastrosMesclados, "Cadastros", {"NOME"}, {"nome_gerente"}
 ),
 
 // Mescla com Silver_Plataformas_Padronizacao usando codAgencia.
 plataformasMescladas = Table.NestedJoin(
     nomeGerenteExpandido, {"CODAGENCIA"},
-    staging_plataformas, {"cod_agencia"},
+    dim_plataformas, {"cod_agencia"},
     "Plataformas", JoinKind.LeftOuter
 ),
     // Expande as colunas 'plataforma' e 'nomeGestorPlataforma' da tabela 'Plataformas'.
-plataformasExpandidas = Table.ExpandTableColumn(plataformasMescladas, "Plataformas", {"plataforma", "gestor_da_plataforma"}, {"plataforma", "gestor"})
+plataformasExpandidas = Table.ExpandTableColumn(plataformasMescladas, "Plataformas", {"plataforma", "gestor_da_plataforma"}, {"plataforma", "gestor"}),
+  #"Colunas renomeadas" = Table.RenameColumns(plataformasExpandidas, {{"CODBROKER", "cod_broker"}, {"CPFCNPJ", "cpf_cnpj"}, {"STATUS", "status"}, {"CODAGENCIA", "cod_agencia"}}),
+  #"Duplicatas removidas" = Table.Distinct(#"Colunas renomeadas", {"cod_broker"})
 in
-    plataformasExpandidas;
-shared staging_plataformas = let
-  Origem = source_cad_agencias,
-    colunas_selecionadas = Table.SelectColumns(Origem, {"CODAGENCIA", "NOME"}),
-    colunas_renomeadas = Table.RenameColumns(colunas_selecionadas, {{"CODAGENCIA", "cod_agencia"}, {"NOME", "nome_plataforma"}}),
-  #"Consultas mescladas" = Table.NestedJoin(colunas_renomeadas, {"cod_agencia"}, sup_gestor_de_plataforma, {"cod_agencia"}, "sup_gestor_de_plataforma", JoinKind.LeftOuter),
-  #"Expandido sup_gestor_de_plataforma" = Table.ExpandTableColumn(#"Consultas mescladas", "sup_gestor_de_plataforma", {"gestor_da_plataforma"}, {"gestor_da_plataforma"}),
-  #"Inserted Text After Delimiter" = Table.AddColumn(#"Expandido sup_gestor_de_plataforma", "plataforma", each Text.AfterDelimiter([nome_plataforma], " "), type text)
-in
-    #"Inserted Text After Delimiter";
-shared source_cad_agencias = let
-    origem = Lakehouse.Contents([]),
-    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
-    tabela_origem = navegacao_2{[Id = "cad_agencias", ItemKind = "Table"]}[Data]
-in
-    tabela_origem;
-shared sup_gestor_de_plataforma = let
-  Origem = Lakehouse.Contents(null),
-  Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-  #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
-  #"Navegação 2" = #"Navegação 1"{[Id = "sup_gestor_de_plataforma", ItemKind = "Table"]}[Data]
-in
-  #"Navegação 2";
+    #"Duplicatas removidas";
 shared source_cad_brokers = let
     origem = Lakehouse.Contents([]),
     navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -74,3 +53,10 @@ shared dim_gerentes_DataDestination = let
   TableNavigation = Navigation_2{[Id = "dim_gerentes", ItemKind = "Table"]}?[Data]?
 in
   TableNavigation;
+shared dim_plataformas = let
+  Origem = Lakehouse.Contents(null),
+  Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  #"Navegação 2" = #"Navegação 1"{[Id = "dim_plataformas", ItemKind = "Table"]}[Data]
+in
+  #"Navegação 2";

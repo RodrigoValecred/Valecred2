@@ -21,7 +21,7 @@
       "loadEnabled": false
     },
     "dim_plataformas_DataDestination": {
-      "queryId": "4cca9c6f-1bbe-4d42-99ad-fbab820b8c56",
+      "queryId": "628bf956-9669-4dc2-8538-2e055527cfc9",
       "queryName": "dim_plataformas_DataDestination",
       "isHidden": true,
       "loadEnabled": false

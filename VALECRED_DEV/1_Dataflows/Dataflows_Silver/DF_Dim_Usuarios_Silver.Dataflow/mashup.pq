@@ -28,9 +28,10 @@ shared dim_usuarios = let
   #"Expandido sup_nivel_usuario" = Table.ExpandTableColumn(#"Consultas mescladas", "sup_nivel_usuario", {"descricao"}, {"nivel"}),
   #"Colunas removidas" = Table.RemoveColumns(#"Expandido sup_nivel_usuario", {"NIVEL", "FUNCAO"}),
   #"Texto em maiúscula" = Table.TransformColumns(#"Colunas removidas", {{"APELIDO", each Text.Upper(_), type nullable text}}),
-  #"Colunas renomeadas" = Table.RenameColumns(#"Texto em maiúscula", {{"nivel", "NIVEL"}})
+  #"Colunas renomeadas" = Table.RenameColumns(#"Texto em maiúscula", {{"nivel", "nivel"}, {"CODUSUARIO", "cod_usuario"}, {"CPFCNPJ", "cpf_cnpj"}, {"NOME", "nome_do_usuario"}, {"EMAIL", "email"}, {"APELIDO", "apelido"}}),
+  #"Duplicatas removidas" = Table.Distinct(#"Colunas renomeadas", {"cod_usuario"})
   in
-  #"Colunas renomeadas";
+  #"Duplicatas removidas";
 shared dim_usuarios_DataDestination = let
   Pattern = Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]),
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],

@@ -10,21 +10,6 @@
       "queryName": "dim_gerentes",
       "loadEnabled": false
     },
-    "staging_plataformas": {
-      "queryId": "dc1e13ed-d477-4e22-ab95-bb3bff066ee4",
-      "queryName": "staging_plataformas",
-      "loadEnabled": false
-    },
-    "source_cad_agencias": {
-      "queryId": "91ad474a-b601-47da-a94f-6f48b5b9a9fb",
-      "queryName": "source_cad_agencias",
-      "loadEnabled": false
-    },
-    "sup_gestor_de_plataforma": {
-      "queryId": "aa5b2912-c442-4c84-87e1-754afdb7dc6d",
-      "queryName": "sup_gestor_de_plataforma",
-      "loadEnabled": false
-    },
     "source_cad_brokers": {
       "queryId": "d2b5074f-1149-4b22-983d-fb533964645e",
       "queryName": "source_cad_brokers",
@@ -40,6 +25,10 @@
       "queryName": "dim_gerentes_DataDestination",
       "isHidden": true,
       "loadEnabled": false
+    },
+    "dim_plataformas": {
+      "queryId": "680d4be1-8899-4ab9-b112-981b32217600",
+      "queryName": "dim_plataformas"
     }
   },
   "connections": [
