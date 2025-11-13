@@ -76,7 +76,10 @@
               "typeProperties": {
                 "source": {
                   "type": "MySqlSource",
-                  "query": "@concat('SELECT * FROM ', item().TableName)",
+                  "query": {
+                    "value": "@concat('SELECT * FROM ', item().TableName)",
+                    "type": "Expression"
+                  },
                   "datasetSettings": {
                     "type": "MySqlTable",
                     "schema": [],
@@ -151,7 +154,7 @@
         "typeProperties": {
           "source": {
             "type": "DataWarehouseSource",
-            "sqlReaderQuery": "SELECT LastWatermarkValue FROM etl_watermark_control WHERE PipelineName = 'PL_Load_Bronze_MVP'",
+            "sqlReaderQuery": "SELECT LastWatermarkValue FROM etl_watermark_control WHERE PipelineName = 'PL_Load_Bronze_Incremental'",
             "partitionOption": "None",
             "queryTimeout": "02:00:00"
           },
@@ -190,7 +193,7 @@
         "typeProperties": {
           "variableName": "LastRunDate",
           "value": {
-            "value": "@formatDateTime(activity('Lookup_GetLastRunDate').output.firstRow.LastWatermarkValue, 'yyyy-MM-dd')",
+            "value": "@formatDateTime(activity('Lookup_GetLastRunDate').output.firstRow.LastWatermarkValue, 'yyyy-MM-dd HH:mm:ss')",
             "type": "Expression"
           }
         },
@@ -264,7 +267,7 @@
         "typeProperties": {
           "variableName": "TargetProcessingDate",
           "value": {
-            "value": "@formatDateTime(addDays(utcNow(),0 ),'yyy-MM-dd')",
+            "value": "@formatDateTime(utcNow(),'yyyy-MM-dd HH:mm:ss')",
             "type": "Expression"
           }
         },
@@ -343,7 +346,10 @@
               "typeProperties": {
                 "source": {
                   "type": "MySqlSource",
-                  "query": "@concat(\n    'SELECT * FROM ', item().TableName,\n    ' WHERE ',\n    'GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' > ''', variables('LastRunDate'), '''',\n    ' AND GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' <= ''', variables('TargetProcessingDate'), ''''\n)",
+                  "query": {
+                    "value": "@concat(\n    'SELECT * FROM ', item().TableName,\n    ' WHERE ',\n    'GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' > ''', variables('LastRunDate'), '''',\n    ' AND GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' <= ''', variables('TargetProcessingDate'), ''''\n)",
+                    "type": "Expression"
+                  },
                   "datasetSettings": {
                     "type": "MySqlTable",
                     "schema": [],

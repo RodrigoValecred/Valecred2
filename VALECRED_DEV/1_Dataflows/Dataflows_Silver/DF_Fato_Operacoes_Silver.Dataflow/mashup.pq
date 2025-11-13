@@ -14,19 +14,19 @@ shared staging_operacoes = let
     taxaCadastroExpandida = Table.ExpandTableColumn(estudoOperacoesMesclado, "estudoOpTabela", {"FATOR"}, {"TAXACADASTRO"}),
 
     // Mescla com usuários enriquecidos para dados de inclusão.
-    usuariosInclusaoMesclado = Table.NestedJoin(taxaCadastroExpandida, {"USUAINCLUSAO"}, dim_usuarios, {"CODUSUARIO"}, "usuariosInclusaoTabela", JoinKind.LeftOuter),
+    usuariosInclusaoMesclado = Table.NestedJoin(taxaCadastroExpandida, {"USUAINCLUSAO"}, dim_usuarios, {"cod_usuario"}, "usuariosInclusaoTabela", JoinKind.LeftOuter),
     // Expande nome, função e nível do usuário de inclusão.
-    usuariosInclusaoExpandido = Table.ExpandTableColumn(usuariosInclusaoMesclado, "usuariosInclusaoTabela", {"NOME", "FUNCAO", "NIVEL"}, {"USUARIO_INCLUSAO", "INCLUIDO_POR", "NIVEL"}),
+    usuariosInclusaoExpandido = Table.ExpandTableColumn(usuariosInclusaoMesclado, "usuariosInclusaoTabela", {"nome_do_usuario", "funcao", "nivel"}, {"USUARIO_INCLUSAO", "INCLUIDO_POR", "NIVEL"}),
 
     // Mescla com usuários enriquecidos para dados do analista.
-    usuariosAnaliseMesclado = Table.NestedJoin(usuariosInclusaoExpandido, {"USUASTANALISE"}, dim_usuarios, {"CODUSUARIO"}, "usuariosAnaliseTabela", JoinKind.LeftOuter),
+    usuariosAnaliseMesclado = Table.NestedJoin(usuariosInclusaoExpandido, {"USUASTANALISE"}, dim_usuarios, {"cod_usuario"}, "usuariosAnaliseTabela", JoinKind.LeftOuter),
     // Expande o nome do analista.
-    analistaExpandido = Table.ExpandTableColumn(usuariosAnaliseMesclado, "usuariosAnaliseTabela", {"NOME"}, {"ANALISTA"}),
+    analistaExpandido = Table.ExpandTableColumn(usuariosAnaliseMesclado, "usuariosAnaliseTabela", {"nome_do_usuario"}, {"ANALISTA"}),
 
     // Mescla com usuários enriquecidos para dados do analista que travou.
-    usuariosTravaMesclado = Table.NestedJoin(analistaExpandido, {"USUATRAVA"}, dim_usuarios, {"CODUSUARIO"}, "usuariosTravaTabela", JoinKind.LeftOuter),
+    usuariosTravaMesclado = Table.NestedJoin(analistaExpandido, {"USUATRAVA"}, dim_usuarios, {"cod_usuario"}, "usuariosTravaTabela", JoinKind.LeftOuter),
     // Expande o nome do analista que travou.
-    analistaTravaExpandido = Table.ExpandTableColumn(usuariosTravaMesclado, "usuariosTravaTabela", {"NOME"}, {"ANALISTA_TRAVA"}),
+    analistaTravaExpandido = Table.ExpandTableColumn(usuariosTravaMesclado, "usuariosTravaTabela", {"nome_do_usuario"}, {"ANALISTA_TRAVA"}),
 
     // Converte colunas de texto para maiúsculas.
     textoParaMaiusculas = Table.TransformColumns(analistaTravaExpandido, {{"USUARIO_INCLUSAO", Text.Upper, type text}, {"INCLUIDO_POR", Text.Upper, type text}}),
@@ -35,18 +35,11 @@ shared staging_operacoes = let
     gruposIndeferimentoMesclado = Table.NestedJoin(textoParaMaiusculas, {"CODINDEFERIMENTO"}, sup_motivos_de_indeferimento, {"codindeferimento"}, "sup_motivos_de_indeferimento", JoinKind.LeftOuter),
     // Expande colunas de motivo e grupo de indeferimento.
     motivosIndeferimentoExpandido = Table.ExpandTableColumn(gruposIndeferimentoMesclado, "sup_motivos_de_indeferimento", {"motivo_indeferimento", "grupo_motivo_indeferimento"}, {"MOTIVO INDEFERIMENTO", "GRUPO MOTIVO INDEFERIMENTO"}),
-
-    // Adiciona a chave composta para cliente (BASE-CODCLIENTE).
-    chaveClienteAdicionada = Table.AddColumn(motivosIndeferimentoExpandido, "chave_base_cliente", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODCLIENTE], "pt-BR")}), type text),
-    // Adiciona a chave composta para operação (BASE-CODOPERACAO).
-    chaveOperacaoAdicionada = Table.AddColumn(chaveClienteAdicionada, "chave_base_operacao", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODOPERACAO], "pt-BR")}), type text),
     // Adiciona a chave para o produto (TTO+STTO).
-    chaveProdutoAdicionada = Table.AddColumn(chaveOperacaoAdicionada, "chave_produto", each Text.Combine({[TTO], [STTO]}), type text),
-    // Adiciona a chave composta para empresa (BASE-CODEMPRESA).
-    chaveEmpresaAdicionada = Table.AddColumn(chaveProdutoAdicionada, "chave_base_empresa", each Text.Combine({Text.From([BASE], "pt-BR"), "-", Text.From([CODEMPRESA], "pt-BR")}), type text),
+    chaveProdutoAdicionada = Table.AddColumn(motivosIndeferimentoExpandido, "chave_produto", each Text.Combine({[TTO], [STTO]}), type text),
 
     // Extrai a data do campo DATAANALISE.
-    dataDeferimentoExtraida = Table.AddColumn(chaveEmpresaAdicionada, "Data deferimento", each Date.From([DATAANALISE]), type date),
+    dataDeferimentoExtraida = Table.AddColumn(chaveProdutoAdicionada, "Data deferimento", each Date.From([DATAANALISE]), type date),
     // Classifica operações em "VALE S" ou "VALE N".
     eraClassificada = Table.AddColumn(dataDeferimentoExtraida, "ERA", each if [Data deferimento] <> null and [Data deferimento] > #date(2023, 8, 31) then "VALE S" else "VALE N"),
 
@@ -110,7 +103,7 @@ shared operacoes = let
     #"Colunas Removidas" = Table.RemoveColumns(#"Personalização Adicionada",{"CODBROKER", "gerente da operacao.GerenteID"}),
     #"Colunas Renomeadas" = Table.RenameColumns(#"Colunas Removidas",{{"Personalizar", "CODBROKER"}}),
     #"Tipo Alterado" = Table.TransformColumnTypes(#"Colunas Renomeadas",{{"CODBROKER", Int64.Type}, {"ERA", type text}}),
-    #"Consultas Mescladas1" = Table.NestedJoin(#"Tipo Alterado", {"CODBROKER"}, dim_gerentes, {"CODBROKER"}, "gerentes", JoinKind.LeftOuter),
+    #"Consultas Mescladas1" = Table.NestedJoin(#"Tipo Alterado", {"CODBROKER"}, dim_gerentes, {"cod_broker"}, "gerentes", JoinKind.LeftOuter),
     #"gerentes Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas1", "gerentes", {"nomeGerente", "plataforma", "gestor"}, {"Nome do gerente", "Plataforma da operação", "Gestor da operação"}),
   #"Linhas classificadas" = Table.Sort(#"gerentes Expandido", {{"DATAINCLUSAO", Order.Descending}})
 in

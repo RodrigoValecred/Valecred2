@@ -147,6 +147,81 @@
             ]
           }
         ]
+      },
+      {
+        "type": "RefreshDataflow",
+        "typeProperties": {
+          "dataflowId": "a39dd635-e1d7-847b-418a-653cef707f30",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "notifyOption": "NoNotification",
+          "dataflowType": "DataflowFabric"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "DF_Dim_Plataformas_Silver",
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "RefreshDataflow",
+        "typeProperties": {
+          "dataflowId": "8330365f-08f5-9c47-4210-d5881b111984",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "notifyOption": "NoNotification",
+          "dataflowType": "DataflowFabric"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "DF_Dim_Usuarios_Silver",
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "RefreshDataflow",
+        "typeProperties": {
+          "dataflowId": "588ca2d8-a9eb-af32-463b-3c3f2e92724a",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "notifyOption": "NoNotification",
+          "dataflowType": "DataflowFabric"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "DF_Dim_Gerentes_Silver",
+        "dependsOn": [
+          {
+            "activity": "DF_Dim_Plataformas_Silver",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
       }
     ]
   }

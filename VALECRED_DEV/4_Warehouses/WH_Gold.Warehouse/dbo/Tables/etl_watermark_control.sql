@@ -1,5 +1,5 @@
 CREATE TABLE [dbo].[etl_watermark_control] (
 
 	[PipelineName] varchar(255) NULL, 
-	[LastWatermarkValue] date NULL
+	[LastWatermarkValue] datetime2(6) NULL
 );
