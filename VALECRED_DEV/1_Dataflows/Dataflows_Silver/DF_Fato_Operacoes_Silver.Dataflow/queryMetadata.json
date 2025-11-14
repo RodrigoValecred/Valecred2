@@ -33,26 +33,30 @@
     "dim_gerentes": {
       "queryId": "8b824402-f1b7-41b0-90c5-812039786601",
       "queryName": "dim_gerentes",
-      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
+      "loadEnabled": false
     },
     "dim_plataformas": {
       "queryId": "f1bc3551-a7b4-4e9b-8793-47e0eef7f9ee",
       "queryName": "dim_plataformas",
-      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
+      "loadEnabled": false
     },
     "dim_usuarios": {
       "queryId": "bbedadb8-0841-426b-867c-48db881e115d",
       "queryName": "dim_usuarios",
-      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
+      "loadEnabled": false
     },
     "gerente da operacao": {
       "queryId": "3f559609-a851-4cf9-8cff-cfe3a845910a",
       "queryName": "gerente da operacao",
-      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013"
+      "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
+      "loadEnabled": false
     },
-    "operacoes": {
+    "fact_operacoes": {
       "queryId": "e948e5f0-4228-4773-9202-e69fed8e4eb7",
-      "queryName": "operacoes",
+      "queryName": "fact_operacoes",
       "queryGroupId": "cd0f6eba-87bc-4961-ad05-4ed9d4770013",
       "loadEnabled": false
     },
@@ -74,9 +78,9 @@
       "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd",
       "loadEnabled": false
     },
-    "operacoes_DataDestination": {
-      "queryId": "447ca41c-9b1c-4b33-a1e8-00dae75c60f0",
-      "queryName": "operacoes_DataDestination",
+    "fact_operacoes_DataDestination": {
+      "queryId": "7a20c0f1-23a2-48cd-b260-61efdf612d1d",
+      "queryName": "fact_operacoes_DataDestination",
       "isHidden": true,
       "loadEnabled": false
     }

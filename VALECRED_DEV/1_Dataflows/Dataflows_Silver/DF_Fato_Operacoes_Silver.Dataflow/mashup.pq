@@ -44,9 +44,11 @@ shared staging_operacoes = let
     eraClassificada = Table.AddColumn(dataDeferimentoExtraida, "ERA", each if [Data deferimento] <> null and [Data deferimento] > #date(2023, 8, 31) then "VALE S" else "VALE N"),
 
     // Substitui valores nulos por 0 nas colunas numéricas.
-    nulosNumericosSubstituidos = Table.ReplaceValue(eraClassificada, null, 0, Replacer.ReplaceValue, {"TAC", "TOTTAXAADM", "TOTADVAL", "TOTTAR", "NDOCSRECOMPRA"})
+    nulosNumericosSubstituidos = Table.ReplaceValue(eraClassificada, null, 0, Replacer.ReplaceValue, {"TAC", "TOTTAXAADM", "TOTADVAL", "TOTTAR", "NDOCSRECOMPRA"}),
+  #"Colunas renomeadas" = Table.RenameColumns(nulosNumericosSubstituidos, {{"NBORDERO", "n_bordero"}, {"CODBROKER", "cod_broker"}, {"CODOPERACAO", "cod_operacao"}, {"CODEMPRESA", "cod_empresa"}, {"DATAINCLUSAO", "data_inclusao"}, {"CODCLIENTE", "cod_cliente"}, {"CPFCNPJCLIENTE", "cpf_cnpj_cliente"}, {"STATUSANALISE", "status_analise"}, {"DATAANALISE", "data_analise"}, {"STATUSACEITE", "status_aceite"}, {"DATAACEITE", "data_aceite"}, {"DATAENVIOEMAIL", "data_envio_email"}, {"STTO", "stto"}, {"FATOR", "fator"}, {"TARIFA", "tarifa"}, {"TARIFARECOMPRA", "tarifa_recompra"}, {"TAC", "tac"}, {"NDOCS", "n_doc"}, {"NDOCSRECOMPRA", "n_doc_recompra"}, {"TOTADVAL", "tot_adval"}, {"TOTTAXAADM", "tot_taxa_adm"}, {"TOTTAR", "tot_tar"}, {"APROVACAO1", "aprovacao_1"}, {"DATAALTERACAO", "data_alteracao"}, {"CODINDEFERIMENTO", "cod_indeferimento"}, {"CONTRATOFISICO", "contrato_fisico"}, {"USUAINCLUSAO", "cod_usuario_inclusao"}, {"USUATRAVA", "cod_usuario_trava"}, {"USUASTANALISE", "cod_usuario_status_analise"}, {"NOTASERVICO", "nota_servico"}, {"BASE", "base"}, {"TTO", "tto"}, {"TAXACADASTRO", "taxa_cadastro"}, {"USUARIO_INCLUSAO", "nome_do_usuario_inclusao"}, {"NIVEL", "nivel_do_usuario"}, {"ANALISTA", "nome_do_analista"}, {"ANALISTA_TRAVA", "nome_do_analista_trava"}, {"MOTIVO INDEFERIMENTO", "motivo_indeferimento"}, {"GRUPO MOTIVO INDEFERIMENTO", "grupo_motivo_indeferimento"}, {"ERA", "gestao"}}),
+  #"Colunas removidas" = Table.RemoveColumns(#"Colunas renomeadas", {"INCLUIDO_POR"})
 in
-    nulosNumericosSubstituidos;
+    #"Colunas removidas";
 shared dim_gerentes = let
   Origem = Lakehouse.Contents(null),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -79,33 +81,32 @@ shared #"gerente da operacao" = let
     #"Duplicatas Removidas" = Table.Distinct(#"plataformas Expandido", {"CODOPERACAO"})
 in
     #"Duplicatas Removidas";
-[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "operacoes_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
-shared operacoes = let
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "fact_operacoes_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
+shared fact_operacoes = let
     // Define a origem dos dados como a tabela Silver_Operacoes_Padronizado.
     origem = staging_operacoes,
 
     // Filtra linhas com tipos de operação específicos (CM, FC, NO, RN).
     // Nota: O input 'Fonte' foi alterado para 'ttoColunaRenomeada' para seguir o fluxo da query.
-    linhasFiltradasTipoOperacao = Table.SelectRows(origem, each ([TTO] = "CM" or [TTO] = "FC" or [TTO] = "NO" or [TTO] = "RN" or [TTO] = "GR" or [TTO] = "CS")),
+    linhasFiltradasTipoOperacao = Table.SelectRows(origem, each ([tto] = "CM" or [tto] = "FC" or [tto] = "NO" or [tto] = "RN" or [tto] = "GR" or [tto] = "CS")),
     
     // Insere a coluna 'chave_ano_mes' extraindo o ano e mês da 'Data deferimento'.
-    chaveAnoMesInserida = Table.AddColumn(linhasFiltradasTipoOperacao, "chave_ano_mes", each Text.BetweenDelimiters(Text.From([DATAANALISE], "pt-BR"), "/", " "), type text),
+    chaveAnoMesInserida = Table.AddColumn(linhasFiltradasTipoOperacao, "chave_ano_mes", each Text.BetweenDelimiters(Text.From([data_analise], "pt-BR"), "/", " "), type text),
     
     // Insere a coluna 'chave_ano_mes_base_empresa' combinando chave_ano_mes e CODEMPRESA.
-    chaveAnoMesBaseEmpresaInserida = Table.AddColumn(chaveAnoMesInserida, "chave_ano_mes_base_empresa", each Text.Combine({[chave_ano_mes], "-", Text.From([CODEMPRESA], "pt-BR")}), type text),
+    chaveAnoMesBaseEmpresaInserida = Table.AddColumn(chaveAnoMesInserida, "chave_ano_mes_base_empresa", each Text.Combine({[chave_ano_mes], "-", Text.From([cod_empresa], "pt-BR")}), type text),
     
     // Classifica as linhas pela 'Data deferimento' em ordem decrescente.
-    linhasClassificadas = Table.Sort(chaveAnoMesBaseEmpresaInserida,{{"DATAANALISE", Order.Descending}}),
-    #"Duplicatas Removidas" = Table.Distinct(linhasClassificadas, {"CODOPERACAO"}),
-    #"Consultas Mescladas" = Table.NestedJoin(#"Duplicatas Removidas", {"CODOPERACAO"}, #"gerente da operacao", {"CODOPERACAO"}, "gerente da operacao", JoinKind.LeftOuter),
+    linhasClassificadas = Table.Sort(chaveAnoMesBaseEmpresaInserida,{{"data_analise", Order.Descending}}),
+    #"Consultas Mescladas" = Table.NestedJoin(linhasClassificadas, {"cod_operacao"}, #"gerente da operacao", {"CODOPERACAO"}, "gerente da operacao", JoinKind.LeftOuter),
     #"gerente da operacao Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas", "gerente da operacao", {"GerenteID"}, {"gerente da operacao.GerenteID"}),
-    #"Personalização Adicionada" = Table.AddColumn(#"gerente da operacao Expandido", "Personalizar", each [CODBROKER] ?? [gerente da operacao.GerenteID]),
-    #"Colunas Removidas" = Table.RemoveColumns(#"Personalização Adicionada",{"CODBROKER", "gerente da operacao.GerenteID"}),
-    #"Colunas Renomeadas" = Table.RenameColumns(#"Colunas Removidas",{{"Personalizar", "CODBROKER"}}),
-    #"Tipo Alterado" = Table.TransformColumnTypes(#"Colunas Renomeadas",{{"CODBROKER", Int64.Type}, {"ERA", type text}}),
-    #"Consultas Mescladas1" = Table.NestedJoin(#"Tipo Alterado", {"CODBROKER"}, dim_gerentes, {"cod_broker"}, "gerentes", JoinKind.LeftOuter),
-    #"gerentes Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas1", "gerentes", {"nomeGerente", "plataforma", "gestor"}, {"Nome do gerente", "Plataforma da operação", "Gestor da operação"}),
-  #"Linhas classificadas" = Table.Sort(#"gerentes Expandido", {{"DATAINCLUSAO", Order.Descending}})
+    #"Personalização Adicionada" = Table.AddColumn(#"gerente da operacao Expandido", "Personalizar", each [cod_broker] ?? [gerente da operacao.GerenteID]),
+    #"Colunas Removidas" = Table.RemoveColumns(#"Personalização Adicionada",{"cod_broker", "gerente da operacao.GerenteID"}),
+    #"Colunas Renomeadas" = Table.RenameColumns(#"Colunas Removidas",{{"Personalizar", "cod_broker"}}),
+    #"Tipo Alterado" = Table.TransformColumnTypes(#"Colunas Renomeadas",{{"cod_broker", Int64.Type}, {"gestao", type text}}),
+    #"Consultas Mescladas1" = Table.NestedJoin(#"Tipo Alterado", {"cod_broker"}, dim_gerentes, {"cod_broker"}, "gerentes", JoinKind.LeftOuter),
+    #"gerentes Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas1", "gerentes", {"nome_gerente", "plataforma", "gestor"}, {"nome_do_gerente", "plataforma_da_operacao", "gestor_da_operacao"}),
+  #"Linhas classificadas" = Table.Sort(#"gerentes Expandido", {{"data_inclusao", Order.Descending}})
 in
     #"Linhas classificadas";
 shared source_operacoes = let
@@ -141,10 +142,10 @@ shared sup_motivos_de_indeferimento = let
   #"Navegação 2" = #"Navegação 1"{[Id = "sup_motivos_de_indeferimento", ItemKind = "Table"]}[Data]
 in
   #"Navegação 2";
-shared operacoes_DataDestination = let
+shared fact_operacoes_DataDestination = let
   Pattern = Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]),
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-  Navigation_2 = Navigation_1{[lakehouseId = "ee40705b-0100-49bc-8f35-81d71839f042"]}[Data],
-  TableNavigation = Navigation_2{[Id = "operacoes", ItemKind = "Table"]}?[Data]?
+  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  TableNavigation = Navigation_2{[Id = "fact_operacoes", ItemKind = "Table"]}?[Data]?
 in
   TableNavigation;
