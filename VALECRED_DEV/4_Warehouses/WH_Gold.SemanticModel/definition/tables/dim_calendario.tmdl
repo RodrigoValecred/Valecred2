@@ -1,0 +1,130 @@
+table dim_calendario
+	lineageTag: 1445b129-7de8-463d-a378-73e9f04b9753
+	sourceLineageTag: [dbo].[dim_calendario]
+
+	column sk_data
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: 86c462fc-b4ab-4db8-893f-eafc0e47a414
+		sourceLineageTag: sk_data
+		summarizeBy: sum
+		sourceColumn: sk_data
+
+		annotation SummarizationSetBy = Automatic
+
+	column data
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: date
+		lineageTag: 44d29eca-a386-47dc-84b8-6011ad8d5cd9
+		sourceLineageTag: data
+		summarizeBy: none
+		sourceColumn: data
+
+		annotation SummarizationSetBy = Automatic
+
+	column ano
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: e3826852-c940-49a5-968b-a8ce5212321c
+		sourceLineageTag: ano
+		summarizeBy: sum
+		sourceColumn: ano
+
+		annotation SummarizationSetBy = Automatic
+
+	column trimestre
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: 04fd5416-3ca4-4f36-8077-b7b41f9199cf
+		sourceLineageTag: trimestre
+		summarizeBy: sum
+		sourceColumn: trimestre
+
+		annotation SummarizationSetBy = Automatic
+
+	column mes
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: 22bd20cd-0dd1-4118-95de-257ce93aad4d
+		sourceLineageTag: mes
+		summarizeBy: sum
+		sourceColumn: mes
+
+		annotation SummarizationSetBy = Automatic
+
+	column dia
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: 488ca214-4366-4c36-b623-7f0b61954fc5
+		sourceLineageTag: dia
+		summarizeBy: sum
+		sourceColumn: dia
+
+		annotation SummarizationSetBy = Automatic
+
+	column dia_semana
+		dataType: string
+		sourceProviderType: varchar
+		lineageTag: d1208329-296a-476e-aa3b-1dfcc67a1d3f
+		sourceLineageTag: dia_semana
+		summarizeBy: none
+		sourceColumn: dia_semana
+
+		annotation SummarizationSetBy = Automatic
+
+	column numero_dia_semana
+		dataType: int64
+		formatString: 0
+		sourceProviderType: bigint
+		lineageTag: 358224af-31a0-43ce-9ac1-1a504d698b99
+		sourceLineageTag: numero_dia_semana
+		summarizeBy: sum
+		sourceColumn: numero_dia_semana
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome_mes
+		dataType: string
+		sourceProviderType: varchar
+		lineageTag: 9df7d6dc-16ad-48aa-9151-370be15bea1b
+		sourceLineageTag: nome_mes
+		summarizeBy: none
+		sourceColumn: nome_mes
+
+		annotation SummarizationSetBy = Automatic
+
+	column mes_ano_abrev
+		dataType: string
+		sourceProviderType: varchar
+		lineageTag: 49ad5422-d8f9-4af4-9817-d2c75519aeaa
+		sourceLineageTag: mes_ano_abrev
+		summarizeBy: none
+		sourceColumn: mes_ano_abrev
+
+		annotation SummarizationSetBy = Automatic
+
+	column fim_de_semana
+		dataType: string
+		sourceProviderType: varchar
+		lineageTag: 5d041f8d-8e3f-4dc3-8125-be08570ba83f
+		sourceLineageTag: fim_de_semana
+		summarizeBy: none
+		sourceColumn: fim_de_semana
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_calendario-591d2382-1747-464c-901e-75d6f2970cad = entity
+		mode: directLake
+		source
+			entityName: dim_calendario
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation IsTableInBiModel = True
+

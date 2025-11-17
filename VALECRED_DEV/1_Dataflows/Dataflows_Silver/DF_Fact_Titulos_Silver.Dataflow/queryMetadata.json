@@ -1,0 +1,123 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Fact_Titulos",
+  "queryGroups": [],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "replica_tab_titulos": {
+      "queryId": "020f9462-a4fc-4cd4-899e-3058017eb185",
+      "queryName": "replica_tab_titulos",
+      "loadEnabled": false
+    },
+    "replica_tab_operacoes": {
+      "queryId": "62f50dff-96f0-4dc3-a4b0-983b4d9c22d0",
+      "queryName": "replica_tab_operacoes",
+      "loadEnabled": false
+    },
+    "replica_rlc_titulos_ocorrencias_cobranca": {
+      "queryId": "d2551a36-a6d5-4a2d-9f6a-8170061bfa3e",
+      "queryName": "replica_rlc_titulos_ocorrencias_cobranca",
+      "loadEnabled": false
+    },
+    "replica_cad_conta_cobranca_ocorrencia": {
+      "queryId": "547d092d-2036-45e2-b742-a13a4ae15b4d",
+      "queryName": "replica_cad_conta_cobranca_ocorrencia",
+      "loadEnabled": false
+    },
+    "stg_protestos": {
+      "queryId": "eca33075-312f-4d15-b54d-e243a69fce55",
+      "queryName": "stg_protestos",
+      "loadEnabled": false
+    },
+    "titulos": {
+      "queryId": "9d41c5fd-7312-4f49-91de-2b57acacd0ae",
+      "queryName": "titulos"
+    },
+    "replica_rlc_clientes_sacados_limites": {
+      "queryId": "43fc6755-2790-4238-96f6-ca5bb31f4b6b",
+      "queryName": "replica_rlc_clientes_sacados_limites",
+      "loadEnabled": false
+    },
+    "stg_operacoes": {
+      "queryId": "b0280d5e-b367-425f-94e2-8a53098f6422",
+      "queryName": "stg_operacoes",
+      "loadEnabled": false
+    },
+    "replica_tab_estudo_op": {
+      "queryId": "e5f1a4b5-69a0-4951-a945-a18b781cb901",
+      "queryName": "replica_tab_estudo_op",
+      "loadEnabled": false
+    },
+    "replica_cad_usuarios": {
+      "queryId": "c0c42656-590f-4601-b285-c2b256b834da",
+      "queryName": "replica_cad_usuarios",
+      "loadEnabled": false
+    },
+    "nivel_usuario": {
+      "queryId": "083bb107-5e2d-43cc-b3e1-af8cd01b8e4f",
+      "queryName": "nivel_usuario",
+      "loadEnabled": false
+    },
+    "grupos indeferimento": {
+      "queryId": "1aecde6f-d2a4-4016-b649-ef07b95aa0f7",
+      "queryName": "grupos indeferimento",
+      "loadEnabled": false
+    },
+    "produtos": {
+      "queryId": "e650deff-0b80-40ba-82c3-171d82078466",
+      "queryName": "produtos"
+    },
+    "replica_tab_tipooperacao": {
+      "queryId": "d475e618-0f2d-4457-91ca-30321de2084c",
+      "queryName": "replica_tab_tipooperacao",
+      "loadEnabled": false
+    },
+    "replica_tab_subtipooperacao": {
+      "queryId": "b3009c68-24fb-4243-bf96-5721716a8067",
+      "queryName": "replica_tab_subtipooperacao",
+      "loadEnabled": false
+    },
+    "replica_tab_feriados": {
+      "queryId": "699957fd-6835-4cfe-bf5a-6af3cd10f4f9",
+      "queryName": "replica_tab_feriados",
+      "loadEnabled": false
+    },
+    "replica_tab_operacoes_devolucoes": {
+      "queryId": "2b1e7732-75b5-4d02-94d7-3cabed0d9b94",
+      "queryName": "replica_tab_operacoes_devolucoes",
+      "loadEnabled": false
+    },
+    "relacionamento_recompras": {
+      "queryId": "b7a2526a-18a9-417c-b71d-3e6bef169cdb",
+      "queryName": "relacionamento_recompras",
+      "loadEnabled": false
+    },
+    "replica_tab_titulos_confirmacao": {
+      "queryId": "1574a14f-cd37-4d84-8180-b586abdcf95b",
+      "queryName": "replica_tab_titulos_confirmacao",
+      "loadEnabled": false
+    },
+    "ultima checagem": {
+      "queryId": "e0deede8-141f-4e1d-8311-c090fa4e52a6",
+      "queryName": "ultima checagem",
+      "loadEnabled": false
+    },
+    "fact_operacoes": {
+      "queryId": "6a0ec2d3-9c82-4c0e-8739-b1bbb6a43a77",
+      "queryName": "fact_operacoes"
+    }
+  },
+  "connections": [
+    {
+      "path": "56.125.147.185;lbfactor",
+      "kind": "MySql",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"2e27100b-3c66-450e-8b94-fabaaf971fdb\"}"
+    },
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    }
+  ]
+}
