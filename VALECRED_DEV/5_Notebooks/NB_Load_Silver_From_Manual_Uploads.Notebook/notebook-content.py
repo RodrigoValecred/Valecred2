@@ -227,6 +227,10 @@ files_to_process = [
         "target_table_name": "LH_Silver.sup_pago_pelo"
     },
     {
+        "source_filename": "produtos_ausentes.xlsx",
+        "target_table_name": "LH_Silver.sup_produtos_ausentes"
+    },
+    {
         "source_filename": "regiao.xlsx",
         "target_table_name": "LH_Silver.sup_regiao"
     },

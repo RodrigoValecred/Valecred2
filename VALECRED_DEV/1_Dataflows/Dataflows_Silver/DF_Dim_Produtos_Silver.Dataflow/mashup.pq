@@ -1,6 +1,7 @@
 [StagingDefinition = [Kind = "FastCopy"]]
 section Section1;
-shared produtos = let
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "dim_produtos_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
+shared dim_produtos = let
   // Origem dos dados: Silver_Operacoes_Padronizado (tabela de operações padronizadas)
   fonte = fact_operacoes,
 
@@ -11,42 +12,42 @@ shared produtos = let
   duplicatasRemovidas = Table.Distinct(colunasSelecionadas),
 
   // Mescla com a tabela lb_produtos para obter a descrição do tipo de produto. Left Outer Join baseado em TTO = CODTTO.
-  mescladoComProdutos = Table.NestedJoin(duplicatasRemovidas, {"tto"}, replica_tab_tipooperacao, {"CODTTO"}, "lb_produtos", JoinKind.LeftOuter),
-  expandidoProdutos = Table.ExpandTableColumn(mescladoComProdutos, "lb_produtos", {"DESCRICAO"}, {"Tipo do produto"}),
+  mescladoComProdutos = Table.NestedJoin(duplicatasRemovidas, {"tto"}, source_tab_tipooperacao, {"codtto"}, "lb_produtos", JoinKind.LeftOuter),
+  expandidoProdutos = Table.ExpandTableColumn(mescladoComProdutos, "lb_produtos", {"descricao"}, {"tipo"}),
 
   // Mescla com a tabela lb_produtos_subtipos para obter a descrição do subtipo do produto. Left Outer Join baseado em STTO = CODSTTO.
-  mescladoComSubtipos = Table.NestedJoin(expandidoProdutos, {"STTO"}, replica_tab_subtipooperacao, {"CODSTTO"}, "lb_produtos_subtipos", JoinKind.LeftOuter),
-  expandidoSubtipos = Table.ExpandTableColumn(mescladoComSubtipos, "lb_produtos_subtipos", {"DESCRICAO"}, {"Subtipo do produto"}),
+  mescladoComSubtipos = Table.NestedJoin(expandidoProdutos, {"stto"}, source_tab_subtipooperacao, {"cod_stto"}, "lb_produtos_subtipos", JoinKind.LeftOuter),
+  expandidoSubtipos = Table.ExpandTableColumn(mescladoComSubtipos, "lb_produtos_subtipos", {"descricao"}, {"subtipo"}),
 
   // Adiciona uma coluna que combina o tipo e o subtipo do produto para criar uma chave única.
-  colunaChaveProdutoAdicionada = Table.AddColumn(expandidoSubtipos, "chave_produto", each Text.Combine({[TTO], [STTO]}), type text),
+  colunaChaveProdutoAdicionada = Table.AddColumn(expandidoSubtipos, "chave_produto", each Text.Combine({[tto], [stto]}), type text),
 
   // Classifica as linhas com base na chave do produto em ordem crescente.
   linhasClassificadas = Table.Sort(colunaChaveProdutoAdicionada, {{"chave_produto", Order.Ascending}}),
 
   // Cria uma coluna "Produto" que combina o subtipo e o tipo do produto. Se o subtipo for nulo, usa apenas o tipo.
-  colunaProdutoAdicionada = Table.AddColumn(linhasClassificadas, "Produto", each if [Subtipo do produto] = null then [Tipo do produto] else Text.Combine({[Subtipo do produto], " - ", [Tipo do produto]}), type text),
+  colunaProdutoAdicionada = Table.AddColumn(linhasClassificadas, "produto", each if [subtipo] = null then [tipo] else Text.Combine({[subtipo], " - ", [tipo]}), type text),
     // devido o subtipo CM, o nome do produto poderia aparecer Comissária 2 vezes, ex CMCM
-    corrigidoNomeProdutoComissarias = Table.ReplaceValue(colunaProdutoAdicionada," - COMISSÁRIA","",Replacer.ReplaceText,{"Produto"}),
+    corrigidoNomeProdutoComissarias = Table.ReplaceValue(colunaProdutoAdicionada," - COMISSÁRIA","",Replacer.ReplaceText,{"produto"}),
     // A antiga Comissária foi alterada para Comissaria Simples, o nome do novo produto
-    alterarNomeComissaria = Table.ReplaceValue(corrigidoNomeProdutoComissarias,"COMISSÁRIA","COMISSARIA SIMPLES",Replacer.ReplaceText,{"Produto"}),
+    alterarNomeComissaria = Table.ReplaceValue(corrigidoNomeProdutoComissarias,"COMISSÁRIA","COMISSARIA SIMPLES",Replacer.ReplaceText,{"produto"}),
 
   // Remove as colunas TTO, STTO, "Tipo do produto" e "Subtipo do produto", que não são mais necessárias.
-  colunasRemovidas = Table.RemoveColumns(alterarNomeComissaria, {"TTO", "STTO", "Tipo do produto", "Subtipo do produto"}),
+  colunasRemovidas = Table.RemoveColumns(alterarNomeComissaria, {"tto", "stto", "tipo", "subtipo"}),
 
   // Duplica a coluna "Produto" para criar uma cópia que será usada para informações de mercado.
-  colunaProdutoDuplicada = Table.DuplicateColumn(colunasRemovidas, "Produto", "Produto - Copiar"),
+  colunaProdutoDuplicada = Table.DuplicateColumn(colunasRemovidas, "produto", "Produto - Copiar"),
 
   // Renomeia a coluna duplicada para "Produto - Informação de Mercado".
-  colunaInformacaoRenomeada = Table.RenameColumns(colunaProdutoDuplicada, {{"Produto - Copiar", "Produto - Informação de Mercado"}}),
+  colunaInformacaoRenomeada = Table.RenameColumns(colunaProdutoDuplicada, {{"Produto - Copiar", "produto_informacao_de_mercado"}}),
 
   // Substitui valores específicos na coluna "Produto - Informação de Mercado" por outros termos para padronizar a terminologia.
-  valorSubstituidoNormal = Table.ReplaceValue(colunaInformacaoRenomeada, "NORMAL", "Desconto", Replacer.ReplaceText, {"Produto - Informação de Mercado"}),
-  valorSubstituidoCGP = Table.ReplaceValue(valorSubstituidoNormal, "CGP - FLUXO DE CAIXA SECURITIZADORA", "Giro Parcelado", Replacer.ReplaceText, {"Produto - Informação de Mercado"}),
-  valorSubstituidoMateriaPrima = Table.ReplaceValue(valorSubstituidoCGP, "MATERIA PRIMA - FLUXO DE CAIXA SECURITIZADORA", "Fomento", Replacer.ReplaceText, {"Produto - Informação de Mercado"}),
+  valorSubstituidoNormal = Table.ReplaceValue(colunaInformacaoRenomeada, "NORMAL", "Desconto", Replacer.ReplaceText, {"produto_informacao_de_mercado"}),
+  valorSubstituidoCGP = Table.ReplaceValue(valorSubstituidoNormal, "CGP - FLUXO DE CAIXA SECURITIZADORA", "Giro Parcelado", Replacer.ReplaceText, {"produto_informacao_de_mercado"}),
+  valorSubstituidoMateriaPrima = Table.ReplaceValue(valorSubstituidoCGP, "MATERIA PRIMA - FLUXO DE CAIXA SECURITIZADORA", "Fomento", Replacer.ReplaceText, {"produto_informacao_de_mercado"}),
 
   // Converte o texto da coluna "Produto - Informação de Mercado" para maiúsculas.
-  informacaoEmMaiusculas = Table.TransformColumns(valorSubstituidoMateriaPrima, {{"Produto - Informação de Mercado", Text.Upper, type text}}),
+  informacaoEmMaiusculas = Table.TransformColumns(valorSubstituidoMateriaPrima, {{"produto_informacao_de_mercado", Text.Upper, type text}}),
 
   // Remove as linhas duplicadas com base na coluna "chave_produto", garantindo que cada produto tenha apenas uma entrada.
   duplicatasRemovidasChave = Table.Distinct(informacaoEmMaiusculas, {"chave_produto"})
@@ -54,33 +55,6 @@ shared produtos = let
 in
   duplicatasRemovidasChave // Retorna a tabela final com todos os produtos únicos e suas informações formatadas.
 ;
-shared replica_tab_tipooperacao = let
-    // Conecta-se ao banco de dados MySQL 'factvale40bi' e executa a query.
-    mysqlOrigem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_tipooperacao", ReturnSingleDatabase=true]),
-    
-    // Cria a tabela de produtos ausentes a partir de dados locais.
-    produtosAusentesLocal = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45Wcg5W0lFydg0OPtzsD2QpG4ABkGWgFBsLAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [CODTTO = _t, DESCRICAO = _t, COR = _t, CUSTO = _t]),
-    
-    // Altera os tipos de coluna da tabela de produtos ausentes.
-    produtosAusentesTipoAlterado = Table.TransformColumnTypes(produtosAusentesLocal, {{"CODTTO", type text}, {"DESCRICAO", type text}, {"COR", type text}, {"CUSTO", Int64.Type}}),
-
-    // Combina a tabela do MySQL com a tabela de produtos ausentes.
-    tabelasCombinadas = Table.Combine({mysqlOrigem, produtosAusentesTipoAlterado}),
-    
-    // Remove as colunas "COR" e "CUSTO".
-    colunasRemovidas = Table.RemoveColumns(tabelasCombinadas,{"COR", "CUSTO"})
-
-in
-    colunasRemovidas;
-shared replica_tab_subtipooperacao = let
-    // Conecta-se ao banco de dados MySQL.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_subtipooperacao", ReturnSingleDatabase=true]),
-
-    // Remove as colunas COD TTO e COR.
-    // Nota: Assumimos que o input para esta etapa deve ser 'origem', pois 'dbo_factvale40bi_tab_subtipooperacao' não está definido.
-    colunasRemovidas = Table.RemoveColumns(origem,{"CODTTO", "COR"})
-in
-    colunasRemovidas;
 shared fact_operacoes = let
   Origem = Lakehouse.Contents([HierarchicalNavigation = null]),
   #"Navegação 1" = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -88,3 +62,39 @@ shared fact_operacoes = let
   #"Navegação 3" = #"Navegação 2"{[Id = "fact_operacoes", ItemKind = "Table"]}[Data]
 in
   #"Navegação 3";
+shared source_tab_tipooperacao = let
+    origem = Lakehouse.Contents([]),
+    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
+    tabela_origem = navegacao_2{[Id = "tab_tipooperacao", ItemKind = "Table"]}[Data],
+  #"Colunas renomeadas" = Table.RenameColumns(tabela_origem, {{"CODTTO", "codtto"}, {"DESCRICAO", "descricao"}, {"COR", "cor"}, {"CUSTO", "custo"}, {"STATUS", "status"}, {"COBRANCA", "cobranca"}, {"ANEXOCC", "anexocc"}, {"TIPOMESA", "tipomesa"}}),
+  #"Consulta acrescentada" = Table.Combine({#"Colunas renomeadas", sup_produtos_ausentes}),
+    
+    // Remove as colunas "COR" e "CUSTO".
+    colunasRemovidas = Table.RemoveColumns(#"Consulta acrescentada", {"cor", "custo", "status", "cobranca", "anexocc", "tipomesa"})
+
+in
+    colunasRemovidas;
+shared sup_produtos_ausentes = let
+  Origem = Lakehouse.Contents([HierarchicalNavigation = null]),
+  #"Navegação 1" = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  #"Navegação 2" = #"Navegação 1"{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  #"Navegação 3" = #"Navegação 2"{[Id = "sup_produtos_ausentes", ItemKind = "Table"]}[Data]
+in
+  #"Navegação 3";
+shared source_tab_subtipooperacao = let
+    origem = Lakehouse.Contents([]),
+    navegacao_1 = origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+    navegacao_2 = navegacao_1{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
+    tabela_origem = navegacao_2{[Id = "tab_subtipooperacao", ItemKind = "Table"]}[Data],
+  #"Colunas removidas" = Table.RemoveColumns(tabela_origem, {"CODTTO", "COR"}),
+  #"Colunas renomeadas" = Table.RenameColumns(#"Colunas removidas", {{"CODSTTO", "cod_stto"}, {"DESCRICAO", "descricao"}})
+in
+    #"Colunas renomeadas";
+shared dim_produtos_DataDestination = let
+  Pattern = Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]),
+  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  TableNavigation = Navigation_2{[Id = "dim_produtos", ItemKind = "Table"]}?[Data]?
+in
+  TableNavigation;

@@ -5,23 +5,34 @@
   "queryGroups": [],
   "documentLocale": "pt-BR",
   "queriesMetadata": {
-    "produtos": {
+    "dim_produtos": {
       "queryId": "ae400102-e3a6-4a2b-834b-0f35880595a7",
-      "queryName": "produtos"
-    },
-    "replica_tab_tipooperacao": {
-      "queryId": "70df2195-510b-432c-8db5-a92b9392fdcd",
-      "queryName": "replica_tab_tipooperacao",
-      "loadEnabled": false
-    },
-    "replica_tab_subtipooperacao": {
-      "queryId": "f42346ca-73cf-455c-ab5b-37e9f3a66060",
-      "queryName": "replica_tab_subtipooperacao",
+      "queryName": "dim_produtos",
       "loadEnabled": false
     },
     "fact_operacoes": {
       "queryId": "5783d8df-2683-4275-96c1-8f85b6836c7c",
       "queryName": "fact_operacoes"
+    },
+    "source_tab_tipooperacao": {
+      "queryId": "8b96efbc-3e26-4caa-82a5-0b56c1f689de",
+      "queryName": "source_tab_tipooperacao",
+      "loadEnabled": false
+    },
+    "sup_produtos_ausentes": {
+      "queryId": "fe671dab-bbcb-4814-b346-ca55b636d349",
+      "queryName": "sup_produtos_ausentes"
+    },
+    "source_tab_subtipooperacao": {
+      "queryId": "fa6a2f56-405e-451a-adb6-820a3283f910",
+      "queryName": "source_tab_subtipooperacao",
+      "loadEnabled": false
+    },
+    "dim_produtos_DataDestination": {
+      "queryId": "96517c21-3e6c-4fd0-ae24-245ed5382501",
+      "queryName": "dim_produtos_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
     }
   },
   "connections": [
