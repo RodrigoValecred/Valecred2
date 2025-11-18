@@ -24,11 +24,11 @@ shared staging_fato_titulos = let
     // Mescla os dados dos títulos com informações dos produtos (chave_produto)
     mesclarTitulosComProdutos = Table.NestedJoin(padronizarColunaIntercompanyIntercia, {"chave_produto"}, dim_produtos, {"chave_produto"}, "produtos", JoinKind.LeftOuter),
     // Expande os dados dos produtos para trazer a informação de mercado
-    expandirDadosProdutos = Table.ExpandTableColumn(mesclarTitulosComProdutos, "produtos", {"Produto - Informação de Mercado"}, {"produto"}),
+    expandirDadosProdutos = Table.ExpandTableColumn(mesclarTitulosComProdutos, "produtos", {"Produto - Informação de Mercado"}, {"produto_temp"}),
     // Personaliza o nome do produto se for Intercompany e o produto for "NO" ou "CM"
-    personalizarNomeProdutoIntercompany = Table.AddColumn(expandirDadosProdutos, "produto_com_intercia_temp", each if [intercompany] = "SIM" and List.Contains({"NO","CM"},[chave_produto]) then   "INTERCOMPANY"  else [produto], type text),
+    personalizarNomeProdutoIntercompany = Table.AddColumn(expandirDadosProdutos, "produto_com_intercia_temp", each if [intercompany] = "SIM" and List.Contains({"NO","CM"},[chave_produto]) then   "INTERCOMPANY"  else [produto_temp], type text),
     // Remove a coluna original do Produto (já temos a personalizada)
-    removerColunaProdutoOriginal = Table.RemoveColumns(personalizarNomeProdutoIntercompany,{"produto"}),
+    removerColunaProdutoOriginal = Table.RemoveColumns(personalizarNomeProdutoIntercompany,{"produto_temp"}),
     // Renomeia a coluna personalizada para "Produto com intercia"
     renomearColunaProdutoPersonalizado = Table.RenameColumns(removerColunaProdutoOriginal,{{"produto_com_intercia_temp", "produto_com_intercia"}}),
     // Adiciona o dia da semana do vencimento prorrogado
