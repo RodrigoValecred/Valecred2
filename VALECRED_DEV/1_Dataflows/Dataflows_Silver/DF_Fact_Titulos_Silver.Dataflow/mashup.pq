@@ -1,96 +1,61 @@
-[StagingDefinition = [Kind = "FastCopy"]]
 section Section1;
-shared staging_fato_titulos = let
-    // Define a tabela 'replicas_tab_titulos' como a fonte inicial de dados
+
+shared staging_fato_titulos_materialized = let
     fonteDadosTitulos = staging_titulos,
-    // Cria a chave "chave_cliente_sacado" concatenando CODCLIENTE e RaizCNPJ.
     chaveClienteSacadoInserida = Table.AddColumn(fonteDadosTitulos, "chave_cliente_sacado", each Text.Combine({Text.From([CODCLIENTE], "pt-BR"), "-", [RaizCNPJ]}), type text),
-    // Ordenar no mais novo para o mais antigo
     classificarPorDataInclusao = Table.Sort(chaveClienteSacadoInserida,{{"DATAINCLUSAO", Order.Descending}}),
-    // Mescla dados dos títulos com informações de limites dos clientes sacados (relacionamento intercompany)
     mesclarTitulosComLimites = Table.NestedJoin(classificarPorDataInclusao, {"chave_cliente_sacado"}, staging_rlc_clientes_sacados_limites, {"chave_cliente_sacado"}, "relacionamento_intercompany", JoinKind.LeftOuter),
-    // Filtra os títulos, removendo os do tipo "BL" e "RC" (boletos e recibos)
     filtrarTitulosPorTipo = Table.SelectRows(mesclarTitulosComLimites, each ([TDOC] <> "BL" and [TDOC] <> "RC")),
-    // Expande a coluna de relacionamento intercompany para trazer o tipo (Intercompany ou não)
     expandirRelacionamentoIntercompany = Table.ExpandTableColumn(filtrarTitulosPorTipo, "relacionamento_intercompany", {"TIPO"}, {"intercompany"}),
-    // Calcula o valor total do título multiplicado pelo prazo (VALOR X PRAZO)
-    calcularValorTotalPorPrazo = Table.AddColumn(expandirRelacionamentoIntercompany, "valor_vezes_prazo", each [PRAZO]*[VALOR]),
-    // Define o tipo da coluna 'valorXPrazo' como número para cálculos futuros
-    converterValorTotalPrazoParaNumero = Table.TransformColumnTypes(calcularValorTotalPorPrazo,{{"valor_vezes_prazo", type number}}),
-    // Padroniza a coluna Intercompany, substituindo nulos por "NÃO"
-    padronizarColunaIntercompanyNulo = Table.ReplaceValue(converterValorTotalPrazoParaNumero,null,"NÃO",Replacer.ReplaceValue,{"intercompany"}),
-    // Padroniza a coluna Intercompany, substituindo "INTERCIA" por "SIM"
+    padronizarColunaIntercompanyNulo = Table.ReplaceValue(expandirRelacionamentoIntercompany,null,"NÃO",Replacer.ReplaceValue,{"intercompany"}),
     padronizarColunaIntercompanyIntercia = Table.ReplaceValue(padronizarColunaIntercompanyNulo,"INTERCIA","SIM",Replacer.ReplaceText,{"intercompany"}),
-    // Mescla os dados dos títulos com informações dos produtos (chave_produto)
     mesclarTitulosComProdutos = Table.NestedJoin(padronizarColunaIntercompanyIntercia, {"chave_produto"}, dim_produtos, {"chave_produto"}, "produtos", JoinKind.LeftOuter),
-    // Expande os dados dos produtos para trazer a informação de mercado
     expandirDadosProdutos = Table.ExpandTableColumn(mesclarTitulosComProdutos, "produtos", {"Produto - Informação de Mercado"}, {"produto_temp"}),
-    // Personaliza o nome do produto se for Intercompany e o produto for "NO" ou "CM"
-    personalizarNomeProdutoIntercompany = Table.AddColumn(expandirDadosProdutos, "produto_com_intercia_temp", each if [intercompany] = "SIM" and List.Contains({"NO","CM"},[chave_produto]) then   "INTERCOMPANY"  else [produto_temp], type text),
-    // Remove a coluna original do Produto (já temos a personalizada)
+    mesclarComRelacionamentoRecompras = Table.NestedJoin(expandirDadosProdutos, {"CODTITULO"}, limpeza_tab_operacoes_devolucoes, {"CODTITULO"}, "relacionamento_recompras", JoinKind.LeftOuter),
+    expandirRelacionamentoRecompras = Table.ExpandTableColumn(mesclarComRelacionamentoRecompras, "relacionamento_recompras", {"chave_base_operacao"}, {"chave_base_operacao_recompra"}),
+    mesclarComUltimaChecagem = Table.NestedJoin(expandirRelacionamentoRecompras, {"CODTITULO"}, fact_ultima_confirmacao, {"cod_titulo"}, "ultima_checagem", JoinKind.LeftOuter),
+    expandirUltimaChecagem = Table.ExpandTableColumn(mesclarComUltimaChecagem, "ultima_checagem", {"confirmacao"}, {"confirmado_por"}),
+    padronizarAmortizacoesNulo = Table.ReplaceValue(expandirUltimaChecagem,null,0,Replacer.ReplaceValue,{"AMORTIZACOES"})
+ in
+    padronizarAmortizacoesNulo;
+
+shared staging_fato_titulos = let
+    fonteDeDados = staging_fato_titulos_materialized,
+    calcularValorTotalPorPrazo = Table.AddColumn(fonteDeDados, "valor_vezes_prazo", each [PRAZO]*[VALOR]),
+    converterValorTotalPrazoParaNumero = Table.TransformColumnTypes(calcularValorTotalPorPrazo,{{"valor_vezes_prazo", type number}}),
+    personalizarNomeProdutoIntercompany = Table.AddColumn(converterValorTotalPrazoParaNumero, "produto_com_intercia_temp", each if [intercompany] = "SIM" and List.Contains({"NO","CM"},[chave_produto]) then   "INTERCOMPANY"  else [produto_temp], type text),
     removerColunaProdutoOriginal = Table.RemoveColumns(personalizarNomeProdutoIntercompany,{"produto_temp"}),
-    // Renomeia a coluna personalizada para "Produto com intercia"
     renomearColunaProdutoPersonalizado = Table.RenameColumns(removerColunaProdutoOriginal,{{"produto_com_intercia_temp", "produto_com_intercia"}}),
-    // Adiciona o dia da semana do vencimento prorrogado
     adicionarDiaDaSemanaVencimento = Table.AddColumn(renomearColunaProdutoPersonalizado, "dia_da_semana", each Date.DayOfWeek([VENCPRORROGADO]), Int64.Type),
-    // Ajusta a data de vencimento para o próximo dia útil, considerando finais de semana
     ajustarDataVencimentoParaDiaUtil = Table.AddColumn(adicionarDiaDaSemanaVencimento, "data_vencimento_util_temp", each if [dia_da_semana] = 0 then Date.AddDays([VENCPRORROGADO],1) else if [dia_da_semana] = 6 then Date.AddDays([VENCPRORROGADO],2) else [VENCPRORROGADO], type date),
-    // Mescla os dados com a tabela de feriados para identificar feriados na data de vencimento
     mesclarComTabelaFeriados = Table.NestedJoin(ajustarDataVencimentoParaDiaUtil, {"data_vencimento_util_temp"}, source_tab_feriados, {"DATAFERIADO"}, "feriados", JoinKind.LeftOuter),
-    // Expande os dados dos feriados para trazer o tipo do feriado
     expandirDadosFeriados = Table.ExpandTableColumn(mesclarComTabelaFeriados, "feriados", {"TFERIADO"}, {"tipo_feriado"}),
-    // Calcula a data prevista de liquidação, considerando feriados e finais de semana
     calcularDataPrevisaoLiquidacao = Table.AddColumn(expandirDadosFeriados, "data_previsao_liquidacao",
 each if [tipo_feriado] = "L" then  [data_vencimento_util_temp]
 else if [tipo_feriado] = "N" and [dia_da_semana] = 5 then Date.AddDays([data_vencimento_util_temp],3)
 else if [tipo_feriado] = "N" and [dia_da_semana] <> 5 then Date.AddDays([data_vencimento_util_temp],1)
 else [data_vencimento_util_temp], type date),
-    // Remove colunas auxiliares que não são mais necessárias
     removerColunasAuxiliaresData = Table.RemoveColumns(calcularDataPrevisaoLiquidacao,{"data_vencimento_util_temp", "tipo_feriado", "dia_da_semana"}),
-    // Renomeia a coluna da data de previsão de liquidação para data de vencimento útil
     renomearColunaDataPrevisaoLiquidacao = Table.RenameColumns(removerColunasAuxiliaresData,{{"data_previsao_liquidacao", "data_vencimento_util"}}),
-    // Calcula o status de deferimento com base nas colunas ACEITO, STATUSACEITE e STATUSANALISE
     calcularStatusDeferimento = Table.AddColumn(renomearColunaDataPrevisaoLiquidacao, "status_deferimento", each if [ACEITO] = "S" and [STATUSACEITE] = "A" and [STATUSANALISE] = "D" then "Sim" else "Não", type text),
-    // Define o status "CLEAN" para títulos que não são de desconto
     definirStatusCleanTitulos = Table.AddColumn(calcularStatusDeferimento, "status_clean",
     each if [produto_com_intercia] = "DESCONTO" then "NORMAL"
     else "CLEAN", type text),
-    // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): N -> Atenção
     padronizarConfirmacaoDocumentosN = Table.ReplaceValue(definirStatusCleanTitulos,"N","Atenção",Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
-    // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): S -> null
     padronizarConfirmacaoDocumentosS = Table.ReplaceValue(padronizarConfirmacaoDocumentosN,"S",null,Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
-    // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): C -> Positivo
     padronizarConfirmacaoDocumentosC = Table.ReplaceValue(padronizarConfirmacaoDocumentosS,"C","Positivo",Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
-    // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): P -> Problema
     padronizarConfirmacaoDocumentosP = Table.ReplaceValue(padronizarConfirmacaoDocumentosC,"P","Problema",Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
-    // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): A -> Alerta
     padronizarConfirmacaoDocumentosA = Table.ReplaceValue(padronizarConfirmacaoDocumentosP,"A","Alerta",Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
-    // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): null -> Não Contatado
     padronizarConfirmacaoDocumentosNulo = Table.ReplaceValue(padronizarConfirmacaoDocumentosA,null,"Não Contatado",Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
-    // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): E -> Eletrônico
     padronizarConfirmacaoDocumentosE = Table.ReplaceValue(padronizarConfirmacaoDocumentosNulo,"E","Eletrônico",Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
-    // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): AZ -> Eletrônico
     padronizarConfirmacaoDocumentosAZ = Table.ReplaceValue(padronizarConfirmacaoDocumentosE,"AZ","Eletrônico",Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
-    // Renomeia a coluna DOCCONFIRMADO para CONFIRMAÇÃO para melhor entendimento
     renomearColunaDocConfirmado = Table.RenameColumns(padronizarConfirmacaoDocumentosAZ,{{"DOCCONFIRMADO", "confirmacao"}}),
-    // Cria uma coluna para ordenar a confirmação (Não Contatado = 5, Atenção = 2, Eletrônico = 0, etc.)
     criarColunaOrdemConfirmacao = Table.AddColumn(renomearColunaDocConfirmado, "ordem_confirmacao", each if [confirmacao] = "Não Contatado" then 5 else if [confirmacao] = "Atenção" then 2 else if [confirmacao] = "Eletrônico" then 0
     else if [confirmacao] = "Positivo" then 1
     else if [confirmacao] = "Alerta" then 3
     else if [confirmacao] = "Problema" then 4
     else null, type number),
-    // Mescla os dados com informações de recompra (relacionamento_recompras)
-    mesclarComRelacionamentoRecompras = Table.NestedJoin(criarColunaOrdemConfirmacao, {"CODTITULO"}, limpeza_tab_operacoes_devolucoes, {"CODTITULO"}, "relacionamento_recompras", JoinKind.LeftOuter),
-    // Expande os dados de recompra para trazer a chave da operação de recompra
-    expandirRelacionamentoRecompras = Table.ExpandTableColumn(mesclarComRelacionamentoRecompras, "relacionamento_recompras", {"chave_base_operacao"}, {"chave_base_operacao_recompra"}),
-    // Mescla os dados com informações da última checagem (ultima checagem)
-    mesclarComUltimaChecagem = Table.NestedJoin(expandirRelacionamentoRecompras, {"CODTITULO"}, fact_ultima_confirmacao, {"cod_titulo"}, "ultima_checagem", JoinKind.LeftOuter),
-    // Expande os dados da última checagem para trazer a confirmação
-    expandirUltimaChecagem = Table.ExpandTableColumn(mesclarComUltimaChecagem, "ultima_checagem", {"confirmacao"}, {"confirmado_por"}),
-    // Padroniza a coluna AMORTIZACOES, substituindo nulos por 0
-    padronizarAmortizacoesNulo = Table.ReplaceValue(expandirUltimaChecagem,null,0,Replacer.ReplaceValue,{"AMORTIZACOES"}),
-    // Renomeia todas as colunas para o padrão snake_case
-    renomearColunasFinal = Table.RenameColumns(padronizarAmortizacoesNulo, {
+    renomearColunasFinal = Table.RenameColumns(criarColunaOrdemConfirmacao, {
         {"CODTITULO", "cod_titulo"}, {"CODOPERACAO", "cod_operacao"}, {"TDOC", "tipo_documento"}, {"NDOC", "numero_documento"},
         {"CPFCNPJSACADO", "cpf_cnpj_sacado"}, {"DATADOC", "data_documento"}, {"VENCIMENTO", "vencimento"}, {"VENCPRORROGADO", "vencimento_prorrogado"},
         {"VALOR", "valor"}, {"PRAZO", "prazo"}, {"ACEITO", "aceito"}, {"DATAINCLUSAO", "data_inclusao"}, {"USUAINCLUSAO", "usuario_inclusao"},
@@ -100,7 +65,6 @@ else [data_vencimento_util_temp], type date),
         {"RaizCNPJ", "raiz_cnpj"}
     })
 in
-    // Retorna a tabela final com todas as transformações
     renomearColunasFinal;
 
 [DataDestinations = {[Definition = [Kind = "Reference", QueryName = "fato_titulos_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
