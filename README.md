@@ -342,6 +342,50 @@ Para maior clareza, abaixo está a lista de tabelas geradas pelo pipeline e suas
 
 Esta seção documenta padrões de código recomendados para garantir a robustez e a performance dos processos na plataforma.
 
+### Otimização de Performance na Camada Silver
+
+Para garantir que os processos de ETL, especialmente os Dataflows, sejam executados com a máxima eficiência e aproveitem o *query folding* (a capacidade de delegar o processamento para o sistema de origem), a ordem das etapas de transformação é crucial. Seguir a ordem correta reduz a quantidade de dados trafegados e processados em memória.
+
+A sequência recomendada de operações é:
+
+1.  **Filtrar Linhas o Mais Cedo Possível**:
+    -   **O que fazer**: Aplique filtros (`Table.SelectRows` no Power Query) para remover registros desnecessários logo no início do fluxo.
+    -   **Por que funciona**: Reduzir o número de linhas é a maneira mais eficaz de diminuir o volume de dados. Isso garante que as transformações subsequentes operem em um conjunto de dados muito menor, acelerando todo o processo.
+
+2.  **Remover Colunas Não Utilizadas**:
+    -   **O que fazer**: Use `Table.SelectColumns` para manter apenas as colunas que são estritamente necessárias para as etapas seguintes ou para o resultado final. Evite usar `Table.RemoveColumns`, que é menos performático.
+    -   **Por que funciona**: Assim como filtrar linhas, remover colunas desnecessárias reduz a "largura" dos dados, diminuindo o consumo de memória e a carga de processamento. Fazer isso antes de transformações complexas evita que o motor processe dados que serão descartados.
+
+3.  **Aplicar Transformações e Regras de Negócio**:
+    -   **O que fazer**: Execute as operações mais "caras" (tratamento de texto, cálculos, junções) por último.
+    -   **Por que funciona**: Neste ponto, o conjunto de dados já está otimizado (menos linhas e menos colunas), então o custo computacional para aplicar estas transformações é significativamente menor.
+
+**Exemplo Prático (Power Query M):**
+
+```m
+// Ruim: Transformações antes de filtrar
+let
+    Fonte = Origem_De_Dados,
+    ColunasRenomeadas = Table.RenameColumns(Fonte, {{"Nome Completo", "nome_cliente"}}),
+    TextoMaiusculo = Table.TransformColumns(ColunasRenomeadas, {{"nome_cliente", Text.Upper, type text}}),
+    LinhasFiltradas = Table.SelectRows(TextoMaiusculo, each [ativo] = true),
+    ColunasSelecionadas = Table.SelectColumns(LinhasFiltradas, {"id_cliente", "nome_cliente"})
+in
+    ColunasSelecionadas
+
+// Bom: Filtrar e selecionar colunas primeiro
+let
+    Fonte = Origem_De_Dados,
+    LinhasFiltradas = Table.SelectRows(Fonte, each [ativo] = true),
+    ColunasSelecionadas = Table.SelectColumns(LinhasFiltradas, {"id_cliente", "Nome Completo"}),
+    ColunasRenomeadas = Table.RenameColumns(ColunasSelecionadas, {{"Nome Completo", "nome_cliente"}}),
+    TextoMaiusculo = Table.TransformColumns(ColunasRenomeadas, {{"nome_cliente", Text.Upper, type text}})
+in
+    TextoMaiusculo
+```
+
+Seguir esta ordem garante que o *query folding* seja mantido pelo maior tempo possível e que o motor do Fabric processe a menor quantidade de dados necessária.
+
 ### Convenções de Nomenclatura
 
 Para manter a clareza e a consistência em todo o projeto, seguimos um conjunto de convenções de nomenclatura para os artefatos.
