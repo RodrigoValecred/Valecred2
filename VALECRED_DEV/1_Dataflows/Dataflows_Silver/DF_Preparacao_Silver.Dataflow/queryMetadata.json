@@ -309,33 +309,15 @@
       "isHidden": true,
       "loadEnabled": false
     },
-    "staging_tac_m_DataDestination": {
-      "queryId": "417ed6b5-e194-4572-8086-918382d12084",
-      "queryName": "staging_tac_m_DataDestination",
-      "isHidden": true,
-      "loadEnabled": false
-    },
     "staging_enderecos_DataDestination": {
       "queryId": "007dfc45-8c3e-40d2-b545-9b7d67b078d6",
       "queryName": "staging_enderecos_DataDestination",
       "isHidden": true,
       "loadEnabled": false
     },
-    "staging_contratos_clientes_DataDestination": {
-      "queryId": "16fec8a1-0559-46be-bd4c-960ab27950a4",
-      "queryName": "staging_contratos_clientes_DataDestination",
-      "isHidden": true,
-      "loadEnabled": false
-    },
     "staging_empresas_DataDestination": {
       "queryId": "2b2ecc23-080b-4677-a5bc-6559166cade6",
       "queryName": "staging_empresas_DataDestination",
-      "isHidden": true,
-      "loadEnabled": false
-    },
-    "staging_clientes_DataDestination": {
-      "queryId": "e8841814-545b-4d21-b44f-8d4dafbf0d03",
-      "queryName": "staging_clientes_DataDestination",
       "isHidden": true,
       "loadEnabled": false
     }

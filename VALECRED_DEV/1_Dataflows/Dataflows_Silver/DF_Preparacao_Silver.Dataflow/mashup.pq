@@ -1,5 +1,4 @@
 section Section1;
-[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "staging_tac_m_DataDestination", IsNewTarget = false], Settings = [Kind = "Manual", AllowCreation = false, ColumnSettings = [Mappings = {[SourceColumnName = "cod_tarifa_extra", DestinationColumnName = "cod_tarifa_extra"], [SourceColumnName = "cod_operacao", DestinationColumnName = "cod_operacao"], [SourceColumnName = "descricao", DestinationColumnName = "descricao"], [SourceColumnName = "total", DestinationColumnName = "total"], [SourceColumnName = "data_inclusao", DestinationColumnName = "data_inclusao"], [SourceColumnName = "usua_inclusao", DestinationColumnName = "cod_usuario"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
 shared staging_tac_m = let
     origem = source_tab_operacoes_tarifas_extras,
   #"Colunas removidas 1" = Table.RemoveColumns(origem, {"CODENTRADA", "DATAALTERACAO", "USUAALTERACAO", "TIPO"}),
@@ -52,7 +51,6 @@ shared staging_titulos_baixas = let
     valorPagoLiquidoAdicionado = Table.AddColumn(correcaoValoresTexto, "VALOR PAGO LIQUIDO", each [VLPAGO]-[JUROS]+[DESCONTO]-[TARIFARECOMPRA], type number)
 in
     valorPagoLiquidoAdicionado;
-[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "staging_clientes_DataDestination", IsNewTarget = false], Settings = [Kind = "Manual", AllowCreation = false, ColumnSettings = [Mappings = {[SourceColumnName = "cod_cliente", DestinationColumnName = "cod_cliente"], [SourceColumnName = "cpf_cnpj", DestinationColumnName = "cpf_cnpj"], [SourceColumnName = "cnae", DestinationColumnName = "cnae"], [SourceColumnName = "data_status", DestinationColumnName = "data_status"], [SourceColumnName = "cod_status_cliente", DestinationColumnName = "cod_status_cliente"], [SourceColumnName = "cod_rating", DestinationColumnName = "cod_rating"], [SourceColumnName = "cod_rating_sug", DestinationColumnName = "cod_rating_sug"], [SourceColumnName = "data_inclusao", DestinationColumnName = "data_inclusao"], [SourceColumnName = "data_alteracao", DestinationColumnName = "data_alteracao"], [SourceColumnName = "recuperacao_judicial", DestinationColumnName = "recuperacao_judicial"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
 shared staging_clientes = let
   Origem = source_cad_clientes,
   #"Linhas filtradas" = Table.SelectRows(Origem, each [CODCLIENTE] > 4),
@@ -66,7 +64,6 @@ shared staging_abatimentos = let
   #"Data inserida" = Table.AddColumn(#"As outras colunas foram removidas", "Data", each DateTime.Date([DATAINCLUSAO]), type nullable date)
 in
   #"Data inserida";
-[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "staging_contratos_clientes_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
 shared staging_contratos_clientes = let
     origem = source_cad_contratos_clientes,
     colunas_renomeadas = Table.RenameColumns(origem, List.Transform(Table.ColumnNames(origem), each {_, Text.Lower(Text.Replace(_, "_", " "))})),
@@ -377,13 +374,6 @@ shared staging_titulos_DataDestination = let
   TableNavigation = Navigation_2{[Id = "staging_titulos", ItemKind = "Table"]}?[Data]?
 in
   TableNavigation;
-shared staging_tac_m_DataDestination = let
-  Pattern = Lakehouse.Contents([CreateNavigationProperties = false, EnableFolding = false]),
-  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
-  TableNavigation = Navigation_2{[Id = "staging_tac_m", ItemKind = "Table"]}[Data]
-in
-  TableNavigation;
 shared staging_enderecos_DataDestination = let
   Pattern = Lakehouse.Contents([CreateNavigationProperties = false, EnableFolding = false]),
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -391,24 +381,10 @@ shared staging_enderecos_DataDestination = let
   TableNavigation = Navigation_2{[Id = "staging_enderecos", ItemKind = "Table"]}?[Data]?
 in
   TableNavigation;
-shared staging_contratos_clientes_DataDestination = let
-  Pattern = Lakehouse.Contents([CreateNavigationProperties = false, EnableFolding = false]),
-  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
-  TableNavigation = Navigation_2{[Id = "staging_contratos_clientes", ItemKind = "Table"]}?[Data]?
-in
-  TableNavigation;
 shared staging_empresas_DataDestination = let
   Pattern = Lakehouse.Contents([CreateNavigationProperties = false, EnableFolding = false]),
   Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
   Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
   TableNavigation = Navigation_2{[Id = "staging_empresas", ItemKind = "Table"]}?[Data]?
-in
-  TableNavigation;
-shared staging_clientes_DataDestination = let
-  Pattern = Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]),
-  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
-  TableNavigation = Navigation_2{[Id = "staging_clientes", ItemKind = "Table"]}[Data]
 in
   TableNavigation;
