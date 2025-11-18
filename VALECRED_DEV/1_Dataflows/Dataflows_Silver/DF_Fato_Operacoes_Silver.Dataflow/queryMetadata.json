@@ -83,6 +83,11 @@
       "queryName": "fact_operacoes_DataDestination",
       "isHidden": true,
       "loadEnabled": false
+    },
+    "staging_tratamento_de_operacoes": {
+      "queryId": "9de760b5-0277-4d1f-a051-1bdd84487ffd",
+      "queryName": "staging_tratamento_de_operacoes",
+      "queryGroupId": "9f845bc3-a0a9-463a-a612-1df8874a80fd"
     }
   },
   "connections": [

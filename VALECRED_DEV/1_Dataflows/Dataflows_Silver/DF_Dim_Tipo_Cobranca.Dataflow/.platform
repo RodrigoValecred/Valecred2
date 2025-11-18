@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Dataflow",
+    "displayName": "DF_Dim_Tipo_Cobranca"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "194e81e5-4eed-8de6-4c8e-f2819cc0d45a"
+  }
+}

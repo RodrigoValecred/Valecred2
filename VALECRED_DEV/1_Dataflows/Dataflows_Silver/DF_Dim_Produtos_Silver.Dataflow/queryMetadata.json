@@ -29,7 +29,7 @@
       "loadEnabled": false
     },
     "dim_produtos_DataDestination": {
-      "queryId": "96517c21-3e6c-4fd0-ae24-245ed5382501",
+      "queryId": "298d4e7b-9b31-4e78-a31a-a0d11066fa94",
       "queryName": "dim_produtos_DataDestination",
       "isHidden": true,
       "loadEnabled": false

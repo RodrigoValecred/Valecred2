@@ -48,12 +48,10 @@ shared dim_produtos = let
 
   // Converte o texto da coluna "Produto - Informação de Mercado" para maiúsculas.
   informacaoEmMaiusculas = Table.TransformColumns(valorSubstituidoMateriaPrima, {{"produto_informacao_de_mercado", Text.Upper, type text}}),
-
-  // Remove as linhas duplicadas com base na coluna "chave_produto", garantindo que cada produto tenha apenas uma entrada.
-  duplicatasRemovidasChave = Table.Distinct(informacaoEmMaiusculas, {"chave_produto"})
+  #"Duplicatas removidas" = Table.Distinct(informacaoEmMaiusculas, {"chave_produto"})
 
 in
-  duplicatasRemovidasChave // Retorna a tabela final com todos os produtos únicos e suas informações formatadas.
+  #"Duplicatas removidas" // Retorna a tabela final com todos os produtos únicos e suas informações formatadas.
 ;
 shared fact_operacoes = let
   Origem = Lakehouse.Contents([HierarchicalNavigation = null]),

@@ -1,0 +1,36 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Fact_Checagem",
+  "queryGroups": [],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "source_tab_titulos_confirmacao": {
+      "queryId": "a7e19a45-b637-4b1d-8f46-27e89d4585e7",
+      "queryName": "source_tab_titulos_confirmacao",
+      "loadEnabled": false
+    },
+    "staging_limpeza_confirmacao": {
+      "queryId": "0ff1c9c7-1854-4911-9ece-0d6b564bc1d0",
+      "queryName": "staging_limpeza_confirmacao"
+    },
+    "fact_ultima_confirmacao": {
+      "queryId": "5582b9dd-5a33-433f-8f03-2b1313bcba61",
+      "queryName": "fact_ultima_confirmacao",
+      "loadEnabled": false
+    },
+    "fact_ultima_confirmacao_DataDestination": {
+      "queryId": "aaf484b1-012c-4276-a626-b57dd9899c5a",
+      "queryName": "fact_ultima_confirmacao_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    }
+  ]
+}

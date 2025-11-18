@@ -119,9 +119,9 @@
       "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
       "loadEnabled": false
     },
-    "source_cad_conta_cobranca_ocorrencia": {
+    "source_tab_titulos_confirmacao": {
       "queryId": "0de7a4d0-4b36-4dd5-b806-7596e5306ece",
-      "queryName": "source_cad_conta_cobranca_ocorrencia",
+      "queryName": "source_tab_titulos_confirmacao",
       "queryGroupId": "c1965685-ffc9-46e2-8aaf-a5a3e4d1a6fc",
       "loadEnabled": false
     },

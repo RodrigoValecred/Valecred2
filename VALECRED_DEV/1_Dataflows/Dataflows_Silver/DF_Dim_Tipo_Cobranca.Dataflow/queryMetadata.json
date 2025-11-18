@@ -1,0 +1,32 @@
+{
+  "formatVersion": "202502",
+  "computeEngineSettings": {},
+  "name": "DF_Dim_Tipo_Cobranca",
+  "queryGroups": [],
+  "documentLocale": "pt-BR",
+  "queriesMetadata": {
+    "source_cad_conta_cobranca_ocorrencia": {
+      "queryId": "88801a98-e77e-42c5-b1ad-6f3f92cfaec8",
+      "queryName": "source_cad_conta_cobranca_ocorrencia",
+      "loadEnabled": false
+    },
+    "dim_tipo_cobranca": {
+      "queryId": "186ad768-9086-4991-a269-38572ac14fea",
+      "queryName": "dim_tipo_cobranca",
+      "loadEnabled": false
+    },
+    "dim_tipo_cobranca_DataDestination": {
+      "queryId": "e1268503-615f-4146-9260-854214810651",
+      "queryName": "dim_tipo_cobranca_DataDestination",
+      "isHidden": true,
+      "loadEnabled": false
+    }
+  },
+  "connections": [
+    {
+      "path": "Lakehouse",
+      "kind": "Lakehouse",
+      "connectionId": "{\"ClusterId\":\"e081a6af-15ea-4c60-9add-9eec7bd2a208\",\"DatasourceId\":\"d5e04140-4686-43fa-ae4d-a20dec5aec44\"}"
+    }
+  ]
+}
