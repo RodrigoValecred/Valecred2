@@ -1,6 +1,6 @@
 [StagingDefinition = [Kind = "FastCopy"]]
 section Section1;
-shared fato_titulos = let
+shared staging_fato_titulos = let
     // Define a tabela 'replicas_tab_titulos' como a fonte inicial de dados
     fonteDadosTitulos = staging_titulos,
     // Cria a chave "chave_cliente_sacado" concatenando CODCLIENTE e RaizCNPJ.
@@ -12,48 +12,48 @@ shared fato_titulos = let
     // Filtra os títulos, removendo os do tipo "BL" e "RC" (boletos e recibos)
     filtrarTitulosPorTipo = Table.SelectRows(mesclarTitulosComLimites, each ([TDOC] <> "BL" and [TDOC] <> "RC")),
     // Expande a coluna de relacionamento intercompany para trazer o tipo (Intercompany ou não)
-    expandirRelacionamentoIntercompany = Table.ExpandTableColumn(filtrarTitulosPorTipo, "relacionamento_intercompany", {"TIPO"}, {"Intercompany"}),
+    expandirRelacionamentoIntercompany = Table.ExpandTableColumn(filtrarTitulosPorTipo, "relacionamento_intercompany", {"TIPO"}, {"intercompany"}),
     // Calcula o valor total do título multiplicado pelo prazo (VALOR X PRAZO)
-    calcularValorTotalPorPrazo = Table.AddColumn(expandirRelacionamentoIntercompany, "VALOR X PRAZO", each [PRAZO]*[VALOR]),
+    calcularValorTotalPorPrazo = Table.AddColumn(expandirRelacionamentoIntercompany, "valor_vezes_prazo", each [PRAZO]*[VALOR]),
     // Define o tipo da coluna 'valorXPrazo' como número para cálculos futuros
-    converterValorTotalPrazoParaNumero = Table.TransformColumnTypes(calcularValorTotalPorPrazo,{{"VALOR X PRAZO", type number}}),
+    converterValorTotalPrazoParaNumero = Table.TransformColumnTypes(calcularValorTotalPorPrazo,{{"valor_vezes_prazo", type number}}),
     // Padroniza a coluna Intercompany, substituindo nulos por "NÃO"
-    padronizarColunaIntercompanyNulo = Table.ReplaceValue(converterValorTotalPrazoParaNumero,null,"NÃO",Replacer.ReplaceValue,{"Intercompany"}),
+    padronizarColunaIntercompanyNulo = Table.ReplaceValue(converterValorTotalPrazoParaNumero,null,"NÃO",Replacer.ReplaceValue,{"intercompany"}),
     // Padroniza a coluna Intercompany, substituindo "INTERCIA" por "SIM"
-    padronizarColunaIntercompanyIntercia = Table.ReplaceValue(padronizarColunaIntercompanyNulo,"INTERCIA","SIM",Replacer.ReplaceText,{"Intercompany"}),
+    padronizarColunaIntercompanyIntercia = Table.ReplaceValue(padronizarColunaIntercompanyNulo,"INTERCIA","SIM",Replacer.ReplaceText,{"intercompany"}),
     // Mescla os dados dos títulos com informações dos produtos (chave_produto)
     mesclarTitulosComProdutos = Table.NestedJoin(padronizarColunaIntercompanyIntercia, {"chave_produto"}, dim_produtos, {"chave_produto"}, "produtos", JoinKind.LeftOuter),
     // Expande os dados dos produtos para trazer a informação de mercado
-    expandirDadosProdutos = Table.ExpandTableColumn(mesclarTitulosComProdutos, "produtos", {"Produto - Informação de Mercado"}, {"Produto"}),
+    expandirDadosProdutos = Table.ExpandTableColumn(mesclarTitulosComProdutos, "produtos", {"Produto - Informação de Mercado"}, {"produto"}),
     // Personaliza o nome do produto se for Intercompany e o produto for "NO" ou "CM"
-    personalizarNomeProdutoIntercompany = Table.AddColumn(expandirDadosProdutos, "Personalizar", each if [Intercompany] = "SIM" and List.Contains({"NO","CM"},[chave_produto]) then   "INTERCOMPANY"  else [Produto], type text),
+    personalizarNomeProdutoIntercompany = Table.AddColumn(expandirDadosProdutos, "produto_com_intercia_temp", each if [intercompany] = "SIM" and List.Contains({"NO","CM"},[chave_produto]) then   "INTERCOMPANY"  else [produto], type text),
     // Remove a coluna original do Produto (já temos a personalizada)
-    removerColunaProdutoOriginal = Table.RemoveColumns(personalizarNomeProdutoIntercompany,{"Produto"}),
+    removerColunaProdutoOriginal = Table.RemoveColumns(personalizarNomeProdutoIntercompany,{"produto"}),
     // Renomeia a coluna personalizada para "Produto com intercia"
-    renomearColunaProdutoPersonalizado = Table.RenameColumns(removerColunaProdutoOriginal,{{"Personalizar", "Produto com intercia"}}),
+    renomearColunaProdutoPersonalizado = Table.RenameColumns(removerColunaProdutoOriginal,{{"produto_com_intercia_temp", "produto_com_intercia"}}),
     // Adiciona o dia da semana do vencimento prorrogado
-    adicionarDiaDaSemanaVencimento = Table.AddColumn(renomearColunaProdutoPersonalizado, "DiaDaSemana", each Date.DayOfWeek([VENCPRORROGADO]), Int64.Type),
+    adicionarDiaDaSemanaVencimento = Table.AddColumn(renomearColunaProdutoPersonalizado, "dia_da_semana", each Date.DayOfWeek([VENCPRORROGADO]), Int64.Type),
     // Ajusta a data de vencimento para o próximo dia útil, considerando finais de semana
-    ajustarDataVencimentoParaDiaUtil = Table.AddColumn(adicionarDiaDaSemanaVencimento, "dataVencimentoUtil", each if [DiaDaSemana] = 0 then Date.AddDays([VENCPRORROGADO],1) else if [DiaDaSemana] = 6 then Date.AddDays([VENCPRORROGADO],2) else [VENCPRORROGADO], type date),
+    ajustarDataVencimentoParaDiaUtil = Table.AddColumn(adicionarDiaDaSemanaVencimento, "data_vencimento_util_temp", each if [dia_da_semana] = 0 then Date.AddDays([VENCPRORROGADO],1) else if [dia_da_semana] = 6 then Date.AddDays([VENCPRORROGADO],2) else [VENCPRORROGADO], type date),
     // Mescla os dados com a tabela de feriados para identificar feriados na data de vencimento
-    mesclarComTabelaFeriados = Table.NestedJoin(ajustarDataVencimentoParaDiaUtil, {"dataVencimentoUtil"}, source_tab_feriados, {"DATAFERIADO"}, "feriados", JoinKind.LeftOuter),
+    mesclarComTabelaFeriados = Table.NestedJoin(ajustarDataVencimentoParaDiaUtil, {"data_vencimento_util_temp"}, source_tab_feriados, {"DATAFERIADO"}, "feriados", JoinKind.LeftOuter),
     // Expande os dados dos feriados para trazer o tipo do feriado
-    expandirDadosFeriados = Table.ExpandTableColumn(mesclarComTabelaFeriados, "feriados", {"TFERIADO"}, {"feriados.TFERIADO"}),
+    expandirDadosFeriados = Table.ExpandTableColumn(mesclarComTabelaFeriados, "feriados", {"TFERIADO"}, {"tipo_feriado"}),
     // Calcula a data prevista de liquidação, considerando feriados e finais de semana
-    calcularDataPrevisaoLiquidacao = Table.AddColumn(expandirDadosFeriados, "dataPrevisaoLiquidacao", 
-each if [feriados.TFERIADO] = "L" then  [dataVencimentoUtil] 
-else if [feriados.TFERIADO] = "N" and [DiaDaSemana] = 5 then Date.AddDays([dataVencimentoUtil],3) 
-else if [feriados.TFERIADO] = "N" and [DiaDaSemana] <> 5 then Date.AddDays([dataVencimentoUtil],1) 
-else [dataVencimentoUtil], type date),
+    calcularDataPrevisaoLiquidacao = Table.AddColumn(expandirDadosFeriados, "data_previsao_liquidacao",
+each if [tipo_feriado] = "L" then  [data_vencimento_util_temp]
+else if [tipo_feriado] = "N" and [dia_da_semana] = 5 then Date.AddDays([data_vencimento_util_temp],3)
+else if [tipo_feriado] = "N" and [dia_da_semana] <> 5 then Date.AddDays([data_vencimento_util_temp],1)
+else [data_vencimento_util_temp], type date),
     // Remove colunas auxiliares que não são mais necessárias
-    removerColunasAuxiliaresData = Table.RemoveColumns(calcularDataPrevisaoLiquidacao,{"dataVencimentoUtil", "feriados.TFERIADO", "DiaDaSemana"}),
+    removerColunasAuxiliaresData = Table.RemoveColumns(calcularDataPrevisaoLiquidacao,{"data_vencimento_util_temp", "tipo_feriado", "dia_da_semana"}),
     // Renomeia a coluna da data de previsão de liquidação para data de vencimento útil
-    renomearColunaDataPrevisaoLiquidacao = Table.RenameColumns(removerColunasAuxiliaresData,{{"dataPrevisaoLiquidacao", "DATA VENCIMENTO UTIL"}}),
+    renomearColunaDataPrevisaoLiquidacao = Table.RenameColumns(removerColunasAuxiliaresData,{{"data_previsao_liquidacao", "data_vencimento_util"}}),
     // Calcula o status de deferimento com base nas colunas ACEITO, STATUSACEITE e STATUSANALISE
-    calcularStatusDeferimento = Table.AddColumn(renomearColunaDataPrevisaoLiquidacao, "Status deferimento", each if [ACEITO] = "S" and [STATUSACEITE] = "A" and [STATUSANALISE] = "D" then "Sim" else "Não", type text),
+    calcularStatusDeferimento = Table.AddColumn(renomearColunaDataPrevisaoLiquidacao, "status_deferimento", each if [ACEITO] = "S" and [STATUSACEITE] = "A" and [STATUSANALISE] = "D" then "Sim" else "Não", type text),
     // Define o status "CLEAN" para títulos que não são de desconto
-    definirStatusCleanTitulos = Table.AddColumn(calcularStatusDeferimento, "Status Clean", 
-    each if [Produto com intercia] = "DESCONTO" then "NORMAL"
+    definirStatusCleanTitulos = Table.AddColumn(calcularStatusDeferimento, "status_clean",
+    each if [produto_com_intercia] = "DESCONTO" then "NORMAL"
     else "CLEAN", type text),
     // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): N -> Atenção
     padronizarConfirmacaoDocumentosN = Table.ReplaceValue(definirStatusCleanTitulos,"N","Atenção",Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
@@ -72,26 +72,43 @@ else [dataVencimentoUtil], type date),
     // Padroniza a coluna de confirmação de documentos (DOCCONFIRMADO): AZ -> Eletrônico
     padronizarConfirmacaoDocumentosAZ = Table.ReplaceValue(padronizarConfirmacaoDocumentosE,"AZ","Eletrônico",Replacer.ReplaceValue,{"DOCCONFIRMADO"}),
     // Renomeia a coluna DOCCONFIRMADO para CONFIRMAÇÃO para melhor entendimento
-    renomearColunaDocConfirmado = Table.RenameColumns(padronizarConfirmacaoDocumentosAZ,{{"DOCCONFIRMADO", "CONFIRMAÇÃO"}}),
+    renomearColunaDocConfirmado = Table.RenameColumns(padronizarConfirmacaoDocumentosAZ,{{"DOCCONFIRMADO", "confirmacao"}}),
     // Cria uma coluna para ordenar a confirmação (Não Contatado = 5, Atenção = 2, Eletrônico = 0, etc.)
-    criarColunaOrdemConfirmacao = Table.AddColumn(renomearColunaDocConfirmado, "ordemConfirmacao", each if [CONFIRMAÇÃO] = "Não Contatado" then 5 else if [CONFIRMAÇÃO] = "Atenção" then 2 else if [CONFIRMAÇÃO] = "Eletrônico" then 0 
-    else if [CONFIRMAÇÃO] = "Positivo" then 1 
-    else if [CONFIRMAÇÃO] = "Alerta" then 3 
-    else if [CONFIRMAÇÃO] = "Problema" then 4 
+    criarColunaOrdemConfirmacao = Table.AddColumn(renomearColunaDocConfirmado, "ordem_confirmacao", each if [confirmacao] = "Não Contatado" then 5 else if [confirmacao] = "Atenção" then 2 else if [confirmacao] = "Eletrônico" then 0
+    else if [confirmacao] = "Positivo" then 1
+    else if [confirmacao] = "Alerta" then 3
+    else if [confirmacao] = "Problema" then 4
     else null, type number),
     // Mescla os dados com informações de recompra (relacionamento_recompras)
     mesclarComRelacionamentoRecompras = Table.NestedJoin(criarColunaOrdemConfirmacao, {"CODTITULO"}, limpeza_tab_operacoes_devolucoes, {"CODTITULO"}, "relacionamento_recompras", JoinKind.LeftOuter),
     // Expande os dados de recompra para trazer a chave da operação de recompra
     expandirRelacionamentoRecompras = Table.ExpandTableColumn(mesclarComRelacionamentoRecompras, "relacionamento_recompras", {"chave_base_operacao"}, {"chave_base_operacao_recompra"}),
     // Mescla os dados com informações da última checagem (ultima checagem)
-    mesclarComUltimaChecagem = Table.NestedJoin(expandirRelacionamentoRecompras, {"CODTITULO"}, fact_ultima_confirmacao, {"cod_titulo"}, "ultima checagem", JoinKind.LeftOuter),
+    mesclarComUltimaChecagem = Table.NestedJoin(expandirRelacionamentoRecompras, {"CODTITULO"}, fact_ultima_confirmacao, {"cod_titulo"}, "ultima_checagem", JoinKind.LeftOuter),
     // Expande os dados da última checagem para trazer a confirmação
-    expandirUltimaChecagem = Table.ExpandTableColumn(mesclarComUltimaChecagem, "ultima checagem", {"confirmacao"}, {"confirmado_por"}),
+    expandirUltimaChecagem = Table.ExpandTableColumn(mesclarComUltimaChecagem, "ultima_checagem", {"confirmacao"}, {"confirmado_por"}),
     // Padroniza a coluna AMORTIZACOES, substituindo nulos por 0
-    padronizarAmortizacoesNulo = Table.ReplaceValue(expandirUltimaChecagem,null,0,Replacer.ReplaceValue,{"AMORTIZACOES"})
+    padronizarAmortizacoesNulo = Table.ReplaceValue(expandirUltimaChecagem,null,0,Replacer.ReplaceValue,{"AMORTIZACOES"}),
+    // Renomeia todas as colunas para o padrão snake_case
+    renomearColunasFinal = Table.RenameColumns(padronizarAmortizacoesNulo, {
+        {"CODTITULO", "cod_titulo"}, {"CODOPERACAO", "cod_operacao"}, {"TDOC", "tipo_documento"}, {"NDOC", "numero_documento"},
+        {"CPFCNPJSACADO", "cpf_cnpj_sacado"}, {"DATADOC", "data_documento"}, {"VENCIMENTO", "vencimento"}, {"VENCPRORROGADO", "vencimento_prorrogado"},
+        {"VALOR", "valor"}, {"PRAZO", "prazo"}, {"ACEITO", "aceito"}, {"DATAINCLUSAO", "data_inclusao"}, {"USUAINCLUSAO", "usuario_inclusao"},
+        {"DATAALTERACAO", "data_alteracao"}, {"USUAALTERACAO", "usuario_alteracao"}, {"AMORTIZACOES", "amortizacoes"}, {"CODCLIENTE", "cod_cliente"},
+        {"DATAANALISE", "data_analise"}, {"STATUSACEITE", "status_aceite"}, {"STATUSANALISE", "status_analise"}, {"chave_produto", "chave_produto"},
+        {"chave_base_empresa", "chave_base_empresa"}, {"status_protesto", "status_protesto"}, {"TipoDocumentoSacado", "tipo_documento_sacado"},
+        {"RaizCNPJ", "raiz_cnpj"}
+    })
 in
     // Retorna a tabela final com todas as transformações
-    padronizarAmortizacoesNulo;
+    renomearColunasFinal;
+
+[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "fato_titulos_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
+shared fato_titulos = let
+    Origem = staging_fato_titulos
+in
+    Origem;
+
 shared fact_operacoes = let
   Origem = Lakehouse.Contents([HierarchicalNavigation = null]),
   #"Navegação 1" = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -120,7 +137,6 @@ shared source_tab_feriados = let
     tabela_origem = navegacao_2{[Id = "tab_feriados", ItemKind = "Table"]}[Data],
 
     // Remove as colunas de metadados e ID de feriados.
-    // Nota: Assumimos que o input para esta etapa deve ser 'origem', pois 'dbo_factvale40bi_tab_feriados' não está definido.
     colunasRemovidas = Table.RemoveColumns(tabela_origem,{"CODFERIADO", "DATAINCLUSAO", "USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO"}),
 
     // Adiciona a coluna "ANO/MES" extraindo o ano da coluna "DATAFERIADO".
@@ -187,7 +203,6 @@ shared limpeza_tab_operacoes_devolucoes = let
   Origem = source_tab_operacoes_devolucoes,
     
     // Remove colunas desnecessárias.
-    // Nota: Assumimos que o input para esta etapa deve ser 'origem', pois 'dbo_factvale40bi_tab_operacoes_devolucoes' não está definido.
     colunasRemovidas = Table.RemoveColumns(Origem,{"USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA"}),
   #"Duplicatas removidas" = Table.Distinct(colunasRemovidas, {"CODTITULO"})
 in
@@ -223,3 +238,10 @@ else "Inválido"),
     duplicatasRemovidas = Table.Distinct(chaveClienteSacadoInserida, {"chave_cliente_sacado"})
 in
     duplicatasRemovidas;
+shared fato_titulos_DataDestination = let
+  Pattern = Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]),
+  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
+  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  TableNavigation = Navigation_2{[Id = "fato_titulos", ItemKind = "Table"]}?[Data]?
+in
+  TableNavigation;
