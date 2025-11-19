@@ -24,14 +24,14 @@ shared fato_titulos = let
     removerColunaProdutoOriginal = Table.RemoveColumns(personalizarNomeProdutoIntercompany,{"produto_temp"}),
     renomearColunaProdutoPersonalizado = Table.RenameColumns(removerColunaProdutoOriginal,{{"produto_com_intercia_temp", "produto_com_intercia"}}),
     adicionarDiaDaSemanaVencimento = Table.AddColumn(renomearColunaProdutoPersonalizado, "dia_da_semana", each Date.DayOfWeek([VENCPRORROGADO]), Int64.Type),
-    ajustarDataVencimentoParaDiaUtil = Table.AddColumn(adicionarDiaDaSemanaVencimento, "data_vencimento_util_temp", each if [dia_da_semana] = 0 then Date.AddDays([VENCPRORROGADO],1) else if [dia_da_semana] = 6 then Date.AddDays([VENCPRORROGADO],2) else [VENCPRORROGADO], type date),
+    ajustarDataVencimentoParaDiaUtil = Table.AddColumn(adicionarDiaDaSemanaVencimento, "data_vencimento_util_temp", each DateTime.Date(if [dia_da_semana] = 0 then Date.AddDays([VENCPRORROGADO],1) else if [dia_da_semana] = 6 then Date.AddDays([VENCPRORROGADO],2) else [VENCPRORROGADO]), type date),
     mesclarComTabelaFeriados = Table.NestedJoin(ajustarDataVencimentoParaDiaUtil, {"data_vencimento_util_temp"}, source_tab_feriados, {"DATAFERIADO"}, "feriados", JoinKind.LeftOuter),
     expandirDadosFeriados = Table.ExpandTableColumn(mesclarComTabelaFeriados, "feriados", {"TFERIADO"}, {"tipo_feriado"}),
     calcularDataPrevisaoLiquidacao = Table.AddColumn(expandirDadosFeriados, "data_previsao_liquidacao",
-each if [tipo_feriado] = "L" then  [data_vencimento_util_temp]
+each DateTime.Date(if [tipo_feriado] = "L" then  [data_vencimento_util_temp]
 else if [tipo_feriado] = "N" and [dia_da_semana] = 5 then Date.AddDays([data_vencimento_util_temp],3)
 else if [tipo_feriado] = "N" and [dia_da_semana] <> 5 then Date.AddDays([data_vencimento_util_temp],1)
-else [data_vencimento_util_temp], type date),
+else [data_vencimento_util_temp]), type date),
     removerColunasAuxiliaresData = Table.RemoveColumns(calcularDataPrevisaoLiquidacao,{"data_vencimento_util_temp", "tipo_feriado", "dia_da_semana"}),
     renomearColunaDataPrevisaoLiquidacao = Table.RenameColumns(removerColunasAuxiliaresData,{{"data_previsao_liquidacao", "data_vencimento_util"}}),
     calcularStatusDeferimento = Table.AddColumn(renomearColunaDataPrevisaoLiquidacao, "status_deferimento", each if [ACEITO] = "S" and [STATUSACEITE] = "A" and [STATUSANALISE] = "D" then "Sim" else "Não", type text),
