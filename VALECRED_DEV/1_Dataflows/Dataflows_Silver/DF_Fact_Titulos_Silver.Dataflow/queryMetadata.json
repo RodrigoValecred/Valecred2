@@ -5,8 +5,12 @@
   "queryGroups": [],
   "documentLocale": "pt-BR",
   "queriesMetadata": {
+    "staging_fato_titulos_materialized": {
+      "queryId": "11947abb-aecb-47ff-b1b0-d937d7bc7d4e",
+      "queryName": "staging_fato_titulos_materialized"
+    },
     "fato_titulos": {
-      "queryId": "9d41c5fd-7312-4f49-91de-2b57acacd0ae",
+      "queryId": "b8cd6842-7cb0-42c1-87f9-b0d1cd3d2051",
       "queryName": "fato_titulos"
     },
     "fact_operacoes": {
@@ -34,10 +38,6 @@
     "staging_titulos": {
       "queryId": "94fe3ba9-8545-45b1-b5a8-c3fb33854bb9",
       "queryName": "staging_titulos"
-    },
-    "staging_limpeza_de_titulos": {
-      "queryId": "e40c0dc2-fbdf-45e4-bbf9-5436a4102e59",
-      "queryName": "staging_limpeza_de_titulos"
     },
     "fact_ultima_confirmacao": {
       "queryId": "c46b120e-e410-4697-a022-478663c1b53c",

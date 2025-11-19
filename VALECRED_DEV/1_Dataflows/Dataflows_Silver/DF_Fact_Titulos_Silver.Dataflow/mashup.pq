@@ -1,25 +1,22 @@
 section Section1;
-
 shared staging_fato_titulos_materialized = let
     fonteDadosTitulos = staging_titulos,
-    chaveClienteSacadoInserida = Table.AddColumn(fonteDadosTitulos, "chave_cliente_sacado", each Text.Combine({Text.From([CODCLIENTE], "pt-BR"), "-", [RaizCNPJ]}), type text),
-    classificarPorDataInclusao = Table.Sort(chaveClienteSacadoInserida,{{"DATAINCLUSAO", Order.Descending}}),
-    mesclarTitulosComLimites = Table.NestedJoin(classificarPorDataInclusao, {"chave_cliente_sacado"}, staging_rlc_clientes_sacados_limites, {"chave_cliente_sacado"}, "relacionamento_intercompany", JoinKind.LeftOuter),
-    filtrarTitulosPorTipo = Table.SelectRows(mesclarTitulosComLimites, each ([TDOC] <> "BL" and [TDOC] <> "RC")),
-    expandirRelacionamentoIntercompany = Table.ExpandTableColumn(filtrarTitulosPorTipo, "relacionamento_intercompany", {"TIPO"}, {"intercompany"}),
+    filtrarTitulosPorTipo = Table.SelectRows(fonteDadosTitulos, each ([TDOC] <> "BL" and [TDOC] <> "RC")),
+    chaveClienteSacadoInserida = Table.AddColumn(filtrarTitulosPorTipo, "chave_cliente_sacado", each Text.Combine({Text.From([cod_cliente], "pt-BR"), "-", [RaizCNPJ]}), type text),
+    mesclarTitulosComLimites = Table.NestedJoin(chaveClienteSacadoInserida, {"chave_cliente_sacado"}, staging_rlc_clientes_sacados_limites, {"chave_cliente_sacado"}, "relacionamento_intercompany", JoinKind.LeftOuter),
+    expandirRelacionamentoIntercompany = Table.ExpandTableColumn(mesclarTitulosComLimites, "relacionamento_intercompany", {"TIPO"}, {"intercompany"}),
     padronizarColunaIntercompanyNulo = Table.ReplaceValue(expandirRelacionamentoIntercompany,null,"NÃO",Replacer.ReplaceValue,{"intercompany"}),
     padronizarColunaIntercompanyIntercia = Table.ReplaceValue(padronizarColunaIntercompanyNulo,"INTERCIA","SIM",Replacer.ReplaceText,{"intercompany"}),
     mesclarTitulosComProdutos = Table.NestedJoin(padronizarColunaIntercompanyIntercia, {"chave_produto"}, dim_produtos, {"chave_produto"}, "produtos", JoinKind.LeftOuter),
-    expandirDadosProdutos = Table.ExpandTableColumn(mesclarTitulosComProdutos, "produtos", {"Produto - Informação de Mercado"}, {"produto_temp"}),
+    expandirDadosProdutos = Table.ExpandTableColumn(mesclarTitulosComProdutos, "produtos", {"produto_informacao_de_mercado"}, {"produto_temp"}),
     mesclarComRelacionamentoRecompras = Table.NestedJoin(expandirDadosProdutos, {"CODTITULO"}, limpeza_tab_operacoes_devolucoes, {"CODTITULO"}, "relacionamento_recompras", JoinKind.LeftOuter),
-    expandirRelacionamentoRecompras = Table.ExpandTableColumn(mesclarComRelacionamentoRecompras, "relacionamento_recompras", {"chave_base_operacao"}, {"chave_base_operacao_recompra"}),
+    expandirRelacionamentoRecompras = Table.ExpandTableColumn(mesclarComRelacionamentoRecompras, "relacionamento_recompras", {"CODOPERACAO"}, {"cod_operacao_recompra"}),
     mesclarComUltimaChecagem = Table.NestedJoin(expandirRelacionamentoRecompras, {"CODTITULO"}, fact_ultima_confirmacao, {"cod_titulo"}, "ultima_checagem", JoinKind.LeftOuter),
     expandirUltimaChecagem = Table.ExpandTableColumn(mesclarComUltimaChecagem, "ultima_checagem", {"confirmacao"}, {"confirmado_por"}),
     padronizarAmortizacoesNulo = Table.ReplaceValue(expandirUltimaChecagem,null,0,Replacer.ReplaceValue,{"AMORTIZACOES"})
  in
     padronizarAmortizacoesNulo;
-
-shared staging_fato_titulos = let
+shared fato_titulos = let
     fonteDeDados = staging_fato_titulos_materialized,
     calcularValorTotalPorPrazo = Table.AddColumn(fonteDeDados, "valor_vezes_prazo", each [PRAZO]*[VALOR]),
     converterValorTotalPrazoParaNumero = Table.TransformColumnTypes(calcularValorTotalPorPrazo,{{"valor_vezes_prazo", type number}}),
@@ -57,22 +54,12 @@ else [data_vencimento_util_temp], type date),
     else null, type number),
     renomearColunasFinal = Table.RenameColumns(criarColunaOrdemConfirmacao, {
         {"CODTITULO", "cod_titulo"}, {"CODOPERACAO", "cod_operacao"}, {"TDOC", "tipo_documento"}, {"NDOC", "numero_documento"},
-        {"CPFCNPJSACADO", "cpf_cnpj_sacado"}, {"DATADOC", "data_documento"}, {"VENCIMENTO", "vencimento"}, {"VENCPRORROGADO", "vencimento_prorrogado"},
+        {"CPFCNPJSACADO", "cpf_cnpj_sacado"},  {"VENCIMENTO", "vencimento"}, {"VENCPRORROGADO", "vencimento_prorrogado"},
         {"VALOR", "valor"}, {"PRAZO", "prazo"}, {"ACEITO", "aceito"}, {"DATAINCLUSAO", "data_inclusao"}, {"USUAINCLUSAO", "usuario_inclusao"},
-        {"DATAALTERACAO", "data_alteracao"}, {"USUAALTERACAO", "usuario_alteracao"}, {"AMORTIZACOES", "amortizacoes"}, {"CODCLIENTE", "cod_cliente"},
-        {"DATAANALISE", "data_analise"}, {"STATUSACEITE", "status_aceite"}, {"STATUSANALISE", "status_analise"}, {"chave_produto", "chave_produto"},
-        {"chave_base_empresa", "chave_base_empresa"}, {"status_protesto", "status_protesto"}, {"TipoDocumentoSacado", "tipo_documento_sacado"},
-        {"RaizCNPJ", "raiz_cnpj"}
-    })
+        {"DATAALTERACAO", "data_alteracao"}, {"USUAALTERACAO", "usuario_alteracao"}, {"AMORTIZACOES", "amortizacoes"}, {"chave_produto", "chave_produto"},
+        {"status_protesto", "status_protesto"}, {"TipoDocumentoSacado", "tipo_documento_sacado"}, {"RaizCNPJ", "raiz_cnpj"}})
 in
     renomearColunasFinal;
-
-[DataDestinations = {[Definition = [Kind = "Reference", QueryName = "fato_titulos_DataDestination", IsNewTarget = true], Settings = [Kind = "Automatic", TypeSettings = [Kind = "Table"]]]}]
-shared fato_titulos = let
-    Origem = staging_fato_titulos
-in
-    Origem;
-
 shared fact_operacoes = let
   Origem = Lakehouse.Contents([HierarchicalNavigation = null]),
   #"Navegação 1" = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -116,13 +103,13 @@ shared fact_protestos = let
 in
   #"Navegação 3";
 shared staging_titulos = let
-  Origem = staging_limpeza_de_titulos,
+  Origem = source_tab_titulos,
 
     // Realiza um Left Outer Join com a tabela "replica_tab_operacoes" usando "CODOPERACAO".
     consultasMescladas = Table.NestedJoin(Origem, {"CODOPERACAO"}, fact_operacoes, {"cod_operacao"}, "operacoes", JoinKind.LeftOuter),
 
     // Expande a coluna "operacoes" para trazer dados específicos da operação.
-    operacoesExpandido = Table.ExpandTableColumn(consultasMescladas, "operacoes", {"CODCLIENTE", "DATAANALISE", "STATUSACEITE", "STATUSANALISE","chave_produto","chave_base_empresa"}, {"CODCLIENTE", "DATAANALISE", "STATUSACEITE", "STATUSANALISE","chave_produto","chave_base_empresa"}),
+    operacoesExpandido = Table.ExpandTableColumn(consultasMescladas, "operacoes", {"cod_cliente", "data_analise", "status_aceite", "status_analise","chave_produto","cod_empresa"}, {"cod_cliente", "data_analise", "status_aceite", "status_analise","chave_produto","cod_empresa"}),
 
     // Realiza um Left Outer Join com a tabela "replica_rlc_titulos_ocorrencias_cobranca2protestos" usando "CODTITULO".
     consultasMescladasProtestos = Table.NestedJoin(operacoesExpandido, {"CODTITULO"}, fact_protestos, {"cod_titulo"}, "lb_protestos", JoinKind.LeftOuter),
@@ -145,10 +132,6 @@ else "Inválido"),
     tipoAlteradoFinal = Table.TransformColumnTypes(raizCnpjAdicionado,{{"TipoDocumentoSacado", type text}, {"RaizCNPJ", type text}})
 in
     tipoAlteradoFinal;
-shared staging_limpeza_de_titulos = let
-  Origem = source_tab_titulos
-in
-  Origem;
 shared fact_ultima_confirmacao = let
   Origem = Lakehouse.Contents([HierarchicalNavigation = null]),
   #"Navegação 1" = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
@@ -202,10 +185,3 @@ else "Inválido"),
     duplicatasRemovidas = Table.Distinct(chaveClienteSacadoInserida, {"chave_cliente_sacado"})
 in
     duplicatasRemovidas;
-shared fato_titulos_DataDestination = let
-  Pattern = Lakehouse.Contents([HierarchicalNavigation = null, CreateNavigationProperties = false, EnableFolding = false]),
-  Navigation_1 = Pattern{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-  Navigation_2 = Navigation_1{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
-  TableNavigation = Navigation_2{[Id = "fato_titulos", ItemKind = "Table"]}?[Data]?
-in
-  TableNavigation;
