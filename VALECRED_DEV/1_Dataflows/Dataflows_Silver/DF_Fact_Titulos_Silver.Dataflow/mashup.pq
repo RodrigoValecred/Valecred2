@@ -104,9 +104,10 @@ in
   #"Navegação 3";
 shared staging_titulos = let
   Origem = source_tab_titulos,
+  #"Colunas removidas" = Table.RemoveColumns(Origem, {"CODTITULOANT", "CODEMPRESA", "CODSERIE", "CONTROLE", "CODBANCO", "CSTATUS", "VALORXML", "VENCIMENTOXML", "CODARQUIVOXML", "CODCONFISSAO", "JUROSCONFISSAO", "DIASNEGATIVACAO", "CODNOTIFICACAO", "TIPONEGATIVACAO", "CODESTADOLASTRO", "BAIXAAGENDACONF", "BAIXAAGENDACOB", "DATAAR", "AR", "AGENDAMENTOCOB", "AGENDAMENTOCONF", "USUAAGENDACOB", "USUAAGENDACONF", "NOSSONUMEROCORRESPONDENTE", "DTLIMITEDESCONTO", "DATAPROSISCOB", "OBSPEFIN", "OBSERVACAO", "CODBANCOCUST", "CODCUSTODIA", "DATABAIXACLIE", "EXIGECANHOTO"}),
 
     // Realiza um Left Outer Join com a tabela "replica_tab_operacoes" usando "CODOPERACAO".
-    consultasMescladas = Table.NestedJoin(Origem, {"CODOPERACAO"}, fact_operacoes, {"cod_operacao"}, "operacoes", JoinKind.LeftOuter),
+    consultasMescladas = Table.NestedJoin(#"Colunas removidas", {"CODOPERACAO"}, fact_operacoes, {"cod_operacao"}, "operacoes", JoinKind.LeftOuter),
 
     // Expande a coluna "operacoes" para trazer dados específicos da operação.
     operacoesExpandido = Table.ExpandTableColumn(consultasMescladas, "operacoes", {"cod_cliente", "data_analise", "status_aceite", "status_analise","chave_produto","cod_empresa"}, {"cod_cliente", "data_analise", "status_aceite", "status_analise","chave_produto","cod_empresa"}),
