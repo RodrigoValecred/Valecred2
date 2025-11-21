@@ -39,7 +39,8 @@
 # 6.  **Processamento da Chave DANFE:** Extrai informações detalhadas da chave da nota fiscal.
 # 7.  **Limpeza de `tab_titulos_baixas`:** Limpa os dados de baixas de títulos.
 # 8.  **Processamento de Contratos de Clientes:** Limpa a tabela de contratos.
-# 9.  **Limpeza de Cache:** Libera os DataFrames da memória.
+# 9.  **Processamento da Bridge Cliente-Gerente:** Cria tabela ponte de histórico de gerentes e tabela de relacionamento atual.
+# 10. **Limpeza de Cache:** Libera os DataFrames da memória.
 
 
 # MARKDOWN ********************
@@ -63,7 +64,7 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce
+    lead, date_add, lag, max, coalesce, date_sub
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from functools import reduce
@@ -412,7 +413,75 @@ print(f"Tabela de staging de contratos salva com sucesso em: {output_path_contra
 
 # MARKDOWN ********************
 
-# ## Seção 8: Limpeza do Cache
+# ## Seção 8: Processamento da Bridge Cliente-Gerente
+# **Objetivo:** Criar a tabela ponte (bridge) que mapeia o relacionamento histórico entre Clientes e Gerentes, e a tabela de relacionamento atual.
+
+# CELL ********************
+
+# Célula 8.1: Processamento da Bridge Cliente-Gerente
+# ------------------------------------------------
+print("\nIniciando o processamento da Bridge Cliente-Gerente...")
+
+# 1. Leitura
+df_historico = spark.read.table("LH_Bronze.rlc_brokers_clientes_historico")
+df_atual = spark.read.table("LH_Bronze.rlc_brokers_clientes")
+
+# 2. União e Limpeza
+df_unificado = df_historico.unionByName(df_atual, allowMissingColumns=True)
+
+df_preparado = df_unificado.withColumn(
+    "DataInicioVigencia",
+    coalesce(col("DATAINICIO"), col("DATAINCLUSAO")).cast("date")
+).select(
+    col("CODCLIENTE").alias("ClienteID"),
+    col("CODBROKER").alias("GerenteID"),
+    "DataInicioVigencia"
+).filter(
+    col("ClienteID").isNotNull() & col("GerenteID").isNotNull() &
+    col("DataInicioVigencia").isNotNull()
+).distinct()
+
+# 3. Lógica de Vigência (Bridge)
+windowSpec_bridge = Window.partitionBy("ClienteID").orderBy(col("DataInicioVigencia").asc())
+
+df_com_data_fim = df_preparado.withColumn(
+    "DataFimVigencia_temp",
+    lead("DataInicioVigencia", 1, "9999-12-31").over(windowSpec_bridge)
+)
+
+df_final_bridge = df_com_data_fim.withColumn(
+    "DataFimVigencia",
+    when(
+        col("DataFimVigencia_temp") == "9999-12-31",
+        lit("9999-12-31").cast("date")
+    ).otherwise(
+        date_sub(col("DataFimVigencia_temp"), 1)
+    )
+).select("ClienteID", "GerenteID", "DataInicioVigencia", "DataFimVigencia")
+
+# 4. Salvar Bridge
+output_path_bridge = "LH_Silver.bridge_cliente_gerente"
+df_final_bridge.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_bridge)
+print(f"Tabela ponte '{output_path_bridge}' salva com sucesso.")
+
+# 5. Filtrar e Salvar Relacionamento Atual
+df_relacionamento_atual = df_final_bridge.filter(col("DataFimVigencia") == "9999-12-31") \
+    .select("ClienteID", "GerenteID", "DataInicioVigencia")
+
+output_path_atual = "LH_Silver.relacionamento_cliente_gerente_atual"
+df_relacionamento_atual.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_atual)
+print(f"Tabela de relacionamento atual '{output_path_atual}' salva com sucesso.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Seção 9: Limpeza do Cache
 # **Objetivo:** Liberar os DataFrames que foram armazenados em cache da memória do Spark.
 
 # CELL ********************
