@@ -27,9 +27,7 @@
 
 # # Notebook de Preparação da Camada Silver (Staging - Limpeza)
 # **Objetivo:** Este notebook é responsável por ler os dados brutos da camada **Bronze**, aplicar transformações de **limpeza e desduplicação**, e salvar os dados resultantes na camada **Silver**.
-#
 # **Observação:** As etapas de enriquecimento (joins) foram movidas para o notebook `NB_Curadoria_Gold` para separar a limpeza da construção de modelos de negócio.
-#
 # **Processos realizados:**
 # 1.  **Configuração do Ambiente:** Define configurações do Spark e importa as bibliotecas necessárias.
 # 2.  **Limpeza de `tab_titulos`:** Remove duplicatas para garantir que cada título seja único.
