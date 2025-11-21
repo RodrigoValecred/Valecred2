@@ -25,27 +25,27 @@
 
 # MARKDOWN ********************
 
-# # Notebook de Preparação da Camada Silver (Staging)
-# **Objetivo:** Este notebook é responsável por ler os dados brutos da camada **Bronze**, aplicar uma série de transformações de limpeza e regras de negócio, e salvar os dados resultantes na camada **Silver**. As tabelas geradas aqui são tabelas de "staging" (intermediárias), que servirão de base para a construção do modelo dimensional na camada Gold.
+# # Notebook de Preparação da Camada Silver (Staging - Limpeza)
+# **Objetivo:** Este notebook é responsável por ler os dados brutos da camada **Bronze**, aplicar transformações de **limpeza e desduplicação**, e salvar os dados resultantes na camada **Silver**.
+#
+# **Observação:** As etapas de enriquecimento (joins) foram movidas para o notebook `NB_Curadoria_Gold` para separar a limpeza da construção de modelos de negócio.
+#
 # **Processos realizados:**
 # 1.  **Configuração do Ambiente:** Define configurações do Spark e importa as bibliotecas necessárias.
 # 2.  **Limpeza de `tab_titulos`:** Remove duplicatas para garantir que cada título seja único.
 # 3.  **Limpeza de `cad_clientes`:** Desduplica a tabela base para a dimensão de clientes.
-# 4.  **Limpeza e Enriquecimento de `cad_geral_pf_pj`:** Remove duplicatas do cadastro de clientes (Pessoa Física e Jurídica) e enriquece com informações de contato.
-# 5.  **Pré-processamento de Eventos de Protesto:** Isola e limpa os eventos de protesto de títulos.
-# 6.  **Limpeza de `tab_operacoes`:** Remove duplicatas e enriquece a tabela de operações.
-# 7.  **Processamento da Chave DANFE:** Extrai informações detalhadas da chave da nota fiscal.
-# 8.  **Limpeza e Enriquecimento de `tab_titulos_baixas`:** Limpa os dados de baixas de títulos e os enriquece com dimensões, criando a `fato_baixas`.
-# 9.  **Processamento Incremental de Pareceres:** Processa novos pareceres para construir a `esteira_de_propostas`.
-# 10. **Limpeza de Cache:** Libera os DataFrames da memória.
+# 4.  **Limpeza de Componentes do Cadastro Geral:** Limpa e salva individualmente tabelas de telefones, emails, endereços e cadastro geral (PF/PJ), preparando-as para enriquecimento posterior.
+# 5.  **Limpeza de `tab_operacoes`:** Remove duplicatas da tabela de operações.
+# 6.  **Processamento da Chave DANFE:** Extrai informações detalhadas da chave da nota fiscal.
+# 7.  **Limpeza de `tab_titulos_baixas`:** Limpa os dados de baixas de títulos.
+# 8.  **Processamento de Contratos de Clientes:** Limpa a tabela de contratos.
+# 9.  **Limpeza de Cache:** Libera os DataFrames da memória.
 
 
 # MARKDOWN ********************
 
 # ## Seção 0: Configuração do ambiente Python
 # **Descrição:** Esta célula prepara a sessão Spark e importa todas as funções e bibliotecas que serão utilizadas ao longo do notebook.
-# - `spark.conf.set`: Estas configurações são importantes para garantir a compatibilidade com datas em formatos mais antigos que podem existir nos dados legados, evitando erros de leitura ou escrita no formato Parquet.
-# - `Window`, `row_number`, `col`, `when`, `lit`: Funções essenciais do PySpark para manipulação de dados, especialmente para a lógica de desduplicação.
 
 # CELL ********************
 
@@ -80,7 +80,7 @@ import datetime
 # MARKDOWN ********************
 
 # ## Seção 1: Limpeza da Tabela tab_titulos
-# **Objetivo:** A tabela `tab_titulos` na camada Bronze pode conter múltiplos registros para o mesmo título. Esta seção isola apenas o registro mais recente e válido para cada título e o armazena em cache para ser reutilizado por outras seções.
+# **Objetivo:** A tabela `tab_titulos` na camada Bronze pode conter múltiplos registros para o mesmo título. Esta seção isola apenas o registro mais recente e válido.
 
 # CELL ********************
 
@@ -110,7 +110,7 @@ df_deduplicated_titulos = df_ranked_titulos.filter(col("row_num") == 1).drop("ro
 output_path_titulos = f"{target_lakehouse}.{target_table_titulos}"
 df_deduplicated_titulos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos)
 
-# Armazena o resultado em cache para uso futuro nas seções 4, 5 e 7
+# Armazena o resultado em cache
 spark.table(output_path_titulos).cache()
 print(f"Tabela limpa salva e em cache: {output_path_titulos}")
 
@@ -124,7 +124,7 @@ print(f"Tabela limpa salva e em cache: {output_path_titulos}")
 # MARKDOWN ********************
 
 # ## Seção 2: Limpeza da Tabela cad_clientes
-# **Objetivo:** Desduplicar a tabela `cad_clientes`, que serve como base para a `dim_cliente`. O resultado é colocado em cache para ser usado no processamento incremental de pareceres (Seção 8).
+# **Objetivo:** Desduplicar a tabela `cad_clientes`.
 
 # CELL ********************
 
@@ -149,7 +149,7 @@ df_deduplicated_clientes = df_ranked_clientes.filter(col("row_num") == 1).drop("
 output_path_clientes = f"{target_lakehouse}.{target_table_clientes}"
 df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_clientes)
 
-# Armazena o resultado em cache para uso futuro na Seção 8
+# Armazena o resultado em cache
 spark.table(output_path_clientes).cache()
 print(f"Tabela limpa salva e em cache: {output_path_clientes}")
 
@@ -162,14 +162,14 @@ print(f"Tabela limpa salva e em cache: {output_path_clientes}")
 
 # MARKDOWN ********************
 
-# ## Seção 3: Limpeza e Enriquecimento da Tabela cad_geral_pf_pj
-# **Objetivo:** Esta seção limpa a tabela de cadastro geral, desduplicando os registros, e a enriquece com informações de contato (endereço, email, telefone) em um único processo otimizado.
+# ## Seção 3: Limpeza de Componentes do Cadastro Geral
+# **Objetivo:** Limpar e padronizar as tabelas de telefones, emails, endereços e cadastro geral (PF/PJ) individualmente, salvando-as como tabelas de staging para posterior enriquecimento.
 
 # CELL ********************
 
 # Célula 3.1: Processamento de Telefones
 # --------------------------------------------------------------------------------
-print("\nIniciando o tratamento de telefones em memória...")
+print("\nIniciando o tratamento de telefones...")
 df_telefones_bronze = spark.read.table("LH_Bronze.cad_telefones")
 df_telefones_agg = df_telefones_bronze \
     .filter((col("FONE").isNotNull() & (col("FONE") != "")) & (col("DDD").isNotNull() & (col("DDD") != ""))) \
@@ -178,21 +178,27 @@ df_telefones_agg = df_telefones_bronze \
     .filter((length(col("FONE_COMPLETO")) >= 10) & (length(col("FONE_COMPLETO")) <= 11)) \
     .select(col("CPFCNPJ"), col("FONE_COMPLETO").alias("FONE"), col("CONTATO")).distinct() \
     .groupBy("CPFCNPJ").agg(concat_ws("; ", collect_list("FONE")).alias("Telefones"))
-print("Telefones agregados em memória.")
+
+output_path_telefones = "LH_Silver.staging_telefones_agg"
+df_telefones_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_telefones)
+print(f"Telefones agregados salvos em: {output_path_telefones}")
 
 # Célula 3.2: Processamento de Emails
 # --------------------------------------------------------------------------------
-print("\nIniciando o tratamento de emails em memória...")
+print("\nIniciando o tratamento de emails...")
 df_emails_bronze = spark.read.table("LH_Bronze.cad_email")
 df_emails_agg = df_emails_bronze \
     .filter(col("EMAIL").isNotNull() & (col("EMAIL") != "")) \
     .select("CPFCNPJ", "EMAIL").distinct() \
     .groupBy("CPFCNPJ").agg(concat_ws("; ", collect_list("EMAIL")).alias("Emails"))
-print("Emails agregados em memória.")
+
+output_path_emails = "LH_Silver.staging_emails_agg"
+df_emails_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_emails)
+print(f"Emails agregados salvos em: {output_path_emails}")
 
 # Célula 3.3: Processamento de Endereços
 # --------------------------------------------------------------------------------
-print("\nIniciando o tratamento de endereços em memória...")
+print("\nIniciando o tratamento de endereços...")
 schema_regioes = StructType([
     StructField("Sigla", StringType(), True), StructField("Estado", StringType(), True),
     StructField("Capital", StringType(), True), StructField("Regiao", StringType(), True)
@@ -218,11 +224,14 @@ df_enderecos_final = df_upper \
     .withColumn("CPFCNPJ_valido", col("CPFCNPJ").cast("long")).filter(col("CPFCNPJ_valido").isNotNull()) \
     .select("CPFCNPJ", "ENDERECO", "NUMERO", "COMPLEMENTO", "BAIRRO", "CIDADE", "UF", "CEP", "Estado", "Capital", "Regiao")
 df_regioes.unpersist()
-print("Endereços processados em memória.")
 
-# Célula 3.4: Limpeza e Enriquecimento do Cadastro Geral
+output_path_enderecos = "LH_Silver.staging_enderecos_limpa"
+df_enderecos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_enderecos)
+print(f"Endereços limpos salvos em: {output_path_enderecos}")
+
+# Célula 3.4: Limpeza do Cadastro Geral (Base)
 # --------------------------------------------------------------------------------
-print("\nIniciando a limpeza e enriquecimento da tabela de cadastro geral.")
+print("\nIniciando a limpeza da tabela de cadastro geral (base).")
 df_geral_bronze = spark.read.table("LH_Bronze.cad_geral_pf_pj")
 key_cols_geral = ["CPFCNPJ"]
 order_by_col_geral = "DATAALTERACAO"
@@ -230,13 +239,10 @@ window_geral = Window.partitionBy([col(c) for c in key_cols_geral]).orderBy(col(
 df_geral_deduplicated = df_geral_bronze.withColumn("row_num", row_number().over(window_geral)) \
                                      .filter(col("row_num") == 1) \
                                      .drop("row_num")
-df_enriquecido = df_geral_deduplicated \
-    .join(df_enderecos_final.select("CPFCNPJ", "CIDADE", "UF", "CEP"), on="CPFCNPJ", how="left") \
-    .join(df_emails_agg, on="CPFCNPJ", how="left") \
-    .join(df_telefones_agg, on="CPFCNPJ", how="left")
-output_path_geral = "LH_Silver.staging_cad_geral_limpa"
-df_enriquecido.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_geral)
-print(f"Tabela de cadastro geral limpa e enriquecida salva com sucesso em: {output_path_geral}")
+
+output_path_geral = "LH_Silver.staging_cad_geral_pf_pj_limpa"
+df_geral_deduplicated.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_geral)
+print(f"Tabela de cadastro geral desduplicada salva em: {output_path_geral}")
 
 # METADATA ********************
 
@@ -247,128 +253,19 @@ print(f"Tabela de cadastro geral limpa e enriquecida salva com sucesso em: {outp
 
 # MARKDOWN ********************
 
-# ## Seção 4: Processamento de Status de Protesto
-# **Objetivo:** Calcular o status de protesto mais recente e preciso para cada título, com base em uma lógica complexa de ocorrências de cobrança. Os status possíveis são 'Protestado', 'Em Cartório', 'Instrução Protesto', e 'Instrução Protesto Enviada'. A tabela resultante, `staging_protestos`, é utilizada para enriquecer a `dim_titulo`.
+# ## Seção 4: Limpeza da Tabela tab_operacoes
+# **Objetivo:** Limpar e desduplicar a tabela `tab_operacoes`.
 
 # CELL ********************
 
-print("\nIniciando o processamento de status de protesto de títulos...")
-
-# 1. Leitura das tabelas de origem
-df_ocorrencias_bronze = spark.read.table("LH_Bronze.rlc_titulos_ocorrencias_cobranca")
-df_titulos_cobranca_bronze = spark.read.table("LH_Bronze.tab_titulos_cobranca")
-print("Tabelas de ocorrências e cobrança lidas da camada Bronze.")
-
-# 2. Pré-cálculo para a subquery de tab_titulos_cobranca
-# SQL: WHEN A.CODTITULO IN (SELECT CODTITULO FROM tab_titulos_cobranca WHERE ... AND CODOCORCOBRANCA = 1015)
-df_titulos_para_protesto_cobranca = df_titulos_cobranca_bronze \
-    .filter(col("CODOCORCOBRANCA") == 1015) \
-    .select("CODTITULO") \
-    .distinct() \
-    .withColumn("flag_protesto_cobranca", lit(True))
-
-# 3. Pré-cálculo para a subquery correlacionada em rlc_titulos_ocorrencias_cobranca
-# SQL: A.CODTITULO IN (SELECT CODTITULO FROM rlc_titulos_ocorrencias_cobranca WHERE ... AND A.CODOCORINTERNA = 2)
-df_subquery_ocorrencia = df_ocorrencias_bronze \
-    .filter(col("CODOCORINTERNA").isin(8, 34) & col("CODOCORCOBRBANCO").isin(19, 23)) \
-    .select("CODTITULO") \
-    .distinct() \
-    .withColumn("flag_subquery_ocorrencia", lit(True))
-
-# 4. Filtragem principal da tabela de ocorrências
-# SQL: WHERE ((A.CODOCORINTERNA IN (...) AND ... ) OR (A.CODOCORINTERNA IN (...) AND ...))
-df_ocorrencias_filtradas = df_ocorrencias_bronze.filter(
-    (
-        (col("CODOCORINTERNA").isin(8, 17, 34, 2, 82)) &
-        (col("CODOCORCOBRBANCO").isin(6, 19, 23, 10, 43)) &
-        (col("TOCORRENCIA") == 2)
-    ) |
-    (
-        (col("CODOCORINTERNA") == 8) &
-        (col("CODOCORCOBRBANCO") == 9) &
-        (col("TOCORRENCIA") == 1)
-    )
-)
-print("Filtro inicial de ocorrências de cobrança aplicado.")
-
-# 5. Isolar a ocorrência mais recente e juntar as flags
-# SQL: ORDER BY CODTITULOOCORCOB DESC LIMIT 0,1
-window_spec_latest = Window.partitionBy("CODTITULO").orderBy(col("CODTITULOOCORCOB").desc())
-
-df_latest_ocorrencia = df_ocorrencias_filtradas \
-    .withColumn("row_num", row_number().over(window_spec_latest)) \
-    .filter(col("row_num") == 1) \
-    .drop("row_num") \
-    .join(df_titulos_para_protesto_cobranca, "CODTITULO", "left") \
-    .join(df_subquery_ocorrencia, "CODTITULO", "left") \
-    .fillna(False, subset=["flag_protesto_cobranca", "flag_subquery_ocorrencia"])
-
-print("Ocorrência mais recente por título isolada e flags de condição adicionadas.")
-df_latest_ocorrencia.cache()
-
-# 6. Aplicar a lógica CASE para determinar o código de status (WPROTESTADO)
-cond_p1 = (substring(col("MOTIVOCODOCORCOBRBANCO"), 1, 2) == '14')
-cond_p2 = (col("CODOCORINTERNA") == 2) & (col("flag_subquery_ocorrencia") == True)
-cond_p3 = (col("CODOCORINTERNA") == 82)
-cond_p4 = (col("flag_protesto_cobranca") == True)
-cond_e = (col("CODOCORINTERNA") == 8) & (col("CODOCORCOBRBANCO") == 9)
-cond_i = (col("CODOCORINTERNA") == 8)
-cond_c = (col("CODOCORINTERNA") == 34)
-
-df_com_status_code = df_latest_ocorrencia.withColumn("STATUSPROTESTO",
-    when(cond_p1 | cond_p2 | cond_p3 | cond_p4, lit("P"))
-    .when(cond_e, lit("E"))
-    .when(cond_i, lit("I"))
-    .when(cond_c, lit("C"))
-    .otherwise(lit("N"))
-)
-print("Código de status de protesto (P, E, I, C, N) calculado.")
-
-# 7. Mapear o código de status para a descrição final e filtrar status não relevantes
-df_com_status_desc = df_com_status_code.withColumn("STATUS_PROTESTO",
-    when(col("STATUSPROTESTO") == 'P', lit("Protestado"))
-    .when(col("STATUSPROTESTO") == 'E', lit("Instrução Protesto Enviada"))
-    .when(col("STATUSPROTESTO") == 'I', lit("Instrução Protesto"))
-    .when(col("STATUSPROTESTO") == 'C', lit("Em Cartório"))
-    .otherwise(lit("N/A"))
-).filter(col("STATUS_PROTESTO") != "N/A")
-print("Descrição final do status de protesto mapeada.")
-
-# 8. Selecionar colunas finais e salvar o resultado
-df_final_protestos = df_com_status_desc.select(
-    "CODTITULO",
-    "STATUS_PROTESTO",
-    col("DATAINCLUSAO").alias("DATA_OCORRENCIA_PROTESTO")
-)
-
-output_path_protestos = "LH_Silver.staging_protestos"
-df_final_protestos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_protestos)
-print(f"Tabela de staging para protestos salva com sucesso em: {output_path_protestos}")
-
-df_latest_ocorrencia.unpersist()
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# MARKDOWN ********************
-
-# ## Seção 5: Limpeza da Tabela tab_operacoes
-# **Objetivo:** Limpar, desduplicar e enriquecer a tabela `tab_operacoes`, que contém informações sobre as operações de crédito.
-
-# CELL ********************
-
-# Célula 5.1: Parâmetros e Leitura
+# Célula 4.1: Parâmetros e Leitura
 # ------------------------------------------------
 source_table_operacoes = "tab_operacoes"
-target_table_operacoes = "staging_operacoes_limpa"
+target_table_operacoes = "staging_operacoes_base"
 print(f"\nIniciando a limpeza da tabela: {source_lakehouse}.{source_table_operacoes}")
 df_bronze_operacoes = spark.read.table(f"{source_lakehouse}.{source_table_operacoes}")
 
-# Célula 5.2: Lógica de Correção e Desduplicação
+# Célula 4.2: Lógica de Correção e Desduplicação
 # ----------------------------------------------------
 df_corrigido = df_bronze_operacoes.withColumn("TTO_corrigido", when(col("CODOPERACAO") == 3042074, lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
 key_columns_operacoes = ["CODOPERACAO"]
@@ -376,69 +273,12 @@ order_by_column_operacoes = "DATAALTERACAO"
 windowSpec_operacoes = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col(order_by_column_operacoes).desc())
 df_ranked_operacoes = df_corrigido.withColumn("row_num", row_number().over(windowSpec_operacoes))
 df_deduplicated_operacoes = df_ranked_operacoes.filter(col("row_num") == 1).drop("row_num")
-print("Desduplicação concluída.")
 
-# Célula 5.3: Enriquecimento com o Gerente Correto (Broker)
-# ---------------------------------------------------------
-print("Iniciando o enriquecimento com o gerente histórico correto...")
-# Carregar a tabela bridge criada pelo notebook NB_Build_Bridge_Cliente_Gerente
-df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
-
-# Juntar as operações com a bridge de histórico do gerente
-# O join é feito por ClienteID e a DATAANALISE da operação deve estar dentro do período de vigência da bridge
-df_operacoes_com_historico = df_deduplicated_operacoes.join(
-    df_bridge_gerente,
-    (df_deduplicated_operacoes["CODCLIENTE"] == df_bridge_gerente["ClienteID"]) &
-    (df_deduplicated_operacoes["DATAANALISE"].cast("date") >= df_bridge_gerente["DataInicioVigencia"]) &
-    (df_deduplicated_operacoes["DATAANALISE"].cast("date") <= df_bridge_gerente["DataFimVigencia"]),
-    "left"
-)
-
-# Criar a coluna final 'CODBROKER', priorizando o valor que já existe na operação.
-# Se for nulo ou 0, usa o GerenteID que veio da bridge.
-df_operacoes_com_gerente_final = df_operacoes_com_historico.withColumn(
-    "CODBROKER",
-    when(
-        (col("CODBROKER").isNotNull()) & (col("CODBROKER") != 0),
-        col("CODBROKER")
-    ).otherwise(col("GerenteID"))
-).drop("ClienteID", "GerenteID", "DataInicioVigencia", "DataFimVigencia") # Limpa colunas da bridge
-print("Enriquecimento com o gerente histórico concluído.")
-
-
-# Célula 5.4: Enriquecimento com a coluna `operacao_informal`
-# -----------------------------------------------------------
-print("Iniciando a lógica para adicionar a coluna 'operacao_informal'.")
-df_titulos_limpa_cached = spark.table("LH_Silver.staging_titulos_limpa") # Usando a tabela em cache
-df_cad_geral_arquivos = spark.read.table("LH_Bronze.cad_geral_arquivos")
-df_chave_danfe = df_cad_geral_arquivos.filter(col("DESCRICAO") == 'CHAVEDANFE')
-df_titulos_com_chave = df_titulos_limpa_cached.join(df_chave_danfe, on="CODTITULO", how="inner")
-df_operacoes_com_chave_base = df_operacoes_com_gerente_final.join(df_titulos_com_chave, on="CODOPERACAO", how="inner")
-df_operacoes_com_chave_filtrado = df_operacoes_com_chave_base.filter(
-    (df_operacoes_com_gerente_final["NOTASERVICO"] == 'N') &
-    (df_operacoes_com_gerente_final["STATUSANALISE"] == 'D') &
-    (df_operacoes_com_gerente_final["CODEMPRESA"] == 14) &
-    (df_operacoes_com_gerente_final["STATUSACEITE"] == 'A') &
-    (df_operacoes_com_gerente_final["TTO"].isin(['NO','CM','FC']))
-)
-df_vcount = df_operacoes_com_chave_filtrado.groupBy(df_operacoes_com_gerente_final["CODOPERACAO"]).count()
-df_com_vcount = df_operacoes_com_gerente_final.join(df_vcount, on="CODOPERACAO", how="left")
-df_final_com_informal = df_com_vcount.withColumn(
-    "operacao_informal",
-    when(
-        ((col("count").isNull()) | (col("count") == 0)) &
-        (col("CODEMPRESA") == 14) &
-        (col("NOTASERVICO") == 'N'),
-        lit(True)
-    ).otherwise(lit(False))
-).drop("count")
-print("Coluna 'operacao_informal' adicionada com sucesso.")
-
-# Célula 5.4: Salvar o Resultado Limpo e Enriquecido
+# Célula 4.3: Salvar o Resultado
 # ------------------------------------------------------
 output_path_operacoes = f"{target_lakehouse}.{target_table_operacoes}"
-df_final_com_informal.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_operacoes)
-print(f"Tabela limpa e enriquecida salva com sucesso em: {output_path_operacoes}")
+df_deduplicated_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_operacoes)
+print(f"Tabela desduplicada salva com sucesso em: {output_path_operacoes}")
 
 # METADATA ********************
 
@@ -449,19 +289,19 @@ print(f"Tabela limpa e enriquecida salva com sucesso em: {output_path_operacoes}
 
 # MARKDOWN ********************
 
-# ## Seção 6: Processamento e Detalhamento da Chave da DANFE
-# **Objetivo:** Extrair e decodificar as informações contidas na `CHAVEDANFE` dos títulos, como UF, CNPJ, e Número da Nota Fiscal.
+# ## Seção 5: Processamento e Detalhamento da Chave da DANFE
+# **Objetivo:** Extrair e decodificar as informações contidas na `CHAVEDANFE` dos títulos.
 
 # CELL ********************
 
-# Célula 6.1: Parâmetros e Leitura da Tabela em Cache
+# Célula 5.1: Parâmetros e Leitura da Tabela em Cache
 # ------------------------------------------------
 danfe_source_table = "staging_titulos_limpa"
 danfe_target_table = "staging_chave_danfe_detalhada"
 print(f"\nIniciando o processamento da CHAVEDANFE da tabela: {target_lakehouse}.{danfe_source_table}")
 df_titulos_danfe = spark.table(f"{target_lakehouse}.{danfe_source_table}") # Usando a tabela em cache
 
-# Célula 6.2: Lógica de Transformação da CHAVEDANFE
+# Célula 5.2: Lógica de Transformação da CHAVEDANFE
 # ------------------------------------------------
 df_chave_filtrada = df_titulos_danfe \
     .select("CHAVEDANFE") \
@@ -472,7 +312,6 @@ df_chave_filtrada = df_titulos_danfe \
     .select("CHAVEDANFE_limpa") \
     .withColumnRenamed("CHAVEDANFE_limpa", "CHAVEDANFE") \
     .distinct()
-print("Limpeza e filtragem da CHAVEDANFE concluídas.")
 
 df_detalhada = df_chave_filtrada \
     .withColumn("UF", substring(col("CHAVEDANFE"), 1, 2)) \
@@ -483,9 +322,8 @@ df_detalhada = df_chave_filtrada \
     .withColumn("NumeroNF", substring(col("CHAVEDANFE"), 26, 9)) \
     .withColumn("CodigoNF", substring(col("CHAVEDANFE"), 35, 9)) \
     .withColumn("DV", substring(col("CHAVEDANFE"), 44, 1))
-print("Extração dos campos da CHAVEDANFE concluída.")
 
-# Célula 6.3: Salvar o Resultado
+# Célula 5.3: Salvar o Resultado
 # ------------------------------------------------------
 output_path_danfe = f"{target_lakehouse}.{danfe_target_table}"
 df_detalhada.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_danfe)
@@ -500,20 +338,14 @@ print(f"Tabela detalhada da CHAVEDANFE salva com sucesso em: {output_path_danfe}
 
 # MARKDOWN ********************
 
-# ## Seção 7: Limpeza e Enriquecimento da `tab_titulos_baixas`
-# **Objetivo:** Processar as "baixas" de títulos, corrigir dados inconsistentes e enriquecer as informações com tabelas de dimensão, resultando na tabela de fatos `fato_baixas`.
+# ## Seção 6: Limpeza da Tabela `tab_titulos_baixas`
+# **Objetivo:** Processar as "baixas" de títulos, corrigindo dados inconsistentes e desduplicando.
 
 # CELL ********************
 
-# Célula 7.1: Carregar Dimensões e Limpar Baixas
+# Célula 6.1: Leitura e Limpeza de Baixas
 # ------------------------------------------------
 print("\nIniciando o processamento da tab_titulos_baixas")
-df_dim_pago_por = spark.read.table("LH_Silver.sup_pago_pelo")
-df_dim_forma_pagamento = spark.read.table("LH_Silver.sup_forma_de_pagamento")
-df_dim_tipo_taxa = spark.read.table("LH_Silver.sup_tipo_de_baixa")
-df_dim_motivo_baixa = spark.read.table("LH_Silver.sup_motivo_baixa")
-print("Dimensões de decodificação carregadas.")
-
 df_baixas = spark.read.table("LH_Bronze.tab_titulos_baixas")
 key_cols_baixa = ["CODTITULOBAIXAS"]
 order_by_col_baixa = "DATAINCLUSAO"
@@ -524,38 +356,6 @@ output_path_baixas_staging = "LH_Silver.staging_baixas_limpa"
 df_baixas_desduplicada.write.mode("overwrite").option("overwriteSchema","true").saveAsTable(output_path_baixas_staging)
 print(f"Tabela de baixas limpa e salva em: {output_path_baixas_staging}")
 
-# Célula 7.2: Construção da fato_baixas
-# ------------------------------------------------
-print("\nIniciando a construção da fato_baixas...")
-df_baixas_staging = spark.read.table(output_path_baixas_staging)
-df_titulos_staging_cached = spark.read.table("LH_Silver.staging_titulos_limpa") # Usando tabela em cache
-df_baixas_corrigido = df_baixas_staging.withColumn("JUROS",
-    when(col("JUROS") == -858005.8, 3912.5)
-    .when(col("JUROS") == -4948525.71, -56747.24)
-    .when(col("JUROS") == -4140.75, 0)
-    .when(col("JUROS") == -1447.5, 52.5)
-    .when(col("JUROS") == -1825.72, 66.28)
-    .when(col("JUROS") == -965, 35)
-    .when(col("JUROS") == -26000, 0)
-    .otherwise(col("JUROS")))
-df_enriquecido_baixas = df_baixas_corrigido \
-    .join(df_titulos_staging_cached, on="CODTITULO", how="left") \
-    .join(df_dim_pago_por, df_baixas_corrigido.PAGOPELO == df_dim_pago_por.id, how="left") \
-    .join(df_dim_forma_pagamento, df_baixas_corrigido.FORMA == df_dim_forma_pagamento.id, how="left") \
-    .join(df_dim_tipo_taxa, df_baixas_corrigido.TIPOBAIXA == df_dim_tipo_taxa.id, how="left") \
-    .join(df_dim_motivo_baixa, df_baixas_corrigido.MOTIVO == df_dim_motivo_baixa.id, how="left")
-df_fato_baixas = df_enriquecido_baixas.select(
-    df_baixas_corrigido["CODTITULOBAIXAS"], df_baixas_corrigido["CODTITULO"],
-    df_baixas_corrigido["DATABAIXA"], df_baixas_corrigido["DATABAIXASIST"],
-    df_baixas_corrigido["VLPAGO"], df_baixas_corrigido["DESCONTO"],
-    df_baixas_corrigido["JUROS"], df_baixas_corrigido["TARIFARECOMPRA"],
-    df_baixas_corrigido["DATAVENCIMENTO"], df_baixas_corrigido["CODOPERACAO"],
-    df_dim_pago_por["descricao"].alias("PagoPor"),df_dim_forma_pagamento["descricao"].alias("Forma"),
-    df_dim_tipo_taxa["descricao"].alias("TipoBaixa"), df_dim_motivo_baixa["descricao"].alias("Motivo"))
-output_path_fato_baixas = "LH_Silver.fato_baixas"
-df_fato_baixas.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_baixas)
-print(f"Tabela 'fato_baixas' construída e salva com sucesso em: {output_path_fato_baixas}")
-
 # METADATA ********************
 
 # META {
@@ -565,204 +365,19 @@ print(f"Tabela 'fato_baixas' construída e salva com sucesso em: {output_path_fa
 
 # MARKDOWN ********************
 
-#  ## Seção 8: Processamento Incremental de Pareceres
-# 
-#  **Objetivo:** Processar a tabela `cad_geral_pareceres` de forma incremental para evitar timeouts e problemas de performance. A tabela `esteira_de_propostas` é reconstruída a cada execução a partir dos dados atualizados.
-
+# ## Seção 7: Processamento de Contratos de Clientes
+# **Objetivo:** Limpar e transformar os dados da tabela `cad_contratos_clientes` para criar uma tabela de staging.
 
 # CELL ********************
 
-# Célula 8.1: Imports e Configurações
-# ----------------------------------------------------------------
-print("\nIniciando o processamento incremental de pareceres.")
-source_table_name_pareceres = "LH_Bronze.cad_geral_pareceres"
-target_pareceres_status_table_name = "LH_Silver.pareceres_de_alteracao_de_status"
-target_esteira_table_name = "LH_Silver.esteira_de_propostas"
-watermark_table_name = "LH_Silver.etl_watermark_control"
-notebook_name = "NB_Prepare_Silver_Staging_Pareceres"
-
-# Célula 8.2: Leitura do Watermark
-# ---------------------------------
-print(f"Lendo o watermark da tabela: {watermark_table_name}")
-try:
-    df_watermark = spark.read.table(watermark_table_name)
-    last_watermark_str = df_watermark.filter(col("TableName") == notebook_name).select("LastWatermarkValue").collect()[0][0]
-    # Tenta fazer o parse com microsegundos, se falhar, tenta sem.
-    # Isso torna a leitura robusta a formatos de data salvos anteriormente.
-    try:
-        last_watermark = datetime.datetime.strptime(last_watermark_str, "%Y-%m-%d %H:%M:%S.%f")
-    except ValueError:
-        last_watermark = datetime.datetime.strptime(last_watermark_str, "%Y-%m-%d %H:%M:%S")
-    print(f"Watermark encontrado: {last_watermark}")
-except Exception as e:
-    last_watermark = datetime.datetime(1900, 1, 1)
-    print(f"Nenhum watermark encontrado ou erro na leitura. Usando valor padrão: {last_watermark}. Erro: {e}")
-
-# Célula 8.3: Leitura e Padronização Incremental dos Dados
-# -------------------------------------------------------
-print(f"Lendo dados incrementais de {source_table_name_pareceres} a partir de {last_watermark}")
-df_pareceres_raw = spark.read.table(source_table_name_pareceres)
-df_clientes_cached = spark.read.table("LH_Silver.staging_clientes_limpa") # Usando tabela em cache
-df_usuarios_raw = spark.read.table("LH_Bronze.cad_usuarios")
-
-# A tabela de status agora é pré-processada e garantida pelo notebook NB_Load_Bronze_From_Manual_Uploads_Status_Clientes
-print("Lendo a tabela de status de clientes pré-processada da camada Silver...")
-df_status_clientes_esteira = spark.read.table("LH_Silver.sup_status_de_clientes_da_esteira")
-print("Leitura da tabela de status concluída.")
-
-df_pareceres_incremental = df_pareceres_raw.filter(
-    (col("DATAINCLUSAO") > last_watermark) | (col("DATAALTERACAO") > last_watermark)
-).cache() # Cache para evitar recomputação com o .count()
-
-record_count = df_pareceres_incremental.count()
-
-if record_count > 0:
-        # CORREÇÃO: Usa a função `greatest` para considerar a maior data entre
-        # `DATAINCLUSAO` e `DATAALTERACAO` para o cálculo do novo watermark.
-        # Isso corrige o bug que impedia o avanço do watermark quando apenas
-        # registros antigos eram atualizados.
-        new_watermark_df = df_pareceres_incremental.withColumn(
-            "latest_date",
-            greatest(
-                coalesce(col("DATAINCLUSAO"), lit(datetime.datetime(1900, 1, 1))),
-                coalesce(col("DATAALTERACAO"), lit(datetime.datetime(1900, 1, 1)))
-            )
-        ).agg(max("latest_date").alias("NewWatermark"))
-
-        new_watermark = new_watermark_df.collect()[0]["NewWatermark"]
-        print(f"Leitura incremental concluída. {record_count} registros a serem processados.")
-        print(f"Novo watermark a ser gravado: {new_watermark}")
-else:
-    new_watermark = last_watermark
-    print("Nenhum dado novo encontrado. O processo continuará, pois as etapas subsequentes são projetadas para lidar com um dataframe vazio.")
-
-# Célula 8.4: Transformação da Lógica de Pareceres (Aplicada ao Delta)
-# --------------------------------------------------------------------
-print("Aplicando a lógica de transformação ao delta de pareceres...")
-df_replica_pareceres_delta = df_pareceres_incremental \
-    .filter(year(col("DATAINCLUSAO")) >= 2024) \
-    .drop("ENCAMINHAR", "ALERTA", "CODPASTA", "CODTAREFA", "USUAALTERACAO", "DATAALTERACAO") \
-    .withColumn("OBS", col("OBS").substr(1, 255)) \
-    .withColumn("codTipoParecer", col("CODTIPOPARECER").cast(LongType())) \
-    .filter(col("codTipoParecer") == 1) \
-    .filter((col("CPFCNPJ").isNotNull() & (col("CPFCNPJ") != "")) & (col("OBS").isNotNull() & (col("OBS") != "")) & (col("USUAINCLUSAO").isNotNull()) & (col("DATAINCLUSAO").isNotNull())) \
-    .filter(col("OBS").startswith("STATUS ALTERADO PARA ")) \
-    .withColumn("STATUS_DO_CLIENTE", substring(col("OBS"), 22, 100)) \
-    .withColumn("BASE", lit(40).cast(LongType())) \
-    .select("CODPARECER", "CPFCNPJ", "CODOPERACAO", "DATAINCLUSAO", "USUAINCLUSAO", "STATUS_DO_CLIENTE", "BASE")
-
-window_cliente_data_delta = Window.partitionBy("CODCLIENTE").orderBy(col("DATAINCLUSAO").asc())
-df_pareceres_enriquecidos_delta = df_replica_pareceres_delta \
-    .join(df_clientes_cached.select("CPFCNPJ", "CODCLIENTE"), ["CPFCNPJ"], "left") \
-    .withColumn("chave_base_cliente", concat(col("BASE"), lit("-"), col("CODCLIENTE"))) \
-    .join(df_usuarios_raw.select("CODUSUARIO", "NOME"), col("USUAINCLUSAO") == col("CODUSUARIO"), "left") \
-    .withColumnRenamed("NOME", "USUARIO") \
-    .join(df_status_clientes_esteira, "STATUS_DO_CLIENTE", "left") \
-    .filter(col("CODCLIENTE").isNotNull() & (col("CODCLIENTE") != "")) \
-    .withColumn("INDICE", row_number().over(window_cliente_data_delta)) \
-    .withColumn("chave_original", (col("INDICE") * 1000000000 + col("CODCLIENTE")).cast(LongType())) \
-    .withColumnRenamed("DATAINCLUSAO", "DATALOG") \
-    .select("CODPARECER", "CODCLIENTE", "STATUS_DO_CLIENTE", "DATALOG", "BASE", "USUARIO", "chave_base_cliente", "INDICE", "chave_original", "MACROPROCESSO", "FASE")
-print("Transformação do delta concluída.")
-df_pareceres_incremental.unpersist() # Libera o cache do delta
-
-# Célula 8.5: MERGE dos Dados na Tabela Silver
-# --------------------------------------------
-print(f"Iniciando o MERGE para a tabela {target_pareceres_status_table_name}...")
-if spark.catalog.tableExists(target_pareceres_status_table_name):
-    delta_table = DeltaTable.forName(spark, target_pareceres_status_table_name)
-    delta_table.alias("t").merge(df_pareceres_enriquecidos_delta.alias("s"), "t.CODPARECER = s.CODPARECER").whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
-    print("MERGE concluído com sucesso.")
-else:
-    df_pareceres_enriquecidos_delta.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_pareceres_status_table_name)
-    print(f"Tabela {target_pareceres_status_table_name} criada pela primeira vez.")
-
-# Célula 8.6: Reconstrução Completa da `esteira_de_propostas`
-# ---------------------------------------------------------
-print("Iniciando a reconstrução completa da tabela `esteira_de_propostas`...")
-df_pareceres_completa = spark.read.table(target_pareceres_status_table_name)
-
-# CORREÇÃO: A lógica foi alterada de `lead` para `lag`.
-# `lead` olhava para o evento *futuro*, mas a coluna era nomeada `_ANTERIOR`,
-# causando uma grande confusão de lógica. `lag` olha para o evento
-# *passado*, que é o comportamento esperado.
-window_lag = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
-df_com_lag = df_pareceres_completa \
-    .withColumn("STATUS_DO_CLIENTE_ANTERIOR", lag("STATUS_DO_CLIENTE").over(window_lag)) \
-    .withColumn("DATALOG_ANTERIOR", lag("DATALOG").over(window_lag)) \
-    .withColumn("MACROPROCESSO_ANTERIOR", lag("MACROPROCESSO").over(window_lag)) \
-    .withColumn("FASE_ANTERIOR", lag("FASE").over(window_lag))
-
-df_transicoes = df_com_lag.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
-
-# CORREÇÃO: A lógica das flags foi ajustada para a comparação correta
-# entre o estado ANTERIOR e o ATUAL.
-# DEVOLUÇÃO: O macroprocesso ANTERIOR era 'CREDITO' e o ATUAL é 'COMERCIAL'.
-# RECEBIDA: O macroprocesso ANTERIOR era 'COMERCIAL' e o ATUAL é 'CREDITO'.
-df_esteira_final = df_transicoes \
-    .withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)) \
-    .withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)) \
-    .select(
-        "INDICE",
-        "CODCLIENTE",
-        "BASE",
-        "DATALOG_ANTERIOR",
-        "DATALOG",
-        "chave_base_cliente",
-        "STATUS_DO_CLIENTE_ANTERIOR",
-        "STATUS_DO_CLIENTE",
-        "MACROPROCESSO_ANTERIOR",
-        "MACROPROCESSO",
-        "FASE_ANTERIOR",
-        "FASE",
-        "USUARIO",
-        "DEVOLUCAO",
-        "RECEBIDA"
-    )
-df_esteira_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_esteira_table_name)
-print(f"Tabela final '{target_esteira_table_name}' reconstruída e salva com sucesso.")
-
-# Célula 8.7: Atualização do Watermark
-# -----------------------------------
-print(f"Atualizando o watermark para {new_watermark}...")
-# Garante que o formato de data sempre incluirá os microsegundos
-new_watermark_str = new_watermark.strftime("%Y-%m-%d %H:%M:%S.%f")
-new_watermark_data = [(notebook_name, new_watermark_str)]
-df_new_watermark = spark.createDataFrame(new_watermark_data, ["TableName", "LastWatermarkValue"])
-if spark.catalog.tableExists(watermark_table_name):
-    delta_watermark_table = DeltaTable.forName(spark, watermark_table_name)
-    delta_watermark_table.alias("t").merge(df_new_watermark.alias("s"), "t.TableName = s.TableName") \
-        .whenMatchedUpdate(set={"LastWatermarkValue": "s.LastWatermarkValue"}) \
-        .whenNotMatchedInsert(values={"TableName": "s.TableName", "LastWatermarkValue": "s.LastWatermarkValue"}) \
-        .execute()
-else:
-    df_new_watermark.write.mode("overwrite").saveAsTable(watermark_table_name)
-print("Watermark atualizado com sucesso.")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark",
-# META   "frozen": false,
-# META   "editable": true
-# META }
-
-# MARKDOWN ********************
-
-# ## Seção 9: Processamento de Contratos de Clientes
-# **Objetivo:** Limpar e transformar os dados da tabela `cad_contratos_clientes` para criar uma tabela de staging que será usada para enriquecer a `dim_cliente`.
-
-# CELL ********************
-
-# Célula 9.1: Parâmetros e Leitura
+# Célula 7.1: Parâmetros e Leitura
 # ------------------------------------------------
 source_table_contratos = "cad_contratos_clientes"
 target_table_contratos = "staging_contratos_clientes_limpa"
 print(f"\nIniciando o processamento da tabela: {source_lakehouse}.{source_table_contratos}")
 df_bronze_contratos = spark.read.table(f"{source_lakehouse}.{source_table_contratos}")
 
-# Célula 9.2: Lógica de Transformação
+# Célula 7.2: Lógica de Transformação
 # ----------------------------------------------------
 df_transformed_contratos = df_bronze_contratos \
     .withColumn("PERCCONFIRMACAO", col("PERCCONFIRMACAO") / 100) \
@@ -782,7 +397,7 @@ df_transformed_contratos = df_bronze_contratos \
     ) \
     .orderBy(col("CODCONTRATO").desc())
 
-# Célula 9.3: Salvar o Resultado
+# Célula 7.3: Salvar o Resultado
 # ------------------------------------------------------
 output_path_contratos = f"{target_lakehouse}.{target_table_contratos}"
 df_transformed_contratos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_contratos)
@@ -797,8 +412,8 @@ print(f"Tabela de staging de contratos salva com sucesso em: {output_path_contra
 
 # MARKDOWN ********************
 
-# ## Seção 10: Limpeza do Cache
-# **Objetivo:** Liberar os DataFrames que foram armazenados em cache da memória do Spark para otimizar o uso de recursos.
+# ## Seção 8: Limpeza do Cache
+# **Objetivo:** Liberar os DataFrames que foram armazenados em cache da memória do Spark.
 
 # CELL ********************
 
