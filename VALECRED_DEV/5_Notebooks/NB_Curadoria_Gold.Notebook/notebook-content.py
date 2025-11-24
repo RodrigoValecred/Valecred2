@@ -346,6 +346,216 @@ print(f"Tabela 'fato_baixas' construída e salva com sucesso em: {output_path_fa
 
 # MARKDOWN ********************
 
+# ## Seção 6: Construção da Fato Títulos
+# **Objetivo:** Criar a tabela `fato_titulos` enriquecida, consolidando dados de títulos, operações, produtos e regras de negócio de datas e status.
+
+# CELL ********************
+
+print("\nIniciando construção da fato_titulos...")
+from pyspark.sql.functions import dayofweek
+
+# 6.1 Leitura das Tabelas
+# -----------------------
+df_titulos = spark.read.table("LH_Silver.staging_titulos_limpa")
+df_limites = spark.read.table("LH_Silver.staging_rlc_clientes_sacados_limites")
+df_devolucoes = spark.read.table("LH_Silver.staging_operacoes_devolucoes_limpa")
+df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa")
+df_protestos = spark.read.table("LH_Silver.staging_protestos")
+df_feriados = spark.read.table("LH_Bronze.tab_feriados")
+
+# Tabelas de Dimensão/Fato auxiliares (Bronze ou Silver)
+# Utilizando Bronze para garantir acesso direto se a Silver não estiver disponível/configurada
+df_produtos = spark.read.table("LH_Bronze.dim_produtos")
+df_ultima_conf = spark.read.table("LH_Bronze.fact_ultima_confirmacao")
+
+# 6.2 Preparação e Enriquecimento
+# -------------------------------
+
+# Filtro inicial
+df_titulos_filt = df_titulos.filter(~col("TDOC").isin("BL", "RC"))
+
+# Preparação de chave de cliente e RaizCNPJ
+# Nota: staging_titulos_limpa (Prep Silver) já limpa dados básicos, mas RaizCNPJ específica para regra de chave_cliente_sacado
+# é recalculada aqui para garantir consistência com a lógica do Dataflow.
+df_titulos_prep = df_titulos_filt \
+    .withColumn("TipoDocumentoSacado",
+                when(length(col("CPFCNPJSACADO")) == 11, "CPF")
+                .when(length(col("CPFCNPJSACADO")) == 14, "CNPJ")
+                .otherwise("Inválido")) \
+    .withColumn("RaizCNPJ",
+                when(col("TipoDocumentoSacado") == "CNPJ", substring(col("CPFCNPJSACADO"), 1, 8))
+                .otherwise(col("CPFCNPJSACADO")))
+
+# Join com Operações para obter CODCLIENTE (necessário para chave_cliente_sacado) e outros campos
+df_titulos_ops = df_titulos_prep.join(
+    df_operacoes.select("CODOPERACAO", "CODCLIENTE", "DATAANALISE", "STATUSACEITE", "STATUSANALISE", "chave_produto", "CODEMPRESA"),
+    "CODOPERACAO",
+    "left"
+)
+
+# Criação da chave_cliente_sacado
+df_titulos_keys = df_titulos_ops \
+    .withColumn("chave_cliente_sacado", concat(col("CODCLIENTE").cast("string"), lit("-"), col("RaizCNPJ")))
+
+# Join com Limites (Intercompany)
+df_titulos_limites = df_titulos_keys.join(
+    df_limites.select("chave_cliente_sacado", "TIPO"),
+    "chave_cliente_sacado",
+    "left"
+).withColumn("intercompany",
+             when(col("TIPO") == "INTERCIA", "SIM").otherwise("NÃO")
+).drop("TIPO")
+
+# Join com Produtos
+df_titulos_prod = df_titulos_limites.join(
+    df_produtos.select(col("chave_produto"), col("produto_informacao_de_mercado").alias("produto_temp")),
+    "chave_produto",
+    "left"
+)
+
+# Join com Devoluções (Recompra)
+df_titulos_recompra = df_titulos_prod.join(
+    df_devolucoes.select(col("CODTITULO"), col("CODOPERACAO").alias("cod_operacao_recompra")),
+    "CODTITULO",
+    "left"
+)
+
+# Join com Última Confirmação
+df_titulos_conf = df_titulos_recompra.join(
+    df_ultima_conf.select(col("cod_titulo").alias("CODTITULO"), col("confirmacao").alias("confirmado_por")),
+    "CODTITULO",
+    "left"
+).na.fill({"AMORTIZACOES": 0})
+
+# Join com Protestos
+df_titulos_prot = df_titulos_conf.join(
+    df_protestos.select("CODTITULO", "STATUS_PROTESTO"),
+    "CODTITULO",
+    "left"
+).withColumn("status_protesto", coalesce(col("STATUS_PROTESTO"), lit("NÃO PROTESTADO")))
+
+# 6.3 Cálculos de Negócio
+# -----------------------
+
+# valor_vezes_prazo
+df_calc_1 = df_titulos_prot.withColumn("valor_vezes_prazo", col("PRAZO") * col("VALOR"))
+
+# produto_com_intercia
+df_calc_2 = df_calc_1.withColumn("produto_com_intercia",
+    when((col("intercompany") == "SIM") & (col("chave_produto").isin("NO", "CM")), "INTERCOMPANY")
+    .otherwise(col("produto_temp"))
+)
+
+# Data Vencimento Útil
+# PySpark dayofweek: 1=Domingo, 7=Sábado.
+# Ajuste: Domingo (+1), Sábado (+2)
+df_dates_1 = df_calc_2.withColumn("dia_da_semana", dayofweek(col("VENCPRORROGADO"))) \
+    .withColumn("data_vencimento_util_temp",
+                when(col("dia_da_semana") == 1, date_add(col("VENCPRORROGADO"), 1))
+                .when(col("dia_da_semana") == 7, date_add(col("VENCPRORROGADO"), 2))
+                .otherwise(col("VENCPRORROGADO")))
+
+# Join com Feriados (Broadcast)
+# Lógica:
+# Se feriado 'L' -> Mantém data.
+# Se feriado 'N' e dia original (VENCPRORROGADO) era Sexta (Spark=6) -> +3 dias.
+# Se feriado 'N' e outro dia -> +1 dia.
+df_feriados_sel = df_feriados.select(col("DATAFERIADO").alias("data_feriado"), col("TFERIADO").alias("tipo_feriado"))
+
+df_dates_2 = df_dates_1.join(
+    df_feriados_sel,
+    df_dates_1.data_vencimento_util_temp == df_feriados_sel.data_feriado,
+    "left"
+)
+
+df_dates_final = df_dates_2.withColumn("data_vencimento_util",
+    when(col("tipo_feriado") == "L", col("data_vencimento_util_temp"))
+    .when((col("tipo_feriado") == "N") & (col("dia_da_semana") == 6), date_add(col("data_vencimento_util_temp"), 3))
+    .when((col("tipo_feriado") == "N"), date_add(col("data_vencimento_util_temp"), 1))
+    .otherwise(col("data_vencimento_util_temp"))
+).drop("data_vencimento_util_temp", "tipo_feriado", "data_feriado", "dia_da_semana")
+
+# Status Deferimento
+df_status_1 = df_dates_final.withColumn("status_deferimento",
+    when((col("ACEITO") == "S") & (col("STATUSACEITE") == "A") & (col("STATUSANALISE") == "D"), "Sim")
+    .otherwise("Não")
+)
+
+# Status Clean
+df_status_2 = df_status_1.withColumn("status_clean",
+    when(col("produto_com_intercia") == "DESCONTO", "NORMAL").otherwise("CLEAN")
+)
+
+# Confirmação
+df_conf = df_status_2.withColumn("confirmacao",
+    when(col("DOCCONFIRMADO") == "N", "Atenção")
+    .when(col("DOCCONFIRMADO") == "S", None)
+    .when(col("DOCCONFIRMADO") == "C", "Positivo")
+    .when(col("DOCCONFIRMADO") == "P", "Problema")
+    .when(col("DOCCONFIRMADO") == "A", "Alerta")
+    .when(col("DOCCONFIRMADO").isNull(), "Não Contatado")
+    .when(col("DOCCONFIRMADO").isin("E", "AZ"), "Eletrônico")
+    .otherwise(col("DOCCONFIRMADO"))
+)
+
+# Ordem Confirmação
+df_ordem = df_conf.withColumn("ordem_confirmacao",
+    when(col("confirmacao") == "Não Contatado", 5)
+    .when(col("confirmacao") == "Atenção", 2)
+    .when(col("confirmacao") == "Eletrônico", 0)
+    .when(col("confirmacao") == "Positivo", 1)
+    .when(col("confirmacao") == "Alerta", 3)
+    .when(col("confirmacao") == "Problema", 4)
+    .otherwise(None)
+)
+
+# 6.4 Seleção e Renomeação Final
+# ------------------------------
+df_final = df_ordem.select(
+    col("CODTITULO").alias("cod_titulo"),
+    col("CODOPERACAO").alias("cod_operacao"),
+    col("TDOC").alias("tipo_documento"),
+    col("NDOC").alias("numero_documento"),
+    col("CPFCNPJSACADO").alias("cpf_cnpj_sacado"),
+    col("VENCIMENTO").alias("vencimento"),
+    col("VENCPRORROGADO").alias("vencimento_prorrogado"),
+    col("VALOR").alias("valor"),
+    col("PRAZO").alias("prazo"),
+    col("ACEITO").alias("aceito"),
+    col("DATAINCLUSAO").alias("data_inclusao"),
+    col("USUAINCLUSAO").alias("usuario_inclusao"),
+    col("DATAALTERACAO").alias("data_alteracao"),
+    col("USUAALTERACAO").alias("usuario_alteracao"),
+    col("AMORTIZACOES").alias("amortizacoes"),
+    col("chave_produto"),
+    col("status_protesto"),
+    col("TipoDocumentoSacado").alias("tipo_documento_sacado"),
+    col("RaizCNPJ").alias("raiz_cnpj"),
+    "valor_vezes_prazo",
+    "produto_com_intercia",
+    "data_vencimento_util",
+    "status_deferimento",
+    "status_clean",
+    "confirmacao",
+    "ordem_confirmacao",
+    "cod_operacao_recompra",
+    "confirmado_por",
+    "intercompany"
+)
+
+output_path_titulos_final = "LH_Silver.fato_titulos"
+df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
+print(f"Tabela 'fato_titulos' construída e salva em: {output_path_titulos_final}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
 # ## Seção 5: Processamento Incremental de Pareceres
 # **Objetivo:** Processar a tabela `cad_geral_pareceres` de forma incremental para reconstruir a `esteira_de_propostas`.
 
