@@ -2,31 +2,6 @@
   "properties": {
     "activities": [
       {
-        "type": "RefreshDataflow",
-        "typeProperties": {
-          "dataflowId": "84c2964b-b9a0-b068-4552-6b009a1294fe",
-          "workspaceId": "00000000-0000-0000-0000-000000000000",
-          "notifyOption": "NoNotification",
-          "dataflowType": "DataflowFabric"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "DF_VALECRED_Silver",
-        "dependsOn": [
-          {
-            "activity": "NB_Prepare_Silver_Staging",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
         "type": "TridentNotebook",
         "typeProperties": {
           "notebookId": "7cca6c9c-c9d4-9379-4f36-43eacf58c431",
@@ -41,31 +16,6 @@
         },
         "name": "NB_Prepare_Silver_Staging",
         "dependsOn": []
-      },
-      {
-        "type": "RefreshDataflow",
-        "typeProperties": {
-          "dataflowId": "1f7238d9-6bdf-a90a-41ac-e3b0273643bc",
-          "workspaceId": "00000000-0000-0000-0000-000000000000",
-          "notifyOption": "NoNotification",
-          "dataflowType": "DataflowFabric"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "DF_Fato_Operacoes_Gold",
-        "dependsOn": [
-          {
-            "activity": "DF_VALECRED_Silver",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
       },
       {
         "type": "TridentNotebook",
