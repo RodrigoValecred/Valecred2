@@ -455,25 +455,52 @@ df_dates_1 = df_calc_2.withColumn("dia_da_semana", dayofweek(col("VENCPRORROGADO
                 .when(col("dia_da_semana") == 7, date_add(col("VENCPRORROGADO"), 2))
                 .otherwise(col("VENCPRORROGADO")))
 
-# Join com Feriados (Broadcast)
-# Lógica:
-# Se feriado 'L' -> Mantém data.
-# Se feriado 'N' e dia original (VENCPRORROGADO) era Sexta (Spark=6) -> +3 dias.
-# Se feriado 'N' e outro dia -> +1 dia.
-df_feriados_sel = df_feriados.select(col("DATAFERIADO").alias("data_feriado"), col("TFERIADO").alias("tipo_feriado"))
+# Data Vencimento Útil - Substituição por Join com dim_calendario (Gold)
+# Lógica anterior: Cálculo manual considerando dia da semana e feriados (L/N)
+# Nova lógica: Join com dim_calendario que já possui proximo_dia_util calculado
+# -----------------------------------------------------------------------
 
-df_dates_2 = df_dates_1.join(
-    df_feriados_sel,
-    df_dates_1.data_vencimento_util_temp == df_feriados_sel.data_feriado,
-    "left"
-)
+# Carregar dim_calendario (Gold)
+try:
+    df_dim_calendario = spark.read.table("LH_Gold.dim_calendario") \
+        .select(col("data"), col("proximo_dia_util"))
 
-df_dates_final = df_dates_2.withColumn("data_vencimento_util",
-    when(col("tipo_feriado") == "L", col("data_vencimento_util_temp"))
-    .when((col("tipo_feriado") == "N") & (col("dia_da_semana") == 6), date_add(col("data_vencimento_util_temp"), 3))
-    .when((col("tipo_feriado") == "N"), date_add(col("data_vencimento_util_temp"), 1))
-    .otherwise(col("data_vencimento_util_temp"))
-).drop("data_vencimento_util_temp", "tipo_feriado", "data_feriado", "dia_da_semana")
+    # Realizar Join para buscar o próximo dia útil baseado no VENCPRORROGADO
+    # Nota: Usamos VENCPRORROGADO como a data base para verificar se é útil.
+    # Se VENCPRORROGADO for útil, proximo_dia_util será ele mesmo (na dim_calendario).
+    # Se não for, será o próximo.
+
+    df_dates_final = df_calc_2.join(
+        df_dim_calendario,
+        df_calc_2.VENCPRORROGADO == df_dim_calendario.data,
+        "left"
+    ).withColumnRenamed("proximo_dia_util", "data_vencimento_util") \
+     .drop("data") # Remove a coluna de data do join (que é igual a VENCPRORROGADO)
+
+except Exception as e:
+    print(f"Erro ao ler LH_Gold.dim_calendario: {e}. Mantendo lógica antiga de cálculo.")
+
+    # Fallback para lógica antiga caso a tabela não exista ou ocorra erro
+    df_feriados_sel = df_feriados.select(col("DATAFERIADO").alias("data_feriado"), col("TFERIADO").alias("tipo_feriado"))
+
+    df_dates_1 = df_calc_2.withColumn("dia_da_semana", dayofweek(col("VENCPRORROGADO"))) \
+        .withColumn("data_vencimento_util_temp",
+                    when(col("dia_da_semana") == 1, date_add(col("VENCPRORROGADO"), 1))
+                    .when(col("dia_da_semana") == 7, date_add(col("VENCPRORROGADO"), 2))
+                    .otherwise(col("VENCPRORROGADO")))
+
+    df_dates_2 = df_dates_1.join(
+        df_feriados_sel,
+        df_dates_1.data_vencimento_util_temp == df_feriados_sel.data_feriado,
+        "left"
+    )
+
+    df_dates_final = df_dates_2.withColumn("data_vencimento_util",
+        when(col("tipo_feriado") == "L", col("data_vencimento_util_temp"))
+        .when((col("tipo_feriado") == "N") & (col("dia_da_semana") == 6), date_add(col("data_vencimento_util_temp"), 3))
+        .when((col("tipo_feriado") == "N"), date_add(col("data_vencimento_util_temp"), 1))
+        .otherwise(col("data_vencimento_util_temp"))
+    ).drop("data_vencimento_util_temp", "tipo_feriado", "data_feriado", "dia_da_semana")
 
 # Status Deferimento
 df_status_1 = df_dates_final.withColumn("status_deferimento",

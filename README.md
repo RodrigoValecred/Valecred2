@@ -73,6 +73,7 @@ O `WH_Gold` é projetado para armazenar **dados de negócio, modelados e prontos
 
 **O que salvar aqui:**
 *   **Modelos Dimensionais (Star Schema):** Tabelas de fatos e dimensões altamente estruturadas para ferramentas como o Power BI.
+    *   *Nota sobre Dimensões:* Tabelas como `dim_calendario`, `dim_clientes` e `dim_produtos` pertencem a esta camada, pois são estruturas finais para análise. Mesmo que sejam utilizadas para cálculos na camada Silver ou em notebooks de curadoria, sua "casa" definitiva é a camada Gold.
 *   **Tabelas Agregadas para Dashboards:** Dados pré-calculados que alimentam diretamente relatórios gerenciais.
 *   **Tabelas de Controle de Processos (ETL/ELT):** Como a tabela `etl_watermark_control`, que é fundamental para os pipelines incrementais.
 
@@ -119,7 +120,8 @@ O processo de orquestração e ingestão de dados é gerenciado por um conjunto 
 ### 3. Lakehouses (`3_Lakehouses`)
 
 -   **`LH_Bronze`**: Armazena dados brutos do MySQL e os arquivos de controle dos pipelines.
--   **`LH_Silver`**: Armazena dados limpos e preparados, bem como dimensões conformadas, fatos e a tabela ponte cliente-gerente.
+-   **`LH_Silver`**: Armazena dados limpos e preparados, bem como tabelas de "staging" e ponte cliente-gerente.
+-   **`LH_Gold`**: Armazena as tabelas finais de dimensões e fatos (em formato Delta), além de resultados de análises avançadas.
 
 ### 4. Warehouses (`4_Warehouses`)
 
