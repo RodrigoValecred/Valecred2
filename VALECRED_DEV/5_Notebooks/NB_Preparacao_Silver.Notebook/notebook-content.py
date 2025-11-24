@@ -479,7 +479,81 @@ print(f"Tabela de relacionamento atual '{output_path_atual}' salva com sucesso."
 
 # MARKDOWN ********************
 
-# ## Seção 9: Limpeza do Cache
+# ## Seção 9: Processamento de Limites de Clientes e Sacados
+# **Objetivo:** Limpar e padronizar a tabela `rlc_clientes_sacados_limites` para uso no enriquecimento de títulos.
+
+# CELL ********************
+
+# Célula 9.1: Parâmetros e Leitura
+# ------------------------------------------------
+source_table_limites = "rlc_clientes_sacados_limites"
+target_table_limites = "staging_rlc_clientes_sacados_limites"
+print(f"\nIniciando o processamento da tabela: {source_lakehouse}.{source_table_limites}")
+df_bronze_limites = spark.read.table(f"{source_lakehouse}.{source_table_limites}")
+
+# Célula 9.2: Lógica de Transformação
+# ----------------------------------------------------
+df_transformed_limites = df_bronze_limites \
+    .withColumn("TIPO", regexp_replace(col("TIPO"), "^I$", "INTERCIA")) \
+    .withColumn("TipoDocumentoSacado",
+                when(length(col("CPFCNPJ")) == 11, "CPF")
+                .when(length(col("CPFCNPJ")) == 14, "CNPJ")
+                .otherwise("Inválido")) \
+    .withColumn("RaizCNPJ",
+                when(col("TipoDocumentoSacado") == "CNPJ", substring(col("CPFCNPJ"), 1, 8))
+                .otherwise(col("CPFCNPJ"))) \
+    .withColumn("chave_cliente_sacado", concat(col("CODCLIENTE").cast("string"), lit("-"), col("RaizCNPJ"))) \
+    .dropDuplicates(["chave_cliente_sacado"])
+
+# Célula 9.3: Salvar o Resultado
+# ------------------------------------------------------
+output_path_limites = f"{target_lakehouse}.{target_table_limites}"
+df_transformed_limites.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_limites)
+print(f"Tabela de staging de limites salva com sucesso em: {output_path_limites}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Seção 10: Processamento de Devoluções de Operações
+# **Objetivo:** Limpar a tabela `tab_operacoes_devolucoes` removendo colunas desnecessárias e duplicatas.
+
+# CELL ********************
+
+# Célula 10.1: Parâmetros e Leitura
+# ------------------------------------------------
+source_table_devolucoes = "tab_operacoes_devolucoes"
+target_table_devolucoes = "staging_operacoes_devolucoes_limpa"
+print(f"\nIniciando o processamento da tabela: {source_lakehouse}.{source_table_devolucoes}")
+df_bronze_devolucoes = spark.read.table(f"{source_lakehouse}.{source_table_devolucoes}")
+
+# Célula 10.2: Lógica de Transformação
+# ----------------------------------------------------
+df_transformed_devolucoes = df_bronze_devolucoes \
+    .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
+    .dropDuplicates(["CODTITULO"])
+
+# Célula 10.3: Salvar o Resultado
+# ------------------------------------------------------
+output_path_devolucoes = f"{target_lakehouse}.{target_table_devolucoes}"
+df_transformed_devolucoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_devolucoes)
+print(f"Tabela de staging de devoluções salva com sucesso em: {output_path_devolucoes}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Seção 11: Limpeza do Cache
 # **Objetivo:** Liberar os DataFrames que foram armazenados em cache da memória do Spark.
 
 # CELL ********************
