@@ -95,29 +95,13 @@ Todos os componentes da plataforma são organizados em pastas numeradas para ref
 
 ### 1. Dataflows (`1_Dataflows`)
 
-A plataforma utiliza um padrão combinado de Dataflows e Notebooks para a preparação da camada Prata (Silver), otimizando performance e manutenibilidade.
+**Nota sobre a Estratégia Atual:** A arquitetura da plataforma evoluiu para priorizar o uso de **Notebooks** nas camadas Prata (Silver) e Ouro (Gold).
 
--   **`DF_Preparacao_Silver`**: Este Dataflow é a porta de entrada para a camada Prata. Sua principal responsabilidade é realizar **tratamentos de dados leves e que não quebram o *query folding***. Isso inclui:
-    -   **Padronização de Nomes de Colunas**: Renomeia os cabeçalhos de todas as tabelas de origem para o padrão `snake_case` (letras minúsculas, com palavras separadas por `_`).
-    -   **Padronização de Tipos de Dados**: Garante que colunas como datas, números e textos estejam no formato correto.
-    -   **Limpeza Básica**: Remove espaços em branco desnecessários ou realiza outras transformações simples que podem ser delegadas ao sistema de origem.
-    O resultado deste Dataflow são tabelas de *staging* na camada Prata, com a estrutura limpa e padronizada, prontas para o processamento subsequente.
+Embora o repositório contenha artefatos de Dataflows (que foram utilizados em versões anteriores da arquitetura), identificou-se que a complexidade dos cálculos de negócio frequentemente quebrava o *query folding* do Dataflow Gen2, impactando a performance.
 
-#### Padrão de Arquitetura para Dataflows da Camada Ouro (Gold)
-
-Para a criação de tabelas na camada Ouro, a plataforma adota um padrão de **dataflows modulares e de propósito único**. Cada tabela de dimensão ou fato da camada Ouro é gerenciada por seu próprio dataflow dedicado (ex: `DF_Produto_Gold`, `DF_Cliente_Gold`).
-
-Estes dataflows da camada Ouro são responsáveis por:
-1.  **Consumir os dados limpos** e preparados da camada Prata (gerados pelo `DF_Preparacao_Silver` e `NB_Preparacao_Silver`).
-2.  **Realizar os *joins*** entre as diferentes tabelas de staging para construir o modelo dimensional.
-3.  **Aplicar as regras de negócio finais** e cálculos para criar as tabelas de fatos e dimensões.
-4.  **Carregar o resultado** no Lakehouse (`LH_Gold`) ou no Data Warehouse (`WH_Gold`).
-
-Esta abordagem oferece os seguintes benefícios:
--   **Manutenção Simplificada**: Se a lógica de uma tabela de negócios precisa ser alterada, apenas seu dataflow específico precisa ser modificado e testado, reduzindo o risco de impactar outras tabelas.
--   **Agendamentos de Atualização Independentes**: Cada dataflow pode ser atualizado de forma independente, otimizando o uso de recursos.
--   **Orquestração Clara**: No pipeline de orquestração, as dependências se tornam explícitas e fáceis de rastrear.
--   **Escalabilidade**: À medida que novas tabelas de negócios são adicionadas, a arquitetura permanece limpa e fácil de gerenciar.
+Portanto, a estratégia vigente é:
+-   Utilizar **Notebooks** para todas as transformações complexas, joins e regras de negócio.
+-   Manter os Dataflows apenas para tarefas legadas ou ingestões muito simples, caso necessário.
 
 ### 2. Pipelines de Dados (`2_Pipelines`)
 
@@ -147,15 +131,13 @@ Os notebooks PySpark são o coração da lógica de negócios e das transformaç
 
 #### Notebooks de Transformação (Bronze para Silver)
 
--   **`NB_Preparacao_Silver`**: Este notebook é responsável pelas **transformações pesadas que quebram o *query folding***. Ele consome as tabelas de staging geradas pelo `DF_Preparacao_Silver` e aplica lógicas mais complexas, como:
-    -   **Remoção de Duplicidades**: Executa a lógica de desduplicação para garantir que apenas registros únicos prossigam.
-    -   **Cálculos Complexos e Enriquecimento**: Adiciona novas colunas baseadas em regras de negócio que não podem ser executadas eficientemente no Dataflow.
-    -   **Agregações Iniciais**: Prepara agregações que serão usadas em modelos de dados posteriores.
+-   **`NB_Preparacao_Silver`**: Agora focado exclusivamente na **limpeza e tratamento** das tabelas da camada Bronze. Sua responsabilidade é padronizar tipos de dados, remover caracteres indesejados e preparar as tabelas para o enriquecimento, garantindo uma base confiável para as etapas seguintes.
 -   **`NB_Build_Bridge_Cliente_Gerente`**: Constrói a tabela ponte `bridge_cliente_gerente` com **SCD Tipo 2** para rastrear o histórico do relacionamento entre clientes e gerentes.
 -   **`NB_Process_Contact_Info`**: Processa e limpa dados de contato, tratando campos com múltiplos valores e salvando-os em tabelas de staging na camada Silver.
 
-#### Notebooks de Agregação e Análise (Silver para Gold)
+#### Notebooks de Curadoria e Agregação (Silver para Gold)
 
+-   **`NB_Curadoria_Gold`**: Este notebook centraliza a lógica de **enriquecimento e joins** das tabelas. Ele consome os dados tratados da camada Silver, aplica as regras de negócio complexas (que anteriormente residiam em Dataflows) e consolida as tabelas Fato e Dimensão da camada Ouro.
 -   **`NB_Gold_Customer_Dashboard`**: Gera tabelas agregadas no `WH_Gold` para o dashboard de acompanhamento da carteira do cliente, identificando títulos em aberto e vencidos.
 -   **`NB_Gold_Risco_Cliente`**: Cria uma tabela agregada no `LH_Gold` que sumariza o valor total em risco para cada cliente, segmentado por tipo de produto.
 -   **`NB_Risk_Aggregation`**: Calcula métricas históricas de risco por cliente, como taxa de inadimplência e volume transacionado, e salva o resultado na tabela `risco_por_cliente` no `WH_Gold`.
@@ -220,13 +202,15 @@ O fluxo de dados principal é orquestrado pelo pipeline `PL_Orquestracao_de_Dado
 
 1.  **Ingestão (Bronze)**: O processo começa com o pipeline `PL_Load_Bronze_Incremental`, que copia dados novos e atualizados do sistema de origem (MySQL) para as tabelas no `LH_Bronze`. Pipelines de ingestão de dados externos (`NB_Load_Bronze_*`) também podem ser executados para enriquecer a camada Bronze com dados públicos.
 
-2.  **Transformação (Prata)**: O pipeline `PL_Orquestracao_de_Dados_Incremental` assume o controle e executa os seguintes passos em sequência:
-    a. **Preparação da Staging Area**: Os notebooks `NB_Preparacao_Silver` e `NB_Build_Bridge_Cliente_Gerente` são executados em paralelo para limpar, transformar e modelar os dados brutos da camada Bronze, salvando os resultados em tabelas de staging no `LH_Silver`.
-    b. **Atualização do Dataflow**: Após a conclusão dos notebooks, o dataflow `DF_Preparacao_Silver` é atualizado. Ele utiliza as tabelas de staging recém-preparadas para construir e popular as dimensões e fatos finais na camada Prata.
+2.  **Transformação (Prata)**: O pipeline `PL_Orquestracao_de_Dados_Incremental` assume o controle e executa a **Preparação da Camada Silver**:
+    -   O notebook **`NB_Preparacao_Silver`** é executado para realizar a limpeza e tratamento dos dados brutos da camada Bronze.
+    -   Notebooks auxiliares (como `NB_Build_Bridge_Cliente_Gerente`) rodam em paralelo para construir estruturas de suporte.
+    -   Os dados tratados são persistidos no `LH_Silver`, prontos para serem consumidos.
 
-3.  **Análise e Agregação (Ouro)**:
-    a. **Execução de Modelos de ML**: O pipeline de orquestração executa o notebook de inferência `ML_Previsao_Inadimplencia_2025` (referenciado no pipeline como `ML_Prob_Inad_Cart`), que carrega o modelo treinado e aplica as previsões de risco aos dados mais recentes.
-    b. **Criação de Tabelas de Negócio**: Outros pipelines ou execuções agendadas podem rodar os notebooks da camada Ouro (`NB_Gold_*`) para criar tabelas agregadas e específicas para dashboards no `LH_Gold` e no `WH_Gold`.
+3.  **Curadoria e Agregação (Ouro)**:
+    a. **Enriquecimento e Modelagem**: O notebook **`NB_Curadoria_Gold`** entra em ação para realizar os joins entre as tabelas tratadas e aplicar regras de negócio complexas, populando as tabelas da camada Ouro (`LH_Gold` e `WH_Gold`).
+    b. **Execução de Modelos de ML**: O pipeline executa o notebook de inferência `ML_Previsao_Inadimplencia_2025` (referenciado no pipeline como `ML_Prob_Inad_Cart`), que carrega o modelo treinado e aplica as previsões de risco.
+    c. **Criação de Tabelas de Negócio**: Outros notebooks específicos podem ser executados para criar agregações adicionais.
 
 4.  **Consumo**: Os dados refinados no `WH_Gold` e `LH_Gold` estão prontos para serem consumidos por ferramentas de BI, relatórios e análises ad-hoc, como as realizadas pelos notebooks `NB_Gerador_Score_Risco` e `NB_Analise_Cliente_Especifico`.
 
@@ -310,9 +294,9 @@ A re-execução do pipeline não resultará em **duplicidade de dados, perda de 
     -   **Impacto**: Este modo apaga completamente os dados existentes na tabela de destino antes de escrever os novos dados. Portanto, a cada execução, as tabelas são reconstruídas do zero a partir da fonte (camada Bronze), garantindo que o resultado final seja sempre o mais atual, sem duplicatas.
     -   **Lógica Incremental**: A única exceção é o processamento da tabela `cad_geral_pareceres`, que utiliza um sistema de *watermark* (marca d'água). Se o pipeline for executado uma segunda vez no mesmo dia, o notebook detectará que não há dados novos desde a última execução e simplesmente não processará nenhum registro, evitando qualquer alteração ou duplicação.
 
-2.  **Dataflow (`DF_Preparacao_Silver`)**:
-    -   **Estratégia de Carga**: A operação de "atualizar" (refresh) um dataflow no Microsoft Fabric é, por natureza, uma transformação completa.
-    -   **Impacto**: O dataflow lê os dados das tabelas de origem (que acabaram de ser recriadas pelos notebooks) e reaplica todas as etapas de transformação definidas. Ele não "adiciona" dados, mas sim recalcula o estado final. Portanto, a atualização do dataflow é uma operação idempotente.
+2.  **Notebook de Curadoria (`NB_Curadoria_Gold`)**:
+    -   **Estratégia de Carga**: Assim como os notebooks de preparação, o `NB_Curadoria_Gold` utiliza o modo `overwrite` ao salvar as tabelas da camada Ouro.
+    -   **Impacto**: A cada execução, ele recalcula os joins e as regras de negócio sobre os dados mais recentes da camada Silver e recria as tabelas Fato e Dimensão. Isso garante a consistência e a idempotência do processo, eliminando riscos de duplicidade na camada final.
 
 Em resumo, a combinação de cargas com `overwrite` e lógicas incrementais baseadas em *watermark* garante que o pipeline de orquestração possa ser executado quantas vezes forem necessárias, sem efeitos colaterais negativos. Na verdade, re-executar o pipeline é a maneira correta de garantir que os dados reflitam o estado mais recente da camada Bronze.
 
@@ -332,7 +316,7 @@ Para maior clareza, abaixo está a lista de tabelas geradas pelo pipeline e suas
     *   `LH_Silver.esteira_de_propostas`
     *   `LH_Silver.bridge_cliente_gerente`
     *   `LH_Silver.relacionamento_cliente_gerente_atual`
-    *   Todas as tabelas de fatos e dimensões geradas pelo Dataflow `DF_Preparacao_Silver`.
+    *   Todas as tabelas de fatos e dimensões geradas pelo Notebook `NB_Curadoria_Gold`.
 
 *   **Tabelas com Carga Incremental (`Merge`)**: Apenas um número muito pequeno de tabelas é atualizado de forma incremental para preservar o histórico ou controlar o processo.
     *   `LH_Silver.pareceres_de_alteracao_de_status`: Atualizada via `MERGE` para adicionar apenas os novos pareceres capturados desde a última execução.
