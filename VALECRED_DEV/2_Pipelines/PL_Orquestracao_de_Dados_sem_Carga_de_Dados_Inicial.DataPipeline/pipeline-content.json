@@ -23,12 +23,6 @@
             "dependencyConditions": [
               "Succeeded"
             ]
-          },
-          {
-            "activity": "NB_Build_Bridge_Gerente_Cliente",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
           }
         ]
       },
@@ -46,22 +40,6 @@
           "secureOutput": false
         },
         "name": "NB_Prepare_Silver_Staging",
-        "dependsOn": []
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "632d2054-d334-8393-40fa-f86abef3590e",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "NB_Build_Bridge_Gerente_Cliente",
         "dependsOn": []
       },
       {

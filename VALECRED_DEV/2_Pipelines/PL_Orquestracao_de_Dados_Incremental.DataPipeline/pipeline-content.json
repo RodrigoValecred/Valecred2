@@ -23,12 +23,6 @@
             "dependencyConditions": [
               "Succeeded"
             ]
-          },
-          {
-            "activity": "NB_Build_Bridge_Gerente_Cliente",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
           }
         ]
       },
@@ -46,29 +40,6 @@
           "secureOutput": false
         },
         "name": "NB_Preparacao_Silver",
-        "dependsOn": [
-          {
-            "activity": "Carrega dados brutos",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "632d2054-d334-8393-40fa-f86abef3590e",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "NB_Build_Bridge_Gerente_Cliente",
         "dependsOn": [
           {
             "activity": "Carrega dados brutos",
@@ -149,12 +120,10 @@
         ]
       },
       {
-        "type": "RefreshDataflow",
+        "type": "TridentNotebook",
         "typeProperties": {
-          "dataflowId": "a39dd635-e1d7-847b-418a-653cef707f30",
-          "workspaceId": "00000000-0000-0000-0000-000000000000",
-          "notifyOption": "NoNotification",
-          "dataflowType": "DataflowFabric"
+          "notebookId": "508582b1-4e33-87a9-4785-8b882d886bb6",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
         },
         "policy": {
           "timeout": "0.12:00:00",
@@ -163,60 +132,10 @@
           "secureInput": false,
           "secureOutput": false
         },
-        "name": "DF_Dim_Plataformas_Silver",
+        "name": "NB_Curadoria_Gold",
         "dependsOn": [
           {
-            "activity": "Carrega dados brutos",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "RefreshDataflow",
-        "typeProperties": {
-          "dataflowId": "8330365f-08f5-9c47-4210-d5881b111984",
-          "workspaceId": "00000000-0000-0000-0000-000000000000",
-          "notifyOption": "NoNotification",
-          "dataflowType": "DataflowFabric"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "DF_Dim_Usuarios_Silver",
-        "dependsOn": [
-          {
-            "activity": "Carrega dados brutos",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "RefreshDataflow",
-        "typeProperties": {
-          "dataflowId": "588ca2d8-a9eb-af32-463b-3c3f2e92724a",
-          "workspaceId": "00000000-0000-0000-0000-000000000000",
-          "notifyOption": "NoNotification",
-          "dataflowType": "DataflowFabric"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "DF_Dim_Gerentes_Silver",
-        "dependsOn": [
-          {
-            "activity": "DF_Dim_Plataformas_Silver",
+            "activity": "NB_Preparacao_Silver",
             "dependencyConditions": [
               "Succeeded"
             ]
