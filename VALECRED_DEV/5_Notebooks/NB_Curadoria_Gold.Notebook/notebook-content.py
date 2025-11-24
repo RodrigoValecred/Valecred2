@@ -27,8 +27,8 @@
 
 # # Notebook de Curadoria da Camada Gold
 # **Objetivo:** Este notebook é responsável por aplicar regras de negócio complexas, realizar joins entre tabelas limpas da camada Silver (Staging), e criar tabelas enriquecidas e modelos dimensionais (Fatos e Dimensões) para a camada **Gold** (ou tabelas finais refinadas da Silver).
-# # **Origem dos Dados:** Tabelas "staging" limpas geradas pelo notebook `NB_Preparacao_Silver` e algumas tabelas da camada Bronze que requerem processamento complexo direto.
-# # **Processos realizados:**
+# **Origem dos Dados:** Tabelas "staging" limpas geradas pelo notebook `NB_Preparacao_Silver` e algumas tabelas da camada Bronze que requerem processamento complexo direto.
+# **Processos realizados:**
 # 1.  **Configuração do Ambiente:** Define configurações do Spark e importa as bibliotecas necessárias.
 # 2.  **Enriquecimento do Cadastro Geral:** Reconstrói a visão completa do cliente juntando dados de perfil, endereços, emails e telefones.
 # 3.  **Processamento de Status de Protesto:** Calcula o status de protesto dos títulos.

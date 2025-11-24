@@ -19,7 +19,7 @@
         "name": "DF_Preparacao_Silver",
         "dependsOn": [
           {
-            "activity": "NB_Preparacao_Silver",
+            "activity": "Limpeza_Silver",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -39,7 +39,8 @@
           "secureInput": false,
           "secureOutput": false
         },
-        "name": "NB_Preparacao_Silver",
+        "name": "Limpeza_Silver",
+        "description": "Notebook_Preparacao_Silver\n",
         "dependsOn": [
           {
             "activity": "Carrega dados brutos",
@@ -72,54 +73,6 @@
         "dependsOn": []
       },
       {
-        "type": "RefreshDataflow",
-        "typeProperties": {
-          "dataflowId": "1f7238d9-6bdf-a90a-41ac-e3b0273643bc",
-          "workspaceId": "00000000-0000-0000-0000-000000000000",
-          "notifyOption": "NoNotification",
-          "dataflowType": "DataflowFabric"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "DF_Fato_Operacoes_Gold",
-        "dependsOn": [
-          {
-            "activity": "DF_Preparacao_Silver",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "d09e9438-7dc3-b483-4695-dcf19e608577",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "NB_Risco_Cliente_Gold",
-        "dependsOn": [
-          {
-            "activity": "DF_Preparacao_Silver",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
         "type": "TridentNotebook",
         "typeProperties": {
           "notebookId": "508582b1-4e33-87a9-4785-8b882d886bb6",
@@ -135,7 +88,7 @@
         "name": "NB_Curadoria_Gold",
         "dependsOn": [
           {
-            "activity": "NB_Preparacao_Silver",
+            "activity": "Limpeza_Silver",
             "dependencyConditions": [
               "Succeeded"
             ]
