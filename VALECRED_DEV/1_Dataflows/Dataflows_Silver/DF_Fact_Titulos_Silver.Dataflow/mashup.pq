@@ -77,8 +77,8 @@ in
 shared source_tab_titulos = let
   Origem = Lakehouse.Contents(null),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
-  #"Navegação 1" = Navegação{[lakehouseId = "553c2931-573b-4db0-838d-a70a01306d32"]}[Data],
-  #"Navegação 2" = #"Navegação 1"{[Id = "tab_titulos", ItemKind = "Table"]}[Data]
+  #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
+  #"Navegação 2" = #"Navegação 1"{[Id = "staging_titulos_limpa", ItemKind = "Table"]}[Data]
 in
   #"Navegação 2";
 shared source_tab_feriados = let
