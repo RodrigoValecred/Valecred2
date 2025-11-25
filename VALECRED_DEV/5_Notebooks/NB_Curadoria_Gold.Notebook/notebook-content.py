@@ -533,13 +533,10 @@ df_ultima_conf = spark.read.table("LH_Silver.fact_ultima_confirmacao")
 # 6.2 Preparação e Enriquecimento
 # -------------------------------
 
-# Filtro inicial
-df_titulos_filt = df_titulos.filter(~col("TDOC").isin("BL", "RC"))
-
 # Preparação de chave de cliente e RaizCNPJ
 # Nota: staging_titulos_limpa (Prep Silver) já limpa dados básicos, mas RaizCNPJ específica para regra de chave_cliente_sacado
 # é recalculada aqui para garantir consistência com a lógica do Dataflow.
-df_titulos_prep = df_titulos_filt \
+df_titulos_prep = df_titulos \
     .withColumn("TipoDocumentoSacado",
                 when(length(col("CPFCNPJSACADO")) == 11, "CPF")
                 .when(length(col("CPFCNPJSACADO")) == 14, "CNPJ")
