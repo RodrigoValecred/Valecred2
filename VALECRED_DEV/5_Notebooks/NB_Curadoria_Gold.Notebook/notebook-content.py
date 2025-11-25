@@ -218,7 +218,7 @@ df_latest_ocorrencia.unpersist()
 # Célula 3.1: Leitura da Base Limpa
 # ------------------------------------------------
 print("\nIniciando enriquecimento de operações...")
-df_operacoes_base = spark.read.table("LH_Silver.staging_operacoes_base")
+df_operacoes_base = spark.read.table("LH_Silver.staging_operacoes_limpa")
 
 # Célula 3.2: Enriquecimento com Gerente (Broker)
 # ------------------------------------------------
