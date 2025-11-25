@@ -29,14 +29,14 @@
 from pyspark.sql import functions as F
 
 # 1. Lemos o dado sujo (Bronze)
-df_clientes_bronze = spark.read.format("parquet").load("LH_Bronze.cad_clientes")
+df_clientes_bronze = spark.read.table("LH_Bronze.cad_clientes")
 
 # 2. Limpamos (Tirar duplicatas)
 # Note que eu criei uma variável 'df_clientes_limpo'. O dado está VIVO aqui dentro.
 df_clientes_limpo = df_clientes_bronze.dropDuplicates(["CODCLIENTE"])
 
 # 3. (Opcional) Salvamos uma cópia na Silver para segurança, se quiser
-df_clientes_limpo.write.format("delta").mode("overwrite").save("LH_Silver.silver_cad_clientes")
+df_clientes_limpo.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.silver_cad_clientes")
 
 # O TRUQUE: Damos um "Apelido" para essa tabela na memória do Spark
 # Agora o Spark sabe que "v_clientes" é esse dado limpo que acabamos de gerar
@@ -56,12 +56,12 @@ print("Silver de Clientes pronta e na memória!")
 # --- PARTE 1.1: SILVER (Tabelas de Apoio) ---
 
 # Limpa Telefones
-df_tel = spark.read.format("parquet").load("Files/bronze/tab_telefones")
+df_tel = spark.read.table("LH_Bronze.cad_telefones")
 df_tel = df_tel.dropDuplicates(["CODTELEFONE"])
 df_tel.createOrReplaceTempView("v_telefones") # Apelido: v_telefones
 
 # Limpa Endereços
-df_end = spark.read.format("parquet").load("Files/bronze/tab_enderecos")
+df_end = spark.read.table("LH_Bronze.cad_enderecos")
 df_end = df_end.dropDuplicates(["CODENDERECO"])
 df_end.createOrReplaceTempView("v_enderecos") # Apelido: v_enderecos
 
@@ -90,12 +90,12 @@ df_cliente_gold = spark.sql("""
         e.ENDERECO,
         e.CIDADE
     FROM v_clientes c
-    LEFT JOIN v_telefones t ON c.CODCLIENTE = t.CODCLIENTE
-    LEFT JOIN v_enderecos e ON c.CODCLIENTE = e.CODCLIENTE
+    LEFT JOIN v_telefones t ON c.CPFCNPJ = t.CPFCNPJ
+    LEFT JOIN v_enderecos e ON c.CPFCNPJ = e.CPFCNPJ
 """)
 
 # Agora sim, salvamos o resultado final para o Power BI ler
-df_cliente_gold.write.format("delta").mode("overwrite").save("Tables/gold_cliente_completo")
+df_cliente_gold.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Gold.gold_cliente_completo")
 
 print("Gold gerada com sucesso!")
 

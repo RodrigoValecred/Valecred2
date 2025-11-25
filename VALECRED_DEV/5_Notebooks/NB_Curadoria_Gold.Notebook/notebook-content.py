@@ -1,30 +1,5 @@
 # Fabric notebook source
 
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {
-# META     "lakehouse": {
-# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Bronze",
-# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
-# META       "known_lakehouses": [
-# META         {
-# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
-# META         },
-# META         {
-# META           "id": "8f85c372-56ad-4f3f-acf9-3be2e9b99513"
-# META         },
-# META         {
-# META           "id": "ee40705b-0100-4f9bc-8f35-81d71839f042"
-# META         }
-# META       ]
-# META     }
-# META   }
-# META }
 
 # MARKDOWN ********************
 
@@ -328,7 +303,6 @@ print(f"Tabela 'fato_titulos' salva em: {output_path_titulos_final}")
 # META   "language_group": "synapse_pyspark"
 # META }
 
-
 # MARKDOWN ********************
 
 # ## Seção 4: Esteira de Propostas (Lógica Incremental)
@@ -407,20 +381,13 @@ print("Processo incremental de pareceres concluído.")
 
 # ## Seção 5: Limpeza do Cache
 # **Objetivo:** Liberar da memória os DataFrames que foram armazenados em cache.
-
 # CELL ********************
-print("\nLimpando os DataFrames do cache...")
-for df_name_str in dataframes_to_uncache:
-    try:
-        globals()[df_name_str].unpersist()
-        print(f"Cache de '{df_name_str}' liberado.")
-    except Exception as e:
-        print(f"Não foi possível liberar o cache de '{df_name_str}': {e}")
-print("Limpeza do cache concluída.")
+# int("\nLimpando os DataFrames do cache...")
+# r df_name_str in dataframes_to_uncache:
+#   try:
+#       globals()[df_name_str].unpersist()
+#       print(f"Cache de '{df_name_str}' liberado.")
+#   except Exception as e:
+#       print(f"Não foi possível liberar o cache de '{df_name_str}': {e}")
+# int("Limpeza do cache concluída.")
 
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
