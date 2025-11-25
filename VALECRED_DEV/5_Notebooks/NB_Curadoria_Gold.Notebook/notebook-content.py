@@ -290,6 +290,50 @@ print(f"Tabela de operações enriquecida salva em: {output_path_operacoes}")
 
 # MARKDOWN ********************
 
+# ## Seção 3.5: Construção da Fato Operações
+# **Objetivo:** Selecionar e renomear as colunas da tabela de operações enriquecida para criar a `fato_operacoes` na camada Gold.
+
+# CELL ********************
+
+# Célula 3.5.1: Leitura e Transformação
+# ------------------------------------------------
+print("\nIniciando construção da fato_operacoes...")
+df_operacoes_enriquecida = spark.read.table("LH_Silver.staging_operacoes_enriquecida")
+
+# Seleção e renomeação de colunas para o padrão do Data Warehouse
+df_fato_operacoes = df_operacoes_enriquecida.select(
+    col("CODOPERACAO").alias("cod_operacao"),
+    col("CODCLIENTE").alias("cod_cliente"),
+    col("CODEMPRESA").alias("cod_empresa"),
+    col("DATAINCLUSAO").alias("data_inclusao"),
+    col("DATAANALISE").alias("data_analise"),
+    col("DATAPAGAMENTO").alias("data_pagamento"),
+    col("VALORBRUTO").alias("valor_bruto"),
+    col("VALORLIQUIDO").alias("valor_liquido"),
+    col("STATUSACEITE").alias("status_aceite"),
+    col("STATUSANALISE").alias("status_analise"),
+    col("CODBROKER").alias("cod_broker"),
+    col("TTO"),
+    col("STTO"),
+    col("chave_produto"),
+    col("operacao_informal")
+)
+
+# Célula 3.5.2: Salvar o Resultado
+# ------------------------------------------------
+output_path_fato_operacoes = "LH_Gold.fato_operacoes"
+df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
+print(f"Tabela 'fato_operacoes' construída e salva com sucesso em: {output_path_fato_operacoes}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
 # ## Seção 4: Construção da Fato Baixas
 # **Objetivo:** Unir a tabela de baixas limpa com as tabelas de dimensão para criar a tabela fato.
 
