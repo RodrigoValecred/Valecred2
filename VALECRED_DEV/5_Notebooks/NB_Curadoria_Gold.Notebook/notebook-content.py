@@ -346,7 +346,115 @@ print(f"Tabela 'fato_baixas' construída e salva com sucesso em: {output_path_fa
 
 # MARKDOWN ********************
 
-# ## Seção 6: Construção da Fato Títulos
+# ## Seção 6: Construção da Dimensão Produto
+# **Objetivo:** Construir a tabela de dimensão `dim_produto` a partir dos dados de operações e salvá-la na camada Gold. Esta lógica foi migrada do `DF_Produto_Gold.Dataflow` para centralizar as transformações em notebooks.
+
+# CELL ********************
+
+print("\nIniciando construção da dim_produto...")
+from pyspark.sql.functions import concat, lit, when, col, sort_array, struct, monotonically_increasing_id
+
+# 6.1: Leitura das tabelas de origem
+# -----------------------------------
+df_operacoes_silver = spark.read.table("LH_Silver.staging_operacoes_limpa")
+df_tipo_op_bronze = spark.read.table("LH_Bronze.tab_tipooperacao")
+df_subtipo_op_bronze = spark.read.table("LH_Bronze.tab_subtipooperacao")
+
+# 6.2: Lógica de transformação (replicando o Power Query)
+# --------------------------------------------------------
+# Seleciona e remove duplicatas de TTO/STTO
+df_produtos_base = df_operacoes_silver.select("STTO", "TTO").distinct()
+
+# Join com tipo de operação
+df_com_tipo = df_produtos_base.join(
+    df_tipo_op_bronze.select("CODTTO", "DESCRICAO"),
+    df_produtos_base.TTO == df_tipo_op_bronze.CODTTO,
+    "left"
+).withColumnRenamed("DESCRICAO", "TipoProduto")
+
+# Join com subtipo de operação
+df_com_subtipo = df_com_tipo.join(
+    df_subtipo_op_bronze.select("CODSTTO", "DESCRICAO"),
+    df_com_tipo.STTO == df_subtipo_op_bronze.CODSTTO,
+    "left"
+).withColumnRenamed("DESCRICAO", "SubTipoProduto")
+
+# Criação de colunas de chave e nome do produto
+df_com_chaves = df_com_subtipo \
+    .withColumn("chave_produto", concat(col("TTO"), col("STTO"))) \
+    .withColumn("Produto",
+                when(col("SubTipoProduto").isNull(), col("TipoProduto"))
+                .otherwise(concat(col("SubTipoProduto"), lit(" - "), col("TipoProduto")))
+    )
+
+# Limpeza e padronização de nomes
+df_nomes_limpos = df_com_chaves \
+    .withColumn("Produto", regexp_replace(col("Produto"), "COMISSÁRIA", "COMISSARIA SIMPLES")) \
+    .withColumn("Produto", regexp_replace(col("Produto"), "COMISSARIA SIMPLES - COMISSARIA SIMPLES", "COMISSARIA SIMPLES"))
+
+# Criação da coluna de informação de mercado
+df_info_mercado = df_nomes_limpos \
+    .withColumn("ProdutoInformacaoMercado", col("Produto")) \
+    .withColumn("ProdutoInformacaoMercado", regexp_replace(col("ProdutoInformacaoMercado"), "NORMAL", "DESCONTO"))
+
+# Seleção das colunas finais da staging
+df_staging_produto_lbfactor = df_info_mercado.select("ProdutoInformacaoMercado", "Produto", "chave_produto")
+
+# 6.3: Adição de produtos manuais
+# ---------------------------------
+# Criando o DataFrame para produtos manuais (replicando a tabela hardcoded do Dataflow)
+schema_manual = StructType([
+    StructField("chave_produto", StringType(), True),
+    StructField("Produto", StringType(), True),
+    StructField("ProdutoInformacaoMercado", StringType(), True)
+])
+# A tabela manual no dataflow original está vazia, então criamos um DF vazio.
+# Se houvesse dados, seriam adicionados aqui. Ex: data_manual = [("CHAVE1", "Produto Manual", "Info Manual")]
+data_manual = []
+df_produto_manual = spark.createDataFrame(data_manual, schema_manual)
+
+# Unindo a base com os produtos manuais
+df_combinado = df_staging_produto_lbfactor.unionByName(df_produto_manual)
+
+# 6.4: Adição de Surrogate Key e persistência
+# ---------------------------------------------
+# Filtra nulos e prepara para deduplicação
+df_filtrado = df_combinado.filter(col("Produto").isNotNull() & (col("Produto") != ""))
+
+# Deduplicação determinística:
+# Particiona pela chave de negócio e ordena por uma coluna (pode ser a mesma chave)
+# para garantir que a mesma linha seja sempre escolhida.
+window_dedup = Window.partitionBy("chave_produto").orderBy(col("Produto").asc())
+
+df_deduplicado = df_filtrado \
+    .withColumn("rn", row_number().over(window_dedup)) \
+    .filter(col("rn") == 1) \
+    .drop("rn")
+
+# Adição de Surrogate Key:
+# Agora que os dados são únicos, ordenamos a tabela final e adicionamos a SK.
+window_spec_sk = Window.orderBy("chave_produto")
+df_com_sk = df_deduplicado \
+    .sort("chave_produto") \
+    .withColumn("sk_produto", row_number().over(window_spec_sk))
+
+# Seleciona e renomeia colunas para o padrão do DW
+df_final_dim_produto = df_com_sk.select(
+    col("sk_produto"),
+    col("chave_produto"),
+    col("Produto").alias("produto"),
+    col("ProdutoInformacaoMercado").alias("produto_informacao_de_mercado")
+)
+
+# Salva a dimensão no Data Warehouse Gold
+output_path_dim_produto = "WH_Gold.dim_produto"
+df_final_dim_produto.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_produto)
+print(f"Tabela 'dim_produto' construída e salva com sucesso em: {output_path_dim_produto}")
+
+
+# MARKDOWN ********************
+
+# ## Seção 7: Construção da Fato Títulos
 # **Objetivo:** Criar a tabela `fato_titulos` enriquecida, consolidando dados de títulos, operações, produtos e regras de negócio de datas e status.
 
 # CELL ********************
@@ -363,9 +471,9 @@ df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa")
 df_protestos = spark.read.table("LH_Silver.staging_protestos")
 df_feriados = spark.read.table("LH_Bronze.tab_feriados")
 
-# Tabelas de Dimensão/Fato auxiliares (Bronze ou Silver)
-# Utilizando Bronze para garantir acesso direto se a Silver não estiver disponível/configurada
-df_produtos = spark.read.table("LH_Bronze.dim_produtos")
+# Tabelas de Dimensão/Fato auxiliares
+# A dim_produto agora é lida da camada Gold, onde é construída por este notebook.
+df_produtos = spark.read.table("WH_Gold.dim_produto")
 df_ultima_conf = spark.read.table("LH_Bronze.fact_ultima_confirmacao")
 
 # 6.2 Preparação e Enriquecimento
