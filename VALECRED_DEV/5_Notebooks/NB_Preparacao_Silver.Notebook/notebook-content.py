@@ -143,14 +143,11 @@ windowSpec_clientes = Window.partitionBy([col(c) for c in key_columns_clientes])
 df_ranked_clientes = df_bronze_clientes.withColumn("row_num", row_number().over(windowSpec_clientes))
 df_deduplicated_clientes = df_ranked_clientes.filter(col("row_num") == 1).drop("row_num")
 
-# Célula 2.3: Salvar e Armazenar em Cache
+# Célula 2.3: Salvar o Resultado
 # ------------------------------------------------------
 output_path_clientes = f"{target_lakehouse}.{target_table_clientes}"
 df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_clientes)
-
-# Armazena o resultado em cache
-spark.table(output_path_clientes).cache()
-print(f"Tabela limpa salva e em cache: {output_path_clientes}")
+print(f"Tabela limpa salva com sucesso em: {output_path_clientes}")
 
 # METADATA ********************
 
@@ -556,7 +553,84 @@ print(f"Tabela de staging de devoluções salva com sucesso em: {output_path_dev
 
 # MARKDOWN ********************
 
-# ## Seção 11: Limpeza do Cache
+# ## Seção 11: Processamento de Status de Protesto
+# **Objetivo:** Calcular o status de protesto mais recente para cada título, baseando-se em ocorrências de cobrança. A tabela resultante `staging_protestos` enriquece a dimensão de títulos.
+
+# CELL ********************
+
+print("\\nIniciando o processamento de status de protesto de títulos...")
+
+# Leitura das tabelas de origem (Bronze)
+df_ocorrencias_bronze = spark.read.table("LH_Bronze.rlc_titulos_ocorrencias_cobranca")
+df_titulos_cobranca_bronze = spark.read.table("LH_Bronze.tab_titulos_cobranca")
+print("Tabelas de ocorrências e cobrança lidas da camada Bronze.")
+
+# Pré-cálculos e Lógica de Negócio
+df_titulos_para_protesto_cobranca = df_titulos_cobranca_bronze \
+    .filter(col("CODOCORCOBRANCA") == 1015) \
+    .select("CODTITULO") \
+    .distinct() \
+    .withColumn("flag_protesto_cobranca", lit(True))
+
+df_subquery_ocorrencia = df_ocorrencias_bronze \
+    .filter(col("CODOCORINTERNA").isin(8, 34) & col("CODOCORCOBRBANCO").isin(19, 23)) \
+    .select("CODTITULO") \
+    .distinct() \
+    .withColumn("flag_subquery_ocorrencia", lit(True))
+
+df_ocorrencias_filtradas = df_ocorrencias_bronze.filter(
+    ((col("CODOCORINTERNA").isin(8, 17, 34, 2, 82)) & (col("CODOCORCOBRBANCO").isin(6, 19, 23, 10, 43)) & (col("TOCORRENCIA") == 2)) |
+    ((col("CODOCORINTERNA") == 8) & (col("CODOCORCOBRBANCO") == 9) & (col("TOCORRENCIA") == 1))
+)
+
+window_spec_latest = Window.partitionBy("CODTITULO").orderBy(col("CODTITULOOCORCOB").desc())
+
+df_latest_ocorrencia = df_ocorrencias_filtradas \
+    .withColumn("row_num", row_number().over(window_spec_latest)) \
+    .filter(col("row_num") == 1) \
+    .drop("row_num") \
+    .join(df_titulos_para_protesto_cobranca, "CODTITULO", "left") \
+    .join(df_subquery_ocorrencia, "CODTITULO", "left") \
+    .fillna(False, subset=["flag_protesto_cobranca", "flag_subquery_ocorrencia"])
+
+# Calcular Status
+cond_p1 = (substring(col("MOTIVOCODOCORCOBRBANCO"), 1, 2) == '14')
+cond_p2 = (col("CODOCORINTERNA") == 2) & (col("flag_subquery_ocorrencia") == True)
+cond_p3 = (col("CODOCORINTERNA") == 82)
+cond_p4 = (col("flag_protesto_cobranca") == True)
+cond_e = (col("CODOCORINTERNA") == 8) & (col("CODOCORCOBRBANCO") == 9)
+cond_i = (col("CODOCORINTERNA") == 8)
+cond_c = (col("CODOCORINTERNA") == 34)
+
+df_com_status_code = df_latest_ocorrencia.withColumn("STATUSPROTESTO",
+    when(cond_p1 | cond_p2 | cond_p3 | cond_p4, lit("P"))
+    .when(cond_e, lit("E")).when(cond_i, lit("I")).when(cond_c, lit("C"))
+    .otherwise(lit("N"))
+)
+df_com_status_desc = df_com_status_code.withColumn("STATUS_PROTESTO",
+    when(col("STATUSPROTESTO") == 'P', lit("Protestado"))
+    .when(col("STATUSPROTESTO") == 'E', lit("Instrução Protesto Enviada"))
+    .when(col("STATUSPROTESTO") == 'I', lit("Instrução Protesto"))
+    .when(col("STATUSPROTESTO") == 'C', lit("Em Cartório"))
+    .otherwise(lit("N/A"))
+).filter(col("STATUS_PROTESTO") != "N/A")
+
+# Salvar Resultado
+df_final_protestos = df_com_status_desc.select("CODTITULO", "STATUS_PROTESTO", col("DATAINCLUSAO").alias("DATA_OCORRENCIA_PROTESTO"))
+output_path_protestos = "LH_Silver.staging_protestos"
+df_final_protestos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_protestos)
+print(f"Tabela de staging para protestos salva com sucesso em: {output_path_protestos}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Seção 12: Limpeza do Cache
 # **Objetivo:** Liberar os DataFrames que foram armazenados em cache da memória do Spark.
 
 # CELL ********************
@@ -566,10 +640,6 @@ print("\nLimpando os DataFrames do cache...")
 # Libera o cache da tabela de títulos
 spark.catalog.uncacheTable("LH_Silver.staging_titulos_limpa")
 print("Cache de 'staging_titulos_limpa' liberado.")
-
-# Libera o cache da tabela de clientes
-spark.catalog.uncacheTable("LH_Silver.staging_clientes_limpa")
-print("Cache de 'staging_clientes_limpa' liberado.")
 
 print("Limpeza do cache concluída.")
 
