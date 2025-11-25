@@ -139,7 +139,11 @@ Os notebooks PySpark são o coração da lógica de negócios e das transformaç
 
 #### Notebooks de Curadoria e Agregação (Silver para Gold)
 
--   **`NB_Curadoria_Gold`**: Este notebook centraliza a lógica de **enriquecimento e joins** das tabelas. Ele consome os dados tratados da camada Silver, aplica as regras de negócio complexas (que anteriormente residiam em Dataflows) e consolida as tabelas Fato e Dimensão da camada Ouro.
+-   **`NB_Curadoria_Gold`**: Este notebook centraliza a lógica de **enriquecimento e joins** das tabelas. Ele consome os dados tratados da camada Silver, aplica as regras de negócio complexas (que anteriormente residiam em Dataflows) e consolida as tabelas Fato e Dimensão da camada Ouro. As principais tabelas geradas por este notebook e salvas no `LH_Gold` são:
+    -   `dim_produto`
+    -   `fato_baixas`
+    -   `fato_titulos`
+    -   `esteira_de_propostas`
 -   **`NB_Gold_Customer_Dashboard`**: Gera tabelas agregadas no `WH_Gold` para o dashboard de acompanhamento da carteira do cliente, identificando títulos em aberto e vencidos.
 -   **`NB_Gold_Risco_Cliente`**: Cria uma tabela agregada no `LH_Gold` que sumariza o valor total em risco para cada cliente, segmentado por tipo de produto.
 -   **`NB_Risk_Aggregation`**: Calcula métricas históricas de risco por cliente, como taxa de inadimplência e volume transacionado, e salva o resultado na tabela `risco_por_cliente` no `WH_Gold`.
@@ -314,8 +318,6 @@ Para maior clareza, abaixo está a lista de tabelas geradas pelo pipeline e suas
     *   `LH_Silver.staging_operacoes_limpa`
     *   `LH_Silver.staging_chave_danfe_detalhada`
     *   `LH_Silver.staging_baixas_limpa`
-    *   `LH_Silver.fato_baixas`
-    *   `LH_Silver.esteira_de_propostas`
     *   `LH_Silver.bridge_cliente_gerente`
     *   `LH_Silver.relacionamento_cliente_gerente_atual`
     *   Todas as tabelas de fatos e dimensões geradas pelo Notebook `NB_Curadoria_Gold`.

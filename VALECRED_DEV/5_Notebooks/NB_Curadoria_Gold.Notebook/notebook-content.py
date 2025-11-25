@@ -336,7 +336,7 @@ df_fato_baixas = df_enriquecido_baixas.select(
     df_dim_pago_por["descricao"].alias("PagoPor"),df_dim_forma_pagamento["descricao"].alias("Forma"),
     df_dim_tipo_taxa["descricao"].alias("TipoBaixa"), df_dim_motivo_baixa["descricao"].alias("Motivo"))
 
-output_path_fato_baixas = "LH_Silver.fato_baixas"
+output_path_fato_baixas = "LH_Gold.fato_baixas"
 df_fato_baixas.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_baixas)
 print(f"Tabela 'fato_baixas' construída e salva com sucesso em: {output_path_fato_baixas}")
 
@@ -688,7 +688,7 @@ df_final = df_ordem.select(
     "intercompany"
 )
 
-output_path_titulos_final = "LH_Silver.fato_titulos"
+output_path_titulos_final = "LH_Gold.fato_titulos"
 df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
 print(f"Tabela 'fato_titulos' construída e salva em: {output_path_titulos_final}")
 
@@ -711,7 +711,7 @@ print(f"Tabela 'fato_titulos' construída e salva em: {output_path_titulos_final
 print("\nIniciando o processamento incremental de pareceres.")
 source_table_name_pareceres = "LH_Bronze.cad_geral_pareceres"
 target_pareceres_status_table_name = "LH_Silver.pareceres_de_alteracao_de_status"
-target_esteira_table_name = "LH_Silver.esteira_de_propostas"
+target_esteira_table_name = "LH_Gold.esteira_de_propostas"
 watermark_table_name = "LH_Silver.etl_watermark_control"
 notebook_name = "NB_Prepare_Silver_Staging_Pareceres" # Mantendo o nome original do processo para compatibilidade do watermark
 
