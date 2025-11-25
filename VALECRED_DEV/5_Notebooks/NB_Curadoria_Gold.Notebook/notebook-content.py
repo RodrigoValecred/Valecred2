@@ -17,6 +17,9 @@
 # META         },
 # META         {
 # META           "id": "8f85c372-56ad-4f3f-acf9-3be2e9b99513"
+# META         },
+# META         {
+# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
 # META         }
 # META       ]
 # META     }
@@ -447,10 +450,17 @@ df_final_dim_produto = df_com_sk.select(
 )
 
 # Salva a dimensão no Data Warehouse Gold
-output_path_dim_produto = "WH_Gold.dim_produto"
+output_path_dim_produto = "LH_Gold.dim_produto"
 df_final_dim_produto.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_produto)
 print(f"Tabela 'dim_produto' construída e salva com sucesso em: {output_path_dim_produto}")
 
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # MARKDOWN ********************
 
@@ -473,8 +483,8 @@ df_feriados = spark.read.table("LH_Bronze.tab_feriados")
 
 # Tabelas de Dimensão/Fato auxiliares
 # A dim_produto agora é lida da camada Gold, onde é construída por este notebook.
-df_produtos = spark.read.table("WH_Gold.dim_produto")
-df_ultima_conf = spark.read.table("LH_Bronze.fact_ultima_confirmacao")
+df_produtos = spark.read.table("LH_Gold.dim_produto")
+df_ultima_conf = spark.read.table("LH_Silver.fact_ultima_confirmacao")
 
 # 6.2 Preparação e Enriquecimento
 # -------------------------------
