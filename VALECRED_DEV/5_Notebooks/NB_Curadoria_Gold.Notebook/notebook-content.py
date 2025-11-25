@@ -179,13 +179,18 @@ print("DataFrames intermediários criados e cacheados com sucesso.")
 # ----------------------------------------
 print("\nIniciando construção da fato_operacoes...")
 df_fato_operacoes = df_operacoes_enriquecida.select(
-    col("CODOPERACAO").alias("cod_operacao"), col("CODCLIENTE").alias("cod_cliente"),
-    col("CODEMPRESA").alias("cod_empresa"), col("DATAINCLUSAO").alias("data_inclusao"),
-    col("DATAANALISE").alias("data_analise"), col("DATAPAGAMENTO").alias("data_pagamento"),
-    col("VALORBRUTO").alias("valor_bruto"), col("VALORLIQUIDO").alias("valor_liquido"),
-    col("STATUSACEITE").alias("status_aceite"), col("STATUSANALISE").alias("status_analise"),
-    col("CODBROKER").alias("cod_broker"), col("TTO"), col("STTO"),
-    col("chave_produto"), col("operacao_informal")
+    col("CODOPERACAO").alias("cod_operacao"),
+    col("CODCLIENTE").alias("cod_cliente"),
+    col("CODEMPRESA").alias("cod_empresa"),
+    col("DATAINCLUSAO").alias("data_inclusao"),
+    col("DATAANALISE").alias("data_analise"),
+    col("STATUSACEITE").alias("status_aceite"),
+    col("STATUSANALISE").alias("status_analise"),
+    col("CODBROKER").alias("cod_broker"),
+    col("TTO"),
+    col("STTO"),
+    col("chave_produto"),
+    col("operacao_informal")
 )
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
