@@ -260,7 +260,7 @@ print(f"Tabela de cadastro geral desduplicada salva em: {output_path_geral}")
 # Célula 4.1: Parâmetros e Leitura
 # ------------------------------------------------
 source_table_operacoes = "tab_operacoes"
-target_table_operacoes = "staging_operacoes_base"
+target_table_operacoes = "staging_operacoes_limpa"
 print(f"\nIniciando a limpeza da tabela: {source_lakehouse}.{source_table_operacoes}")
 df_bronze_operacoes = spark.read.table(f"{source_lakehouse}.{source_table_operacoes}")
 
@@ -273,10 +273,13 @@ windowSpec_operacoes = Window.partitionBy([col(c) for c in key_columns_operacoes
 df_ranked_operacoes = df_corrigido.withColumn("row_num", row_number().over(windowSpec_operacoes))
 df_deduplicated_operacoes = df_ranked_operacoes.filter(col("row_num") == 1).drop("row_num")
 
+# Adiciona a chave do produto
+df_com_chave_produto = df_deduplicated_operacoes.withColumn("chave_produto", concat(col("TTO"), col("STTO")))
+
 # Célula 4.3: Salvar o Resultado
 # ------------------------------------------------------
 output_path_operacoes = f"{target_lakehouse}.{target_table_operacoes}"
-df_deduplicated_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_operacoes)
+df_com_chave_produto.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_operacoes)
 print(f"Tabela desduplicada salva com sucesso em: {output_path_operacoes}")
 
 # METADATA ********************

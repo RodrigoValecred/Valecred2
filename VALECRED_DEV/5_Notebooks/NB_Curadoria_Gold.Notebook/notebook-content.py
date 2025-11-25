@@ -218,7 +218,7 @@ df_latest_ocorrencia.unpersist()
 # Célula 3.1: Leitura da Base Limpa
 # ------------------------------------------------
 print("\nIniciando enriquecimento de operações...")
-df_operacoes_base = spark.read.table("LH_Silver.staging_operacoes_base")
+df_operacoes_base = spark.read.table("LH_Silver.staging_operacoes_limpa")
 
 # Célula 3.2: Enriquecimento com Gerente (Broker)
 # ------------------------------------------------
@@ -274,7 +274,7 @@ df_final_com_informal = df_com_vcount.withColumn(
 
 # Célula 3.4: Salvar Resultado
 # ------------------------------------------------
-output_path_operacoes = "LH_Silver.staging_operacoes_limpa"
+output_path_operacoes = "LH_Silver.staging_operacoes_enriquecida"
 df_final_com_informal.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_operacoes)
 print(f"Tabela de operações enriquecida salva em: {output_path_operacoes}")
 
@@ -356,7 +356,7 @@ from pyspark.sql.functions import concat, lit, when, col, sort_array, struct, mo
 
 # 6.1: Leitura das tabelas de origem
 # -----------------------------------
-df_operacoes_silver = spark.read.table("LH_Silver.staging_operacoes_limpa")
+df_operacoes_silver = spark.read.table("LH_Silver.staging_operacoes_enriquecida")
 df_tipo_op_bronze = spark.read.table("LH_Bronze.tab_tipooperacao")
 df_subtipo_op_bronze = spark.read.table("LH_Bronze.tab_subtipooperacao")
 
@@ -467,7 +467,7 @@ from pyspark.sql.functions import dayofweek
 df_titulos = spark.read.table("LH_Silver.staging_titulos_limpa")
 df_limites = spark.read.table("LH_Silver.staging_rlc_clientes_sacados_limites")
 df_devolucoes = spark.read.table("LH_Silver.staging_operacoes_devolucoes_limpa")
-df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa")
+df_operacoes = spark.read.table("LH_Silver.staging_operacoes_enriquecida")
 df_protestos = spark.read.table("LH_Silver.staging_protestos")
 df_feriados = spark.read.table("LH_Bronze.tab_feriados")
 
