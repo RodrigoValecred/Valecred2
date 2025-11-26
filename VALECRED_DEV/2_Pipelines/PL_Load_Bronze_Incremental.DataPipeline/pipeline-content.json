@@ -65,7 +65,7 @@
       {
         "type": "ForEach",
         "typeProperties": {
-          "batchCount": 4,
+          "batchCount": 30,
           "items": {
             "value": "@activity('Filter_FullOverwriteTables').output.value",
             "type": "Expression"
@@ -335,7 +335,7 @@
       {
         "type": "ForEach",
         "typeProperties": {
-          "batchCount": 3,
+          "batchCount": 30,
           "items": {
             "value": "@activity('Filter_IncrementalTables').output.value",
             "type": "Expression"
