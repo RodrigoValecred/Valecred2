@@ -179,18 +179,58 @@ print("DataFrames intermediários criados e cacheados com sucesso.")
 
 # CELL ********************
 
-# Célula 2.1: Construção da Fato Operações
+# Célula 2.1: Construção da Dimensão de Operações (antiga dim_produto)
+# -------------------------------------------------------------------
+print("\nIniciando construção da dim_operacoes...")
+df_operacoes_base = df_operacoes_enriquecida.select("STTO", "TTO", "chave_produto").distinct()
+df_com_tipo = df_operacoes_base.join(broadcast(df_tipo_op_bronze.select("CODTTO", "DESCRICAO")), df_operacoes_base.TTO == df_tipo_op_bronze.CODTTO, "left").withColumnRenamed("DESCRICAO", "tipo_operacao")
+df_com_subtipo = df_com_tipo.join(broadcast(df_subtipo_op_bronze.select("CODSTTO", "DESCRICAO")), df_com_tipo.STTO == df_subtipo_op_bronze.CODSTTO, "left").withColumnRenamed("DESCRICAO", "subtipo_operacao")
+
+df_com_nomes = df_com_subtipo.withColumn("nome_operacao",
+    when(col("subtipo_operacao").isNull(), col("tipo_operacao"))
+    .otherwise(concat(col("subtipo_operacao"), lit(" - "), col("tipo_operacao")))
+)
+df_nomes_limpos = df_com_nomes.withColumn("nome_operacao", regexp_replace(col("nome_operacao"), "COMISSÁRIA", "COMISSARIA SIMPLES")) \
+                               .withColumn("nome_operacao", regexp_replace(col("nome_operacao"), "COMISSARIA SIMPLES - COMISSARIA SIMPLES", "COMISSARIA SIMPLES"))
+
+df_info_mercado = df_nomes_limpos.withColumn("operacao_informacao_mercado", col("nome_operacao")) \
+                                 .withColumn("operacao_informacao_mercado", regexp_replace(col("operacao_informacao_mercado"), "NORMAL", "DESCONTO"))
+
+df_filtrado = df_info_mercado.filter(col("nome_operacao").isNotNull() & (col("nome_operacao") != ""))
+window_dedup = Window.partitionBy("chave_produto").orderBy(col("nome_operacao").asc())
+df_deduplicado = df_filtrado.withColumn("rn", row_number().over(window_dedup)).filter(col("rn") == 1).drop("rn")
+
+window_spec_sk = Window.orderBy("chave_produto")
+df_com_sk = df_deduplicado.sort("chave_produto").withColumn("sk_operacao", row_number().over(window_spec_sk))
+
+df_dim_operacoes_final = df_com_sk.select(
+    col("sk_operacao"),
+    col("chave_produto").alias("chave_operacao"),
+    col("TTO").alias("cod_tipo_operacao"),
+    col("STTO").alias("cod_subtipo_operacao"),
+    col("tipo_operacao"),
+    col("subtipo_operacao"),
+    col("nome_operacao"),
+    col("operacao_informacao_mercado")
+)
+
+output_path_dim_operacoes = "LH_Gold.dim_operacoes"
+df_dim_operacoes_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_operacoes)
+df_dim_operacoes = spark.read.table(output_path_dim_operacoes).cache() # Cache para uso nas Fatos
+dataframes_to_uncache.append("df_dim_operacoes")
+print(f"Tabela 'dim_operacoes' salva e em cache em: {output_path_dim_operacoes}")
+
+
+# Célula 2.2: Construção da Fato Operações
 # ----------------------------------------
 print("\nIniciando construção da fato_operacoes...")
 
-# Adicionando a sk_data para join com dim_calendario
-df_fato_operacoes_joined = df_operacoes_enriquecida.join(
-    broadcast(df_dim_calendario.select("data", "sk_data")),
-    df_operacoes_enriquecida["DATAINCLUSAO"].cast("date") == df_dim_calendario["data"],
-    "left"
-)
+# Adicionando sk_operacao e sk_data
+df_fato_operacoes_com_sk = df_operacoes_enriquecida \
+    .join(df_dim_operacoes.select("chave_operacao", "sk_operacao"), df_operacoes_enriquecida["chave_produto"] == df_dim_operacoes["chave_operacao"], "left") \
+    .join(broadcast(df_dim_calendario.select("data", "sk_data")), df_operacoes_enriquecida["DATAINCLUSAO"].cast("date") == df_dim_calendario["data"], "left")
 
-df_fato_operacoes = df_fato_operacoes_joined.select(
+df_fato_operacoes = df_fato_operacoes_com_sk.select(
     col("CODOPERACAO").alias("cod_operacao"),
     col("CODCLIENTE").alias("cod_cliente"),
     col("CODEMPRESA").alias("cod_empresa"),
@@ -199,23 +239,21 @@ df_fato_operacoes = df_fato_operacoes_joined.select(
     col("STATUSACEITE").alias("status_aceite"),
     col("STATUSANALISE").alias("status_analise"),
     col("CODBROKER").alias("cod_broker"),
-    col("TTO"),
-    col("STTO"),
-    col("chave_produto"),
     col("operacao_informal"),
     col("TOTRETENCAO").alias("valor_retido"),
     col("TOTDES").alias("valor_desembolsado"),
     col("TOTFAC").alias("valor_de_face"),
     col("TOTDCP").alias("desagio"),
     col("TOTTAR").alias("total_de_tarifas"),
-    col("sk_data")
+    col("sk_data"),
+    col("sk_operacao")
 )
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
 print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
 
 
-# Célula 2.2: Construção da Fato Baixas
+# Célula 2.3: Construção da Fato Baixas
 # -------------------------------------
 print("\nIniciando construção da fato_baixas...")
 df_baixas_corrigido = df_baixas_staging.withColumn("JUROS",
@@ -241,30 +279,6 @@ output_path_fato_baixas = "LH_Gold.fato_baixas"
 df_fato_baixas.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_baixas)
 print(f"Tabela 'fato_baixas' salva em: {output_path_fato_baixas}")
 
-
-# Célula 2.3: Construção da Dimensão Produto
-# ------------------------------------------
-print("\nIniciando construção da dim_produto...")
-df_produtos_base = df_operacoes_enriquecida.select("STTO", "TTO").distinct()
-df_com_tipo = df_produtos_base.join(broadcast(df_tipo_op_bronze.select("CODTTO", "DESCRICAO")), df_produtos_base.TTO == df_tipo_op_bronze.CODTTO, "left").withColumnRenamed("DESCRICAO", "TipoProduto")
-df_com_subtipo = df_com_tipo.join(broadcast(df_subtipo_op_bronze.select("CODSTTO", "DESCRICAO")), df_com_tipo.STTO == df_subtipo_op_bronze.CODSTTO, "left").withColumnRenamed("DESCRICAO", "SubTipoProduto")
-df_com_chaves = df_com_subtipo.withColumn("chave_produto", concat(col("TTO"), col("STTO"))).withColumn("Produto", when(col("SubTipoProduto").isNull(), col("TipoProduto")).otherwise(concat(col("SubTipoProduto"), lit(" - "), col("TipoProduto"))))
-df_nomes_limpos = df_com_chaves.withColumn("Produto", regexp_replace(col("Produto"), "COMISSÁRIA", "COMISSARIA SIMPLES")).withColumn("Produto", regexp_replace(col("Produto"), "COMISSARIA SIMPLES - COMISSARIA SIMPLES", "COMISSARIA SIMPLES"))
-df_info_mercado = df_nomes_limpos.withColumn("ProdutoInformacaoMercado", col("Produto")).withColumn("ProdutoInformacaoMercado", regexp_replace(col("ProdutoInformacaoMercado"), "NORMAL", "DESCONTO"))
-df_staging_produto_lbfactor = df_info_mercado.select("ProdutoInformacaoMercado", "Produto", "chave_produto")
-df_filtrado = df_staging_produto_lbfactor.filter(col("Produto").isNotNull() & (col("Produto") != ""))
-window_dedup = Window.partitionBy("chave_produto").orderBy(col("Produto").asc())
-df_deduplicado = df_filtrado.withColumn("rn", row_number().over(window_dedup)).filter(col("rn") == 1).drop("rn")
-window_spec_sk = Window.orderBy("chave_produto")
-df_com_sk = df_deduplicado.sort("chave_produto").withColumn("sk_produto", row_number().over(window_spec_sk))
-df_dim_produto_final = df_com_sk.select(col("sk_produto"), col("chave_produto"), col("Produto").alias("produto"), col("ProdutoInformacaoMercado").alias("produto_informacao_de_mercado"))
-
-output_path_dim_produto = "LH_Gold.dim_produto"
-df_dim_produto_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_produto)
-df_dim_produto = spark.read.table(output_path_dim_produto).cache() # Cache para uso na Fato Títulos
-dataframes_to_uncache.append("df_dim_produto")
-print(f"Tabela 'dim_produto' salva e em cache em: {output_path_dim_produto}")
-
 # METADATA ********************
 
 # META {
@@ -287,7 +301,7 @@ df_titulos_base = df_titulos_limpa.filter(~col("TDOC").isin("BL", "RC")) \
 
 df_operacoes_small = df_operacoes_enriquecida.select("CODOPERACAO", "CODCLIENTE", "DATAANALISE", "STATUSACEITE", "STATUSANALISE", "chave_produto")
 df_limites_small = df_limites.select("chave_cliente_sacado", "TIPO")
-df_produtos_small = df_dim_produto.select(col("chave_produto"), col("produto_informacao_de_mercado").alias("produto_temp"))
+df_operacoes_dim_small = df_dim_operacoes.select(col("chave_operacao"), col("sk_operacao"), col("operacao_informacao_mercado").alias("produto_temp"))
 df_devolucoes_small = df_devolucoes.select(col("CODTITULO"), col("CODOPERACAO").alias("cod_operacao_recompra"))
 df_ultima_conf_small = df_ultima_conf.select(col("cod_titulo").alias("CODTITULO"), col("confirmacao").alias("confirmado_por"))
 df_protestos_small = df_protestos.select("CODTITULO", "STATUS_PROTESTO")
@@ -296,7 +310,7 @@ df_titulos_com_chave_sacado = df_titulos_base.join(broadcast(df_operacoes_small)
 
 df_enriquecido = df_titulos_com_chave_sacado \
     .join(broadcast(df_limites_small), "chave_cliente_sacado", "left") \
-    .join(broadcast(df_produtos_small), "chave_produto", "left") \
+    .join(broadcast(df_operacoes_dim_small), df_titulos_com_chave_sacado.chave_produto == df_operacoes_dim_small.chave_operacao, "left") \
     .join(broadcast(df_devolucoes_small), "CODTITULO", "left") \
     .join(broadcast(df_ultima_conf_small), "CODTITULO", "left") \
     .join(broadcast(df_protestos_small), "CODTITULO", "left") \
@@ -331,7 +345,7 @@ df_ordem = df_conf.withColumn("ordem_confirmacao", when(col("confirmacao") == "N
 df_fato_titulos_final = df_ordem.select(
     "CODTITULO", "CODOPERACAO", "TDOC", "NDOC", "CPFCNPJSACADO", "VENCIMENTO", "VENCPRORROGADO", "VALOR",
     "PRAZO", "ACEITO", "DATAINCLUSAO", "USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "AMORTIZACOES",
-    "chave_produto", "status_protesto", "TipoDocumentoSacado", "RaizCNPJ", "valor_vezes_prazo",
+    "sk_operacao", "status_protesto", "TipoDocumentoSacado", "RaizCNPJ", "valor_vezes_prazo",
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany"
 )
@@ -431,8 +445,10 @@ print("Processo incremental de pareceres concluído.")
 print("\nLimpando os DataFrames do cache...")
 for df_name_str in dataframes_to_uncache:
     try:
-        globals()[df_name_str].unpersist()
-        print(f"Cache de '{df_name_str}' liberado.")
+        # Extra check to ensure we are unpersisting a DataFrame
+        if isinstance(globals()[df_name_str], DataFrame):
+             globals()[df_name_str].unpersist()
+             print(f"Cache de '{df_name_str}' liberado.")
     except Exception as e:
         print(f"Não foi possível liberar o cache de '{df_name_str}': {e}")
 print("Limpeza do cache concluída.")
