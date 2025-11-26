@@ -275,8 +275,31 @@ df_com_chave_produto = df_deduplicated_operacoes.withColumn("chave_produto", con
 
 # Célula 4.3: Salvar o Resultado
 # ------------------------------------------------------
+# Seleciona explicitamente as colunas para garantir um schema de saída estável
+# e incluir as novas colunas solicitadas.
+df_silver_operacoes_final = df_com_chave_produto.select(
+    "CODOPERACAO",
+    "CODCLIENTE",
+    "CODEMPRESA",
+    "DATAINCLUSAO",
+    "DATAALTERACAO", # Mantido para referência e rastreabilidade
+    "DATAANALISE",
+    "STATUSACEITE",
+    "STATUSANALISE",
+    "CODBROKER",
+    "NOTASERVICO", # Necessário para a lógica de 'operação informal' no Gold
+    "TTO",
+    "STTO",
+    "chave_produto",
+    "TOTRETENCAO",
+    "TOTDES",
+    "TOTFAC",
+    "TOTDCP",
+    "TOTTAR"
+)
+
 output_path_operacoes = f"{target_lakehouse}.{target_table_operacoes}"
-df_com_chave_produto.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_operacoes)
+df_silver_operacoes_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_operacoes)
 print(f"Tabela desduplicada salva com sucesso em: {output_path_operacoes}")
 
 # METADATA ********************
