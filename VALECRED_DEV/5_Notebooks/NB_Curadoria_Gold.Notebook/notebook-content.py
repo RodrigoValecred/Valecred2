@@ -83,6 +83,10 @@ df_titulos_limpa = spark.read.table("LH_Silver.staging_titulos_limpa").cache()
 dataframes_to_uncache.append("df_titulos_limpa")
 
 
+# ---- Camada Gold (Tabelas de Dimensão) ----
+df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
+dataframes_to_uncache.append("df_dim_calendario")
+
 # ---- Tabelas de Suporte (Silver) ----
 df_dim_pago_por = spark.read.table("LH_Silver.sup_pago_pelo")
 df_dim_forma_pagamento = spark.read.table("LH_Silver.sup_forma_de_pagamento")
@@ -178,7 +182,15 @@ print("DataFrames intermediários criados e cacheados com sucesso.")
 # Célula 2.1: Construção da Fato Operações
 # ----------------------------------------
 print("\nIniciando construção da fato_operacoes...")
-df_fato_operacoes = df_operacoes_enriquecida.select(
+
+# Adicionando a sk_data para join com dim_calendario
+df_fato_operacoes_joined = df_operacoes_enriquecida.join(
+    broadcast(df_dim_calendario.select("data", "sk_data")),
+    df_operacoes_enriquecida["DATAINCLUSAO"].cast("date") == df_dim_calendario["data"],
+    "left"
+)
+
+df_fato_operacoes = df_fato_operacoes_joined.select(
     col("CODOPERACAO").alias("cod_operacao"),
     col("CODCLIENTE").alias("cod_cliente"),
     col("CODEMPRESA").alias("cod_empresa"),
@@ -190,7 +202,8 @@ df_fato_operacoes = df_operacoes_enriquecida.select(
     col("TTO"),
     col("STTO"),
     col("chave_produto"),
-    col("operacao_informal")
+    col("operacao_informal"),
+    col("sk_data")
 )
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
