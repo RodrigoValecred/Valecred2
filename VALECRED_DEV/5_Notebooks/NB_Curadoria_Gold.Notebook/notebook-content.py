@@ -203,6 +203,11 @@ df_fato_operacoes = df_fato_operacoes_joined.select(
     col("STTO"),
     col("chave_produto"),
     col("operacao_informal"),
+    col("TOTRETENCAO").alias("valor_retido"),
+    col("TOTDES").alias("valor_desembolsado"),
+    col("TOTFAC").alias("valor_de_face"),
+    col("TOTDCP").alias("desagio"),
+    col("TOTTAR").alias("total_de_tarifas"),
     col("sk_data")
 )
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
