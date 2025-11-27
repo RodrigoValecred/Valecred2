@@ -295,7 +295,8 @@ df_silver_operacoes_final = df_com_chave_produto.select(
     "TOTDES",
     "TOTFAC",
     "TOTDCP",
-    "TOTTAR"
+    "TOTTAR",
+    "TOTRECOMPRA"
 )
 
 output_path_operacoes = f"{target_lakehouse}.{target_table_operacoes}"
