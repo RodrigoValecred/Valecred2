@@ -208,7 +208,8 @@ df_fato_operacoes = df_fato_operacoes_joined.select(
     col("TOTFAC").alias("valor_de_face"),
     col("TOTDCP").alias("desagio"),
     col("TOTTAR").alias("total_de_tarifas"),
-    col("sk_data")
+    col("sk_data"),
+    col("TOTRECOMPRA").alias("valor_recomprado")
 )
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
