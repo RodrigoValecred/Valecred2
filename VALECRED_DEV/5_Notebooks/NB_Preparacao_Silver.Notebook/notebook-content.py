@@ -654,7 +654,214 @@ print(f"Tabela de staging para protestos salva com sucesso em: {output_path_prot
 
 # MARKDOWN ********************
 
-# ## Seção 12: Limpeza do Cache
+# ## Seção 12: Limpeza de Tabelas Adicionais (Empresas, Abatimentos, Notificações, TAC M)
+# **Objetivo:** Limpar e transformar tabelas de menor complexidade mas necessárias para o processo: `cad_empresas`, `tab_titulos_abatimento`, `tab_titulos_cobranca` (notificações) e `tab_operacoes_tarifas_extras` (TAC M).
+
+# CELL ********************
+
+# 12.1 Processamento de Staging Empresas
+# ----------------------------------------------------
+print("\nIniciando processamento de staging_empresas...")
+df_empresas = spark.read.table("LH_Bronze.cad_empresas")
+df_empresas_filtered = df_empresas \
+    .filter(col("CODEMPRESA").isin([6, 14, 24, 25])) \
+    .select(
+        col("CODEMPRESA").alias("cod_empresa"),
+        col("CNPJ").alias("cnpj")
+    )
+df_empresas_filtered.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_empresas")
+print("Tabela staging_empresas salva.")
+
+# 12.2 Processamento de Staging Abatimentos
+# ----------------------------------------------------
+print("\nIniciando processamento de staging_abatimentos...")
+df_abatimentos = spark.read.table("LH_Bronze.tab_titulos_abatimento")
+df_abatimentos_final = df_abatimentos.select(
+    col("CODTITULOABAT").alias("cod_titulo_abat"),
+    col("CODOPERACAO").alias("cod_operacao"),
+    col("CODTITULO").alias("cod_titulo"),
+    col("CODOPERACAOAB").alias("cod_operacao_ab"),
+    col("VALORDEVIDO").alias("valor_devido"),
+    col("ABATIMENTO").alias("abatimento"),
+    col("DATAINCLUSAO").alias("data_inclusao"),
+    col("CODBANCOCOBR").alias("cod_banco_cobr"),
+    col("USUAINCLUSAO").alias("usua_inclusao")
+).withColumn("Data", col("data_inclusao").cast("date"))
+
+df_abatimentos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_abatimentos")
+print("Tabela staging_abatimentos salva.")
+
+# 12.3 Processamento de Staging Notificações
+# ----------------------------------------------------
+print("\nIniciando processamento de staging_notificacoes...")
+df_notificacoes = spark.read.table("LH_Bronze.tab_titulos_cobranca")
+
+# Função para decodificar e limpar observação
+def clean_obs(col_name):
+    # Assume que se for binário, spark lê como binário ou string.
+    # Se for string, apenas substitui. Se for binário, precisa de decode.
+    # O padrão seguro é cast para string e replaces.
+    # O Dataflow usava Text.FromBinary(_, 1252), indicando encoding cp1252.
+    return regexp_replace(
+        regexp_replace(col(col_name).cast("string"), "&ccedil;", "ç"),
+        "&atilde;", "ã"
+    )
+
+df_notificacoes_final = df_notificacoes \
+    .filter(col("CODOCORCOBRANCA") == 12) \
+    .select(
+        col("CODOPERACAO").alias("cod_operacao"),
+        col("CODTITULO").alias("cod_titulo"),
+        col("COBRADOAO").alias("cobrado_ao"),
+        col("CODOCORCOBRANCA").alias("cod_ocor_cobranca"),
+        clean_obs("OBSERVACAO").alias("observacao"),
+        col("DATAINCLUSAO").alias("data_inclusao"),
+        col("USUAINCLUSAO").alias("usua_inclusao")
+    )
+
+df_notificacoes_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_notificacoes")
+print("Tabela staging_notificacoes salva.")
+
+# 12.4 Processamento de Staging TAC M
+# ----------------------------------------------------
+print("\nIniciando processamento de staging_tac_m...")
+df_tac = spark.read.table("LH_Bronze.tab_operacoes_tarifas_extras")
+
+# Filtro de ano >= 2024 e seleção/renomeação inicial
+df_tac_renamed = df_tac \
+    .filter(year(col("DATAINCLUSAO")) >= 2024) \
+    .select(
+        col("CODTARIFAEXTRA").alias("cod_tarifa_extra"),
+        col("CODOPERACAO").alias("cod_operacao"),
+        col("DESCRICAO").alias("descricao"),
+        col("TOTAL").alias("total"),
+        col("DATAINCLUSAO").alias("data_inclusao"),
+        col("USUAINCLUSAO").alias("usua_inclusao")
+    )
+
+# Limpeza da descrição (Upper, Trim, Replaces)
+df_tac_cleaned = df_tac_renamed \
+    .withColumn("descricao", upper(col("descricao"))) \
+    .withColumn("descricao", regexp_replace(col("descricao"), "^\\s+|\\s+$", "")) \
+    .withColumn("descricao",
+        when(col("descricao") == "TAC  M", lit("TAC M"))
+        .when(col("descricao") == "TAC MOP", lit("TAC M"))
+        .when(col("descricao") == "TAC M.", lit("TAC M"))
+        .when(col("descricao") == "TACM", lit("TAC M"))
+        .when(col("descricao") == "TACA M", lit("TAC M"))
+        .when(col("descricao") == "TAC M 300,00", lit("TAC M"))
+        .when(col("descricao") == "TAC", lit("TAC M"))
+        .otherwise(col("descricao"))
+    ) \
+    .filter(col("descricao") == "TAC M") \
+    .orderBy(col("data_inclusao").desc())
+
+df_tac_cleaned.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_tac_m")
+print("Tabela staging_tac_m salva.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Seção 13: Processamento de Tabelas Auxiliares e Relacionamentos
+# **Objetivo:** Migrar tabelas restantes: `staging_gerentes`, `staging_plataformas`, `staging_boletos_titulos`, `staging_status_clientes_esteira`.
+
+# CELL ********************
+
+# 13.1 Processamento de Staging Gerentes
+# ----------------------------------------------------
+print("\nIniciando processamento de staging_gerentes...")
+df_brokers = spark.read.table("LH_Bronze.cad_brokers")
+df_gerentes = df_brokers.select(
+    col("CODBROKER").alias("cod_broker"),
+    col("CPFCNPJ").alias("cpf_cnpj"),
+    col("CODAGENCIA").alias("cod_agencia"),
+    col("CODUSUARIO").alias("cod_usuario")
+)
+df_gerentes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_gerentes")
+print("Tabela staging_gerentes salva.")
+
+# 13.2 Processamento de Staging Plataformas
+# ----------------------------------------------------
+print("\nIniciando processamento de staging_plataformas...")
+df_agencias = spark.read.table("LH_Bronze.cad_agencias")
+# Assumindo que sup_gestor_de_plataforma está no Silver, baseado nos IDs do Dataflow.
+df_sup_gestor = spark.read.table("LH_Silver.sup_gestor_de_plataforma")
+
+df_plataformas_base = df_agencias.select(
+    col("CODAGENCIA").alias("cod_agencia"),
+    col("NOME").alias("nome_plataforma")
+)
+
+df_plataformas_joined = df_plataformas_base.join(
+    df_sup_gestor,
+    on="cod_agencia",
+    how="left"
+)
+
+# Transforma 'nome_plataforma' removendo a primeira palavra (geralmente "AGENCIA")
+df_plataformas_final = df_plataformas_joined.withColumn(
+    "plataforma",
+    regexp_replace(col("nome_plataforma"), "^.*? ", "")
+).select(
+    "cod_agencia",
+    "nome_plataforma",
+    "gestor_da_plataforma",
+    "plataforma"
+)
+
+df_plataformas_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_plataformas")
+print("Tabela staging_plataformas salva.")
+
+# 13.3 Processamento de Staging Boletos Títulos
+# ----------------------------------------------------
+print("\nIniciando processamento de staging_boletos_titulos...")
+# Lê da staging_titulos_limpa que já está em cache ou salva no lakehouse
+df_titulos_limpa = spark.table("LH_Silver.staging_titulos_limpa")
+
+df_boletos = df_titulos_limpa \
+    .filter(col("t_doc") == "BL") \
+    .filter(col("data_inclusao") >= "2021-01-01") \
+    .drop(
+        "venc_prorrogado",
+        "prazo",
+        "desagio",
+        "data_conf",
+        "usua_conf",
+        "doc_confirmado",
+        "chave_danfe"
+    )
+
+df_boletos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_boletos_titulos")
+print("Tabela staging_boletos_titulos salva.")
+
+# 13.4 Processamento de Status Clientes Esteira
+# ----------------------------------------------------
+print("\nIniciando processamento de staging_status_clientes_esteira...")
+df_sup_status = spark.read.table("LH_Silver.sup_status_de_clientes_da_esteira")
+
+# Renomeação simples
+df_status_esteira = df_sup_status.withColumnRenamed("codstatuscliente", "cod_status_cliente") \
+    .select("cod_status_cliente", "status_do_cliente", "macroprocesso", "fase")
+
+df_status_esteira.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_status_clientes_esteira")
+print("Tabela staging_status_clientes_esteira salva.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Seção 14: Limpeza do Cache
 # **Objetivo:** Liberar os DataFrames que foram armazenados em cache da memória do Spark.
 
 # CELL ********************
