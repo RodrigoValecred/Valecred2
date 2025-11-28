@@ -825,7 +825,7 @@ print("\nIniciando processamento de staging_boletos_titulos...")
 df_titulos_limpa = spark.table("LH_Silver.staging_titulos_limpa")
 
 df_boletos = df_titulos_limpa \
-    .filter(col("t_doc") == "BL") \
+    .filter(col("TDOC") == "BL") \
     .filter(col("data_inclusao") >= "2021-01-01") \
     .drop(
         "venc_prorrogado",
