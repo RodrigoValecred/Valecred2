@@ -104,10 +104,47 @@ windowSpec_titulos = Window.partitionBy([col(c) for c in key_columns_titulos]).o
 df_ranked_titulos = df_with_latest_date.withColumn("row_num", row_number().over(windowSpec_titulos))
 df_deduplicated_titulos = df_ranked_titulos.filter(col("row_num") == 1).drop("row_num", "DATA_MAIS_RECENTE")
 
+# Célula 1.3: Seleção e Renomeação de Colunas
+# ------------------------------------------------------
+df_titulos_final = df_deduplicated_titulos.select(
+    col("CODTITULO").alias("cod_titulo"),
+    col("CODOPERACAO").alias("cod_operacao"),
+    col("NDOC").alias("n_doc"),
+    col("TDOC").alias("t_doc"),
+    col("VENCIMENTO").alias("vencimento"),
+    col("VENCPRORROGADO").alias("venc_prorrogado"),
+    col("PRAZO").alias("prazo"),
+    col("CPFCNPJSACADO").alias("cpf_cnpj_sacado"),
+    col("CPFCNPJCEDENTE").alias("cpf_cnpj_cedente"),
+    col("VALOR").alias("valor"),
+    col("DESAGIO").alias("desagio"),
+    col("LIQUIDO").alias("liquido"),
+    col("AMORTIZACOES").alias("amortizacoes"),
+    col("VALORDEVIDO").alias("valor_devido"),
+    col("LIQUIDACAO").alias("liquidacao"),
+    col("ACEITO").alias("aceito"),
+    col("CODBANCOCOBR").alias("cod_banco_cobr"),
+    col("DATACONF").alias("data_conf"),
+    col("USUACONF").alias("usua_conf"),
+    col("DATAINCLUSAO").alias("data_inclusao"),
+    col("DOCCONFIRMADO").alias("doc_confirmado"),
+    col("MOTIVO").alias("motivo"),
+    col("PRACA").alias("praca"),
+    col("CHAVEDANFE").alias("chave_danfe"),
+    col("NOSSONUMERO").alias("nosso_numero"),
+    col("CODFUNDO").alias("cod_fundo"),
+    col("TTO").alias("tipo_cobranca"),
+    col("FILIAL").alias("raiz_cnpj"),
+    col("CODEMISSAO").alias("cod_emissao"),
+    col("STATUSCONFIRMACAO").alias("status_confirmacao"),
+    col("SEUNUMERO").alias("seu_numero_bancario"),
+    col("CODREMESSA").alias("cod_remessa")
+).orderBy(col("data_inclusao").desc())
+
 # Célula 1.4: Salvar e Armazenar em Cache
 # ------------------------------------------------------
 output_path_titulos = f"{target_lakehouse}.{target_table_titulos}"
-df_deduplicated_titulos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos)
+df_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos)
 
 # Armazena o resultado em cache
 spark.table(output_path_titulos).cache()
@@ -326,8 +363,9 @@ df_titulos_danfe = spark.table(f"{target_lakehouse}.{danfe_source_table}") # Usa
 
 # Célula 5.2: Lógica de Transformação da CHAVEDANFE
 # ------------------------------------------------
+# Nota: A tabela staging_titulos_limpa agora usa snake_case (chave_danfe)
 df_chave_filtrada = df_titulos_danfe \
-    .select("CHAVEDANFE") \
+    .select(col("chave_danfe").alias("CHAVEDANFE")) \
     .na.drop(subset=["CHAVEDANFE"]) \
     .filter((col("CHAVEDANFE") != "") & (length(col("CHAVEDANFE")) == 44)) \
     .filter(~col("CHAVEDANFE").contains("XML NF-E 495 MOMENTUM OP. 149717.XML de NF-E")) \
@@ -824,8 +862,10 @@ print("\nIniciando processamento de staging_boletos_titulos...")
 # Lê da staging_titulos_limpa que já está em cache ou salva no lakehouse
 df_titulos_limpa = spark.table("LH_Silver.staging_titulos_limpa")
 
+# Garante que usamos nomes snake_case, mas tem uma verificação de fallback caso a tabela não tenha sido atualizada
+# O padrão agora é snake_case (t_doc, data_inclusao)
 df_boletos = df_titulos_limpa \
-    .filter(col("TDOC") == "BL") \
+    .filter(col("t_doc") == "BL") \
     .filter(col("data_inclusao") >= "2021-01-01") \
     .drop(
         "venc_prorrogado",
