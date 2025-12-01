@@ -70,7 +70,8 @@ print("Processando Clientes...")
 df_bronze_clientes = spark.read.table(f"{source_lakehouse}.cad_clientes")
 windowSpec_clientes = Window.partitionBy("CODCLIENTE").orderBy(col("DATAALTERACAO").desc())
 df_deduplicated_clientes = df_bronze_clientes.withColumn("row_num", row_number().over(windowSpec_clientes)) \
-    .filter(col("row_num") == 1).drop("row_num")
+    .filter(col("row_num") == 1).drop("row_num") \
+    .select(col("CODCLIENTE").alias("cod_cliente"), col("CPFCNPJ").alias("cpf_cnpj"))
 df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_clientes_limpa")
 
 # 1.2 Cadastro Geral
@@ -78,7 +79,8 @@ print("Processando Cadastro Geral...")
 df_geral_bronze = spark.read.table("LH_Bronze.cad_geral_pf_pj")
 window_geral = Window.partitionBy("CPFCNPJ").orderBy(col("DATAALTERACAO").desc())
 df_geral_deduplicated = df_geral_bronze.withColumn("row_num", row_number().over(window_geral)) \
-    .filter(col("row_num") == 1).drop("row_num")
+    .filter(col("row_num") == 1).drop("row_num") \
+    .select(col("CPFCNPJ").alias("cpf_cnpj"), col("NOME").alias("nome"), col("RAZAOSOCIAL").alias("razao_social"))
 df_geral_deduplicated.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_cad_geral_pf_pj_limpa")
 
 # METADATA ********************
@@ -101,23 +103,23 @@ df_telefones_agg = spark.read.table("LH_Bronze.cad_telefones") \
     .withColumn("FONE_limpo", regexp_replace(col("FONE"), "-", "")) \
     .withColumn("FONE_COMPLETO", regexp_replace(concat(col("DDD"), col("FONE_limpo")), " ", "")) \
     .filter((length(col("FONE_COMPLETO")) >= 10) & (length(col("FONE_COMPLETO")) <= 11)) \
-    .select(col("CPFCNPJ"), col("FONE_COMPLETO").alias("FONE"), col("CONTATO")).distinct() \
-    .groupBy("CPFCNPJ").agg(concat_ws("; ", collect_list("FONE")).alias("Telefones"))
+    .select(col("CPFCNPJ").alias("cpf_cnpj"), col("FONE_COMPLETO").alias("fone"), col("CONTATO")).distinct() \
+    .groupBy("cpf_cnpj").agg(concat_ws("; ", collect_list("fone")).alias("telefones"))
 df_telefones_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_telefones_agg")
 
 # 2.2 Emails
 print("Processando Emails...")
 df_emails_agg = spark.read.table("LH_Bronze.cad_email") \
     .filter(col("EMAIL").isNotNull() & (col("EMAIL") != "")) \
-    .select("CPFCNPJ", "EMAIL").distinct() \
-    .groupBy("CPFCNPJ").agg(concat_ws("; ", collect_list("EMAIL")).alias("Emails"))
+    .select(col("CPFCNPJ").alias("cpf_cnpj"), col("EMAIL").alias("email")).distinct() \
+    .groupBy("cpf_cnpj").agg(concat_ws("; ", collect_list("email")).alias("emails"))
 df_emails_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_emails_agg")
 
 # 2.3 Endereços
 print("Processando Endereços...")
 schema_regioes = StructType([
-    StructField("Sigla", StringType(), True), StructField("Estado", StringType(), True),
-    StructField("Capital", StringType(), True), StructField("Regiao", StringType(), True)
+    StructField("sigla", StringType(), True), StructField("estado", StringType(), True),
+    StructField("capital", StringType(), True), StructField("regiao", StringType(), True)
 ])
 data_regioes = [("AC", "Acre", "Rio Branco", "Norte"),("AL", "Alagoas", "Maceió", "Nordeste"),("AP", "Amapá", "Macapá", "Norte"),("AM", "Amazonas", "Manaus", "Norte"),("BA", "Bahia", "Salvador", "Nordeste"),("CE", "Ceará", "Fortaleza", "Nordeste"),("DF", "Distrito Federal", "Brasília", "Centro-Oeste"),("ES", "Espírito Santo", "Vitória", "Sudeste"),("GO", "Goiás", "Goiânia", "Centro-Oeste"),("MA", "Maranhão", "São Luís", "Nordeste"),("MT", "Mato Grosso", "Cuiabá", "Centro-Oeste"),("MS", "Mato Grosso do Sul", "Campo Grande", "Centro-Oeste"),("MG", "Minas Gerais", "Belo Horizonte", "Sudeste"),("PA", "Pará", "Belém", "Norte"),("PB", "Paraíba", "João Pessoa", "Nordeste"),("PR", "Paraná", "Curitiba", "Sul"),("PE", "Pernambuco", "Recife", "Nordeste"),("PI", "Piauí", "Teresina", "Nordeste"),("RJ", "Rio de Janeiro", "Rio de Janeiro", "Sudeste"),("RN", "Rio Grande do Norte", "Natal", "Nordeste"),("RS", "Rio Grande do Sul", "Porto Alegre", "Sul"),("RO", "Rondônia", "Porto Velho", "Norte"),("RR", "Roraima", "Boa Vista", "Norte"),("SC", "Santa Catarina", "Florianópolis", "Sul"),("SP", "São Paulo", "São Paulo", "Sudeste"),("SE", "Sergipe", "Aracaju", "Nordeste"),("TO", "Tocantins", "Palmas", "Norte")]
 df_regioes = spark.createDataFrame(data=data_regioes, schema=schema_regioes).cache()
@@ -135,9 +137,9 @@ df_enderecos_final = df_upper \
     .filter(col("CPFCNPJ") != "00000000000000") \
     .withColumn("CIDADE_limpa", regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(col("CIDADE"), "[ÃÂÁ]", "A"), "[É]", "E"), "[Í]", "I"), "[Ó]", "O"), "[Ú]", "U"), "-", " ")) \
     .drop("CIDADE").withColumnRenamed("CIDADE_limpa", "CIDADE") \
-    .join(df_regioes, col("UF") == df_regioes.Sigla, "left") \
+    .join(df_regioes, col("UF") == df_regioes.sigla, "left") \
     .withColumn("CPFCNPJ_valido", col("CPFCNPJ").cast("long")).filter(col("CPFCNPJ_valido").isNotNull()) \
-    .select("CPFCNPJ", "ENDERECO", "NUMERO", "COMPLEMENTO", "BAIRRO", "CIDADE", "UF", "CEP", "Estado", "Capital", "Regiao")
+    .select(col("CPFCNPJ").alias("cpf_cnpj"), col("ENDERECO").alias("endereco"), col("NUMERO").alias("numero"), col("COMPLEMENTO").alias("complemento"), col("BAIRRO").alias("bairro"), col("CIDADE").alias("cidade"), col("UF").alias("uf"), col("CEP").alias("cep"), col("estado"), col("capital"), col("regiao"))
 
 df_enderecos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_enderecos_limpa")
 df_regioes.unpersist()
@@ -161,8 +163,8 @@ df_bronze_contratos = spark.read.table("LH_Bronze.cad_contratos_clientes")
 df_transformed_contratos = df_bronze_contratos \
     .withColumn("PERCCONFIRMACAO", col("PERCCONFIRMACAO") / 100) \
     .withColumn("STATUSDIRETORIA", when(col("OBSERVACOES").like("%#STATUSDIRETORIA%"), 1).otherwise(0)) \
-    .select("CODCONTRATO", "CODCLIENTE", "DTINICONTRATO", "VALIDADELIMITE", "FATOR", "LIMITEFOMENTO", "LIMITECOMISSARIA", "STATUS", "PERCCONFIRMACAO", "TRANCHE", "STATUSDIRETORIA") \
-    .orderBy(col("CODCONTRATO").desc())
+    .select(col("CODCONTRATO").alias("cod_contrato"), col("CODCLIENTE").alias("cod_cliente"), col("DTINICONTRATO").alias("dt_ini_contrato"), col("VALIDADELIMITE").alias("validade_limite"), col("FATOR").alias("fator"), col("LIMITEFOMENTO").alias("limite_fomento"), col("LIMITECOMISSARIA").alias("limite_comissaria"), col("STATUS").alias("status"), col("PERCCONFIRMACAO").alias("perc_confirmacao"), col("TRANCHE").alias("tranche"), col("STATUSDIRETORIA").alias("status_diretoria")) \
+    .orderBy(col("cod_contrato").desc())
 df_transformed_contratos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_contratos_clientes_limpa")
 
 # 3.2 Bridge Cliente-Gerente
