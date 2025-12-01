@@ -127,7 +127,9 @@ Os notebooks PySpark são agora o padrão oficial para toda a lógica de negóci
 
 #### Notebooks de Transformação (Bronze para Silver)
 
--   **`NB_Preparacao_Silver`**: Responsável pela **limpeza, tratamento e desduplicação** das tabelas da camada Bronze (ex: `titulos`, `clientes`, `operacoes`). Além disso, agora inclui a lógica de construção da **Bridge Cliente-Gerente**, centralizando o preparo de dados fundamentais.
+-   **`NB_Prepara_Tabela_Cadastros`**: Processamento de tabelas dimensionais e cadastrais (clientes, geral, telefones, endereços, contratos, bridge, limites, empresas, gerentes, plataformas, status).
+-   **`NB_Prepara_Tabela_Titulos`**: Processamento da tabela `tab_titulos` e tabelas relacionadas (baixas, protestos, abatimentos, boletos, danfe).
+-   **`NB_Prepara_Tabela_Operacoes`**: Processamento da tabela `tab_operacoes`, `tab_operacoes_devolucoes` e `tab_operacoes_tarifas_extras`.
 -   **`NB_Process_Contact_Info`**: Processa e limpa dados de contato, tratando campos com múltiplos valores e salvando-os em tabelas de staging na camada Silver.
 -   **`NB_Load_Silver_From_Manual_Uploads`**: Notebook genérico para carga de arquivos manuais (Excel/CSV) armazenados no Bronze para tabelas Silver, com padronização de colunas.
 -   **`NB_Silver_Carteira_PDD`**: Processamento específico para a carteira de PDD (Provisão para Devedores Duvidosos).
@@ -171,7 +173,7 @@ O fluxo de dados principal é orquestrado pelo pipeline `PL_Orquestracao_de_Dado
 
 1.  **Ingestão (Bronze)**: O processo começa com o pipeline `PL_Load_Bronze_Incremental`, que copia dados novos e atualizados do sistema de origem (MySQL) para as tabelas no `LH_Bronze`.
 
-2.  **Transformação (Prata)**: O pipeline executa os notebooks de preparação (ex: `NB_Preparacao_Silver`, `Processamento_Completo_Clientes`), que limpam e padronizam os dados.
+2.  **Transformação (Prata)**: O pipeline executa os notebooks de preparação (ex: `NB_Prepara_Tabela_Cadastros`, `NB_Prepara_Tabela_Titulos`, `NB_Prepara_Tabela_Operacoes`), que limpam e padronizam os dados.
 
 3.  **Curadoria e Agregação (Ouro)**:
     -   O notebook **`NB_Curadoria_Gold`** realiza os joins e regras de negócio para criar as tabelas finais.
