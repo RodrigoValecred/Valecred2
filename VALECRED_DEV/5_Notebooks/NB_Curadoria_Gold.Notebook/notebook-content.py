@@ -122,9 +122,9 @@ print("Leitura e cache iniciais concluídos.")
 # -----------------------------------------------------------------
 print("Criando DataFrame intermediário: Cadastro Geral Enriquecido...")
 df_cad_geral_enriquecido = df_geral_pf_pj_limpa \
-    .join(df_enderecos_limpa.select("CPFCNPJ", "CIDADE", "UF", "CEP"), on="CPFCNPJ", how="left") \
-    .join(df_emails_agg, on="CPFCNPJ", how="left") \
-    .join(df_telefones_agg, on="CPFCNPJ", how="left")
+    .join(df_enderecos_limpa.select("cpf_cnpj", "cidade", "uf", "cep"), on="cpf_cnpj", how="left") \
+    .join(df_emails_agg, on="cpf_cnpj", how="left") \
+    .join(df_telefones_agg, on="cpf_cnpj", how="left")
 
 # Célula 1.2: DataFrame Intermediário: Operações Enriquecidas
 # -----------------------------------------------------------
@@ -132,34 +132,34 @@ print("Criando DataFrame intermediário: Operações Enriquecidas...")
 # Enriquecimento com Gerente (Broker)
 df_operacoes_com_historico = df_operacoes_limpa.join(
     df_bridge_gerente,
-    (df_operacoes_limpa["CODCLIENTE"] == df_bridge_gerente["ClienteID"]) &
-    (df_operacoes_limpa["DATAANALISE"].cast("date") >= df_bridge_gerente["DataInicioVigencia"]) &
-    (df_operacoes_limpa["DATAANALISE"].cast("date") <= df_bridge_gerente["DataFimVigencia"]),
+    (df_operacoes_limpa["cod_cliente"] == df_bridge_gerente["ClienteID"]) &
+    (df_operacoes_limpa["data_analise"].cast("date") >= df_bridge_gerente["DataInicioVigencia"]) &
+    (df_operacoes_limpa["data_analise"].cast("date") <= df_bridge_gerente["DataFimVigencia"]),
     "left"
 )
 df_operacoes_com_gerente = df_operacoes_com_historico.withColumn(
-    "CODBROKER",
-    when((col("CODBROKER").isNotNull()) & (col("CODBROKER") != 0), col("CODBROKER")).otherwise(col("GerenteID"))
+    "cod_broker",
+    when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker")).otherwise(col("GerenteID"))
 ).drop("ClienteID", "GerenteID", "DataInicioVigencia", "DataFimVigencia")
 
 # Identificação de Operações Informais
 df_chave_danfe = df_cad_geral_arquivos.filter(col("DESCRICAO") == 'CHAVEDANFE')
-df_titulos_com_chave = df_titulos_limpa.join(df_chave_danfe, on="CODTITULO", how="inner")
-df_operacoes_com_chave_base = df_operacoes_com_gerente.join(df_titulos_com_chave, on="CODOPERACAO", how="inner")
+df_titulos_com_chave = df_titulos_limpa.join(df_chave_danfe, df_titulos_limpa.cod_titulo == df_chave_danfe.CODTITULO, how="inner")
+df_operacoes_com_chave_base = df_operacoes_com_gerente.join(df_titulos_com_chave, on="cod_operacao", how="inner")
 df_operacoes_com_chave_filtrado = df_operacoes_com_chave_base.filter(
-    (df_operacoes_com_gerente["NOTASERVICO"] == 'N') &
-    (df_operacoes_com_gerente["STATUSANALISE"] == 'D') &
-    (df_operacoes_com_gerente["CODEMPRESA"] == 14) &
-    (df_operacoes_com_gerente["STATUSACEITE"] == 'A') &
-    (df_operacoes_com_gerente["TTO"].isin(['NO','CM','FC']))
+    (df_operacoes_com_gerente["nota_servico"] == 'N') &
+    (df_operacoes_com_gerente["status_analise"] == 'D') &
+    (df_operacoes_com_gerente["cod_empresa"] == 14) &
+    (df_operacoes_com_gerente["status_aceite"] == 'A') &
+    (df_operacoes_com_gerente["tto"].isin(['NO','CM','FC']))
 )
-df_vcount = df_operacoes_com_chave_filtrado.groupBy(df_operacoes_com_gerente["CODOPERACAO"]).count()
-df_com_vcount = df_operacoes_com_gerente.join(df_vcount, on="CODOPERACAO", how="left")
+df_vcount = df_operacoes_com_chave_filtrado.groupBy(df_operacoes_com_gerente["cod_operacao"]).count()
+df_com_vcount = df_operacoes_com_gerente.join(df_vcount, on="cod_operacao", how="left")
 
 df_operacoes_enriquecida = df_com_vcount.withColumn(
     "operacao_informal",
     when(
-        ((col("count").isNull()) | (col("count") == 0)) & (col("CODEMPRESA") == 14) & (col("NOTASERVICO") == 'N'),
+        ((col("count").isNull()) | (col("count") == 0)) & (col("cod_empresa") == 14) & (col("nota_servico") == 'N'),
         lit(True)
     ).otherwise(lit(False))
 ).drop("count").cache() # Cache: reutilizado em Fato Operações, Dim Produto e Fato Títulos
@@ -186,30 +186,30 @@ print("\nIniciando construção da fato_operacoes...")
 # Adicionando a sk_data para join com dim_calendario
 df_fato_operacoes_joined = df_operacoes_enriquecida.join(
     broadcast(df_dim_calendario.select("data", "sk_data")),
-    df_operacoes_enriquecida["DATAINCLUSAO"].cast("date") == df_dim_calendario["data"],
+    df_operacoes_enriquecida["data_inclusao"].cast("date") == df_dim_calendario["data"],
     "left"
 )
 
 df_fato_operacoes = df_fato_operacoes_joined.select(
-    col("CODOPERACAO").alias("cod_operacao"),
-    col("CODCLIENTE").alias("cod_cliente"),
-    col("CODEMPRESA").alias("cod_empresa"),
-    col("DATAINCLUSAO").alias("data_inclusao"),
-    col("DATAANALISE").alias("data_analise"),
-    col("STATUSACEITE").alias("status_aceite"),
-    col("STATUSANALISE").alias("status_analise"),
-    col("CODBROKER").alias("cod_broker"),
-    col("TTO"),
-    col("STTO"),
+    col("cod_operacao"),
+    col("cod_cliente"),
+    col("cod_empresa"),
+    col("data_inclusao"),
+    col("data_analise"),
+    col("status_aceite"),
+    col("status_analise"),
+    col("cod_broker"),
+    col("tto"),
+    col("stto"),
     col("chave_produto"),
     col("operacao_informal"),
-    col("TOTRETENCAO").alias("valor_retido"),
-    col("TOTDES").alias("valor_desembolsado"),
-    col("TOTFAC").alias("valor_de_face"),
-    col("TOTDCP").alias("desagio"),
-    col("TOTTAR").alias("total_de_tarifas"),
+    col("valor_retido"),
+    col("valor_desembolsado"),
+    col("valor_de_face"),
+    col("desagio"),
+    col("total_de_tarifas"),
     col("sk_data"),
-    col("TOTRECOMPRA").alias("valor_recomprado")
+    col("valor_recomprado")
 )
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
@@ -219,22 +219,22 @@ print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
 # Célula 2.2: Construção da Fato Baixas
 # -------------------------------------
 print("\nIniciando construção da fato_baixas...")
-df_baixas_corrigido = df_baixas_staging.withColumn("JUROS",
-    when(col("JUROS") == -858005.8, 3912.5).when(col("JUROS") == -4948525.71, -56747.24)
-    .when(col("JUROS") == -4140.75, 0).when(col("JUROS") == -1447.5, 52.5)
-    .when(col("JUROS") == -1825.72, 66.28).when(col("JUROS") == -965, 35)
-    .when(col("JUROS") == -26000, 0).otherwise(col("JUROS"))
+df_baixas_corrigido = df_baixas_staging.withColumn("juros",
+    when(col("juros") == -858005.8, 3912.5).when(col("juros") == -4948525.71, -56747.24)
+    .when(col("juros") == -4140.75, 0).when(col("juros") == -1447.5, 52.5)
+    .when(col("juros") == -1825.72, 66.28).when(col("juros") == -965, 35)
+    .when(col("juros") == -26000, 0).otherwise(col("juros"))
 )
 df_enriquecido_baixas = df_baixas_corrigido \
-    .join(df_titulos_limpa.select("CODTITULO", "CODOPERACAO"), on="CODTITULO", how="left") \
-    .join(broadcast(df_dim_pago_por), df_baixas_corrigido.PAGOPELO == df_dim_pago_por.id, how="left") \
-    .join(broadcast(df_dim_forma_pagamento), df_baixas_corrigido.FORMA == df_dim_forma_pagamento.id, how="left") \
-    .join(broadcast(df_dim_tipo_taxa), df_baixas_corrigido.TIPOBAIXA == df_dim_tipo_taxa.id, how="left") \
-    .join(broadcast(df_dim_motivo_baixa), df_baixas_corrigido.MOTIVO == df_dim_motivo_baixa.id, how="left")
+    .join(df_titulos_limpa.select("cod_titulo", "cod_operacao"), on="cod_titulo", how="left") \
+    .join(broadcast(df_dim_pago_por), df_baixas_corrigido.pago_pelo == df_dim_pago_por.id, how="left") \
+    .join(broadcast(df_dim_forma_pagamento), df_baixas_corrigido.forma == df_dim_forma_pagamento.id, how="left") \
+    .join(broadcast(df_dim_tipo_taxa), df_baixas_corrigido.tipo_baixa == df_dim_tipo_taxa.id, how="left") \
+    .join(broadcast(df_dim_motivo_baixa), df_baixas_corrigido.motivo == df_dim_motivo_baixa.id, how="left")
 
 df_fato_baixas = df_enriquecido_baixas.select(
-    "CODTITULOBAIXAS", "CODTITULO", "DATABAIXA", "DATABAIXASIST", "VLPAGO",
-    "DESCONTO", "JUROS", "TARIFARECOMPRA", "DATAVENCIMENTO", df_baixas_corrigido["CODOPERACAO"],
+    "cod_titulo_baixas", "cod_titulo", "data_baixa", "data_baixa_sist", "valor_pago",
+    "desconto", "juros", "tarifa_recompra", "data_vencimento", df_baixas_corrigido["cod_operacao"],
     df_dim_pago_por["descricao"].alias("PagoPor"), df_dim_forma_pagamento["descricao"].alias("Forma"),
     df_dim_tipo_taxa["descricao"].alias("TipoBaixa"), df_dim_motivo_baixa["descricao"].alias("Motivo")
 )
@@ -246,10 +246,10 @@ print(f"Tabela 'fato_baixas' salva em: {output_path_fato_baixas}")
 # Célula 2.3: Construção da Dimensão Produto
 # ------------------------------------------
 print("\nIniciando construção da dim_produto...")
-df_produtos_base = df_operacoes_enriquecida.select("STTO", "TTO").distinct()
-df_com_tipo = df_produtos_base.join(broadcast(df_tipo_op_bronze.select("CODTTO", "DESCRICAO")), df_produtos_base.TTO == df_tipo_op_bronze.CODTTO, "left").withColumnRenamed("DESCRICAO", "TipoProduto")
-df_com_subtipo = df_com_tipo.join(broadcast(df_subtipo_op_bronze.select("CODSTTO", "DESCRICAO")), df_com_tipo.STTO == df_subtipo_op_bronze.CODSTTO, "left").withColumnRenamed("DESCRICAO", "SubTipoProduto")
-df_com_chaves = df_com_subtipo.withColumn("chave_produto", concat(col("TTO"), col("STTO"))).withColumn("Produto", when(col("SubTipoProduto").isNull(), col("TipoProduto")).otherwise(concat(col("SubTipoProduto"), lit(" - "), col("TipoProduto"))))
+df_produtos_base = df_operacoes_enriquecida.select("stto", "tto").distinct()
+df_com_tipo = df_produtos_base.join(broadcast(df_tipo_op_bronze.select("CODTTO", "DESCRICAO")), df_produtos_base.tto == df_tipo_op_bronze.CODTTO, "left").withColumnRenamed("DESCRICAO", "TipoProduto")
+df_com_subtipo = df_com_tipo.join(broadcast(df_subtipo_op_bronze.select("CODSTTO", "DESCRICAO")), df_com_tipo.stto == df_subtipo_op_bronze.CODSTTO, "left").withColumnRenamed("DESCRICAO", "SubTipoProduto")
+df_com_chaves = df_com_subtipo.withColumn("chave_produto", concat(col("tto"), col("stto"))).withColumn("Produto", when(col("SubTipoProduto").isNull(), col("TipoProduto")).otherwise(concat(col("SubTipoProduto"), lit(" - "), col("TipoProduto"))))
 df_nomes_limpos = df_com_chaves.withColumn("Produto", regexp_replace(col("Produto"), "COMISSÁRIA", "COMISSARIA SIMPLES")).withColumn("Produto", regexp_replace(col("Produto"), "COMISSARIA SIMPLES - COMISSARIA SIMPLES", "COMISSARIA SIMPLES"))
 df_info_mercado = df_nomes_limpos.withColumn("ProdutoInformacaoMercado", col("Produto")).withColumn("ProdutoInformacaoMercado", regexp_replace(col("ProdutoInformacaoMercado"), "NORMAL", "DESCONTO"))
 df_staging_produto_lbfactor = df_info_mercado.select("ProdutoInformacaoMercado", "Produto", "chave_produto")
@@ -282,56 +282,56 @@ print(f"Tabela 'dim_produto' salva e em cache em: {output_path_dim_produto}")
 print("\nIniciando construção da fato_titulos...")
 # 3.1 Preparação e Enriquecimento (Otimizado com Broadcast Joins)
 # --------------------------------------------------------------
-df_titulos_base = df_titulos_limpa.filter(~col("TDOC").isin("BL", "RC")) \
-    .withColumn("TipoDocumentoSacado", when(length(col("CPFCNPJSACADO")) == 11, "CPF").when(length(col("CPFCNPJSACADO")) == 14, "CNPJ").otherwise("Inválido")) \
-    .withColumn("RaizCNPJ", when(col("TipoDocumentoSacado") == "CNPJ", substring(col("CPFCNPJSACADO"), 1, 8)).otherwise(col("CPFCNPJSACADO")))
+df_titulos_base = df_titulos_limpa.filter(~col("t_doc").isin("BL", "RC")) \
+    .withColumn("TipoDocumentoSacado", when(length(col("cpf_cnpj_sacado")) == 11, "CPF").when(length(col("cpf_cnpj_sacado")) == 14, "CNPJ").otherwise("Inválido")) \
+    .withColumn("RaizCNPJ", when(col("TipoDocumentoSacado") == "CNPJ", substring(col("cpf_cnpj_sacado"), 1, 8)).otherwise(col("cpf_cnpj_sacado")))
 
-df_operacoes_small = df_operacoes_enriquecida.select("CODOPERACAO", "CODCLIENTE", "DATAANALISE", "STATUSACEITE", "STATUSANALISE", "chave_produto")
-df_limites_small = df_limites.select("chave_cliente_sacado", "TIPO")
+df_operacoes_small = df_operacoes_enriquecida.select("cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto")
+df_limites_small = df_limites.select("chave_cliente_sacado", "tipo")
 df_produtos_small = df_dim_produto.select(col("chave_produto"), col("produto_informacao_de_mercado").alias("produto_temp"))
-df_devolucoes_small = df_devolucoes.select(col("CODTITULO"), col("CODOPERACAO").alias("cod_operacao_recompra"))
-df_ultima_conf_small = df_ultima_conf.select(col("cod_titulo").alias("CODTITULO"), col("confirmacao").alias("confirmado_por"))
-df_protestos_small = df_protestos.select("CODTITULO", "STATUS_PROTESTO")
+df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao").alias("cod_operacao_recompra"))
+df_ultima_conf_small = df_ultima_conf.select(col("cod_titulo"), col("confirmacao").alias("confirmado_por"))
+df_protestos_small = df_protestos.select("cod_titulo", "status_protesto")
 
-df_titulos_com_chave_sacado = df_titulos_base.join(broadcast(df_operacoes_small), "CODOPERACAO", "left").withColumn("chave_cliente_sacado", concat(col("CODCLIENTE").cast("string"), lit("-"), col("RaizCNPJ")))
+df_titulos_com_chave_sacado = df_titulos_base.join(broadcast(df_operacoes_small), "cod_operacao", "left").withColumn("chave_cliente_sacado", concat(col("cod_cliente").cast("string"), lit("-"), col("RaizCNPJ")))
 
 df_enriquecido = df_titulos_com_chave_sacado \
     .join(broadcast(df_limites_small), "chave_cliente_sacado", "left") \
     .join(broadcast(df_produtos_small), "chave_produto", "left") \
-    .join(broadcast(df_devolucoes_small), "CODTITULO", "left") \
-    .join(broadcast(df_ultima_conf_small), "CODTITULO", "left") \
-    .join(broadcast(df_protestos_small), "CODTITULO", "left") \
-    .na.fill({"AMORTIZACOES": 0})
+    .join(broadcast(df_devolucoes_small), "cod_titulo", "left") \
+    .join(broadcast(df_ultima_conf_small), "cod_titulo", "left") \
+    .join(broadcast(df_protestos_small), "cod_titulo", "left") \
+    .na.fill({"amortizacoes": 0})
 
 # 3.2 Cálculos de Negócio
 # -----------------------
 df_com_calcs = df_enriquecido \
-    .withColumn("intercompany", when(col("TIPO") == "INTERCIA", "SIM").otherwise("NÃO")) \
-    .withColumn("status_protesto", coalesce(col("STATUS_PROTESTO"), lit("NÃO PROTESTADO"))) \
-    .withColumn("valor_vezes_prazo", col("PRAZO") * col("VALOR")) \
+    .withColumn("intercompany", when(col("tipo") == "INTERCIA", "SIM").otherwise("NÃO")) \
+    .withColumn("status_protesto", coalesce(col("status_protesto"), lit("NÃO PROTESTADO"))) \
+    .withColumn("valor_vezes_prazo", col("prazo") * col("valor")) \
     .withColumn("produto_com_intercia", when((col("intercompany") == "SIM") & (col("chave_produto").isin("NO", "CM")), "INTERCOMPANY").otherwise(col("produto_temp")))
 
 # Data Vencimento Útil
 try:
     df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").select(col("data"), col("proximo_dia_util"))
-    df_dates_final = df_com_calcs.join(broadcast(df_dim_calendario), df_com_calcs.VENCPRORROGADO == df_dim_calendario.data, "left").withColumnRenamed("proximo_dia_util", "data_vencimento_util").drop("data")
+    df_dates_final = df_com_calcs.join(broadcast(df_dim_calendario), df_com_calcs.venc_prorrogado == df_dim_calendario.data, "left").withColumnRenamed("proximo_dia_util", "data_vencimento_util").drop("data")
 except Exception as e:
     print(f"AVISO: Erro ao ler LH_Gold.dim_calendario: {e}. Usando lógica de cálculo manual.")
     df_feriados_sel = df_feriados.select(col("DATAFERIADO").alias("data_feriado"), col("TFERIADO").alias("tipo_feriado"))
-    df_dates_1 = df_com_calcs.withColumn("dia_da_semana", dayofweek(col("VENCPRORROGADO"))).withColumn("data_vencimento_util_temp", when(col("dia_da_semana") == 1, date_add(col("VENCPRORROGADO"), 1)).when(col("dia_da_semana") == 7, date_add(col("VENCPRORROGADO"), 2)).otherwise(col("VENCPRORROGADO")))
+    df_dates_1 = df_com_calcs.withColumn("dia_da_semana", dayofweek(col("venc_prorrogado"))).withColumn("data_vencimento_util_temp", when(col("dia_da_semana") == 1, date_add(col("venc_prorrogado"), 1)).when(col("dia_da_semana") == 7, date_add(col("venc_prorrogado"), 2)).otherwise(col("venc_prorrogado")))
     df_dates_2 = df_dates_1.join(broadcast(df_feriados_sel), df_dates_1.data_vencimento_util_temp == df_feriados_sel.data_feriado, "left")
     df_dates_final = df_dates_2.withColumn("data_vencimento_util", when(col("tipo_feriado") == "L", col("data_vencimento_util_temp")).when((col("tipo_feriado") == "N") & (col("dia_da_semana") == 6), date_add(col("data_vencimento_util_temp"), 3)).when((col("tipo_feriado") == "N"), date_add(col("data_vencimento_util_temp"), 1)).otherwise(col("data_vencimento_util_temp"))).drop("data_vencimento_util_temp", "tipo_feriado", "data_feriado", "dia_da_semana")
 
-df_status_1 = df_dates_final.withColumn("status_deferimento", when((col("ACEITO") == "S") & (col("STATUSACEITE") == "A") & (col("STATUSANALISE") == "D"), "Sim").otherwise("Não"))
+df_status_1 = df_dates_final.withColumn("status_deferimento", when((col("aceito") == "S") & (col("status_aceite") == "A") & (col("status_analise") == "D"), "Sim").otherwise("Não"))
 df_status_2 = df_status_1.withColumn("status_clean", when(col("produto_com_intercia") == "DESCONTO", "NORMAL").otherwise("CLEAN"))
-df_conf = df_status_2.withColumn("confirmacao", when(col("DOCCONFIRMADO") == "N", "Atenção").when(col("DOCCONFIRMADO") == "S", None).when(col("DOCCONFIRMADO") == "C", "Positivo").when(col("DOCCONFIRMADO") == "P", "Problema").when(col("DOCCONFIRMADO") == "A", "Alerta").when(col("DOCCONFIRMADO").isNull(), "Não Contatado").when(col("DOCCONFIRMADO").isin("E", "AZ"), "Eletrônico").otherwise(col("DOCCONFIRMADO")))
+df_conf = df_status_2.withColumn("confirmacao", when(col("doc_confirmado") == "N", "Atenção").when(col("doc_confirmado") == "S", None).when(col("doc_confirmado") == "C", "Positivo").when(col("doc_confirmado") == "P", "Problema").when(col("doc_confirmado") == "A", "Alerta").when(col("doc_confirmado").isNull(), "Não Contatado").when(col("doc_confirmado").isin("E", "AZ"), "Eletrônico").otherwise(col("doc_confirmado")))
 df_ordem = df_conf.withColumn("ordem_confirmacao", when(col("confirmacao") == "Não Contatado", 5).when(col("confirmacao") == "Atenção", 2).when(col("confirmacao") == "Eletrônico", 0).when(col("confirmacao") == "Positivo", 1).when(col("confirmacao") == "Alerta", 3).when(col("confirmacao") == "Problema", 4).otherwise(None))
 
 # 3.3 Seleção Final e Persistência
 # ---------------------------------
 df_fato_titulos_final = df_ordem.select(
-    "CODTITULO", "CODOPERACAO", "TDOC", "NDOC", "CPFCNPJSACADO", "VENCIMENTO", "VENCPRORROGADO", "VALOR",
-    "PRAZO", "ACEITO", "DATAINCLUSAO", "USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "AMORTIZACOES",
+    col("cod_titulo"), col("cod_operacao"), col("t_doc"), col("n_doc"), col("cpf_cnpj_sacado"), col("vencimento"), col("venc_prorrogado"), col("valor"),
+    col("prazo"), col("aceito"), col("data_inclusao"), col("usua_inclusao"), col("data_alteracao"), col("usua_alteracao"), col("amortizacoes"),
     "chave_produto", "status_protesto", "TipoDocumentoSacado", "RaizCNPJ", "valor_vezes_prazo",
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany"
@@ -380,8 +380,8 @@ if record_count > 0:
     print(f"Registros incrementais: {record_count}. Novo watermark: {new_watermark}")
 
     df_replica_pareceres_delta = df_pareceres_incremental.filter(year(col("DATAINCLUSAO")) >= 2024).drop("ENCAMINHAR", "ALERTA", "CODPASTA", "CODTAREFA", "USUAALTERACAO", "DATAALTERACAO").withColumn("OBS", col("OBS").substr(1, 255)).withColumn("codTipoParecer", col("CODTIPOPARECER").cast(LongType())).filter((col("codTipoParecer") == 1) & (col("CPFCNPJ").isNotNull()) & (col("CPFCNPJ") != "") & (col("OBS").isNotNull()) & (col("OBS") != "") & (col("USUAINCLUSAO").isNotNull()) & (col("DATAINCLUSAO").isNotNull())).filter(col("OBS").startswith("STATUS ALTERADO PARA ")).withColumn("STATUS_DO_CLIENTE", substring(col("OBS"), 22, 100)).withColumn("BASE", lit(40).cast(LongType())).select("CODPARECER", "CPFCNPJ", "CODOPERACAO", "DATAINCLUSAO", "USUAINCLUSAO", "STATUS_DO_CLIENTE", "BASE")
-    window_cliente_data_delta = Window.partitionBy("CODCLIENTE").orderBy(col("DATAINCLUSAO").asc())
-    df_pareceres_enriquecidos_delta = df_replica_pareceres_delta.join(df_clientes_staging.select("CPFCNPJ", "CODCLIENTE"), ["CPFCNPJ"], "left").withColumn("chave_base_cliente", concat(col("BASE"), lit("-"), col("CODCLIENTE"))).join(df_usuarios_raw.select("CODUSUARIO", "NOME"), col("USUAINCLUSAO") == col("CODUSUARIO"), "left").withColumnRenamed("NOME", "USUARIO").join(df_status_clientes_esteira, "STATUS_DO_CLIENTE", "left").filter(col("CODCLIENTE").isNotNull() & (col("CODCLIENTE") != "")).withColumn("INDICE", row_number().over(window_cliente_data_delta)).withColumn("chave_original", (col("INDICE") * 1000000000 + col("CODCLIENTE")).cast(LongType())).withColumnRenamed("DATAINCLUSAO", "DATALOG").select("CODPARECER", "CODCLIENTE", "STATUS_DO_CLIENTE", "DATALOG", "BASE", "USUARIO", "chave_base_cliente", "INDICE", "chave_original", "MACROPROCESSO", "FASE")
+    window_cliente_data_delta = Window.partitionBy("cod_cliente").orderBy(col("DATAINCLUSAO").asc())
+    df_pareceres_enriquecidos_delta = df_replica_pareceres_delta.join(df_clientes_staging.select("cpf_cnpj", "cod_cliente"), df_replica_pareceres_delta.CPFCNPJ == df_clientes_staging.cpf_cnpj, "left").withColumn("chave_base_cliente", concat(col("BASE"), lit("-"), col("cod_cliente"))).join(df_usuarios_raw.select("CODUSUARIO", "NOME"), col("USUAINCLUSAO") == col("CODUSUARIO"), "left").withColumnRenamed("NOME", "USUARIO").join(df_status_clientes_esteira, "STATUS_DO_CLIENTE", "left").filter(col("cod_cliente").isNotNull() & (col("cod_cliente") != "")).withColumn("INDICE", row_number().over(window_cliente_data_delta)).withColumn("chave_original", (col("INDICE") * 1000000000 + col("cod_cliente")).cast(LongType())).withColumnRenamed("DATAINCLUSAO", "DATALOG").select("CODPARECER", "cod_cliente", "STATUS_DO_CLIENTE", "DATALOG", "BASE", "USUARIO", "chave_base_cliente", "INDICE", "chave_original", "MACROPROCESSO", "FASE")
 
     if spark.catalog.tableExists(target_pareceres_status_table_name):
         DeltaTable.forName(spark, target_pareceres_status_table_name).alias("t").merge(df_pareceres_enriquecidos_delta.alias("s"), "t.CODPARECER = s.CODPARECER").whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
@@ -398,10 +398,10 @@ df_pareceres_incremental.unpersist()
 if record_count > 0:
     print("Reconstruindo esteira_de_propostas...")
     df_pareceres_completa = spark.read.table(target_pareceres_status_table_name)
-    window_lag = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
+    window_lag = Window.partitionBy("cod_cliente").orderBy("DATALOG")
     df_com_lag = df_pareceres_completa.withColumn("STATUS_DO_CLIENTE_ANTERIOR", lag("STATUS_DO_CLIENTE").over(window_lag)).withColumn("DATALOG_ANTERIOR", lag("DATALOG").over(window_lag)).withColumn("MACROPROCESSO_ANTERIOR", lag("MACROPROCESSO").over(window_lag)).withColumn("FASE_ANTERIOR", lag("FASE").over(window_lag))
     df_transicoes = df_com_lag.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
-    df_esteira_final = df_transicoes.withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)).withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)).select("INDICE", "CODCLIENTE", "BASE", "DATALOG_ANTERIOR", "DATALOG", "chave_base_cliente", "STATUS_DO_CLIENTE_ANTERIOR", "STATUS_DO_CLIENTE", "MACROPROCESSO_ANTERIOR", "MACROPROCESSO", "FASE_ANTERIOR", "FASE", "USUARIO", "DEVOLUCAO", "RECEBIDA")
+    df_esteira_final = df_transicoes.withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)).withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)).select("INDICE", "cod_cliente", "BASE", "DATALOG_ANTERIOR", "DATALOG", "chave_base_cliente", "STATUS_DO_CLIENTE_ANTERIOR", "STATUS_DO_CLIENTE", "MACROPROCESSO_ANTERIOR", "MACROPROCESSO", "FASE_ANTERIOR", "FASE", "USUARIO", "DEVOLUCAO", "RECEBIDA")
     df_esteira_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_esteira_table_name)
     print("Esteira reconstruída.")
 
