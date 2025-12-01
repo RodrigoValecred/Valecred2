@@ -80,7 +80,7 @@ df_geral_bronze = spark.read.table("LH_Bronze.cad_geral_pf_pj")
 window_geral = Window.partitionBy("CPFCNPJ").orderBy(col("DATAALTERACAO").desc())
 df_geral_deduplicated = df_geral_bronze.withColumn("row_num", row_number().over(window_geral)) \
     .filter(col("row_num") == 1).drop("row_num") \
-    .select(col("CPFCNPJ").alias("cpf_cnpj"), col("NOME").alias("nome"), col("RAZAOSOCIAL").alias("razao_social"))
+    .select(col("CPFCNPJ").alias("cpf_cnpj"), col("NOME").alias("nome"), col("NOME").alias("razao_social"), col("FANTASIA").alias("nome_fantasia"))
 df_geral_deduplicated.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_cad_geral_pf_pj_limpa")
 
 # METADATA ********************
