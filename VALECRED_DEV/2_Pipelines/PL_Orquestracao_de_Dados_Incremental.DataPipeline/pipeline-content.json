@@ -2,30 +2,6 @@
   "properties": {
     "activities": [
       {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "7cca6c9c-c9d4-9379-4f36-43eacf58c431",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Limpeza_Silver",
-        "description": "Notebook_Preparacao_Silver\n",
-        "dependsOn": [
-          {
-            "activity": "Carrega dados brutos",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
         "type": "InvokePipeline",
         "typeProperties": {
           "parameters": {},
@@ -50,6 +26,78 @@
       {
         "type": "TridentNotebook",
         "typeProperties": {
+          "notebookId": "11111111-2222-3333-4444-555555555551",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Limpeza_Silver_Titulos",
+        "description": "Limpeza incremental de Títulos e Baixas",
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "11111111-2222-3333-4444-555555555552",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Limpeza_Silver_Operacoes",
+        "description": "Limpeza incremental de Operações",
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "11111111-2222-3333-4444-555555555553",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Limpeza_Silver_Cadastros",
+        "description": "Limpeza de Cadastros (Clientes, etc)",
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
           "notebookId": "508582b1-4e33-87a9-4785-8b882d886bb6",
           "workspaceId": "00000000-0000-0000-0000-000000000000"
         },
@@ -63,7 +111,19 @@
         "name": "NB_Curadoria_Gold",
         "dependsOn": [
           {
-            "activity": "Limpeza_Silver",
+            "activity": "Limpeza_Silver_Titulos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Limpeza_Silver_Operacoes",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Limpeza_Silver_Cadastros",
             "dependencyConditions": [
               "Succeeded"
             ]
