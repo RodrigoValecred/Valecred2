@@ -1,11 +1,12 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
   "metadata": {
-    "type": "DataPipeline",
-    "displayName": "PL_Orquestracao_de_Dados_sem_Carga_de_Dados_Inicial"
+    "type": "Notebook",
+    "displayName": "NB_Prepara_Tabela_Titulos",
+    "description": "New notebook"
   },
   "config": {
     "version": "2.0",
-    "logicalId": "41dcdddc-931d-bff4-4838-927ec3db2895"
+    "logicalId": "687fc79c-337a-b59b-45cf-b36e93afb62d"
   }
 }
