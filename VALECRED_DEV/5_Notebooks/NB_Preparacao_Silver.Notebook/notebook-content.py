@@ -256,10 +256,10 @@ df_enderecos_final = df_upper \
     .join(df_regioes, col("UF") == df_regioes.Sigla, "left") \
     .withColumn("CPFCNPJ_valido", col("CPFCNPJ").cast("long")).filter(col("CPFCNPJ_valido").isNotNull()) \
     .select("CPFCNPJ", "ENDERECO", "NUMERO", "COMPLEMENTO", "BAIRRO", "CIDADE", "UF", "CEP", "Estado", "Capital", "Regiao")
-df_regioes.unpersist()
 
 output_path_enderecos = "LH_Silver.staging_enderecos_limpa"
 df_enderecos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_enderecos)
+df_regioes.unpersist()
 print(f"Endereços limpos salvos em: {output_path_enderecos}")
 
 # Célula 3.4: Limpeza do Cadastro Geral (Base)
@@ -506,13 +506,13 @@ windowSpec_bridge = Window.partitionBy("ClienteID").orderBy(col("DataInicioVigen
 
 df_com_data_fim = df_preparado.withColumn(
     "DataFimVigencia_temp",
-    lead("DataInicioVigencia", 1, "9999-12-31").over(windowSpec_bridge)
+    lead("DataInicioVigencia", 1, datetime.date(9999, 12, 31)).over(windowSpec_bridge)
 )
 
 df_final_bridge = df_com_data_fim.withColumn(
     "DataFimVigencia",
     when(
-        col("DataFimVigencia_temp") == "9999-12-31",
+        col("DataFimVigencia_temp") == datetime.date(9999, 12, 31),
         lit("9999-12-31").cast("date")
     ).otherwise(
         date_sub(col("DataFimVigencia_temp"), 1)
@@ -564,8 +564,13 @@ df_transformed_limites = df_bronze_limites \
     .withColumn("RaizCNPJ",
                 when(col("TipoDocumentoSacado") == "CNPJ", substring(col("CPFCNPJ"), 1, 8))
                 .otherwise(col("CPFCNPJ"))) \
-    .withColumn("chave_cliente_sacado", concat(col("CODCLIENTE").cast("string"), lit("-"), col("RaizCNPJ"))) \
-    .dropDuplicates(["chave_cliente_sacado"])
+    .withColumn("chave_cliente_sacado", concat(col("CODCLIENTE").cast("string"), lit("-"), col("RaizCNPJ")))
+
+# Desduplicação determinística
+window_limites = Window.partitionBy("chave_cliente_sacado").orderBy(col("DATAINCLUSAO").desc())
+df_transformed_limites = df_transformed_limites \
+    .withColumn("row_num", row_number().over(window_limites)) \
+    .filter(col("row_num") == 1).drop("row_num")
 
 # Célula 9.3: Salvar o Resultado
 # ------------------------------------------------------
@@ -596,9 +601,12 @@ df_bronze_devolucoes = spark.read.table(f"{source_lakehouse}.{source_table_devol
 
 # Célula 10.2: Lógica de Transformação
 # ----------------------------------------------------
+# Desduplicação determinística antes de remover colunas de data
+window_devolucoes = Window.partitionBy("CODTITULO").orderBy(col("DATAALTERACAO").desc())
 df_transformed_devolucoes = df_bronze_devolucoes \
-    .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
-    .dropDuplicates(["CODTITULO"])
+    .withColumn("row_num", row_number().over(window_devolucoes)) \
+    .filter(col("row_num") == 1).drop("row_num") \
+    .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA")
 
 # Célula 10.3: Salvar o Resultado
 # ------------------------------------------------------
@@ -866,7 +874,7 @@ df_titulos_limpa = spark.table("LH_Silver.staging_titulos_limpa")
 # O padrão agora é snake_case (t_doc, data_inclusao)
 df_boletos = df_titulos_limpa \
     .filter(col("t_doc") == "BL") \
-    .filter(col("data_inclusao") >= "2021-01-01") \
+    .filter(col("data_inclusao").cast("string") >= "2021-01-01") \
     .drop(
         "venc_prorrogado",
         "prazo",
