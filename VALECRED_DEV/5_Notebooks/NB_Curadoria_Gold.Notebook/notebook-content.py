@@ -101,7 +101,32 @@ for old_col, new_col in col_mapping_operacoes.items():
         df_operacoes_limpa = df_operacoes_limpa.withColumnRenamed(old_col, new_col)
 
 df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
-df_baixas_staging = spark.read.table("LH_Silver.staging_baixas_limpa")
+df_baixas_staging_raw = spark.read.table("LH_Silver.staging_baixas_limpa")
+
+# Normalização de colunas para snake_case (Baixas)
+col_mapping_baixas = {
+    "CODTITULOBAIXAS": "cod_titulo_baixas",
+    "CODTITULO": "cod_titulo",
+    "DATAINCLUSAO": "data_inclusao",
+    "DATAALTERACAO": "data_alteracao",
+    "VALORPAGO": "valor_pago",
+    "DATABAIXA": "data_baixa",
+    "DATABAIXASIST": "data_baixa_sist",
+    "DESCONTO": "desconto",
+    "JUROS": "juros",
+    "TARIFARECOMPRA": "tarifa_recompra",
+    "DATAVENCIMENTO": "data_vencimento",
+    "PAGOPELO": "pago_pelo",
+    "FORMA": "forma",
+    "TIPOBAIXA": "tipo_baixa",
+    "MOTIVO": "motivo"
+}
+
+df_baixas_staging = df_baixas_staging_raw
+for old_col, new_col in col_mapping_baixas.items():
+    if old_col in df_baixas_staging.columns and new_col not in df_baixas_staging.columns:
+        df_baixas_staging = df_baixas_staging.withColumnRenamed(old_col, new_col)
+
 df_limites = spark.read.table("LH_Silver.staging_rlc_clientes_sacados_limites")
 df_devolucoes = spark.read.table("LH_Silver.staging_operacoes_devolucoes_limpa")
 df_protestos = spark.read.table("LH_Silver.staging_protestos")
