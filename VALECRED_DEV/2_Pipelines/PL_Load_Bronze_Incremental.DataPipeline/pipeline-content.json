@@ -335,7 +335,7 @@
       {
         "type": "ForEach",
         "typeProperties": {
-          "batchCount": 5,
+          "batchCount": 20,
           "items": {
             "value": "@activity('Filter_IncrementalTables').output.value",
             "type": "Expression"
@@ -347,7 +347,7 @@
                 "source": {
                   "type": "MySqlSource",
                   "query": {
-                    "value": "@concat(\n    'SELECT * FROM ', item().TableName,\n    ' WHERE ',\n    'GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' > ''', variables('LastRunDate'), '''',\n    ' AND GREATEST(IFNULL(', item().UpdateWatermark, ', ''1900-01-01''), ', item().InclusionWatermark, ')',\n    ' <= ''', variables('TargetProcessingDate'), ''''\n)",
+                    "value": "@concat(\n    'SELECT * FROM ', item().TableName,\n    ' WHERE (',\n    item().InclusionWatermark, ' > ''', variables('LastRunDate'), ''' AND ', item().InclusionWatermark, ' <= ''', variables('TargetProcessingDate'), ''')',\n    ' OR (',\n    item().UpdateWatermark, ' > ''', variables('LastRunDate'), ''' AND ', item().UpdateWatermark, ' <= ''', variables('TargetProcessingDate'), ''')'\n)",
                     "type": "Expression"
                   },
                   "datasetSettings": {
