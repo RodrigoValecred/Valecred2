@@ -48,7 +48,7 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, broadcast, dayofweek, date_sub
+    lead, date_add, lag, max, coalesce, broadcast, dayofweek, date_sub, trim
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
@@ -434,9 +434,34 @@ if record_count > 0:
     new_watermark = df_pareceres_incremental.agg(max(greatest(coalesce(col("DATAINCLUSAO"), lit(datetime.datetime(1900,1,1))), coalesce(col("DATAALTERACAO"), lit(datetime.datetime(1900,1,1)))))).collect()[0][0]
     print(f"Registros incrementais: {record_count}. Novo watermark: {new_watermark}")
 
-    df_replica_pareceres_delta = df_pareceres_incremental.filter(year(col("DATAINCLUSAO")) >= 2024).drop("ENCAMINHAR", "ALERTA", "CODPASTA", "CODTAREFA", "USUAALTERACAO", "DATAALTERACAO").withColumn("OBS", col("OBS").substr(1, 255)).withColumn("codTipoParecer", col("CODTIPOPARECER").cast(LongType())).filter((col("codTipoParecer") == 1) & (col("CPFCNPJ").isNotNull()) & (col("CPFCNPJ") != "") & (col("OBS").isNotNull()) & (col("OBS") != "") & (col("USUAINCLUSAO").isNotNull()) & (col("DATAINCLUSAO").isNotNull())).filter(col("OBS").startswith("STATUS ALTERADO PARA ")).withColumn("STATUS_DO_CLIENTE", substring(col("OBS"), 22, 100)).withColumn("BASE", lit(40).cast(LongType())).select("CODPARECER", "CPFCNPJ", "CODOPERACAO", "DATAINCLUSAO", "USUAINCLUSAO", "STATUS_DO_CLIENTE", "BASE")
+    df_replica_pareceres_delta = df_pareceres_incremental.filter(year(col("DATAINCLUSAO")) >= 2024).drop("ENCAMINHAR", "ALERTA", "CODPASTA", "CODTAREFA", "USUAALTERACAO", "DATAALTERACAO").withColumn("OBS", col("OBS").substr(1, 255)).withColumn("codTipoParecer", col("CODTIPOPARECER").cast(LongType())).filter((col("codTipoParecer") == 1) & (col("CPFCNPJ").isNotNull()) & (col("CPFCNPJ") != "") & (col("OBS").isNotNull()) & (col("OBS") != "") & (col("USUAINCLUSAO").isNotNull()) & (col("DATAINCLUSAO").isNotNull())).filter(col("OBS").startswith("STATUS ALTERADO PARA ")).withColumn("STATUS_DO_CLIENTE", trim(substring(col("OBS"), 22, 100))).withColumn("BASE", lit(40).cast(LongType())).select("CODPARECER", "CPFCNPJ", "CODOPERACAO", "DATAINCLUSAO", "USUAINCLUSAO", "STATUS_DO_CLIENTE", "BASE")
+
+    # Recuperar MAX INDICE por Cliente da tabela alvo, se existir, para continuar a sequencia
+    if spark.catalog.tableExists(target_pareceres_status_table_name):
+        df_max_indices = spark.read.table(target_pareceres_status_table_name).groupBy("cod_cliente").agg(max("INDICE").alias("max_indice"))
+    else:
+        df_max_indices = None
+
+    # Enriquecimento e Calculo de Indice
+    df_joined = df_replica_pareceres_delta.join(df_clientes_staging.select("cpf_cnpj", "cod_cliente"), df_replica_pareceres_delta.CPFCNPJ == df_clientes_staging.cpf_cnpj, "left")
+
+    if df_max_indices:
+        df_joined = df_joined.join(df_max_indices, "cod_cliente", "left").withColumn("start_index", coalesce(col("max_indice"), lit(0)))
+    else:
+        df_joined = df_joined.withColumn("start_index", lit(0))
+
     window_cliente_data_delta = Window.partitionBy("cod_cliente").orderBy(col("DATAINCLUSAO").asc())
-    df_pareceres_enriquecidos_delta = df_replica_pareceres_delta.join(df_clientes_staging.select("cpf_cnpj", "cod_cliente"), df_replica_pareceres_delta.CPFCNPJ == df_clientes_staging.cpf_cnpj, "left").withColumn("chave_base_cliente", concat(col("BASE"), lit("-"), col("cod_cliente"))).join(df_usuarios_raw.select("CODUSUARIO", "NOME"), col("USUAINCLUSAO") == col("CODUSUARIO"), "left").withColumnRenamed("NOME", "USUARIO").join(df_status_clientes_esteira, "STATUS_DO_CLIENTE", "left").filter(col("cod_cliente").isNotNull() & (col("cod_cliente") != "")).withColumn("INDICE", row_number().over(window_cliente_data_delta)).withColumn("chave_original", (col("INDICE") * 1000000000 + col("cod_cliente")).cast(LongType())).withColumnRenamed("DATAINCLUSAO", "DATALOG").select("CODPARECER", "cod_cliente", "STATUS_DO_CLIENTE", "DATALOG", "BASE", "USUARIO", "chave_base_cliente", "INDICE", "chave_original", "MACROPROCESSO", "FASE")
+
+    df_pareceres_enriquecidos_delta = df_joined \
+        .withColumn("chave_base_cliente", concat(col("BASE").cast("string"), lit("-"), col("cod_cliente").cast("string"))) \
+        .join(df_usuarios_raw.select("CODUSUARIO", "NOME"), col("USUAINCLUSAO") == col("CODUSUARIO"), "left") \
+        .withColumnRenamed("NOME", "USUARIO") \
+        .join(df_status_clientes_esteira, "STATUS_DO_CLIENTE", "left") \
+        .filter(col("cod_cliente").isNotNull() & (col("cod_cliente") != "")) \
+        .withColumn("INDICE", col("start_index") + row_number().over(window_cliente_data_delta)) \
+        .withColumn("chave_original", (col("INDICE") * 1000000000 + col("cod_cliente")).cast(LongType())) \
+        .withColumnRenamed("DATAINCLUSAO", "DATALOG") \
+        .select("CODPARECER", "cod_cliente", "STATUS_DO_CLIENTE", "DATALOG", "BASE", "USUARIO", "chave_base_cliente", "INDICE", "chave_original", "MACROPROCESSO", "FASE")
 
     if spark.catalog.tableExists(target_pareceres_status_table_name):
         DeltaTable.forName(spark, target_pareceres_status_table_name).alias("t").merge(df_pareceres_enriquecidos_delta.alias("s"), "t.CODPARECER = s.CODPARECER").whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
