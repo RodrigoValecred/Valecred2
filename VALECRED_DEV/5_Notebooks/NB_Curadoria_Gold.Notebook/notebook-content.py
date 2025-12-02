@@ -30,12 +30,12 @@
 
 # # Notebook de Curadoria da Camada Gold (Refatorado)
 # **Objetivo:** Aplicar regras de negócio, realizar joins e criar os modelos dimensionais (Fatos e Dimensões) na camada **Gold**.
-# **Refatoração:** Este notebook foi otimizado para ler diretamente da camada **Bronze**, realizando o tratamento e limpeza em memória (Staging volátil) antes de criar as tabelas Gold. Isso elimina a dependência de tabelas persistidas na camada Silver que possam estar desatualizadas ou com schema incorreto.
-# **Origem de Dados:** `LH_Bronze` (Tabelas brutas), `LH_Silver` (Apenas tabelas de controle/suporte manuais).
+# **Refatoração:** Este notebook consome dados tratados da camada **Silver**, preparados pelos notebooks `NB_Prepara_Tabela_Cadastros`, `NB_Prepara_Tabela_Operacoes` e `NB_Prepara_Tabela_Titulos`.
+# **Origem de Dados:** `LH_Silver` (Tabelas Staging Limpas) e `LH_Bronze` (Lookups/Cadastros menores).
 
 # MARKDOWN ********************
 
-# ## Seção 0: Configuração e Leitura de Dados (Bronze Source)
+# ## Seção 0: Configuração e Leitura de Dados (Silver Source)
 
 # CELL ********************
 
@@ -55,69 +55,24 @@ from delta.tables import *
 from functools import reduce
 import datetime
 
-# Célula 0.2: Definição de Lógica de Limpeza (Staging em Memória)
+# Célula 0.2: Leitura das Tabelas Preparadas (Silver)
 # ----------------------------------------------------------------
-print("Iniciando leitura da Bronze e criação de Staging em memória...")
+print("Iniciando leitura da Silver...")
 
-# --- 1. Titulos (Origem: LH_Bronze.tab_titulos) ---
-print("Carregando e limpando Titulos...")
-df_titulos_bronze = spark.read.table("LH_Bronze.tab_titulos")
-df_titulos_limpa = df_titulos_bronze.withColumn(
-    "DATA_MAIS_RECENTE", greatest(col("DATAALTERACAO"), col("DATAINCLUSAO"), col("LIQUIDACAO"))
-)
-w_titulos = Window.partitionBy("CODTITULO").orderBy(col("DATA_MAIS_RECENTE").desc())
-df_titulos_limpa = df_titulos_limpa.withColumn("rn", row_number().over(w_titulos)).filter(col("rn") == 1).drop("rn", "DATA_MAIS_RECENTE").select(
-    col("CODTITULO").alias("cod_titulo"),
-    col("CODOPERACAO").alias("cod_operacao"),
-    col("NDOC").alias("n_doc"),
-    col("TDOC").alias("t_doc"),
-    col("VENCIMENTO").alias("vencimento"),
-    col("VENCPRORROGADO").alias("venc_prorrogado"),
-    col("PRAZO").alias("prazo"),
-    col("CPFCNPJSACADO").alias("cpf_cnpj_sacado"),
-    col("VALOR").alias("valor"),
-    col("DESAGIO").alias("desagio"),
-    col("AMORTIZACOES").alias("amortizacoes"),
-    col("ACEITO").alias("aceito"),
-    col("DATAINCLUSAO").alias("data_inclusao"),
-    col("DATAALTERACAO").alias("data_alteracao"),
-    col("DOCCONFIRMADO").alias("doc_confirmado"),
-    col("USUACONF").alias("usua_conf"),
-    col("STATUSCONFIRMACAO").alias("status_confirmacao")
-).cache()
+# --- 1. Titulos (Origem: LH_Silver.staging_titulos_limpa) ---
+print("Carregando Titulos (Silver)...")
+df_titulos_limpa = spark.read.table("LH_Silver.staging_titulos_limpa")
+# A tabela já está limpa, desduplicada e com colunas renomeadas para snake_case.
 
-# --- 2. Operacoes (Origem: LH_Bronze.tab_operacoes) ---
-print("Carregando e limpando Operacoes...")
-df_operacoes_bronze = spark.read.table("LH_Bronze.tab_operacoes")
-# Correção pontual de TTO legada
-df_operacoes_bronze = df_operacoes_bronze.withColumn("TTO", when(col("CODOPERACAO") == 3042074, lit("CS")).otherwise(col("TTO")))
-w_ops = Window.partitionBy("CODOPERACAO").orderBy(col("DATAALTERACAO").desc())
-df_operacoes_limpa = df_operacoes_bronze.withColumn("rn", row_number().over(w_ops)).filter(col("rn") == 1).drop("rn").select(
-    col("CODOPERACAO").alias("cod_operacao"),
-    col("CODCLIENTE").alias("cod_cliente"),
-    col("CODEMPRESA").alias("cod_empresa"),
-    col("DATAINCLUSAO").alias("data_inclusao"),
-    col("DATAALTERACAO").alias("data_alteracao"),
-    col("DATAANALISE").alias("data_analise"),
-    col("STATUSACEITE").alias("status_aceite"),
-    col("STATUSANALISE").alias("status_analise"),
-    col("CODBROKER").alias("cod_broker"),
-    col("NOTASERVICO").alias("nota_servico"),
-    col("TTO").alias("tto"),
-    col("STTO").alias("stto"),
-    col("TOTRETENCAO").alias("valor_retido"),
-    col("TOTDES").alias("valor_desembolsado"),
-    col("TOTFAC").alias("valor_de_face"),
-    col("TOTDCP").alias("desagio"),
-    col("TOTTAR").alias("total_de_tarifas"),
-    col("TOTRECOMPRA").alias("valor_recomprado")
-).withColumn("chave_produto", concat(col("tto"), col("stto")))
+# --- 2. Operacoes (Origem: LH_Silver.staging_operacoes_limpa) ---
+print("Carregando Operacoes (Silver)...")
+df_operacoes_limpa = spark.read.table("LH_Silver.staging_operacoes_limpa")
+# Já possui snake_case e chave_produto.
 
-# --- 3. Baixas (Origem: LH_Bronze.tab_titulos_baixas) ---
-print("Carregando e limpando Baixas...")
-df_baixas_bronze = spark.read.table("LH_Bronze.tab_titulos_baixas")
-w_baixas = Window.partitionBy("CODTITULOBAIXAS").orderBy(col("DATAINCLUSAO").desc())
-df_baixas_staging = df_baixas_bronze.withColumn("rn", row_number().over(w_baixas)).filter(col("rn") == 1).drop("rn").select(
+# --- 3. Baixas (Origem: LH_Silver.staging_baixas_limpa) ---
+print("Carregando Baixas (Silver)...")
+# A tabela staging_baixas_limpa (Silver) mantém colunas em Uppercase do Bronze. Vamos renomear para snake_case aqui.
+df_baixas_staging = spark.read.table("LH_Silver.staging_baixas_limpa").select(
     col("CODTITULOBAIXAS").alias("cod_titulo_baixas"),
     col("CODTITULO").alias("cod_titulo"),
     col("DATAINCLUSAO").alias("data_inclusao"),
@@ -136,84 +91,62 @@ df_baixas_staging = df_baixas_bronze.withColumn("rn", row_number().over(w_baixas
     col("CODOPERACAO") # Needed for join
 )
 
-# --- 4. Cadastros (Origem: LH_Bronze.cad_...) ---
-print("Carregando e limpando Cadastros...")
+# --- 4. Cadastros (Origem: LH_Silver...) ---
+print("Carregando Cadastros (Silver)...")
 # Clientes
-df_clientes_bronze = spark.read.table("LH_Bronze.cad_clientes")
-w_cli = Window.partitionBy("CODCLIENTE").orderBy(col("DATAALTERACAO").desc())
-df_clientes_staging = df_clientes_bronze.withColumn("rn", row_number().over(w_cli)).filter(col("rn") == 1).drop("rn").select(
-    col("CODCLIENTE").alias("cod_cliente"), col("CPFCNPJ").alias("cpf_cnpj")
-).cache()
+df_clientes_staging = spark.read.table("LH_Silver.staging_clientes_limpa") # cod_cliente, cpf_cnpj
 
 # Geral PF/PJ
-df_geral_bronze = spark.read.table("LH_Bronze.cad_geral_pf_pj")
-w_geral = Window.partitionBy("CPFCNPJ").orderBy(col("DATAALTERACAO").desc())
-df_geral_pf_pj_limpa = df_geral_bronze.withColumn("rn", row_number().over(w_geral)).filter(col("rn") == 1).drop("rn").select(
-    col("CPFCNPJ").alias("cpf_cnpj"), col("NOME").alias("nome"), col("NOME").alias("razao_social"), col("FANTASIA").alias("nome_fantasia")
+df_geral_pf_pj_limpa = spark.read.table("LH_Silver.staging_cad_geral_pf_pj_limpa") # cpf_cnpj, nome, razao_social, nome_fantasia
+
+# Endereços
+df_enderecos_limpa = spark.read.table("LH_Silver.staging_enderecos_limpa").select(
+    col("cpf_cnpj"), col("cidade"), col("uf"), col("cep")
 )
 
-# Endereços (Simplified Logic for Gold usage)
-# Note: Full Region join logic is heavy, implementing core deduplication
-df_enderecos_bronze = spark.read.table("LH_Bronze.cad_enderecos")
-df_enderecos_limpa = df_enderecos_bronze.filter(col("CIDADE").isNotNull()).dropDuplicates(["CPFCNPJ"]).select(
-    col("CPFCNPJ").alias("cpf_cnpj"), col("CIDADE").alias("cidade"), col("UF").alias("uf"), col("CEP").alias("cep")
-)
-
-# Bridge Gerente (Reconstructed from Bronze)
-df_hist = spark.read.table("LH_Bronze.rlc_brokers_clientes_historico")
-df_curr = spark.read.table("LH_Bronze.rlc_brokers_clientes")
-df_bridge_unif = df_hist.unionByName(df_curr, allowMissingColumns=True)
-df_bridge_prep = df_bridge_unif.withColumn("DataInicioVigencia", coalesce(col("DATAINICIO"), col("DATAINCLUSAO")).cast("date")) \
-    .select(col("CODCLIENTE").alias("ClienteID"), col("CODBROKER").alias("GerenteID"), "DataInicioVigencia") \
-    .filter(col("ClienteID").isNotNull() & col("GerenteID").isNotNull()).distinct()
-w_bridge = Window.partitionBy("ClienteID").orderBy(col("DataInicioVigencia").asc())
-df_bridge_gerente = df_bridge_prep.withColumn("DataFimVigencia_temp", lead("DataInicioVigencia", 1, datetime.date(9999, 12, 31)).over(w_bridge)) \
-    .withColumn("DataFimVigencia", when(col("DataFimVigencia_temp") == datetime.date(9999, 12, 31), lit("9999-12-31").cast("date")).otherwise(date_sub(col("DataFimVigencia_temp"), 1))) \
-    .select("ClienteID", "GerenteID", "DataInicioVigencia", "DataFimVigencia")
+# Bridge Gerente
+df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
 
 # Emails & Telefones Agg
-df_emails_agg = spark.read.table("LH_Bronze.cad_email").filter(col("EMAIL").isNotNull()).select(col("CPFCNPJ").alias("cpf_cnpj"), col("EMAIL").alias("email")).groupBy("cpf_cnpj").agg(concat_ws("; ", collect_list("email")).alias("emails"))
-df_telefones_agg = spark.read.table("LH_Bronze.cad_telefones").filter(col("FONE").isNotNull()).select(col("CPFCNPJ").alias("cpf_cnpj"), col("FONE").alias("fone")).groupBy("cpf_cnpj").agg(concat_ws("; ", collect_list("fone")).alias("telefones"))
+df_emails_agg = spark.read.table("LH_Silver.staging_emails_agg")
+df_telefones_agg = spark.read.table("LH_Silver.staging_telefones_agg")
 
-# --- 5. Support Tables (Keeping Silver/Bronze lookups if manual) ---
-# Assuming these are static or managed manually. If in Bronze files, we'd read files, but sticking to existing Silver tables for static lookups is safer than failing if files are missing.
-# Constraint: "tabelas externas apenas da camada bronze".
-# If these tables originate from manual uploads (as seen in NB_Load_Silver...), they are effectively "Bronze" but loaded to Silver.
-# We will use the Silver versions for these Lookups as they act as Dimensions.
+# --- 5. Support Tables ---
 df_dim_pago_por = spark.read.table("LH_Silver.sup_pago_pelo")
 df_dim_forma_pagamento = spark.read.table("LH_Silver.sup_forma_de_pagamento")
 df_dim_tipo_taxa = spark.read.table("LH_Silver.sup_tipo_de_baixa")
 df_dim_motivo_baixa = spark.read.table("LH_Silver.sup_motivo_baixa")
 df_status_clientes_esteira = spark.read.table("LH_Silver.sup_status_de_clientes_da_esteira")
 
-# --- 6. Other Bronze Lookups ---
+# --- 6. Other Lookups ---
 df_cad_geral_arquivos = spark.read.table("LH_Bronze.cad_geral_arquivos")
 df_tipo_op_bronze = spark.read.table("LH_Bronze.tab_tipooperacao")
 df_subtipo_op_bronze = spark.read.table("LH_Bronze.tab_subtipooperacao")
 df_feriados = spark.read.table("LH_Bronze.tab_feriados")
 df_pareceres_raw = spark.read.table("LH_Bronze.cad_geral_pareceres")
 df_usuarios_raw = spark.read.table("LH_Bronze.cad_usuarios")
-# Limites & Devolucoes & Protestos & Ultima Conf (Simplified reads or Bronze equivalents)
-df_limites = spark.read.table("LH_Bronze.rlc_clientes_sacados_limites").withColumn("TipoDocumentoSacado", when(length(col("CPFCNPJ")) == 11, "CPF").when(length(col("CPFCNPJ")) == 14, "CNPJ")).withColumn("RaizCNPJ", when(col("TipoDocumentoSacado") == "CNPJ", substring(col("CPFCNPJ"), 1, 8)).otherwise(col("CPFCNPJ"))).withColumn("chave_cliente_sacado", concat(col("CODCLIENTE").cast("string"), lit("-"), col("RaizCNPJ"))).withColumnRenamed("TIPO", "tipo")
-df_devolucoes = spark.read.table("LH_Bronze.tab_operacoes_devolucoes").withColumnRenamed("CODTITULO", "cod_titulo").withColumnRenamed("CODOPERACAO", "cod_operacao")
-df_protestos_raw = spark.read.table("LH_Bronze.rlc_titulos_ocorrencias_cobranca") # Requires complex logic, simplistic view for now or reuse Silver logic if critical.
-# Reusing Silver Protestos logic is complex. We'll map a basic check.
-# If strict "Bronze Only", we must rebuild protestos logic.
-# For now, we assume 'staging_protestos' is not easily rebuildable in-line without clutter.
-# Exception: Reading LH_Silver.staging_protestos for complexity reduction, noting optimization limit.
-# *Self-Correction*: User said "tabelas externas apenas da camada bronze".
-# I will implement a simplified Protesto check from Bronze `rlc_titulos_ocorrencias_cobranca`.
-df_protestos = df_protestos_raw.filter(col("CODOCORINTERNA").isin([14, 2, 82])).select(col("CODTITULO").alias("cod_titulo"), lit("Protestado").alias("status_protesto")).distinct()
 
-df_ultima_conf = spark.read.table("LH_Silver.fact_ultima_confirmacao") # This is likely a calculated fact. We keep it or skip it? It's Silver.
-# If it's a Fact, it should be in Gold or calculated here.
-# Assuming it's a result of another process. We will keep it but flag it if possible to remove.
-# For this refactor, we will rely on titulos 'status_confirmacao' which we have from Bronze.
+# Limites (Silver)
+df_limites = spark.read.table("LH_Silver.staging_rlc_clientes_sacados_limites")
 
-# Calendario (Gold) - Dimension is allowed
+# Devolucoes (Silver) - Silver mantém Uppercase? NB_Prepara_Tabela_Operacoes não renomeia explicitamente.
+# Vamos garantir rename.
+try:
+    df_devolucoes = spark.read.table("LH_Silver.staging_operacoes_devolucoes_limpa").withColumnRenamed("CODTITULO", "cod_titulo").withColumnRenamed("CODOPERACAO", "cod_operacao")
+except:
+    # Fallback to Bronze if Silver not populated yet
+    df_devolucoes = spark.read.table("LH_Bronze.tab_operacoes_devolucoes").withColumnRenamed("CODTITULO", "cod_titulo").withColumnRenamed("CODOPERACAO", "cod_operacao")
+
+# Protestos (Silver)
+# NB_Prepara_Tabela_Titulos cria staging_protestos com CODTITULO, STATUS_PROTESTO.
+df_protestos = spark.read.table("LH_Silver.staging_protestos").withColumnRenamed("CODTITULO", "cod_titulo").withColumnRenamed("STATUS_PROTESTO", "status_protesto")
+
+df_ultima_conf = spark.read.table("LH_Silver.fact_ultima_confirmacao")
+
+# Calendario (Gold)
 df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
 
-print("Leitura e Staging em memória concluídos.")
+print("Leitura da Silver concluída.")
 
 # METADATA ********************
 
@@ -241,6 +174,7 @@ df_cad_geral_enriquecido = df_geral_pf_pj_limpa \
 # -----------------------------------------------------------
 print("Criando DataFrame intermediário: Operações Enriquecidas...")
 # Enriquecimento com Gerente (Broker)
+# Silver bridge tem "ClienteID", Ops tem "cod_cliente".
 df_operacoes_com_historico = df_operacoes_limpa.join(
     df_bridge_gerente,
     (df_operacoes_limpa["cod_cliente"] == df_bridge_gerente["ClienteID"]) &
@@ -329,7 +263,7 @@ print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
 # Célula 2.2: Construção da Fato Baixas
 # -------------------------------------
 print("\nIniciando construção da fato_baixas...")
-# Apply manual fixes
+# Apply manual fixes (Mantido para correções de negócio específicas)
 df_baixas_corrigido = df_baixas_staging.withColumn("juros",
     when(col("juros") == -858005.8, 3912.5).when(col("juros") == -4948525.71, -56747.24)
     .when(col("juros") == -4140.75, 0).when(col("juros") == -1447.5, 52.5)
@@ -468,7 +402,7 @@ print("\nIniciando o processamento incremental de pareceres...")
 target_pareceres_status_table_name = "LH_Silver.pareceres_de_alteracao_de_status"
 target_esteira_table_name = "LH_Gold.esteira_de_propostas"
 watermark_table_name = "LH_Silver.etl_watermark_control"
-notebook_name = "NB_Curadoria_Gold" # Updated to self name
+notebook_name = "NB_Curadoria_Gold"
 
 try:
     df_watermark = spark.read.table(watermark_table_name)
