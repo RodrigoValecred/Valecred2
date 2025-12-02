@@ -121,11 +121,15 @@ key_columns_titulos = ["CODTITULO"]
 is_incremental_possible = False
 if DeltaTable.isDeltaTable(spark, output_path_titulos):
     try:
-        # Tenta ler a watermark usando a coluna nova. Se falhar, é schema antigo.
-        spark.read.format("delta").load(output_path_titulos).select("data_alteracao").limit(1).collect()
-        is_incremental_possible = True
+        # Check for new snake_case column and data_alteracao
+        target_cols = spark.read.format("delta").load(output_path_titulos).columns
+        if "cod_titulo" in target_cols and "data_alteracao" in target_cols:
+            is_incremental_possible = True
+        else:
+            print("Schema mismatch (cod_titulo or data_alteracao missing). Forcing Full Load.")
+            is_incremental_possible = False
     except AnalysisException:
-        print("Coluna 'data_alteracao' não encontrada no destino. Forçando Full Load para atualização de schema.")
+        print("Error accessing target table. Forcing Full Load.")
         is_incremental_possible = False
 else:
     print("Tabela destino não existe. Forçando Full Load.")
@@ -220,14 +224,15 @@ df_chave_filtrada = df_titulos_danfe \
     .distinct()
 
 df_detalhada = df_chave_filtrada \
-    .withColumn("UF", substring(col("CHAVEDANFE"), 1, 2)) \
-    .withColumn("AAMM", substring(col("CHAVEDANFE"), 3, 4)) \
-    .withColumn("CNPJ", substring(col("CHAVEDANFE"), 7, 14)) \
-    .withColumn("Modelo", substring(col("CHAVEDANFE"), 21, 2)) \
-    .withColumn("Serie", substring(col("CHAVEDANFE"), 23, 3)) \
-    .withColumn("NumeroNF", substring(col("CHAVEDANFE"), 26, 9)) \
-    .withColumn("CodigoNF", substring(col("CHAVEDANFE"), 35, 9)) \
-    .withColumn("DV", substring(col("CHAVEDANFE"), 44, 1))
+    .withColumn("uf", substring(col("CHAVEDANFE"), 1, 2)) \
+    .withColumn("aamm", substring(col("CHAVEDANFE"), 3, 4)) \
+    .withColumn("cnpj", substring(col("CHAVEDANFE"), 7, 14)) \
+    .withColumn("modelo", substring(col("CHAVEDANFE"), 21, 2)) \
+    .withColumn("serie", substring(col("CHAVEDANFE"), 23, 3)) \
+    .withColumn("numero_nf", substring(col("CHAVEDANFE"), 26, 9)) \
+    .withColumn("codigo_nf", substring(col("CHAVEDANFE"), 35, 9)) \
+    .withColumn("dv", substring(col("CHAVEDANFE"), 44, 1)) \
+    .withColumnRenamed("CHAVEDANFE", "chave_danfe")
 
 df_detalhada.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.{danfe_target_table}")
 print("Tabela DANFE salva.")
@@ -250,13 +255,21 @@ output_path_baixas = f"{target_lakehouse}.{target_table_baixas}"
 source_table_baixas = "tab_titulos_baixas"
 print(f"Iniciando processamento de {target_table_baixas}...")
 
+is_incremental_baixas = False
 if DeltaTable.isDeltaTable(spark, output_path_baixas):
+    # Check if snake_case column exists
+    if "cod_titulo_baixas" in spark.read.format("delta").load(output_path_baixas).columns:
+        is_incremental_baixas = True
+    else:
+        print("Schema mismatch for Baixas. Forcing Full Load.")
+
+if is_incremental_baixas:
     print("Modo Incremental: Baixas")
     delta_table_baixas = DeltaTable.forPath(spark, output_path_baixas)
     
     # Watermark baseada em DATAINCLUSAO (baixas geralmente são imutáveis/append)
     watermark_row_b = spark.read.format("delta").load(output_path_baixas) \
-        .agg(max("DATAINCLUSAO").alias("max_date")).collect()
+        .agg(max("data_inclusao").alias("max_date")).collect()
     
     last_watermark_b = "1900-01-01"
     if watermark_row_b and watermark_row_b[0][0]:
@@ -271,11 +284,17 @@ if DeltaTable.isDeltaTable(spark, output_path_baixas):
         key_cols_baixa = ["CODTITULOBAIXAS"]
         window_baixa = Window.partitionBy([col(c) for c in key_cols_baixa]).orderBy(col("DATAINCLUSAO").desc())
         df_baixas_dedup = df_bronze_baixas.withColumn("row_num", row_number().over(window_baixa)) \
-            .filter(col("row_num") == 1).drop("row_num")
+            .filter(col("row_num") == 1).drop("row_num") \
+            .withColumnRenamed("CODTITULOBAIXAS", "cod_titulo_baixas") \
+            .withColumnRenamed("CODTITULO", "cod_titulo") \
+            .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+
+        # Garantir snake_case em todas as colunas
+        df_baixas_dedup = df_baixas_dedup.select([col(c).alias(c.lower()) for c in df_baixas_dedup.columns])
             
         delta_table_baixas.alias("t").merge(
             df_baixas_dedup.alias("s"),
-            "t.CODTITULOBAIXAS = s.CODTITULOBAIXAS"
+            "t.cod_titulo_baixas = s.cod_titulo_baixas"
         ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
         print("Merge Baixas concluído.")
     else:
@@ -286,7 +305,14 @@ else:
     key_cols_baixa = ["CODTITULOBAIXAS"]
     window_baixa = Window.partitionBy([col(c) for c in key_cols_baixa]).orderBy(col("DATAINCLUSAO").desc())
     df_baixas_desduplicada = df_baixas.withColumn("row_num", row_number().over(window_baixa)) \
-                                        .filter(col("row_num") == 1).drop("row_num")
+                                        .filter(col("row_num") == 1).drop("row_num") \
+                                        .withColumnRenamed("CODTITULOBAIXAS", "cod_titulo_baixas") \
+                                        .withColumnRenamed("CODTITULO", "cod_titulo") \
+                                        .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+
+    # Garantir snake_case em todas as colunas
+    df_baixas_desduplicada = df_baixas_desduplicada.select([col(c).alias(c.lower()) for c in df_baixas_desduplicada.columns])
+
     df_baixas_desduplicada.write.mode("overwrite").option("overwriteSchema","true").saveAsTable(output_path_baixas)
     print("Carga Full Baixas concluída.")
 
@@ -335,9 +361,9 @@ cond_c = (col("CODOCORINTERNA") == 34)
 
 df_com_status_code = df_latest_ocorrencia.withColumn("STATUSPROTESTO",
     when(cond_p1 | cond_p2 | cond_p3 | cond_p4, lit("P")).when(cond_e, lit("E")).when(cond_i, lit("I")).when(cond_c, lit("C")).otherwise(lit("N")))
-df_final_protestos = df_com_status_code.withColumn("STATUS_PROTESTO",
+df_final_protestos = df_com_status_code.withColumn("status_protesto",
     when(col("STATUSPROTESTO") == 'P', lit("Protestado")).when(col("STATUSPROTESTO") == 'E', lit("Instrução Protesto Enviada")).when(col("STATUSPROTESTO") == 'I', lit("Instrução Protesto")).when(col("STATUSPROTESTO") == 'C', lit("Em Cartório")).otherwise(lit("N/A"))
-).filter(col("STATUS_PROTESTO") != "N/A").select("CODTITULO", "STATUS_PROTESTO", col("DATAINCLUSAO").alias("DATA_OCORRENCIA_PROTESTO"))
+).filter(col("status_protesto") != "N/A").select(col("CODTITULO").alias("cod_titulo"), col("status_protesto"), col("DATAINCLUSAO").alias("data_ocorrencia_protesto"))
 
 df_final_protestos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_protestos")
 
@@ -346,7 +372,7 @@ print("Processando Abatimentos...")
 df_abatimentos = spark.read.table("LH_Bronze.tab_titulos_abatimento")
 df_abatimentos.select(
     col("CODTITULOABAT").alias("cod_titulo_abat"), col("CODOPERACAO").alias("cod_operacao"), col("CODTITULO").alias("cod_titulo"), col("CODOPERACAOAB").alias("cod_operacao_ab"), col("VALORDEVIDO").alias("valor_devido"), col("ABATIMENTO").alias("abatimento"), col("DATAINCLUSAO").alias("data_inclusao"), col("CODBANCOCOBR").alias("cod_banco_cobr"), col("USUAINCLUSAO").alias("usua_inclusao")
-).withColumn("Data", col("data_inclusao").cast("date")).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_abatimentos")
+).withColumn("data", col("data_inclusao").cast("date")).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_abatimentos")
 
 # 4.3 Notificações
 print("Processando Notificações...")

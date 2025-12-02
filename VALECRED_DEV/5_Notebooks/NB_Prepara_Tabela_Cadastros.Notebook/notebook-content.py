@@ -172,25 +172,32 @@ print("Processando Bridge Cliente-Gerente...")
 df_historico = spark.read.table("LH_Bronze.rlc_brokers_clientes_historico")
 df_atual = spark.read.table("LH_Bronze.rlc_brokers_clientes")
 df_unificado = df_historico.unionByName(df_atual, allowMissingColumns=True)
-df_preparado = df_unificado.withColumn("DataInicioVigencia", coalesce(col("DATAINICIO"), col("DATAINCLUSAO")).cast("date")) \
-    .select(col("CODCLIENTE").alias("ClienteID"), col("CODBROKER").alias("GerenteID"), "DataInicioVigencia") \
-    .filter(col("ClienteID").isNotNull() & col("GerenteID").isNotNull() & col("DataInicioVigencia").isNotNull()).distinct()
-windowSpec_bridge = Window.partitionBy("ClienteID").orderBy(col("DataInicioVigencia").asc())
-df_com_data_fim = df_preparado.withColumn("DataFimVigencia_temp", lead("DataInicioVigencia", 1, datetime.date(9999, 12, 31)).over(windowSpec_bridge))
-df_final_bridge = df_com_data_fim.withColumn("DataFimVigencia", when(col("DataFimVigencia_temp") == datetime.date(9999, 12, 31), lit("9999-12-31").cast("date")).otherwise(date_sub(col("DataFimVigencia_temp"), 1))) \
-    .select("ClienteID", "GerenteID", "DataInicioVigencia", "DataFimVigencia")
+df_preparado = df_unificado.withColumn("data_inicio_vigencia", coalesce(col("DATAINICIO"), col("DATAINCLUSAO")).cast("date")) \
+    .select(col("CODCLIENTE").alias("cod_cliente"), col("CODBROKER").alias("cod_gerente"), "data_inicio_vigencia") \
+    .filter(col("cod_cliente").isNotNull() & col("cod_gerente").isNotNull() & col("data_inicio_vigencia").isNotNull()).distinct()
+windowSpec_bridge = Window.partitionBy("cod_cliente").orderBy(col("data_inicio_vigencia").asc())
+df_com_data_fim = df_preparado.withColumn("data_fim_vigencia_temp", lead("data_inicio_vigencia", 1, datetime.date(9999, 12, 31)).over(windowSpec_bridge))
+df_final_bridge = df_com_data_fim.withColumn("data_fim_vigencia", when(col("data_fim_vigencia_temp") == datetime.date(9999, 12, 31), lit("9999-12-31").cast("date")).otherwise(date_sub(col("data_fim_vigencia_temp"), 1))) \
+    .select("cod_cliente", "cod_gerente", "data_inicio_vigencia", "data_fim_vigencia")
 df_final_bridge.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.bridge_cliente_gerente")
-df_final_bridge.filter(col("DataFimVigencia") == "9999-12-31").select("ClienteID", "GerenteID", "DataInicioVigencia").write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.relacionamento_cliente_gerente_atual")
+df_final_bridge.filter(col("data_fim_vigencia") == "9999-12-31").select("cod_cliente", "cod_gerente", "data_inicio_vigencia").write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.relacionamento_cliente_gerente_atual")
 
 # 3.3 Limites
 print("Processando Limites...")
 df_bronze_limites = spark.read.table("LH_Bronze.rlc_clientes_sacados_limites")
 df_transformed_limites = df_bronze_limites \
-    .withColumn("TIPO", regexp_replace(col("TIPO"), "^I$", "INTERCIA")) \
-    .withColumn("TipoDocumentoSacado", when(length(col("CPFCNPJ")) == 11, "CPF").when(length(col("CPFCNPJ")) == 14, "CNPJ").otherwise("Inválido")) \
-    .withColumn("RaizCNPJ", when(col("TipoDocumentoSacado") == "CNPJ", substring(col("CPFCNPJ"), 1, 8)).otherwise(col("CPFCNPJ"))) \
-    .withColumn("chave_cliente_sacado", concat(col("CODCLIENTE").cast("string"), lit("-"), col("RaizCNPJ")))
-window_limites = Window.partitionBy("chave_cliente_sacado").orderBy(col("DATAINCLUSAO").desc())
+    .withColumn("tipo", regexp_replace(col("TIPO"), "^I$", "INTERCIA")) \
+    .withColumn("tipo_documento_sacado", when(length(col("CPFCNPJ")) == 11, "CPF").when(length(col("CPFCNPJ")) == 14, "CNPJ").otherwise("Inválido")) \
+    .withColumn("raiz_cnpj", when(col("tipo_documento_sacado") == "CNPJ", substring(col("CPFCNPJ"), 1, 8)).otherwise(col("CPFCNPJ"))) \
+    .withColumn("chave_cliente_sacado", concat(col("CODCLIENTE").cast("string"), lit("-"), col("raiz_cnpj"))) \
+    .withColumnRenamed("CODCLIENTE", "cod_cliente") \
+    .withColumnRenamed("CPFCNPJ", "cpf_cnpj") \
+    .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+
+# Garantir snake_case em todas as colunas
+df_transformed_limites = df_transformed_limites.select([col(c).alias(c.lower()) for c in df_transformed_limites.columns])
+
+window_limites = Window.partitionBy("chave_cliente_sacado").orderBy(col("data_inclusao").desc())
 df_transformed_limites = df_transformed_limites.withColumn("row_num", row_number().over(window_limites)).filter(col("row_num") == 1).drop("row_num")
 df_transformed_limites.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_rlc_clientes_sacados_limites")
 

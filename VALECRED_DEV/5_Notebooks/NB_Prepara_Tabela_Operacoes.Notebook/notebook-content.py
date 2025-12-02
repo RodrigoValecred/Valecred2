@@ -96,13 +96,20 @@ def select_operacoes(df):
         col("TOTRECOMPRA").alias("valor_recomprado")
     )
 
+is_incremental_ops = False
 if DeltaTable.isDeltaTable(spark, output_path_operacoes):
+    if "cod_operacao" in spark.read.format("delta").load(output_path_operacoes).columns:
+        is_incremental_ops = True
+    else:
+        print("Schema mismatch for Operacoes. Forcing Full Load.")
+
+if is_incremental_ops:
     print("Modo Incremental: Operações")
     delta_table_ops = DeltaTable.forPath(spark, output_path_operacoes)
     
     # 1. Watermark
     watermark_row = spark.read.format("delta").load(output_path_operacoes) \
-        .select(greatest(max("DATAINCLUSAO"), max("DATAALTERACAO")).alias("max_date")) \
+        .select(greatest(max("data_inclusao"), max("data_alteracao")).alias("max_date")) \
         .collect()
         
     last_watermark = "1900-01-01"
@@ -129,11 +136,6 @@ if DeltaTable.isDeltaTable(spark, output_path_operacoes):
         # 4. Merge
         # Compatibility check for merge condition (handles schema migration if target is still old schema)
         merge_condition = "t.cod_operacao = s.cod_operacao"
-        try:
-            if "CODOPERACAO" in delta_table_ops.toDF().columns:
-                 merge_condition = "t.CODOPERACAO = s.cod_operacao"
-        except:
-            pass
 
         delta_table_ops.alias("t").merge(
             df_final_batch.alias("s"),
@@ -177,39 +179,20 @@ output_path_devolucoes = f"{target_lakehouse}.{target_table_devolucoes}"
 
 print(f"Iniciando processamento de {target_table_devolucoes}...")
 
+is_incremental_dev = False
 if DeltaTable.isDeltaTable(spark, output_path_devolucoes):
+    if "cod_titulo" in spark.read.format("delta").load(output_path_devolucoes).columns:
+        is_incremental_dev = True
+    else:
+         print("Schema mismatch for Devolucoes. Forcing Full Load.")
+
+if is_incremental_dev:
     print("Modo Incremental: Devoluções")
     delta_table_dev = DeltaTable.forPath(spark, output_path_devolucoes)
     
-    # Watermark: Usar DATAINCLUSAO ou DATAALTERACAO
-    # A tabela target DROPPA DATAALTERACAO e USUAINCLUSAO. Precisamos de cuidado.
-    # Mas podemos ler o LOG de transação do Delta para saber o último commit? Não, muito complexo.
-    # Vamos usar DATAINCLUSAO se existir, ou se a tabela não tiver colunas de tempo, Full Load é mais seguro?
-    # O schema de saida é: sem DATAALTERACAO.
-    # Se eu não guardo DATAALTERACAO na Silver, não posso filtrar por ela na próxima execução incremental baseada na Silver.
-    # ALTERNATIVA: Adicionar DATAALTERACAO à Silver.
-    # VAMOS ADICIONAR DATAALTERACAO AGORA.
-    
-    # Mas se a tabela já existe sem a coluna, o merge falha (Schema Mismatch).
-    # O Spark Delta Schema Evolution pode lidar com isso se 'mergeSchema' estiver ativo.
-    
-    # Assumindo que queremos manter o padrão, vamos usar Full Overwrite para Devolucoes se não pudermos alterar o schema facilmente.
-    # Devoluções costumam ser voláteis?
-    # Vou manter INCREMENTAL mas vou ter que mudar a lógica de leitura da watermark.
-    # Se não tem coluna de data na Silver, não dá pra fazer incremental baseado em data.
-    # Vou mudar para Full Load para Devolucoes POR ENQUANTO, para evitar quebrar schema existente.
-    # O usuário pediu "tratar menos dados", mas sem mudar schema é arriscado.
-    # Porém, vou implementar Full Load otimizado (apenas colunas necessárias).
-    
-    # Revisitando: A tabela original dropa: USUAINCLUSAO, DATAALTERACAO, USUAALTERACAO, CODTITULOBAIXA.
-    # Provavelmente mantém DATAINCLUSAO?
-    # Bronze Schema: ...
-    # Original code dropped explicit list. Se DATAINCLUSAO não estava na lista de drop, ela ficou.
-    # Vou assumir que DATAINCLUSAO está lá.
-    
     try:
         watermark_row = spark.read.format("delta").load(output_path_devolucoes) \
-            .agg(max("DATAINCLUSAO").alias("max_date")).collect()
+            .agg(max("data_inclusao").alias("max_date")).collect()
         last_watermark = watermark_row[0][0] if watermark_row and watermark_row[0][0] else "1900-01-01"
         
         print(f"Watermark Devoluções: {last_watermark}")
@@ -221,11 +204,16 @@ if DeltaTable.isDeltaTable(spark, output_path_devolucoes):
             window_devolucoes = Window.partitionBy("CODTITULO").orderBy(col("DATAALTERACAO").desc())
             df_dedup = df_bronze_dev.withColumn("row_num", row_number().over(window_devolucoes)) \
                 .filter(col("row_num") == 1).drop("row_num") \
-                .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA")
+                .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
+                .withColumnRenamed("CODTITULO", "cod_titulo") \
+                .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+
+            # Garantir snake_case em todas as colunas
+            df_dedup = df_dedup.select([col(c).alias(c.lower()) for c in df_dedup.columns])
             
             delta_table_dev.alias("t").merge(
                 df_dedup.alias("s"),
-                "t.CODTITULO = s.CODTITULO"
+                "t.cod_titulo = s.cod_titulo"
             ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
             print("Merge Devoluções concluído.")
         else:
@@ -239,7 +227,13 @@ if DeltaTable.isDeltaTable(spark, output_path_devolucoes):
         df_transformed_devolucoes = df_bronze_devolucoes \
             .withColumn("row_num", row_number().over(window_devolucoes)) \
             .filter(col("row_num") == 1).drop("row_num") \
-            .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA")
+            .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
+            .withColumnRenamed("CODTITULO", "cod_titulo") \
+            .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+
+        # Garantir snake_case em todas as colunas
+        df_transformed_devolucoes = df_transformed_devolucoes.select([col(c).alias(c.lower()) for c in df_transformed_devolucoes.columns])
+
         df_transformed_devolucoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_devolucoes)
 
 else:
@@ -249,7 +243,13 @@ else:
     df_transformed_devolucoes = df_bronze_devolucoes \
         .withColumn("row_num", row_number().over(window_devolucoes)) \
         .filter(col("row_num") == 1).drop("row_num") \
-        .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA")
+        .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
+        .withColumnRenamed("CODTITULO", "cod_titulo") \
+        .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+
+    # Garantir snake_case em todas as colunas
+    df_transformed_devolucoes = df_transformed_devolucoes.select([col(c).alias(c.lower()) for c in df_transformed_devolucoes.columns])
+
     df_transformed_devolucoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_devolucoes)
 
 # METADATA ********************
