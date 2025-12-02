@@ -77,7 +77,7 @@ df_baixas_staging = spark.read.table("LH_Silver.staging_baixas_limpa").select(
     col("CODTITULO").alias("cod_titulo"),
     col("DATAINCLUSAO").alias("data_inclusao"),
     col("DATAALTERACAO").alias("data_alteracao"),
-    col("VALORPAGO").alias("valor_pago"),
+    col("VLPAGO").alias("valor_pago"),
     col("DATABAIXA").alias("data_baixa"),
     col("DATABAIXASIST").alias("data_baixa_sist"),
     col("DESCONTO").alias("desconto"),
@@ -413,6 +413,18 @@ except Exception:
     last_watermark = datetime.datetime(1900, 1, 1)
     print(f"Usando watermark padrão: {last_watermark}.")
 
+
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 # Célula 4.2: Leitura e Processamento Incremental
 # ------------------------------------------------
 df_pareceres_incremental = df_pareceres_raw.filter((col("DATAINCLUSAO") > last_watermark) | (col("DATAALTERACAO") > last_watermark)).cache()
@@ -435,6 +447,16 @@ else:
     print("Nenhum dado novo encontrado.")
 
 df_pareceres_incremental.unpersist()
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
 
 # Célula 4.3: Reconstrução da Esteira e Atualização do Watermark
 # -------------------------------------------------------------
