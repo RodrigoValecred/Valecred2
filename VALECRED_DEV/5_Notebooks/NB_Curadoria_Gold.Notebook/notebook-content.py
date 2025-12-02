@@ -288,7 +288,7 @@ df_enriquecido_baixas = df_baixas_corrigido \
 
 df_fato_baixas = df_enriquecido_baixas.select(
     "cod_titulo_baixas", "cod_titulo", "data_baixa", "data_baixa_sist", "valor_pago",
-    "desconto", "juros", "tarifa_recompra", "data_vencimento", df_baixas_corrigido["cod_operacao"],
+    "desconto", "juros", "tarifa_recompra", "data_vencimento", df_baixas_corrigido["CODOPERACAO"],
     df_dim_pago_por["descricao"].alias("PagoPor"), df_dim_forma_pagamento["descricao"].alias("Forma"),
     df_dim_tipo_taxa["descricao"].alias("TipoBaixa"), df_dim_motivo_baixa["descricao"].alias("Motivo")
 )
