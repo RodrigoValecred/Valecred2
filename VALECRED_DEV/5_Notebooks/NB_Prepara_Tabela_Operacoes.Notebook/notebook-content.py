@@ -71,7 +71,7 @@ output_path_operacoes = f"{target_lakehouse}.{target_table_operacoes}"
 
 print(f"Iniciando processamento de {target_table_operacoes}...")
 
-key_columns_operacoes = ["cod_operacao"]
+key_columns_operacoes = ["CODOPERACAO"]
 # Schema de Seleção
 def select_operacoes(df):
     return df.select(
