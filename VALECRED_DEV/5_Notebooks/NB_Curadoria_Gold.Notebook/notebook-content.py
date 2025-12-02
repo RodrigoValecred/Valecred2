@@ -70,7 +70,36 @@ df_geral_pf_pj_limpa = spark.read.table("LH_Silver.staging_cad_geral_pf_pj_limpa
 df_enderecos_limpa = spark.read.table("LH_Silver.staging_enderecos_limpa")
 df_emails_agg = spark.read.table("LH_Silver.staging_emails_agg")
 df_telefones_agg = spark.read.table("LH_Silver.staging_telefones_agg")
-df_operacoes_limpa = spark.read.table("LH_Silver.staging_operacoes_limpa")
+df_operacoes_limpa_raw = spark.read.table("LH_Silver.staging_operacoes_limpa")
+
+# Normalização de colunas para snake_case (compatibilidade com versões antigas da Silver)
+# Mapeamento de colunas legado (Uppercase) para padrão (snake_case)
+col_mapping_operacoes = {
+    "CODOPERACAO": "cod_operacao",
+    "CODCLIENTE": "cod_cliente",
+    "CODEMPRESA": "cod_empresa",
+    "DATAINCLUSAO": "data_inclusao",
+    "DATAALTERACAO": "data_alteracao",
+    "DATAANALISE": "data_analise",
+    "STATUSACEITE": "status_aceite",
+    "STATUSANALISE": "status_analise",
+    "CODBROKER": "cod_broker",
+    "NOTASERVICO": "nota_servico",
+    "TTO": "tto",
+    "STTO": "stto",
+    "TOTRETENCAO": "valor_retido",
+    "TOTDES": "valor_desembolsado",
+    "TOTFAC": "valor_de_face",
+    "TOTDCP": "desagio",
+    "TOTTAR": "total_de_tarifas",
+    "TOTRECOMPRA": "valor_recomprado"
+}
+
+df_operacoes_limpa = df_operacoes_limpa_raw
+for old_col, new_col in col_mapping_operacoes.items():
+    if old_col in df_operacoes_limpa.columns and new_col not in df_operacoes_limpa.columns:
+        df_operacoes_limpa = df_operacoes_limpa.withColumnRenamed(old_col, new_col)
+
 df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
 df_baixas_staging = spark.read.table("LH_Silver.staging_baixas_limpa")
 df_limites = spark.read.table("LH_Silver.staging_rlc_clientes_sacados_limites")

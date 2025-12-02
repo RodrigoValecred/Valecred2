@@ -71,29 +71,29 @@ output_path_operacoes = f"{target_lakehouse}.{target_table_operacoes}"
 
 print(f"Iniciando processamento de {target_table_operacoes}...")
 
-key_columns_operacoes = ["CODOPERACAO"]
+key_columns_operacoes = ["cod_operacao"]
 # Schema de Seleção
 def select_operacoes(df):
     return df.select(
-        "CODOPERACAO",
-        "CODCLIENTE",
-        "CODEMPRESA",
-        "DATAINCLUSAO",
-        "DATAALTERACAO",
-        "DATAANALISE",
-        "STATUSACEITE",
-        "STATUSANALISE",
-        "CODBROKER",
-        "NOTASERVICO",
-        "TTO",
-        "STTO",
-        "chave_produto",
-        "TOTRETENCAO",
-        "TOTDES",
-        "TOTFAC",
-        "TOTDCP",
-        "TOTTAR",
-        "TOTRECOMPRA"
+        col("CODOPERACAO").alias("cod_operacao"),
+        col("CODCLIENTE").alias("cod_cliente"),
+        col("CODEMPRESA").alias("cod_empresa"),
+        col("DATAINCLUSAO").alias("data_inclusao"),
+        col("DATAALTERACAO").alias("data_alteracao"),
+        col("DATAANALISE").alias("data_analise"),
+        col("STATUSACEITE").alias("status_aceite"),
+        col("STATUSANALISE").alias("status_analise"),
+        col("CODBROKER").alias("cod_broker"),
+        col("NOTASERVICO").alias("nota_servico"),
+        col("TTO").alias("tto"),
+        col("STTO").alias("stto"),
+        col("chave_produto"),
+        col("TOTRETENCAO").alias("valor_retido"),
+        col("TOTDES").alias("valor_desembolsado"),
+        col("TOTFAC").alias("valor_de_face"),
+        col("TOTDCP").alias("desagio"),
+        col("TOTTAR").alias("total_de_tarifas"),
+        col("TOTRECOMPRA").alias("valor_recomprado")
     )
 
 if DeltaTable.isDeltaTable(spark, output_path_operacoes):
@@ -127,9 +127,17 @@ if DeltaTable.isDeltaTable(spark, output_path_operacoes):
         df_final_batch = select_operacoes(df_com_chave)
         
         # 4. Merge
+        # Compatibility check for merge condition (handles schema migration if target is still old schema)
+        merge_condition = "t.cod_operacao = s.cod_operacao"
+        try:
+            if "CODOPERACAO" in delta_table_ops.toDF().columns:
+                 merge_condition = "t.CODOPERACAO = s.cod_operacao"
+        except:
+            pass
+
         delta_table_ops.alias("t").merge(
             df_final_batch.alias("s"),
-            "t.CODOPERACAO = s.CODOPERACAO"
+            merge_condition
         ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
         print("Merge Operações concluído.")
     else:
