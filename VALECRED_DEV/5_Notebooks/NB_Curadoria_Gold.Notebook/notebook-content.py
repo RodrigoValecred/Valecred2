@@ -439,6 +439,9 @@ if record_count > 0:
     # Recuperar MAX INDICE por Cliente da tabela alvo, se existir, para continuar a sequencia
     if spark.catalog.tableExists(target_pareceres_status_table_name):
         df_max_indices = spark.read.table(target_pareceres_status_table_name).groupBy("cod_cliente").agg(max("INDICE").alias("max_indice"))
+        # Garantir snake_case para join
+        if "CODCLIENTE" in df_max_indices.columns:
+            df_max_indices = df_max_indices.withColumnRenamed("CODCLIENTE", "cod_cliente")
     else:
         df_max_indices = None
 
