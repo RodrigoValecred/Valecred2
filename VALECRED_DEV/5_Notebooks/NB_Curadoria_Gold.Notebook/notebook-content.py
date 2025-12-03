@@ -463,10 +463,16 @@ if record_count > 0:
 
     # Recuperar MAX INDICE por Cliente da tabela alvo, se existir, para continuar a sequencia
     if spark.catalog.tableExists(target_pareceres_status_table_name):
-        df_max_indices = spark.read.table(target_pareceres_status_table_name).groupBy("cod_cliente").agg(max("INDICE").alias("max_indice"))
+        df_existing = spark.read.table(target_pareceres_status_table_name)
+        # Compatibilidade com schema antigo (INDICE) e novo (indice)
+        idx_col = "indice" if "indice" in df_existing.columns else "INDICE"
+        client_col = "cod_cliente" if "cod_cliente" in df_existing.columns else "CODCLIENTE"
+
+        df_max_indices = df_existing.groupBy(client_col).agg(max(idx_col).alias("max_indice"))
+
         # Garantir snake_case para join
-        if "CODCLIENTE" in df_max_indices.columns:
-            df_max_indices = df_max_indices.withColumnRenamed("CODCLIENTE", "cod_cliente")
+        if client_col != "cod_cliente":
+            df_max_indices = df_max_indices.withColumnRenamed(client_col, "cod_cliente")
     else:
         df_max_indices = None
 
@@ -489,10 +495,24 @@ if record_count > 0:
         .withColumn("INDICE", col("start_index") + row_number().over(window_cliente_data_delta)) \
         .withColumn("chave_original", (col("INDICE") * 1000000000 + col("cod_cliente")).cast(LongType())) \
         .withColumnRenamed("DATAINCLUSAO", "DATALOG") \
-        .select("CODPARECER", "cod_cliente", "STATUS_DO_CLIENTE", "DATALOG", "BASE", "USUARIO", "chave_base_cliente", "INDICE", "chave_original", "MACROPROCESSO", "FASE")
+        .select(
+            col("CODPARECER").alias("cod_parecer"),
+            col("cod_cliente"),
+            col("STATUS_DO_CLIENTE").alias("status_do_cliente"),
+            col("DATALOG").alias("data_log"),
+            col("BASE").alias("base"),
+            col("USUARIO").alias("usuario"),
+            col("chave_base_cliente"),
+            col("INDICE").alias("indice"),
+            col("chave_original"),
+            col("MACROPROCESSO").alias("macroprocesso"),
+            col("FASE").alias("fase")
+        )
 
     if spark.catalog.tableExists(target_pareceres_status_table_name):
-        DeltaTable.forName(spark, target_pareceres_status_table_name).alias("t").merge(df_pareceres_enriquecidos_delta.alias("s"), "t.CODPARECER = s.CODPARECER").whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
+        # Nota: A condicao de merge assume que o alvo ja possui snake_case (ou compatibilidade via schema evolution).
+        # Se o alvo tiver CODPARECER, isso pode falhar sem mapeamento explícito ou recriação da tabela.
+        DeltaTable.forName(spark, target_pareceres_status_table_name).alias("t").merge(df_pareceres_enriquecidos_delta.alias("s"), "t.cod_parecer = s.cod_parecer").whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
     else:
         df_pareceres_enriquecidos_delta.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_pareceres_status_table_name)
 else:
@@ -516,10 +536,43 @@ df_pareceres_incremental.unpersist()
 if record_count > 0:
     print("Reconstruindo esteira_de_propostas...")
     df_pareceres_completa = spark.read.table(target_pareceres_status_table_name)
-    window_lag = Window.partitionBy("cod_cliente").orderBy("DATALOG")
-    df_com_lag = df_pareceres_completa.withColumn("STATUS_DO_CLIENTE_ANTERIOR", lag("STATUS_DO_CLIENTE").over(window_lag)).withColumn("DATALOG_ANTERIOR", lag("DATALOG").over(window_lag)).withColumn("MACROPROCESSO_ANTERIOR", lag("MACROPROCESSO").over(window_lag)).withColumn("FASE_ANTERIOR", lag("FASE").over(window_lag))
-    df_transicoes = df_com_lag.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
-    df_esteira_final = df_transicoes.withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)).withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)).select("INDICE", "cod_cliente", "BASE", "DATALOG_ANTERIOR", "DATALOG", "chave_base_cliente", "STATUS_DO_CLIENTE_ANTERIOR", "STATUS_DO_CLIENTE", "MACROPROCESSO_ANTERIOR", "MACROPROCESSO", "FASE_ANTERIOR", "FASE", "USUARIO", "DEVOLUCAO", "RECEBIDA")
+    window_lag = Window.partitionBy("cod_cliente").orderBy("data_log")
+
+    # Tratamento para ler colunas antigas (uppercase) se a tabela não tiver sido recriada ainda
+    cols_exist = df_pareceres_completa.columns
+    col_status = col("status_do_cliente") if "status_do_cliente" in cols_exist else col("STATUS_DO_CLIENTE")
+    col_datalog = col("data_log") if "data_log" in cols_exist else col("DATALOG")
+    col_macro = col("macroprocesso") if "macroprocesso" in cols_exist else col("MACROPROCESSO")
+    col_fase = col("fase") if "fase" in cols_exist else col("FASE")
+
+    df_com_lag = df_pareceres_completa \
+        .withColumn("status_do_cliente_anterior", lag(col_status).over(window_lag)) \
+        .withColumn("data_log_anterior", lag(col_datalog).over(window_lag)) \
+        .withColumn("macroprocesso_anterior", lag(col_macro).over(window_lag)) \
+        .withColumn("fase_anterior", lag(col_fase).over(window_lag))
+
+    df_transicoes = df_com_lag.filter(col_status != col("status_do_cliente_anterior")).na.drop(subset=["status_do_cliente_anterior"])
+
+    df_esteira_final = df_transicoes \
+        .withColumn("devolucao", when((col("macroprocesso_anterior") == "CREDITO") & (col_macro == "COMERCIAL"), True).otherwise(False)) \
+        .withColumn("recebida", when((col("macroprocesso_anterior") == "COMERCIAL") & (col_macro == "CREDITO"), True).otherwise(False)) \
+        .select(
+            col("indice"),
+            col("cod_cliente"),
+            col("base"),
+            col("data_log_anterior"),
+            col_datalog.alias("data_log"),
+            col("chave_base_cliente"),
+            col("status_do_cliente_anterior"),
+            col_status.alias("status_do_cliente"),
+            col("macroprocesso_anterior"),
+            col_macro.alias("macroprocesso"),
+            col("fase_anterior"),
+            col_fase.alias("fase"),
+            col("usuario"),
+            col("devolucao"),
+            col("recebida")
+        )
     df_esteira_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_esteira_table_name)
     print("Esteira reconstruída.")
 
