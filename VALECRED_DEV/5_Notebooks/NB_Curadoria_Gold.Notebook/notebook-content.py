@@ -48,7 +48,7 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, broadcast, dayofweek, date_sub, trim
+    lead, date_add, lag, max, coalesce, broadcast, dayofweek, date_sub, trim, to_date
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
@@ -167,24 +167,38 @@ df_cad_geral_enriquecido = df_geral_pf_pj_limpa \
 # Célula 1.2: Operações Enriquecidas
 # -----------------------------------------------------------
 print("Criando DataFrame intermediário: Operações Enriquecidas...")
+# PASSO 1: Tratamento de Ambiguidade
+# Renomeamos o cod_cliente da bridge para garantir unicidade no join
+df_bridge_prep = df_bridge_gerente.withColumnRenamed("cod_cliente", "cod_cliente_bridge")
+
+print("Colunas renomeadas")
+print(df_bridge_prep.columns)
+
 # Enriquecimento com Gerente (Broker)
-# Silver bridge tem "ClienteID", Ops tem "cod_cliente".
 df_operacoes_com_historico = df_operacoes_limpa.join(
-    df_bridge_gerente,
-    (df_operacoes_limpa["cod_cliente"] == df_bridge_gerente["cod_cliente"]) &
-    (df_operacoes_limpa["data_analise"].cast("date") >= df_bridge_gerente["data_inicio_vigencia"]) &
-    (df_operacoes_limpa["data_analise"].cast("date") <= df_bridge_gerente["data_fim_vigencia"]),
+    df_bridge_prep,
+    (df_operacoes_limpa["cod_cliente"] == df_bridge_prep["cod_cliente_bridge"]) &
+    (df_operacoes_limpa["data_analise"].cast("date") >= df_bridge_prep["data_inicio_vigencia"]) &
+    (df_operacoes_limpa["data_analise"].cast("date") <= df_bridge_prep["data_fim_vigencia"]),
     "left"
 )
+
+print("Colunas PÓS-JOIN (Note que agora temos cod_cliente E cod_cliente_bridge):")
+print(df_operacoes_com_historico.columns)
+
 df_operacoes_com_gerente = df_operacoes_com_historico.withColumn(
     "cod_broker",
     when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker")).otherwise(col("cod_gerente"))
-).drop("cod_cliente", "cod_gerente", "data_inicio_vigencia", "data_fim_vigencia")
+).drop("cod_cliente_bridge","cod_gerente", "data_inicio_vigencia", "data_fim_vigencia")
+
+print("Colunas PÓS-DROP (O cod_cliente original deve estar aqui):")
+print(df_operacoes_com_gerente.columns)
 
 # Identificação de Operações Informais
 df_chave_danfe = df_cad_geral_arquivos.filter(col("DESCRICAO") == 'CHAVEDANFE')
 df_titulos_com_chave = df_titulos_limpa.join(df_chave_danfe, df_titulos_limpa.cod_titulo == df_chave_danfe.CODTITULO, how="inner")
 df_operacoes_com_chave_base = df_operacoes_com_gerente.join(df_titulos_com_chave, on="cod_operacao", how="inner")
+
 df_operacoes_com_chave_filtrado = df_operacoes_com_chave_base.filter(
     (df_operacoes_com_gerente["nota_servico"] == 'N') &
     (df_operacoes_com_gerente["status_analise"] == 'D') &
@@ -192,6 +206,7 @@ df_operacoes_com_chave_filtrado = df_operacoes_com_chave_base.filter(
     (df_operacoes_com_gerente["status_aceite"] == 'A') &
     (df_operacoes_com_gerente["tto"].isin(['NO','CM','FC']))
 )
+
 df_vcount = df_operacoes_com_chave_filtrado.groupBy(df_operacoes_com_gerente["cod_operacao"]).count()
 df_com_vcount = df_operacoes_com_gerente.join(df_vcount, on="cod_operacao", how="left")
 
@@ -202,6 +217,7 @@ df_operacoes_enriquecida = df_com_vcount.withColumn(
         lit(True)
     ).otherwise(lit(False))
 ).drop("count").cache()
+
 print("DataFrames intermediários criados e cacheados.")
 
 # METADATA ********************
@@ -217,17 +233,40 @@ print("DataFrames intermediários criados e cacheados.")
 
 # CELL ********************
 
+# Check de Sanidade
+print("Colunas disponíveis em df_operacoes_enriquecida:")
+print(df_operacoes_enriquecida.columns)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 # Célula 2.1: Construção da Fato Operações
 # ----------------------------------------
-print("\nIniciando construção da fato_operacoes...")
+print("\nIniciando construção da fato_operacoes (Otimizada)...")
+
+# 1. PREPARAÇÃO (Engenharia):
+# Criamos a coluna de junção ANTES. Isso permite que o Spark entenda a distribuição dos dados.
+# Se 'data_inclusao' for timestamp, to_date corta a hora. Se for string, ele converte.
+df_operacoes_prep = df_operacoes_enriquecida.withColumn(
+    "data_join_calendario", 
+    to_date(col("data_inclusao"))
+)
 
 # Adicionando a sk_data para join com dim_calendario
-df_fato_operacoes_joined = df_operacoes_enriquecida.join(
+df_fato_operacoes_joined = df_operacoes_prep.join(
     broadcast(df_dim_calendario.select("data", "sk_data")),
-    df_operacoes_enriquecida["data_inclusao"].cast("date") == df_dim_calendario["data"],
+    col("data_join_calendario") == col("data"),
     "left"
 )
 
+# 3. SELEÇÃO FINAL
+# Note que agora 'cod_cliente' vai funcionar porque corrigimos na célula anterior.
 df_fato_operacoes = df_fato_operacoes_joined.select(
     col("cod_operacao"),
     col("cod_cliente"),
@@ -455,6 +494,9 @@ except Exception:
 df_pareceres_incremental = df_pareceres_raw.filter((col("DATAINCLUSAO") > last_watermark) | (col("DATAALTERACAO") > last_watermark)).cache()
 record_count = df_pareceres_incremental.count()
 
+print("mostrando colunas da df_pareceres_incremental:")
+print(df_pareceres_incremental.columns)
+
 if record_count > 0:
     new_watermark = df_pareceres_incremental.agg(max(greatest(coalesce(col("DATAINCLUSAO"), lit(datetime.datetime(1900,1,1))), coalesce(col("DATAALTERACAO"), lit(datetime.datetime(1900,1,1)))))).collect()[0][0]
     print(f"Registros incrementais: {record_count}. Novo watermark: {new_watermark}")
@@ -463,7 +505,7 @@ if record_count > 0:
 
     # Recuperar MAX INDICE por Cliente da tabela alvo, se existir, para continuar a sequencia
     if spark.catalog.tableExists(target_pareceres_status_table_name):
-        df_max_indices = spark.read.table(target_pareceres_status_table_name).groupBy("cod_cliente").agg(max("INDICE").alias("max_indice"))
+        df_max_indices = spark.read.table(target_pareceres_status_table_name).groupBy("CODCLIENTE").agg(max("INDICE").alias("max_indice"))
         # Garantir snake_case para join
         if "CODCLIENTE" in df_max_indices.columns:
             df_max_indices = df_max_indices.withColumnRenamed("CODCLIENTE", "cod_cliente")
@@ -480,6 +522,7 @@ if record_count > 0:
 
     window_cliente_data_delta = Window.partitionBy("cod_cliente").orderBy(col("DATAINCLUSAO").asc())
 
+    # --- AQUI ESTAVA O ERRO E AQUI ESTÁ A CORREÇÃO ---
     df_pareceres_enriquecidos_delta = df_joined \
         .withColumn("chave_base_cliente", concat(col("BASE").cast("string"), lit("-"), col("cod_cliente").cast("string"))) \
         .join(df_usuarios_raw.select("CODUSUARIO", "NOME"), col("USUAINCLUSAO") == col("CODUSUARIO"), "left") \
@@ -489,17 +532,40 @@ if record_count > 0:
         .withColumn("INDICE", col("start_index") + row_number().over(window_cliente_data_delta)) \
         .withColumn("chave_original", (col("INDICE") * 1000000000 + col("cod_cliente")).cast(LongType())) \
         .withColumnRenamed("DATAINCLUSAO", "DATALOG") \
-        .select("CODPARECER", "cod_cliente", "STATUS_DO_CLIENTE", "DATALOG", "BASE", "USUARIO", "chave_base_cliente", "INDICE", "chave_original", "MACROPROCESSO", "FASE")
+        .select(
+            col("CODPARECER"),
+            col("cod_cliente").alias("CODCLIENTE"), # <--- CORREÇÃO: Renomeando explicitamente para o Merge encontrar
+            col("STATUS_DO_CLIENTE"),
+            col("DATALOG"),
+            col("BASE"),
+            col("USUARIO"),
+            col("chave_base_cliente"),
+            col("INDICE"),
+            col("chave_original"),
+            col("MACROPROCESSO"),
+            col("FASE")
+        )
 
     if spark.catalog.tableExists(target_pareceres_status_table_name):
-        DeltaTable.forName(spark, target_pareceres_status_table_name).alias("t").merge(df_pareceres_enriquecidos_delta.alias("s"), "t.CODPARECER = s.CODPARECER").whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
+        print(f"Executando Merge na tabela {target_pareceres_status_table_name}...")
+        # Schema Evolution: Se houver colunas novas, permite a evolução
+        delta_table = DeltaTable.forName(spark, target_pareceres_status_table_name)
+        spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
+        delta_table.alias("t").merge(
+            df_pareceres_enriquecidos_delta.alias("s"), 
+            "t.CODPARECER = s.CODPARECER"
+        ).whenMatchedUpdateAll() \
+         .whenNotMatchedInsertAll() \
+         .execute()
     else:
+        print(f"Criando tabela {target_pareceres_status_table_name} pela primeira vez...")
         df_pareceres_enriquecidos_delta.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_pareceres_status_table_name)
 else:
     new_watermark = last_watermark
     print("Nenhum dado novo encontrado.")
 
-df_pareceres_incremental.unpersist()
+if 'df_pareceres_incremental' in locals():
+    df_pareceres_incremental.unpersist()
 
 
 # METADATA ********************
@@ -516,10 +582,10 @@ df_pareceres_incremental.unpersist()
 if record_count > 0:
     print("Reconstruindo esteira_de_propostas...")
     df_pareceres_completa = spark.read.table(target_pareceres_status_table_name)
-    window_lag = Window.partitionBy("cod_cliente").orderBy("DATALOG")
+    window_lag = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
     df_com_lag = df_pareceres_completa.withColumn("STATUS_DO_CLIENTE_ANTERIOR", lag("STATUS_DO_CLIENTE").over(window_lag)).withColumn("DATALOG_ANTERIOR", lag("DATALOG").over(window_lag)).withColumn("MACROPROCESSO_ANTERIOR", lag("MACROPROCESSO").over(window_lag)).withColumn("FASE_ANTERIOR", lag("FASE").over(window_lag))
     df_transicoes = df_com_lag.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
-    df_esteira_final = df_transicoes.withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)).withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)).select("INDICE", "cod_cliente", "BASE", "DATALOG_ANTERIOR", "DATALOG", "chave_base_cliente", "STATUS_DO_CLIENTE_ANTERIOR", "STATUS_DO_CLIENTE", "MACROPROCESSO_ANTERIOR", "MACROPROCESSO", "FASE_ANTERIOR", "FASE", "USUARIO", "DEVOLUCAO", "RECEBIDA")
+    df_esteira_final = df_transicoes.withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)).withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)).select("INDICE", "CODCLIENTE", "BASE", "DATALOG_ANTERIOR", "DATALOG", "chave_base_cliente", "STATUS_DO_CLIENTE_ANTERIOR", "STATUS_DO_CLIENTE", "MACROPROCESSO_ANTERIOR", "MACROPROCESSO", "FASE_ANTERIOR", "FASE", "USUARIO", "DEVOLUCAO", "RECEBIDA")
     df_esteira_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_esteira_table_name)
     print("Esteira reconstruída.")
 
