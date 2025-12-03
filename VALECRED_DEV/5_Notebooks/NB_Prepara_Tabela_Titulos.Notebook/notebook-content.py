@@ -255,6 +255,27 @@ output_path_baixas = f"{target_lakehouse}.{target_table_baixas}"
 source_table_baixas = "tab_titulos_baixas"
 print(f"Iniciando processamento de {target_table_baixas}...")
 
+# Lógica de seleção de colunas para Baixas
+def select_baixas(df):
+    return df.select(
+        col("CODTITULOBAIXAS").alias("cod_titulo_baixas"),
+        col("CODTITULO").alias("cod_titulo"),
+        col("DATAINCLUSAO").alias("data_inclusao"),
+        col("DATAALTERACAO").alias("data_alteracao"),
+        col("VLPAGO").alias("valor_pago"),
+        col("DATABAIXA").alias("data_baixa"),
+        col("DATABAIXASIST").alias("data_baixa_sist"),
+        col("DESCONTO").alias("desconto"),
+        col("JUROS").alias("juros"),
+        col("TARIFARECOMPRA").alias("tarifa_recompra"),
+        col("DATAVENCIMENTO").alias("data_vencimento"),
+        col("PAGOPELO").alias("pago_pelo"),
+        col("FORMA").alias("forma"),
+        col("TIPOBAIXA").alias("tipo_baixa"),
+        col("MOTIVO").alias("motivo"),
+        col("CODOPERACAO").alias("cod_operacao")
+    )
+
 is_incremental_baixas = False
 if DeltaTable.isDeltaTable(spark, output_path_baixas):
     # Check if snake_case column exists
@@ -284,16 +305,13 @@ if is_incremental_baixas:
         key_cols_baixa = ["CODTITULOBAIXAS"]
         window_baixa = Window.partitionBy([col(c) for c in key_cols_baixa]).orderBy(col("DATAINCLUSAO").desc())
         df_baixas_dedup = df_bronze_baixas.withColumn("row_num", row_number().over(window_baixa)) \
-            .filter(col("row_num") == 1).drop("row_num") \
-            .withColumnRenamed("CODTITULOBAIXAS", "cod_titulo_baixas") \
-            .withColumnRenamed("CODTITULO", "cod_titulo") \
-            .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+            .filter(col("row_num") == 1).drop("row_num")
 
-        # Garantir snake_case em todas as colunas
-        df_baixas_dedup = df_baixas_dedup.select([col(c).alias(c.lower()) for c in df_baixas_dedup.columns])
+        # Aplicar renomeação explicita
+        df_baixas_final = select_baixas(df_baixas_dedup)
             
         delta_table_baixas.alias("t").merge(
-            df_baixas_dedup.alias("s"),
+            df_baixas_final.alias("s"),
             "t.cod_titulo_baixas = s.cod_titulo_baixas"
         ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
         print("Merge Baixas concluído.")
@@ -305,15 +323,12 @@ else:
     key_cols_baixa = ["CODTITULOBAIXAS"]
     window_baixa = Window.partitionBy([col(c) for c in key_cols_baixa]).orderBy(col("DATAINCLUSAO").desc())
     df_baixas_desduplicada = df_baixas.withColumn("row_num", row_number().over(window_baixa)) \
-                                        .filter(col("row_num") == 1).drop("row_num") \
-                                        .withColumnRenamed("CODTITULOBAIXAS", "cod_titulo_baixas") \
-                                        .withColumnRenamed("CODTITULO", "cod_titulo") \
-                                        .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+                                        .filter(col("row_num") == 1).drop("row_num")
 
-    # Garantir snake_case em todas as colunas
-    df_baixas_desduplicada = df_baixas_desduplicada.select([col(c).alias(c.lower()) for c in df_baixas_desduplicada.columns])
+    # Aplicar renomeação explicita
+    df_baixas_final = select_baixas(df_baixas_desduplicada)
 
-    df_baixas_desduplicada.write.mode("overwrite").option("overwriteSchema","true").saveAsTable(output_path_baixas)
+    df_baixas_final.write.mode("overwrite").option("overwriteSchema","true").saveAsTable(output_path_baixas)
     print("Carga Full Baixas concluída.")
 
 # METADATA ********************
@@ -361,9 +376,19 @@ cond_c = (col("CODOCORINTERNA") == 34)
 
 df_com_status_code = df_latest_ocorrencia.withColumn("STATUSPROTESTO",
     when(cond_p1 | cond_p2 | cond_p3 | cond_p4, lit("P")).when(cond_e, lit("E")).when(cond_i, lit("I")).when(cond_c, lit("C")).otherwise(lit("N")))
+# Seleção final com renomeação para snake_case
 df_final_protestos = df_com_status_code.withColumn("status_protesto",
-    when(col("STATUSPROTESTO") == 'P', lit("Protestado")).when(col("STATUSPROTESTO") == 'E', lit("Instrução Protesto Enviada")).when(col("STATUSPROTESTO") == 'I', lit("Instrução Protesto")).when(col("STATUSPROTESTO") == 'C', lit("Em Cartório")).otherwise(lit("N/A"))
-).filter(col("status_protesto") != "N/A").select(col("CODTITULO").alias("cod_titulo"), col("status_protesto"), col("DATAINCLUSAO").alias("data_ocorrencia_protesto"))
+    when(col("STATUSPROTESTO") == 'P', lit("Protestado"))
+    .when(col("STATUSPROTESTO") == 'E', lit("Instrução Protesto Enviada"))
+    .when(col("STATUSPROTESTO") == 'I', lit("Instrução Protesto"))
+    .when(col("STATUSPROTESTO") == 'C', lit("Em Cartório"))
+    .otherwise(lit("N/A"))
+).filter(col("status_protesto") != "N/A") \
+ .select(
+    col("CODTITULO").alias("cod_titulo"),
+    col("status_protesto"),
+    col("DATAINCLUSAO").alias("data_ocorrencia_protesto")
+ )
 
 df_final_protestos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_protestos")
 

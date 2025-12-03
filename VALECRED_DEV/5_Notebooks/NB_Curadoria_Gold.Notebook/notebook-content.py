@@ -71,25 +71,7 @@ df_operacoes_limpa = spark.read.table("LH_Silver.staging_operacoes_limpa")
 
 # --- 3. Baixas (Origem: LH_Silver.staging_baixas_limpa) ---
 print("Carregando Baixas (Silver)...")
-# A tabela staging_baixas_limpa (Silver) mantém colunas em Uppercase do Bronze. Vamos renomear para snake_case aqui.
-df_baixas_staging = spark.read.table("LH_Silver.staging_baixas_limpa").select(
-    col("CODTITULOBAIXAS").alias("cod_titulo_baixas"),
-    col("CODTITULO").alias("cod_titulo"),
-    col("DATAINCLUSAO").alias("data_inclusao"),
-    col("DATAALTERACAO").alias("data_alteracao"),
-    col("VLPAGO").alias("valor_pago"),
-    col("DATABAIXA").alias("data_baixa"),
-    col("DATABAIXASIST").alias("data_baixa_sist"),
-    col("DESCONTO").alias("desconto"),
-    col("JUROS").alias("juros"),
-    col("TARIFARECOMPRA").alias("tarifa_recompra"),
-    col("DATAVENCIMENTO").alias("data_vencimento"),
-    col("PAGOPELO").alias("pago_pelo"),
-    col("FORMA").alias("forma"),
-    col("TIPOBAIXA").alias("tipo_baixa"),
-    col("MOTIVO").alias("motivo"),
-    col("CODOPERACAO") # Needed for join
-)
+df_baixas_staging = spark.read.table("LH_Silver.staging_baixas_limpa")
 
 # --- 4. Cadastros (Origem: LH_Silver...) ---
 print("Carregando Cadastros (Silver)...")
@@ -129,17 +111,11 @@ df_usuarios_raw = spark.read.table("LH_Bronze.cad_usuarios")
 # Limites (Silver)
 df_limites = spark.read.table("LH_Silver.staging_rlc_clientes_sacados_limites")
 
-# Devolucoes (Silver) - Silver mantém Uppercase? NB_Prepara_Tabela_Operacoes não renomeia explicitamente.
-# Vamos garantir rename.
-try:
-    df_devolucoes = spark.read.table("LH_Silver.staging_operacoes_devolucoes_limpa").withColumnRenamed("CODTITULO", "cod_titulo").withColumnRenamed("CODOPERACAO", "cod_operacao")
-except:
-    # Fallback to Bronze if Silver not populated yet
-    df_devolucoes = spark.read.table("LH_Bronze.tab_operacoes_devolucoes").withColumnRenamed("CODTITULO", "cod_titulo").withColumnRenamed("CODOPERACAO", "cod_operacao")
+# Devolucoes (Silver)
+df_devolucoes = spark.read.table("LH_Silver.staging_operacoes_devolucoes_limpa")
 
 # Protestos (Silver)
-# NB_Prepara_Tabela_Titulos cria staging_protestos com CODTITULO, STATUS_PROTESTO.
-df_protestos = spark.read.table("LH_Silver.staging_protestos").withColumnRenamed("CODTITULO", "cod_titulo").withColumnRenamed("STATUS_PROTESTO", "status_protesto")
+df_protestos = spark.read.table("LH_Silver.staging_protestos")
 
 df_ultima_conf = spark.read.table("LH_Silver.fact_ultima_confirmacao")
 
@@ -279,7 +255,7 @@ df_enriquecido_baixas = df_baixas_corrigido \
 
 df_fato_baixas = df_enriquecido_baixas.select(
     "cod_titulo_baixas", "cod_titulo", "data_baixa", "data_baixa_sist", "valor_pago",
-    "desconto", "juros", "tarifa_recompra", "data_vencimento", df_baixas_corrigido["CODOPERACAO"],
+    "desconto", "juros", "tarifa_recompra", "data_vencimento", df_baixas_corrigido["cod_operacao"],
     df_dim_pago_por["descricao"].alias("PagoPor"), df_dim_forma_pagamento["descricao"].alias("Forma"),
     df_dim_tipo_taxa["descricao"].alias("TipoBaixa"), df_dim_motivo_baixa["descricao"].alias("Motivo")
 )
