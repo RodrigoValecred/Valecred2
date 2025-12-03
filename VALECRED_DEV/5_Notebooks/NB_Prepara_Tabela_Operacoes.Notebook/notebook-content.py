@@ -206,7 +206,8 @@ if is_incremental_dev:
                 .filter(col("row_num") == 1).drop("row_num") \
                 .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
                 .withColumnRenamed("CODTITULO", "cod_titulo") \
-                .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+                .withColumnRenamed("DATAINCLUSAO", "data_inclusao") \
+                .withColumnRenamed("CODOPERACAO", "cod_operacao")
 
             # Garantir snake_case em todas as colunas
             df_dedup = df_dedup.select([col(c).alias(c.lower()) for c in df_dedup.columns])
@@ -229,7 +230,8 @@ if is_incremental_dev:
             .filter(col("row_num") == 1).drop("row_num") \
             .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
             .withColumnRenamed("CODTITULO", "cod_titulo") \
-            .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+            .withColumnRenamed("DATAINCLUSAO", "data_inclusao") \
+            .withColumnRenamed("CODOPERACAO", "cod_operacao")
 
         # Garantir snake_case em todas as colunas
         df_transformed_devolucoes = df_transformed_devolucoes.select([col(c).alias(c.lower()) for c in df_transformed_devolucoes.columns])
@@ -245,7 +247,8 @@ else:
         .filter(col("row_num") == 1).drop("row_num") \
         .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
         .withColumnRenamed("CODTITULO", "cod_titulo") \
-        .withColumnRenamed("DATAINCLUSAO", "data_inclusao")
+        .withColumnRenamed("DATAINCLUSAO", "data_inclusao") \
+        .withColumnRenamed("CODOPERACAO", "cod_operacao")
 
     # Garantir snake_case em todas as colunas
     df_transformed_devolucoes = df_transformed_devolucoes.select([col(c).alias(c.lower()) for c in df_transformed_devolucoes.columns])
