@@ -55,6 +55,15 @@ from delta.tables import *
 from functools import reduce
 import datetime
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 # Célula 0.2: Leitura das Tabelas Preparadas (Silver)
 # ----------------------------------------------------------------
 print("Iniciando leitura da Silver...")
@@ -87,7 +96,7 @@ df_enderecos_limpa = spark.read.table("LH_Silver.staging_enderecos_limpa").selec
 )
 
 # Bridge Gerente
-df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente").drop("cod_cliente")
+df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
 
 # Emails & Telefones Agg
 df_emails_agg = spark.read.table("LH_Silver.staging_emails_agg")
@@ -146,6 +155,15 @@ df_cad_geral_enriquecido = df_geral_pf_pj_limpa \
     .join(df_emails_agg, on="cpf_cnpj", how="left") \
     .join(df_telefones_agg, on="cpf_cnpj", how="left")
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 # Célula 1.2: Operações Enriquecidas
 # -----------------------------------------------------------
 print("Criando DataFrame intermediário: Operações Enriquecidas...")
@@ -153,15 +171,15 @@ print("Criando DataFrame intermediário: Operações Enriquecidas...")
 # Silver bridge tem "ClienteID", Ops tem "cod_cliente".
 df_operacoes_com_historico = df_operacoes_limpa.join(
     df_bridge_gerente,
-    (df_operacoes_limpa["cod_cliente"] == df_bridge_gerente["ClienteID"]) &
-    (df_operacoes_limpa["data_analise"].cast("date") >= df_bridge_gerente["DataInicioVigencia"]) &
-    (df_operacoes_limpa["data_analise"].cast("date") <= df_bridge_gerente["DataFimVigencia"]),
+    (df_operacoes_limpa["cod_cliente"] == df_bridge_gerente["cod_cliente"]) &
+    (df_operacoes_limpa["data_analise"].cast("date") >= df_bridge_gerente["data_inicio_vigencia"]) &
+    (df_operacoes_limpa["data_analise"].cast("date") <= df_bridge_gerente["data_fim_vigencia"]),
     "left"
 )
 df_operacoes_com_gerente = df_operacoes_com_historico.withColumn(
     "cod_broker",
-    when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker")).otherwise(col("GerenteID"))
-).drop("ClienteID", "GerenteID", "DataInicioVigencia", "DataFimVigencia")
+    when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker")).otherwise(col("cod_gerente"))
+).drop("cod_cliente", "cod_gerente", "data_inicio_vigencia", "data_fim_vigencia")
 
 # Identificação de Operações Informais
 df_chave_danfe = df_cad_geral_arquivos.filter(col("DESCRICAO") == 'CHAVEDANFE')
@@ -235,6 +253,14 @@ output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
 print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
 
 # Célula 2.2: Construção da Fato Baixas
 # -------------------------------------
@@ -263,6 +289,14 @@ output_path_fato_baixas = "LH_Gold.fato_baixas"
 df_fato_baixas.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_baixas)
 print(f"Tabela 'fato_baixas' salva em: {output_path_fato_baixas}")
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
 
 # Célula 2.3: Construção da Dimensão Produto
 # ------------------------------------------
@@ -323,6 +357,15 @@ df_enriquecido = df_titulos_com_chave_sacado \
     .join(broadcast(df_protestos_small), "cod_titulo", "left") \
     .na.fill({"amortizacoes": 0})
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 # 3.2 Cálculos de Negócio
 # -----------------------
 df_com_calcs = df_enriquecido \
@@ -345,6 +388,15 @@ df_status_2 = df_status_1.withColumn("status_clean", when(col("produto_com_inter
 # Confirmacao Logic using Bronze column or Fallback
 df_conf = df_status_2.withColumn("confirmacao", when(col("doc_confirmado") == "N", "Atenção").when(col("doc_confirmado") == "S", None).when(col("doc_confirmado") == "C", "Positivo").when(col("doc_confirmado") == "P", "Problema").when(col("doc_confirmado") == "A", "Alerta").when(col("doc_confirmado").isNull(), "Não Contatado").when(col("doc_confirmado").isin("E", "AZ"), "Eletrônico").otherwise(col("doc_confirmado")))
 df_ordem = df_conf.withColumn("ordem_confirmacao", when(col("confirmacao") == "Não Contatado", 5).when(col("confirmacao") == "Atenção", 2).when(col("confirmacao") == "Eletrônico", 0).when(col("confirmacao") == "Positivo", 1).when(col("confirmacao") == "Alerta", 3).when(col("confirmacao") == "Problema", 4).otherwise(None))
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
 
 # 3.3 Seleção Final e Persistência
 # ---------------------------------
@@ -388,9 +440,6 @@ try:
 except Exception:
     last_watermark = datetime.datetime(1900, 1, 1)
     print(f"Usando watermark padrão: {last_watermark}.")
-
-
-
 
 # METADATA ********************
 
