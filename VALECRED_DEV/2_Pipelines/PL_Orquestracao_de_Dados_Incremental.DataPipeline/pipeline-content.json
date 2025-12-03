@@ -153,6 +153,30 @@
             ]
           }
         ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "d466cb11-2557-a868-4e49-071ead810ec6",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "RelatorioLimitesVencendo",
+        "description": "Atualiza tabela relatorio_limites_vencendo diariamente",
+        "dependsOn": [
+          {
+            "activity": "Cadastros",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
       }
     ]
   }
