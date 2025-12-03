@@ -169,17 +169,19 @@ df_cad_geral_enriquecido = df_geral_pf_pj_limpa \
 print("Criando DataFrame intermediário: Operações Enriquecidas...")
 # Enriquecimento com Gerente (Broker)
 # Silver bridge tem "ClienteID", Ops tem "cod_cliente".
+df_bridge_gerente_renamed = df_bridge_gerente.withColumnRenamed("cod_cliente", "cod_cliente_bridge")
+
 df_operacoes_com_historico = df_operacoes_limpa.join(
-    df_bridge_gerente,
-    (df_operacoes_limpa["cod_cliente"] == df_bridge_gerente["cod_cliente"]) &
-    (df_operacoes_limpa["data_analise"].cast("date") >= df_bridge_gerente["data_inicio_vigencia"]) &
-    (df_operacoes_limpa["data_analise"].cast("date") <= df_bridge_gerente["data_fim_vigencia"]),
+    df_bridge_gerente_renamed,
+    (df_operacoes_limpa["cod_cliente"] == df_bridge_gerente_renamed["cod_cliente_bridge"]) &
+    (df_operacoes_limpa["data_analise"].cast("date") >= df_bridge_gerente_renamed["data_inicio_vigencia"]) &
+    (df_operacoes_limpa["data_analise"].cast("date") <= df_bridge_gerente_renamed["data_fim_vigencia"]),
     "left"
 )
 df_operacoes_com_gerente = df_operacoes_com_historico.withColumn(
     "cod_broker",
     when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker")).otherwise(col("cod_gerente"))
-).drop("cod_cliente", "cod_gerente", "data_inicio_vigencia", "data_fim_vigencia")
+).drop("cod_cliente_bridge", "cod_gerente", "data_inicio_vigencia", "data_fim_vigencia")
 
 # Identificação de Operações Informais
 df_chave_danfe = df_cad_geral_arquivos.filter(col("DESCRICAO") == 'CHAVEDANFE')
