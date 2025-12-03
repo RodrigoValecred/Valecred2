@@ -105,7 +105,7 @@ df_enderecos_limpa = spark.read.table("LH_Silver.staging_enderecos_limpa").selec
 )
 
 # Bridge Gerente
-df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
+df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente").drop("cod_cliente")
 
 # Emails & Telefones Agg
 df_emails_agg = spark.read.table("LH_Silver.staging_emails_agg")
