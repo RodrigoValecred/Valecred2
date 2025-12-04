@@ -188,27 +188,29 @@ Esta seção documenta padrões de código recomendados para garantir a robustez
 
 ### Ingestão de Arquivos Externos em Notebooks
 
-**Problema:** Ao baixar arquivos de fontes externas (ex: APIs, sites de dados abertos) e salvá-los no diretório `Files` do Lakehouse, o Spark pode falhar ao tentar ler esses arquivos diretamente com `spark.read.csv()` devido a caminhos relativos.
+**Problema:** O código sugere ler o arquivo com pandas e depois converter para Spark (`spark.createDataFrame(pandas_df)`). **O Risco:** O Pandas roda na memória do driver (single-node). Se a Valecred receber um arquivo de cessão de crédito de 5GB, seu pipeline vai quebrar com Out of Memory (OOM). Isso não é escalável.
 
-**Solução Padrão:** Ler o arquivo na memória do driver usando `pandas` (com caminho absoluto `/lakehouse/default/Files/...`) e, em seguida, criar um DataFrame Spark.
+**Solução:** Force o uso do leitor nativo do Spark, que é distribuído. Se o problema for encoding (comum no Brasil, 'latin1' ou 'ISO-8859-1'), o Spark trata isso nativamente.
 
 **Exemplo de Implementação:**
 
 ```python
-import pandas as pd
-import os
+# Padrão Recomendado: Leitura Distribuída com Spark
+# Evita gargalo de memória no Driver
 
-# 1. Caminho absoluto
-local_path = "/lakehouse/default/Files/temp/meu_arquivo.csv"
+path_arquivo = "Files/temp/meu_arquivo.csv" # Caminho relativo funciona se montado corretamente, ou use ABFSS
 
-# 2. Ler com pandas
-pandas_df = pd.read_csv(local_path, sep=';', encoding='ISO-8859-1')
+df_spark = (spark.read
+    .format("csv")
+    .option("header", "true")
+    .option("delimiter", ";")
+    .option("encoding", "ISO-8859-1") # Fundamental para acentos PT-BR
+    .option("inferSchema", "false")   # Performance: defina schema manual se possível
+    .load(path_arquivo)
+)
 
-# 3. Converter para Spark
-spark_df = spark.createDataFrame(pandas_df)
-
-# 4. Salvar como Delta
-spark_df.write.format("delta").mode("overwrite").saveAsTable("LH_Bronze.minha_nova_tabela")
+# Salvar como Delta
+df_spark.write.format("delta").mode("overwrite").saveAsTable("LH_Bronze.minha_nova_tabela")
 ```
 
 ### Carga de Tabelas Manuais (Excel/CSV)
