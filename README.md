@@ -127,9 +127,9 @@ Os notebooks PySpark são agora o padrão oficial para toda a lógica de negóci
 
 #### Notebooks de Transformação (Bronze para Silver)
 
--   **`NB_Prepara_Tabela_Cadastros`**: Processamento de tabelas dimensionais e cadastrais (clientes, geral, telefones, endereços, contratos, bridge, limites, empresas, gerentes, plataformas, status).
--   **`NB_Prepara_Tabela_Titulos`**: Processamento da tabela `tab_titulos` e tabelas relacionadas (baixas, protestos, abatimentos, boletos, danfe).
--   **`NB_Prepara_Tabela_Operacoes`**: Processamento da tabela `tab_operacoes`, `tab_operacoes_devolucoes` e `tab_operacoes_tarifas_extras`.
+-   **`NB_Prepara_Tabela_Cadastros`**: (**Carga Full Overwrite**) Processamento de tabelas dimensionais e cadastrais (clientes, geral, telefones, endereços, contratos, bridge, limites, empresas, gerentes, plataformas, status).
+-   **`NB_Prepara_Tabela_Titulos`**: (**Carga Incremental**) Processamento da tabela `tab_titulos` e tabelas relacionadas (baixas, protestos, abatimentos, boletos, danfe).
+-   **`NB_Prepara_Tabela_Operacoes`**: (**Carga Incremental**) Processamento da tabela `tab_operacoes`, `tab_operacoes_devolucoes` e `tab_operacoes_tarifas_extras`.
 -   **`NB_Process_Contact_Info`**: Processa e limpa dados de contato, tratando campos com múltiplos valores e salvando-os em tabelas de staging na camada Silver.
 -   **`NB_Load_Silver_From_Manual_Uploads`**: Notebook genérico para carga de arquivos manuais (Excel/CSV) armazenados no Bronze para tabelas Silver, com padronização de colunas.
 -   **`NB_Silver_Carteira_PDD`**: Processamento específico para a carteira de PDD (Provisão para Devedores Duvidosos).
@@ -141,6 +141,7 @@ Os notebooks PySpark são agora o padrão oficial para toda a lógica de negóci
 -   **`NB_Calendario_Gold`**: Gera e atualiza a tabela dimensão de calendário (`dim_calendario`), fundamental para análises temporais.
 -   **`NB_Gold_Risco_Cliente`**: Cria agregações de risco por cliente, segmentado por produto.
 -   **`NB_Risk_Aggregation`**: Calcula métricas históricas de risco (inadimplência, volume) e salva em tabelas agregadas no Gold.
+-   **`NB_Relatorio_Limites_Vencendo`**: Gera a tabela `relatorio_limites_vencendo` no Gold, consolidando dados de contratos e clientes para monitoramento de vencimento de limites.
 
 #### Notebooks de Utilidade e Análise
 
