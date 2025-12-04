@@ -153,6 +153,17 @@ Os notebooks PySpark são agora o padrão oficial para toda a lógica de negóci
 
 Esta seção detalha os modelos de machine learning da plataforma e os notebooks associados.
 
+#### Modelo de Inadimplência (LightGBM)
+
+**Por que LightGBM?**
+Modelos baseados em árvore (Gradient Boosting) são superiores para dados tabulares financeiros, lidando excepcionalmente bem com valores nulos (comuns em cadastros incompletos) e classes desbalanceadas (existem mais bons pagadores do que maus pagadores).
+
+**Impacto de Negócio:**
+Redução da PDD (Provisão para Devedores Duvidosos) antecipando títulos podres antes da aquisição ou renovação.
+
+**Ponto de Atenção (Feature Store):**
+Atualmente, o notebook `NB_Gold_Risco_Cliente` é responsável por criar as agregações utilizadas pelos modelos. Existe uma iniciativa para formalizar esse processo como uma **Feature Store** nativa no Microsoft Fabric no futuro. O objetivo é garantir que o modelo de treinamento utilize exatamente as mesmas definições de variáveis que o modelo em produção (inferência), mitigando o risco de *training-serving skew*.
+
 #### Notebooks de Aprendizado de Máquina
 
 -   **`ML_Inadimplencia_Aprimorado(1)`**: Notebook principal para o **treinamento** do modelo de classificação (`LightGBM`) que prevê a probabilidade de inadimplência de um título.
