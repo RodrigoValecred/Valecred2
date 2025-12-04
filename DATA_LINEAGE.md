@@ -36,6 +36,11 @@ This document outlines the data lineage of the VALECRED project, tracing the flo
 - **Destination:** `LH_Silver` (`staging_email_limpa`, `staging_telefones_limpa`, `staging_enderecos_limpa`)
 - **Description:** Cleans, unfolds, and deduplicates contact information.
 
+### NB_Prepara_Tabela_Contabil.Notebook
+- **Source:** `LH_Bronze` (`tab_lancamentos_contabeis`)
+- **Destination:** `LH_Silver` (`staging_lancamentos_contabeis`)
+- **Description:** Processes accounting entries, standardizing column names and applying incremental loading logic.
+
 ### NB_Silver_Carteira_PDD.Notebook
 - **Source:** `LH_Bronze` (`ctrl_*` tables)
 - **Destination:** `LH_Silver` (`carteira_pdd`)

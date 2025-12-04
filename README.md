@@ -243,3 +243,29 @@ Utilize o notebook genérico `NB_Load_Silver_From_Manual_Uploads` para carregar 
 1.  **Abra o Notebook**: Navegue até `7_Dados_Externos/CVM/NB_Load_From_CVM`.
 2.  **Ajuste os Parâmetros**: Modifique as variáveis `ano` e `mes`.
 3.  **Execute o Notebook**: O processo fará a ingestão com substituição de partição dinâmica.
+
+### Como Adicionar Nova Tabela (Fluxo MySQL -> Silver)
+
+Para adicionar uma nova tabela do MySQL ao fluxo de dados, siga este procedimento:
+
+1.  **Camada Bronze (Ingestão)**:
+    *   Não é possível editar o arquivo de controle diretamente pelo Git.
+    *   Acesse o **Microsoft Fabric**, navegue até o Lakehouse `LH_Bronze`.
+    *   Na pasta `Files/_control_files`, localize e edite o arquivo `controle_tabelas_bronze.csv`.
+    *   Adicione uma nova linha com o formato: `NomeDaTabela,TipoDeCarga,ColunaInclusao,ColunaAlteracao`.
+        *   Exemplo: `tab_lancamentos_contabeis,Incremental,DATAINCLUSAO,DATAALTERACAO`.
+    *   O pipeline `PL_Load_Bronze_Incremental` lerá essa configuração na próxima execução.
+
+2.  **Camada Silver (Transformação)**:
+    *   Crie ou atualize um notebook na pasta `5_Notebooks` (Ex: `NB_Prepara_Tabela_Contabil`).
+    *   Implemente a lógica de leitura da tabela Bronze (ex: `LH_Bronze.tab_lancamentos_contabeis`).
+    *   Padronize os nomes das colunas para `snake_case`.
+    *   Implemente a lógica de merge incremental (se aplicável) ou overwrite.
+    *   Salve a tabela na Silver (ex: `LH_Silver.staging_lancamentos_contabeis`).
+
+3.  **Atualize a Orquestração**:
+    *   Adicione uma atividade `TridentNotebook` no pipeline `PL_Orquestracao_de_Dados_Incremental` para executar o novo notebook após a ingestão Bronze.
+    *   *Nota*: Ao adicionar via código, o ID do notebook pode precisar ser atualizado na interface do Fabric.
+
+4.  **Documentação**:
+    *   Atualize `DATA_LINEAGE.md` e `INVENTORY.md` no repositório.

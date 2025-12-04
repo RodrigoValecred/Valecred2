@@ -154,6 +154,12 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** `LH_Silver` (`staging_email_limpa`, `staging_telefones_limpa`, `staging_enderecos_limpa`)
 - **Processing Steps:** Splits concatenated contact information into individual records, cleans them, and removes duplicates.
 
+### NB_Prepara_Tabela_Contabil.Notebook
+- **Description:** Processes accounting entries for the Silver layer.
+- **Input:** `LH_Bronze` (`tab_lancamentos_contabeis`)
+- **Output:** `LH_Silver` (`staging_lancamentos_contabeis`)
+- **Processing Steps:** Renames columns to snake_case, handles incremental load via timestamps, and deduplicates records.
+
 ### NB_Risk_Aggregation.Notebook
 - **Description:** Aggregates risk metrics for each client.
 - **Input:** `LH_Silver` (`staging_titulos_limpa`, `staging_operacoes_limpa`, `dim_cliente`, `staging_cad_geral_limpa`)
