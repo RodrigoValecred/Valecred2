@@ -77,6 +77,8 @@ O `WH_Gold` é projetado para armazenar **dados de negócio, modelados e prontos
 *   **Tabelas Agregadas para Dashboards:** Dados pré-calculados que alimentam diretamente relatórios gerenciais.
 *   **Tabelas de Controle de Processos (ETL/ELT):** Como a tabela `etl_watermark_control`, que é fundamental para os pipelines incrementais.
 
+> **Nota Importante:** A camada WH_Gold deve ser a única fonte para Datasets do Power BI. Evite criar colunas calculadas no Power BI; privilegie trazer a lógica para o SQL/Spark no Warehouse ou use Medidas DAX centralizadas para garantir que o cálculo de 'Taxa de Inadimplência' seja o mesmo para toda a empresa.
+
 Em resumo, o `WH_Gold` é a "vitrine" de dados para os usuários de negócio.
 
 #### Lakehouse Gold (`LH_Gold`): O Laboratório de Dados para Ciência de Dados
