@@ -109,6 +109,7 @@ Não crie novos Dataflows. Utilize os Notebooks existentes ou crie novos Noteboo
 O processo de orquestração e ingestão de dados é gerenciado por um conjunto de pipelines modulares. Enquanto os pipelines `PL_Load_Bronze_*` cuidam da extração de dados da origem, os pipelines `PL_Orquestracao_*` gerenciam o fluxo de transformação de ponta a ponta.
 
 -   **`PL_Orquestracao_de_Dados_Incremental`**: Este é o pipeline principal para as operações diárias. Ele orquestra a execução de notebooks para preparar os dados na camada Silver e Gold, e em seguida executa os modelos de machine learning. Ele garante que as transformações ocorram na sequência correta após a chegada de novos dados.
+-   **`PL_FastTrack_TV`**: Pipeline de atualização rápida (a cada 10 minutos) que atualiza a tabela `tab_operacoes`. Utiliza uma query otimizada para buscar apenas os dados do dia corrente. Sua principal função é alimentar o BI `TV_KPI_VOP_HOJE`, exibido nas TVs via APK do Power BI, que também possui atualização a cada 10 minutos.
 -   **Pipelines de Ingestão (Bronze)**:
     -   **`PL_Load_Bronze_Incremental`**: Responsável pela ingestão incremental diária de dados de um banco de origem **MySQL** para o Lakehouse Bronze. Ele usa uma tabela de watermark para buscar apenas registros novos ou modificados.
     -   **`PL_Load_Bronze_FullOverwrite`**: Projetado para cargas de dados iniciais ou atualizações completas, copiando o conteúdo total das tabelas de origem para a camada Bronze.
