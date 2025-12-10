@@ -6,7 +6,7 @@
         "typeProperties": {
           "source": {
             "type": "MySqlSource",
-            "query": "SELECT \n    NBORDERO,\n    TOTFAC AS VOLUME_OPERADO,\n    TTO,\n    STATUSACEITE,\n    STATUSANALISE,\n    DATAANALISE\nFROM tab_operacoes\nWHERE CAST(DATAANALISE AS DATE) = CURRENT_DATE()  AND TTO IN ('CM','FC','NO') AND STATUSANALISE = \"D\" AND STATUSACEITE = \"A\"",
+            "query": "SELECT \n    NBORDERO,\n    TOTFAC AS VOLUME_OPERADO,\n    TTO,\n    STATUSACEITE,\n    STATUSANALISE,\n    DATAANALISE\nFROM tab_operacoes\nWHERE CAST(DATAANALISE AS DATE) = CURRENT_DATE()  AND TTO IN ('CM','FC','NO','GR','NC') AND STATUSACEITE = \"A\" AND STATUSANALISE = \"D\"",
             "datasetSettings": {
               "type": "MySqlTable",
               "schema": [],
@@ -62,7 +62,7 @@
           "secureInput": false,
           "secureOutput": false
         },
-        "name": "Copy data1",
+        "name": "Operacoes_do_dia",
         "dependsOn": []
       }
     ]

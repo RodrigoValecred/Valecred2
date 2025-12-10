@@ -7,9 +7,9 @@
       "configuration": {
         "type": "Cron",
         "startDateTime": "2025-12-08T09:23:00",
-        "endDateTime": "2025-12-08T18:00:00",
+        "endDateTime": "2025-12-10T18:00:00",
         "localTimeZoneId": "E. South America Standard Time",
-        "interval": 10
+        "interval": 5
       }
     }
   ]
