@@ -74,25 +74,28 @@ print(f"Iniciando processamento de {target_table}...")
 # Função de seleção e renomeação de colunas
 def select_lancamentos(df):
     # Lista de colunas esperadas e mapeamento para snake_case
-    # Ajuste conforme o schema real da tabela de origem
+    # Ajuste conforme o schema real da tabela de origem:
+    # [CODCTBLAN, CODEMPRESA, CODTRANSACAO, DEBITO, CREDITO, CODFUNDO, CODCCUSTO, TIPO, DATA, VALOR, COMPLEMENTO, SISTEMA, DATAINCLUSAO, USUAINCLUSAO, DATAALTERACAO, USUAALTERACAO]
     return df.select(
-        col("CODLANCAMENTO").alias("cod_lancamento"),
-        col("CODOPERACAO").alias("cod_operacao"),
-        col("CODTITULO").alias("cod_titulo"),
-        col("DATA").alias("data_lancamento"),
-        col("HISTORICO").alias("historico"),
+        col("CODCTBLAN").alias("cod_lancamento"),
+        col("CODEMPRESA").alias("cod_empresa"),
+        col("CODTRANSACAO").alias("cod_transacao"),
         col("DEBITO").alias("debito"),
         col("CREDITO").alias("credito"),
+        col("CODFUNDO").alias("cod_fundo"),
+        col("CODCCUSTO").alias("cod_ccusto"),
+        col("TIPO").alias("tipo"),
+        col("DATA").alias("data_lancamento"),
         col("VALOR").alias("valor"),
+        col("COMPLEMENTO").alias("complemento"),
+        col("SISTEMA").alias("sistema"),
         col("DATAINCLUSAO").alias("data_inclusao"),
+        col("USUAINCLUSAO").alias("usuario_inclusao"),
         col("DATAALTERACAO").alias("data_alteracao"),
-        col("USUARIO").alias("usuario"),
-        col("CODBANCO").alias("cod_banco"),
-        col("CONTACONTABIL").alias("conta_contabil")
-        # Adicione outras colunas conforme necessário
+        col("USUAALTERACAO").alias("usuario_alteracao")
     )
 
-key_columns = ["CODLANCAMENTO"]
+key_columns = ["CODCTBLAN"]
 
 # Verifica se a tabela de origem existe antes de prosseguir
 try:
