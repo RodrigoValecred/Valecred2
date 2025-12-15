@@ -6,8 +6,8 @@
       "jobType": "Execute",
       "configuration": {
         "type": "Cron",
-        "startDateTime": "2025-12-08T09:23:00",
-        "endDateTime": "2025-12-11T18:00:00",
+        "startDateTime": "2025-12-15T09:23:00",
+        "endDateTime": "2025-12-16T18:00:00",
         "localTimeZoneId": "E. South America Standard Time",
         "interval": 5
       }
