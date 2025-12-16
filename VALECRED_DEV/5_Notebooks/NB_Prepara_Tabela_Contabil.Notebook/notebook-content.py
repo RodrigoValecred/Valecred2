@@ -48,6 +48,10 @@ from pyspark.sql.utils import AnalysisException
 from delta.tables import *
 from notebookutils import mssparkutils
 
+# Widget para forçar carga full em caso de inconsistência
+mssparkutils.notebook.run.widgets.text("force_full_load", "false", "Forçar Carga Full (true/false)")
+p_force_full_load = mssparkutils.notebook.run.widgets.get("force_full_load").lower() == "true"
+
 source_lakehouse = "LH_Bronze"
 target_lakehouse = "LH_Silver"
 
@@ -108,7 +112,11 @@ except Exception as e:
 
 # Verifica se a tabela destino existe e é compatível para incremental
 is_incremental_possible = False
-if spark.catalog.tableExists(target_table_full_name):
+
+if p_force_full_load:
+    print("PARAMETRO 'force_full_load' ATIVADO: Ignorando verificação incremental e forçando Carga Full.")
+    is_incremental_possible = False
+elif spark.catalog.tableExists(target_table_full_name):
     try:
         target_cols = spark.read.table(target_table_full_name).columns
         if "cod_lancamento" in target_cols and "data_alteracao" in target_cols:
@@ -142,7 +150,10 @@ if is_incremental_possible:
     df_bronze = spark.read.table(f"{source_lakehouse}.{source_table}") \
         .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
     
-    if df_bronze.count() > 0:
+    bronze_count = df_bronze.count()
+    print(f"Registros encontrados no Bronze (delta >= {last_watermark}): {bronze_count}")
+
+    if bronze_count > 0:
         # 3. Desduplicar
         df_with_latest = df_bronze.withColumn(
             "DATA_MAIS_RECENTE",
