@@ -50,7 +50,7 @@ from notebookutils import mssparkutils
 
 # Parâmetro para forçar carga full (pode ser sobrescrito por pipeline ou widget se disponível)
 # Em execução manual, altere o valor abaixo para "true"
-force_full_load = "false"
+force_full_load = "true"
 p_force_full_load = str(force_full_load).lower() == "true"
 
 source_lakehouse = "LH_Bronze"
