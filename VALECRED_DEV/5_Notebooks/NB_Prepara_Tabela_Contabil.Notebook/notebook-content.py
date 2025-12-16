@@ -48,9 +48,10 @@ from pyspark.sql.utils import AnalysisException
 from delta.tables import *
 from notebookutils import mssparkutils
 
-# Widget para forçar carga full em caso de inconsistência
-mssparkutils.notebook.run.widgets.text("force_full_load", "false", "Forçar Carga Full (true/false)")
-p_force_full_load = mssparkutils.notebook.run.widgets.get("force_full_load").lower() == "true"
+# Parâmetro para forçar carga full (pode ser sobrescrito por pipeline ou widget se disponível)
+# Em execução manual, altere o valor abaixo para "true"
+force_full_load = "false"
+p_force_full_load = str(force_full_load).lower() == "true"
 
 source_lakehouse = "LH_Bronze"
 target_lakehouse = "LH_Silver"
@@ -179,6 +180,9 @@ else:
     print("Modo Full Load: Carga Inicial ou Atualização de Schema.")
     df_bronze = spark.read.table(f"{source_lakehouse}.{source_table}")
     
+    raw_count = df_bronze.count()
+    print(f"Registros lidos do Bronze: {raw_count}")
+    
     df_with_latest = df_bronze.withColumn(
         "DATA_MAIS_RECENTE",
         greatest(col("DATAALTERACAO"), col("DATAINCLUSAO"))
@@ -188,9 +192,25 @@ else:
         .filter(col("row_num") == 1).drop("row_num", "DATA_MAIS_RECENTE")
     
     df_final = select_lancamentos(df_dedup).orderBy(col("data_inclusao").desc())
-    
-    df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table_full_name)
-    print("Carga Full concluída.")
+
+    final_count = df_final.count()
+    print(f"Registros após deduplicação e transformação: {final_count}")
+
+    try:
+        f_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table_full_name)
+        print("Operação de escrita (overwrite) concluída com sucesso.")
+        
+        # Verificação pós-escrita
+        actual_count = spark.read.table(target_table_full_name).count()
+        print(f"Contagem final na tabela destino ({target_table_full_name}): {actual_count}")
+        
+        if actual_count != final_count:
+            print(f"ALERTA: Discrepância detectada! Esperado: {final_count}, Encontrado: {actual_count}")
+            
+    except Exception as e:
+        print(f"ERRO FATAL ao escrever na tabela destino: {e}")
+        mssparkutils.notebook.exit(f"Write Failed: {e}")
+
 
 mssparkutils.notebook.exit("Success")
 
