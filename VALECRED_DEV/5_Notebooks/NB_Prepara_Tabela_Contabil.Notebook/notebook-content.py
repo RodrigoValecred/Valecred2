@@ -145,14 +145,14 @@ if is_incremental_possible:
     if watermark_row and watermark_row[0][0]:
         last_watermark = watermark_row[0][0]
     
-    print(f"Watermark aplicado: {last_watermark}")
+    print(f"DEBUG: Watermark aplicado: {last_watermark}")
     
     # 2. Ler Bronze filtrado
     df_bronze = spark.read.table(f"{source_lakehouse}.{source_table}") \
         .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
     
     bronze_count = df_bronze.count()
-    print(f"Registros encontrados no Bronze (delta >= {last_watermark}): {bronze_count}")
+    print(f"DEBUG: Registros encontrados no Bronze (delta >= {last_watermark}): {bronze_count}")
 
     if bronze_count > 0:
         # 3. Desduplicar
@@ -164,6 +164,9 @@ if is_incremental_possible:
         df_dedup = df_with_latest.withColumn("row_num", row_number().over(windowSpec)) \
             .filter(col("row_num") == 1).drop("row_num", "DATA_MAIS_RECENTE")
             
+        dedup_count = df_dedup.count()
+        print(f"DEBUG: Registros após deduplicação: {dedup_count}")
+
         df_final_batch = select_lancamentos(df_dedup)
         
         # 4. Merge
@@ -174,14 +177,14 @@ if is_incremental_possible:
         ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
         print("Merge concluído.")
     else:
-        print("Nenhum dado novo encontrado.")
+        print("DEBUG: Nenhum dado novo encontrado para merge.")
         
 else:
     print("Modo Full Load: Carga Inicial ou Atualização de Schema.")
     df_bronze = spark.read.table(f"{source_lakehouse}.{source_table}")
     
     raw_count = df_bronze.count()
-    print(f"Registros lidos do Bronze: {raw_count}")
+    print(f"DEBUG: Registros lidos do Bronze (Total): {raw_count}")
     
     df_with_latest = df_bronze.withColumn(
         "DATA_MAIS_RECENTE",
@@ -191,18 +194,22 @@ else:
     df_dedup = df_with_latest.withColumn("row_num", row_number().over(windowSpec)) \
         .filter(col("row_num") == 1).drop("row_num", "DATA_MAIS_RECENTE")
     
+    dedup_count = df_dedup.count()
+    print(f"DEBUG: Registros após deduplicação: {dedup_count}")
+
     df_final = select_lancamentos(df_dedup).orderBy(col("data_inclusao").desc())
 
     final_count = df_final.count()
-    print(f"Registros após deduplicação e transformação: {final_count}")
+    print(f"DEBUG: Registros finais para escrita: {final_count}")
 
     try:
-        f_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table_full_name)
+        # FIXED: Variable name typo corrected from f_final to df_final
+        df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table_full_name)
         print("Operação de escrita (overwrite) concluída com sucesso.")
         
         # Verificação pós-escrita
         actual_count = spark.read.table(target_table_full_name).count()
-        print(f"Contagem final na tabela destino ({target_table_full_name}): {actual_count}")
+        print(f"DEBUG: Contagem final na tabela destino ({target_table_full_name}): {actual_count}")
         
         if actual_count != final_count:
             print(f"ALERTA: Discrepância detectada! Esperado: {final_count}, Encontrado: {actual_count}")
