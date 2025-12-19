@@ -92,7 +92,7 @@ def select_lancamentos(df):
         col("TIPO").alias("tipo"),
         col("DATA").alias("data_lancamento"),
         col("VALOR").alias("valor"),
-        col("COMPLEMENTO").alias("complemento"),
+        col("COMPLEMENTO").cast("string").alias("complemento"),
         col("SISTEMA").alias("sistema"),
         col("DATAINCLUSAO").alias("data_inclusao"),
         col("USUAINCLUSAO").alias("usuario_inclusao"),
