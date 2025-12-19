@@ -133,6 +133,7 @@ Os notebooks PySpark são agora o padrão oficial para toda a lógica de negóci
 -   **`NB_Prepara_Tabela_Cadastros`**: (**Carga Full Overwrite**) Processamento de tabelas dimensionais e cadastrais (clientes, geral, telefones, endereços, contratos, bridge, limites, empresas, gerentes, plataformas, status).
 -   **`NB_Prepara_Tabela_Titulos`**: (**Carga Incremental**) Processamento da tabela `tab_titulos` e tabelas relacionadas (baixas, protestos, abatimentos, boletos, danfe).
 -   **`NB_Prepara_Tabela_Operacoes`**: (**Carga Incremental**) Processamento da tabela `tab_operacoes`, `tab_operacoes_devolucoes` e `tab_operacoes_tarifas_extras`.
+-   **`NB_Prepara_Tabela_Contabil`**: (**Carga Incremental/Full**) Processamento da tabela `tab_lancamentos_contabeis` e padronização para a camada Silver.
 -   **`NB_Process_Contact_Info`**: Processa e limpa dados de contato, tratando campos com múltiplos valores e salvando-os em tabelas de staging na camada Silver.
 -   **`NB_Load_Silver_From_Manual_Uploads`**: Notebook genérico para carga de arquivos manuais (Excel/CSV) armazenados no Bronze para tabelas Silver, com padronização de colunas.
 -   **`NB_Silver_Carteira_PDD`**: Processamento específico para a carteira de PDD (Provisão para Devedores Duvidosos).
@@ -148,6 +149,7 @@ Os notebooks PySpark são agora o padrão oficial para toda a lógica de negóci
 
 #### Notebooks de Utilidade e Análise
 
+-   **`NB_Generic_Silver`**: Ingestor genérico para carga de tabelas Bronze para Silver com padronização automática e Quality Gate.
 -   **`NB_Analise_Cliente_Especifico`**: Ferramenta ad-hoc para investigar o histórico detalhado de um cliente.
 -   **`NB_Analyze_FIDC_Performance`**: Notebook para análise de performance do FIDC.
 -   **`NB_CERC_Consulta_API`**: Notebook para integração e consulta de dados da API da CERC.
@@ -180,7 +182,14 @@ Notebooks responsáveis por ingerir dados de fontes externas para a camada Bronz
 -   **`NB_Load_Bronze_From_BrasilIO`**: Dados de empresas e sócios do Brasil.IO.
 -   **`NB_Load_Bronze_From_SERPRO`**: Dados de licitações do Portal da Transparência (filtro SERPRO).
 -   **`NB_Load_From_CVM`**: Ingestão dos informes mensais de FIDC da CVM (substitui referência antiga).
+-   **`NB_Report_Novos_Registros_CVM`**: Gera relatórios de novos registros FIDC na CVM.
 -   **`NB_Load_Bronze_Receita_Federal_Full`**: Processamento dos dados públicos de CNPJ da Receita Federal.
+
+### 8. RealTime (`8_RealTime`)
+
+Componentes focados em processamento de baixa latência.
+
+-   **`KPI_DA_TV.Notebook`**: Alimenta o relatório `TV_KPI_VOP_HOJE` em tempo real.
 
 ## Fluxo de Dados de Ponta a Ponta
 
