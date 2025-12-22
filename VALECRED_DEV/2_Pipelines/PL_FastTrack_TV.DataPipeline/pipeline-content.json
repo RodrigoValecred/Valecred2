@@ -6,7 +6,7 @@
         "typeProperties": {
           "source": {
             "type": "MySqlSource",
-            "query": "SELECT \n    NBORDERO,\n    TOTFAC AS VOLUME_OPERADO,\n    TTO,\n    STATUSACEITE,\n    STATUSANALISE,\n    DATAINCLUSAO,   \n    DATATRAVA,\n    DATAANALISE,\n    CODCLIENTE,\n    CASE \n        WHEN HOUR(DATAINCLUSAO) < 9 OR HOUR(DATAINCLUSAO) > 18\n             THEN 9\n        ELSE \n            HOUR(DATAINCLUSAO) END AS HORA,\n    TIMESTAMPDIFF(\n        MINUTE,\n        DATATRAVA,\n         COALESCE(DATAANALISE,  NOW())\n    ) AS TEMPO_ANALISE\nFROM tab_operacoes\nWHERE    \n    (DATE(DATAANALISE) = CURDATE() OR DATAANALISE IS NULL)\n    AND TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)\nORDER BY DATAINCLUSAO DESC",
+            "query": "SELECT \n    NBORDERO,\n    TOTFAC AS VOLUME_OPERADO,\n    TTO,\n    STATUSACEITE,\n    STATUSANALISE,\n    DATAINCLUSAO,   \n    DATATRAVA,\n    DATAANALISE,\n    CODCLIENTE,\n    CPFCNPJCLIENTE,\n    CASE \n        WHEN DATAANALISE IS NULL OR HOUR(DATAANALISE) < 9 OR HOUR(DATAANALISE) > 18\n             THEN 9\n        ELSE \n            HOUR(DATAANALISE) END AS HORA,\n    TIMESTAMPDIFF(\n        MINUTE,\n        COALESCE(DATATRAVA,DATAINCLUSAO),\n        COALESCE(DATAANALISE,  NOW())\n    ) AS TEMPO_ANALISE\nFROM tab_operacoes\nWHERE    \n    (DATE(DATAANALISE) = CURDATE() OR DATAANALISE IS NULL)\n    AND TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)\nORDER BY DATAINCLUSAO DESC",
             "datasetSettings": {
               "type": "MySqlTable",
               "schema": [],
@@ -64,6 +64,77 @@
         },
         "name": "Operacoes_do_dia_copy1",
         "dependsOn": []
+      },
+      {
+        "type": "Copy",
+        "typeProperties": {
+          "source": {
+            "type": "MySqlSource",
+            "query": "SELECT * FROM \n(SELECT \n    o.NBORDERO as id_operacao,\n    cast(sum(t.VALOR) as decimal(18,2)) AS valor_titulo,\n    o.TTO,\n    o.STATUSACEITE,\n    o.STATUSANALISE,\n    t.ACEITO,\n    o.DATAINCLUSAO,   \n    o.DATATRAVA,\n    o.DATAANALISE,\n    o.CODCLIENTE,\n    o.CPFCNPJCLIENTE,\n    t.CPFCNPJSACADO as cpf_cnpj_sacado,\n    MAX(o.FATOR) as taxa_aquisicao, -- Renomeado\n    AVG(t.PRAZO) as prazo_medio,\n    COUNT(t.CODTITULO) AS QTD_TITULOS\nFROM tab_operacoes o \nJOIN tab_titulos t ON t.CODOPERACAO = o.CODOPERACAO\nWHERE    \n    (DATE(o.DATAANALISE) = CURDATE() OR o.DATAANALISE IS NULL)\n    AND o.TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND o.DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)\nGROUP BY t.CPFCNPJSACADO, o.NBORDERO, o.TTO, o.STATUSACEITE, o.STATUSANALISE, t.ACEITO, o.DATAINCLUSAO, o.DATATRAVA, o.DATAANALISE, o.CODCLIENTE, o.CPFCNPJCLIENTE) as subs",
+            "datasetSettings": {
+              "type": "MySqlTable",
+              "schema": [],
+              "externalReferences": {
+                "connection": "ddb03605-7bef-45d9-8c36-aa19be4e5ae4"
+              },
+              "annotations": []
+            }
+          },
+          "sink": {
+            "type": "LakehouseTableSink",
+            "tableActionOption": "OverwriteSchema",
+            "applyVOrder": true,
+            "partitionOption": "None",
+            "datasetSettings": {
+              "type": "LakehouseTable",
+              "typeProperties": {
+                "table": "bronze_operacoes_intraday"
+              },
+              "schema": [],
+              "connectionSettings": {
+                "name": "LH_Bronze",
+                "properties": {
+                  "type": "Lakehouse",
+                  "typeProperties": {
+                    "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
+                    "workspaceId": "00000000-0000-0000-0000-000000000000",
+                    "rootFolder": "Tables"
+                  },
+                  "externalReferences": {
+                    "connection": "d5e04140-4686-43fa-ae4d-a20dec5aec44"
+                  },
+                  "annotations": []
+                }
+              },
+              "annotations": []
+            }
+          },
+          "translator": {
+            "type": "TabularTranslator",
+            "typeConversion": true,
+            "typeConversionSettings": {
+              "allowDataTruncation": true,
+              "treatBooleanAsNumber": false
+            }
+          },
+          "enableStaging": false
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Bronze_Operacoes_Intraday",
+        "dependsOn": [
+          {
+            "activity": "Operacoes_do_dia_copy1",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
       }
     ]
   }

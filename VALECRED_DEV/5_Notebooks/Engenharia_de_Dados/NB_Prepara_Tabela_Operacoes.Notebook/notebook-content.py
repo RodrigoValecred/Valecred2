@@ -93,7 +93,8 @@ def select_operacoes(df):
         col("TOTFAC").alias("valor_de_face"),
         col("TOTDCP").alias("desagio"),
         col("TOTTAR").alias("total_de_tarifas"),
-        col("TOTRECOMPRA").alias("valor_recomprado")
+        col("TOTRECOMPRA").alias("valor_recomprado"),
+        col("FATOR").alias("taxa")
     )
 
 is_incremental_ops = False

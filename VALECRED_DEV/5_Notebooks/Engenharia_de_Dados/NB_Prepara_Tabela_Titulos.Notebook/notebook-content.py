@@ -46,7 +46,7 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, date_sub
+    lead, date_add, lag, max, coalesce, date_sub, datediff, current_date
 )
 from pyspark.sql.utils import AnalysisException
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
@@ -112,7 +112,27 @@ def select_titulos(df):
         col("CODEMISSAO").alias("cod_emissao"),
         col("STATUSCONFIRMACAO").alias("status_confirmacao"),
         col("SEUNUMERO").alias("seu_numero_bancario"),
-        col("CODREMESSA").alias("cod_remessa")
+        col("CODREMESSA").alias("cod_remessa"),
+        # 1. Definir qual vencimento vale (Prorrogado ganha do Original)
+        # Se VENCPRORROGADO for nulo, usa VENCIMENTO.
+        # Criamos essa coluna calculada para facilitar contas futuras.
+        coalesce(col("VENCPRORROGADO"), col("VENCIMENTO")).alias("vencimento_efetivo"),
+        
+        # 2. Calcular o Atraso (Regra de Negócio FIDC)
+        # Se LIQUIDACAO existe (Pago) -> Diff entre LIQUIDACAO e VENCIMENTO_EFETIVO
+        # Se LIQUIDACAO nula (Aberto) -> Diff entre HOJE e VENCIMENTO_EFETIVO
+        (when(
+            col("LIQUIDACAO").isNotNull(),
+            datediff(col("LIQUIDACAO"), coalesce(col("VENCPRORROGADO"), col("VENCIMENTO")))
+        ).otherwise(
+            datediff(current_date(), coalesce(col("VENCPRORROGADO"), col("VENCIMENTO")))
+        )).alias("dias_atraso"),
+        
+        # 3. Flag simples de Status (Opcional, mas útil para BI)
+        (when(col("LIQUIDACAO").isNotNull(), "LIQUIDADO")
+         .when(datediff(current_date(), coalesce(col("VENCPRORROGADO"), col("VENCIMENTO"))) > 0, "EM ATRASO")
+         .otherwise("EM DIA")
+        ).alias("status_titulo")
     )
 
 key_columns_titulos = ["CODTITULO"]

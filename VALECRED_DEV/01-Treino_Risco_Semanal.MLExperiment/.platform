@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "MLExperiment",
+    "displayName": "01-Treino_Risco_Semanal"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "313cc210-bc3a-93a7-4688-e2e6ffe413fd"
+  }
+}

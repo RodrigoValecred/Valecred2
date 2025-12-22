@@ -81,6 +81,37 @@ window_geral = Window.partitionBy("CPFCNPJ").orderBy(col("DATAALTERACAO").desc()
 df_geral_deduplicated = df_geral_bronze.withColumn("row_num", row_number().over(window_geral)) \
     .filter(col("row_num") == 1).drop("row_num") \
     .select(col("CPFCNPJ").alias("cpf_cnpj"), col("NOME").alias("nome"), col("NOME").alias("razao_social"), col("FANTASIA").alias("nome_fantasia"))
+
+from pyspark.sql.functions import (
+    transform, filter as array_filter, split, substring, array_join, 
+    upper, col, coalesce, regexp_replace, length, array_contains, lit
+)
+
+# 1. Definir "Stopwords" (termos que não devem compor a sigla)
+stopwords = ["DA", "DE", "DO", "DAS", "DOS", "E", "LTDA", "S.A", "SA", "ME", "EPP", "S/A"]
+
+# 2. Aplicar lógica vetorial (Alta Performance)
+df_geral_deduplicated = df_geral_deduplicated \
+    .withColumn("nome_base", col("nome")) \
+    .withColumn(
+        "sigla",
+        array_join(
+            transform(
+                # Passo A: Limpa caracteres especiais, deixa maiúsculo e quebra em array
+                array_filter(
+                    split(regexp_replace(upper(col("nome_base")), "[^A-Z0-9 ]", ""), " "), 
+                    # Passo B: Remove stopwords e espaços vazios
+                    lambda x: (length(x) > 0) & (~x.isin(stopwords))
+                ),
+                # Passo C: Pega a primeira letra de cada palavra restante
+                lambda x: substring(x, 1, 1)
+            ),
+            "" # Junta tudo sem espaço (Ex: "Fundo Investimento" -> "FI")
+        )
+    ).drop("nome_base") # Remove coluna auxiliar
+
+# Validação rápida
+df_geral_deduplicated.select("nome", "sigla").show(5, truncate=False)    
 df_geral_deduplicated.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_cad_geral_pf_pj_limpa")
 
 # METADATA ********************

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "NB_PERFIL_RISCO_SACADO"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "bc9e8560-dd72-9cdd-40c4-d41eb23df545"
+  }
+}
