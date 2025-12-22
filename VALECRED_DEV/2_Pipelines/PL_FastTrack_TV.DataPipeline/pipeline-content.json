@@ -129,12 +129,127 @@
         "name": "Bronze_Operacoes_Intraday",
         "dependsOn": [
           {
-            "activity": "Operacoes_do_dia_copy1",
+            "activity": "If Condition1",
             "dependencyConditions": [
               "Succeeded"
             ]
           }
         ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "e59a1d27-5ffe-8287-4ba3-a13411187c40",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Valecred_Artificial_Inteligence",
+        "description": "V.A.I. analisar o comportamento da operação",
+        "dependsOn": [
+          {
+            "activity": "Bronze_Operacoes_Intraday",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "IfCondition",
+        "typeProperties": {
+          "expression": {
+            "value": "@greater(\n    activity('Check_Origem').output.firstRow.max_id_source,\n    activity('Check_Gold').output.firstRow.max_id_gold\n)",
+            "type": "Expression"
+          },
+          "ifTrueActivities": [],
+          "ifFalseActivities": []
+        },
+        "name": "If Condition1",
+        "dependsOn": [
+          {
+            "activity": "Check_Origem",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Check_Gold",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "LakehouseTableSource",
+            "sqlReaderQuery": "SELECT COALESCE(MAX(id_operacao), 0) as max_id_gold FROM alertas_risco_tv",
+            "partitionOption": "None"
+          },
+          "datasetSettings": {
+            "type": "LakehouseTable",
+            "schema": [],
+            "connectionSettings": {
+              "name": "LH_Gold",
+              "properties": {
+                "type": "Lakehouse",
+                "typeProperties": {
+                  "artifactId": "1839f042-81d7-8f35-49bc-0100ee40705b",
+                  "workspaceId": "00000000-0000-0000-0000-000000000000",
+                  "rootFolder": "Tables"
+                },
+                "externalReferences": {
+                  "connection": "d5e04140-4686-43fa-ae4d-a20dec5aec44"
+                },
+                "annotations": []
+              }
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Check_Gold",
+        "dependsOn": []
+      },
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "MySqlSource",
+            "query": "SELECT MAX(NBORDERO) as max_id_source \nFROM tab_operacoes \nWHERE (DATE(DATAANALISE) = CURDATE() OR DATAANALISE IS NULL)\n    AND TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+          },
+          "datasetSettings": {
+            "type": "MySqlTable",
+            "schema": [],
+            "externalReferences": {
+              "connection": "ddb03605-7bef-45d9-8c36-aa19be4e5ae4"
+            },
+            "annotations": []
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Check_Origem",
+        "dependsOn": []
       }
     ]
   }

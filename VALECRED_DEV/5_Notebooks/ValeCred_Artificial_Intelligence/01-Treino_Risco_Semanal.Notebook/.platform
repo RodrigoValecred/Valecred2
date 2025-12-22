@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "VAI_Treinamento_Semanal"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "373c432d-c362-b38b-4a1d-2dd8dd5eefc5"
+  }
+}

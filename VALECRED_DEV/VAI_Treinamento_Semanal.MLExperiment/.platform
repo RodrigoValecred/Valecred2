@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "MLExperiment",
+    "displayName": "VAI_Treinamento_Semanal"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "a8462997-9785-b684-4a36-f2de8a9354d9"
+  }
+}

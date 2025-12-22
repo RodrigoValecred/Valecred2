@@ -42,7 +42,7 @@ df_aberto = df_titulos.filter("liquidacao IS NULL") \
 # 4. Filtrar Apenas Aceitos (Sua regra de negócio)
 df_aceitos = df_aberto.filter("aceito = 'S'")
 
-# 5. Criar o PERFIL DO SACADO (Agora o 'F' vai funcionar)
+# 5. Criar o PERFIL DO SACADO
 df_perfil = df_aceitos.groupBy("cpf_cnpj_sacado").agg(
     F.sum("valor_devido").alias("exposicao_total_d1"), # Soma tudo que ele deve
     F.max("atraso_dias").alias("maior_atraso_atual"),  # Pega o pior atraso dele hoje

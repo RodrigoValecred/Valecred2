@@ -28,11 +28,11 @@
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-# 1. Carregar as tabelas (baseado nos nomes do seu log de erro)
+# 1. Carregar as tabelas
 df_ops = spark.table("spark_catalog.LH_Silver.staging_operacoes_limpa")
 df_titulos = spark.table("spark_catalog.LH_Silver.staging_titulos_limpa")
 
-# 2. CORREÇÃO AQUI: Agrupar também pelo SACADO
+# 2. Agrupar também pelo SACADO
 # Isso garante que se uma operação tiver 3 sacados, teremos 3 linhas, mantendo o ID do sacado vivo.
 df_agg_titulos = df_titulos.groupBy("cod_operacao", "cpf_cnpj_sacado").agg(
     F.sum("valor").alias("vlr_total_operacao_por_sacado"), # Valor que ESSE sacado tem nessa operação
@@ -45,7 +45,7 @@ df_agg_titulos = df_titulos.groupBy("cod_operacao", "cpf_cnpj_sacado").agg(
 # Agora o df_full terá a granularidade: Operação + Sacado
 df_full = df_ops.join(df_agg_titulos, on="cod_operacao", how="inner")
 
-# 4. A Lógica de Janela (Agora vai funcionar porque a coluna existe)
+# 4. A Lógica de Janela
 # Ordenamos por data_analise para ver o histórico de crescimento da dívida desse sacado
 w_sacado = Window.partitionBy("cpf_cnpj_sacado").orderBy("data_analise") \
                  .rowsBetween(Window.unboundedPreceding, Window.currentRow)
@@ -90,7 +90,7 @@ from pyspark.sql.types import FloatType
 # Isso garante que o modelo veja ~3 ciclos completos do Prazo Médio de 50 dias
 # Filtramos ANTES de processar para ganhar performance no Fabric
 df_ops = spark.table("spark_catalog.LH_Silver.staging_operacoes_limpa") \
-    .filter("data_analise >= date_sub(current_date(), 180)") \
+    .filter("data_analise >= date_sub(current_date(), 365)") \
     .select("cod_operacao", "taxa", "data_analise") # Selecionar só o útil
 
 df_titulos = spark.table("spark_catalog.LH_Silver.staging_titulos_limpa") \
@@ -148,7 +148,6 @@ df_pandas['anomaly_score'] = model.fit_predict(df_pandas[feature_cols])
 # ==============================================================================
 # 3. SAÍDA (Output - Lakehouse Gold)
 # ==============================================================================
-# ... (Todo o código de treino que você já fez) ...
 
 import mlflow
 import mlflow.sklearn

@@ -30,19 +30,39 @@ import pandas as pd
 from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType
 
-# ==============================================================================
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
 # 1. LEITURA DIRETA DO LAKEHOUSE (Sem JDBC)
-# ==============================================================================
+
+# CELL ********************
 
 # Ler a tabela que já está no seu Lakehouse
-# (Certifique-se que o nome da tabela está exato, maiúsculas/minúsculas importam no Linux/Spark)
 df_hoje_raw = spark.table("LH_Bronze.bronze_operacoes_intraday")
 
-# ==============================================================================
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# 
 # 2. CORREÇÃO IMEDIATA DA PRECISÃO (O erro dos 40 dígitos)
-# ==============================================================================
+# 
 # Antes de qualquer coisa, convertemos os decimais gigantes para Double
 # para o Spark não travar com "ArithmeticException".
+
+# CELL ********************
 
 cols_numericas = ["VOLUME_OPERADO", "taxa", "prazo_medio"]
 df_hoje_clean = df_hoje_raw
@@ -52,11 +72,22 @@ for col_name in cols_numericas:
     if col_name in df_hoje_raw.columns:
         df_hoje_clean = df_hoje_clean.withColumn(col_name, F.col(col_name).cast(DoubleType()))
 
-# ==============================================================================
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
 # 3. TRATAMENTO E ENRIQUECIMENTO
-# ==============================================================================
+# 
 # A. Renomear colunas (Ajuste Crítico aqui)
 # Agora estamos pegando 'valor_titulo' (que existe na Bronze) e virando 'vlr_total_sacado'
+
+# CELL ********************
+
 df_hoje_ajustado = df_hoje_clean \
     .withColumnRenamed("NBORDERO", "id_operacao") \
     .withColumnRenamed("valor_titulo", "vlr_total_sacado") \
@@ -83,9 +114,18 @@ df_enrich = df_enrich.withColumn(
     F.col("vlr_total_sacado") / F.col("exposicao_acumulada")
 ).fillna(0)
 
-# ==============================================================================
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
 # 4. A IA (INFERÊNCIA)
-# ==============================================================================
+
+# CELL ********************
 
 df_pandas = df_enrich.toPandas()
 
@@ -102,7 +142,8 @@ features = [
 # Garantia contra nulos
 df_pandas[features] = df_pandas[features].fillna(0)
 
-RUN_ID = "c122501f-3c87-43dc-af99-8af8d918866c"
+# RUN_ID = "c122501f-3c87-43dc-af99-8af8d918866c"
+RUN_ID = "f0c0000a-f643-4759-8e08-01cc6d1962de"
 model_uri = f"runs:/{RUN_ID}/Modelo_Risco_FIDC"
 
 try:
@@ -133,10 +174,18 @@ except Exception as e:
         lambda x: -1 if (x['taxa'] < 1.5 or x['prazo_medio_titulos'] > 60) else 1, axis=1
     )
 
-# ... (Mantenha o bloco 5 de Saída igual) ...
-# ==============================================================================
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
 # 5. SAÍDA (Tabela Gold para a TV)
-# ==============================================================================
+
+# CELL ********************
 
 df_pandas['status_ia'] = df_pandas['anomaly_score'].apply(lambda x: "ALTO RISCO" if x == -1 else "NORMAL")
 df_pandas['data_processamento'] = pd.Timestamp.now()

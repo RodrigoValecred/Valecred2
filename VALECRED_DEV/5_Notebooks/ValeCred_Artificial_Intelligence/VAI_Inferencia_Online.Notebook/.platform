@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "VAI_Inferencia_Online"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "e59a1d27-5ffe-8287-4ba3-a13411187c40"
+  }
+}
