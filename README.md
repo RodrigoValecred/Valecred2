@@ -209,9 +209,11 @@ O processo de orquestração e ingestão de dados é gerenciado por um conjunto 
 
 ### 5. Notebooks (`5_Notebooks`)
 
-Os notebooks PySpark são agora o padrão oficial para toda a lógica de negócios e transformações de dados da plataforma, substituindo os antigos Dataflows.
+Os notebooks PySpark são agora o padrão oficial para toda a lógica de negócios e transformações de dados da plataforma, substituindo os antigos Dataflows. Eles estão organizados em subpastas dentro de `Engenharia_de_Dados` para refletir sua função na arquitetura:
 
-#### Notebooks de Transformação (Bronze para Silver)
+#### `Silver/` - Preparação e Limpeza
+
+Responsável por limpar, padronizar e desduplicar os dados brutos da camada Bronze.
 
 -   **`NB_Prepara_Tabela_Cadastros`**: (**Carga Full Overwrite**) Processamento de tabelas dimensionais e cadastrais (clientes, geral, telefones, endereços, contratos, bridge, limites, empresas, gerentes, plataformas, status).
 -   **`NB_Prepara_Tabela_Titulos`**: (**Carga Incremental**) Processamento da tabela `tab_titulos` e tabelas relacionadas (baixas, protestos, abatimentos, boletos, danfe).
@@ -220,21 +222,27 @@ Os notebooks PySpark são agora o padrão oficial para toda a lógica de negóci
 -   **`NB_Process_Contact_Info`**: Processa e limpa dados de contato, tratando campos com múltiplos valores e salvando-os em tabelas de staging na camada Silver.
 -   **`NB_Load_Silver_From_Manual_Uploads`**: Notebook genérico para carga de arquivos manuais (Excel/CSV) armazenados no Bronze para tabelas Silver, com padronização de colunas.
 -   **`NB_Silver_Carteira_PDD`**: Processamento específico para a carteira de PDD (Provisão para Devedores Duvidosos).
-
-#### Notebooks de Curadoria e Agregação (Silver para Gold)
-
--   **`NB_Curadoria_Gold`**: Centraliza a lógica de **enriquecimento e joins**. Consome as tabelas tratadas da Silver (staging) e aplica regras de negócio complexas para gerar as tabelas Fato e Dimensão finais no `LH_Gold`.
--   **`Processamento_Completo_Clientes`**: Um fluxo consolidado (Bronze -> Silver -> Gold) focado na entidade Cliente. Realiza limpeza de cadastro, telefones e endereços, gerando a tabela final `gold_cliente_completo`.
--   **`NB_Calendario_Gold`**: Gera e atualiza a tabela dimensão de calendário (`dim_calendario`), fundamental para análises temporais.
--   **`NB_Gold_Risco_Cliente`**: Cria agregações de risco por cliente, segmentado por produto.
--   **`NB_Risk_Aggregation`**: Calcula métricas históricas de risco (inadimplência, volume) e salva em tabelas agregadas no Gold.
--   **`NB_Relatorio_Limites_Vencendo`**: Gera a tabela `relatorio_limites_vencendo` no Gold, consolidando dados de contratos e clientes para monitoramento de vencimento de limites.
-
-#### Notebooks de Utilidade e Análise
-
 -   **`NB_Generic_Silver`**: Ingestor genérico para carga de tabelas Bronze para Silver com padronização automática e Quality Gate.
+-   **`NB_Preparacao_Silver`**: Notebook legado/consolidado de preparação.
+
+#### `Gold/` - Curadoria e Agregação
+
+Responsável por aplicar regras de negócio complexas, joins e agregações para gerar as tabelas finais de consumo.
+
+-   **`NB_Curadoria_Gold`**: Centraliza a lógica de **enriquecimento e joins**. Consome as tabelas tratadas da Silver (staging) e gera as tabelas Fato e Dimensão finais no `LH_Gold`.
+-   **`NB_Calendario_Gold`**: Gera e atualiza a tabela dimensão de calendário (`dim_calendario`).
+-   **`NB_Gold_Risco_Cliente`**: Cria agregações de risco por cliente, segmentado por produto.
+-   **`NB_Risk_Aggregation`**: Calcula métricas históricas de risco (inadimplência, volume).
+-   **`NB_Relatorio_Limites_Vencendo`**: Gera a tabela `relatorio_limites_vencendo`, consolidando dados de contratos e clientes.
 -   **`NB_Analise_Cliente_Especifico`**: Ferramenta ad-hoc para investigar o histórico detalhado de um cliente.
 -   **`NB_Analyze_FIDC_Performance`**: Notebook para análise de performance do FIDC.
+
+#### `Orquestracao/` - Controle de Fluxo
+
+-   **`Processamento_Completo_Clientes`**: Um fluxo consolidado (Bronze -> Silver -> Gold) focado na entidade Cliente. Realiza limpeza de cadastro, telefones e endereços, gerando a tabela final `gold_cliente_completo`.
+
+#### `Utilitarios/` - Ferramentas de Suporte
+
 -   **`NB_CERC_Consulta_API`**: Notebook para integração e consulta de dados da API da CERC.
 
 ### 6. Machine Learning (`6_Machine_Learning`)
