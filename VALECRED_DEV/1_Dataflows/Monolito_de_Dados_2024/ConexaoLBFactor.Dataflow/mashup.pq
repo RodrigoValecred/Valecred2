@@ -715,7 +715,7 @@ shared #"ultima checagem" = let
     #"Duplicatas Removidas" = Table.Distinct(#"Linhas Classificadas", {"CODTITULO"})
 in
     #"Duplicatas Removidas";
-shared notificações = let
+shared #"notificações" = let
     // Conecta-se a um banco de dados MySQL para obter dados de títulos de cobrança.
     origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODOPERACAO, CODTITULO, COBRADOAO, CODOCORCOBRANCA/*,OBSERVACAO*/, DATAINCLUSAO ,USUAINCLUSAO #(lf)FROM tab_titulos_cobranca#(lf)WHERE YEAR(DATAINCLUSAO) >= 2024", ReturnSingleDatabase=true]),
 
@@ -1493,7 +1493,7 @@ shared replica_tab_operacoes_prorrogacao = let
     conexaoMySQL = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_operacoes_prorrogacao", ReturnSingleDatabase=true])
 in
     conexaoMySQL;
-shared prorrogações = let
+shared #"prorrogações" = let
     // Etapa 1: Definir a fonte de dados inicial
     Fonte = replica_tab_operacoes_prorrogacao,
 
