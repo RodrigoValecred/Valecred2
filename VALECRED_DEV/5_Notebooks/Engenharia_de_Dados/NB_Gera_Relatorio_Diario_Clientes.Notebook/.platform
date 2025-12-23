@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "NB_Gera_Relatorio_Diario_Clientes"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "7eb5f21e-242e-9ee6-4379-d03959aba776"
+  }
+}

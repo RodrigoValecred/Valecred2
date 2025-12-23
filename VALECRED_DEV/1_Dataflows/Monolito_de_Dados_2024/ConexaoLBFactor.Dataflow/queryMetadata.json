@@ -145,9 +145,9 @@
       "queryName": "ultima checagem",
       "loadEnabled": false
     },
-    "notificações": {
+    "notificacoes": {
       "queryId": "2aedee8f-b250-41de-beac-05be7565ffdd",
-      "queryName": "notificações"
+      "queryName": "notificacoes"
     },
     "lb_pareceres_de_operacoes": {
       "queryId": "29349f78-6c87-4439-a91b-f834cf6f48b2",
