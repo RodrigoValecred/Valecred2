@@ -33,6 +33,36 @@
         },
         "name": "Atualiza_Carteira_Sacados",
         "dependsOn": []
+      },
+      {
+        "type": "MicrosoftTeams",
+        "typeProperties": {
+          "content": "<p>ALERTA CRÍTICO: A V.A.I. falhou ao tentar atualizar hoje.&nbsp;</p>\n<p>Verifique o Pipeline no Fabric imediatamente.</p>",
+          "teamId": "b726d16f-3822-4a21-9d01-d327601cc1d9",
+          "channelId": "19:H69njAwILOOuvSac1c66xiu9ZjP_GM5Wx8cfK8W9wwg1@thread.tacv2",
+          "operationType": "SendMessageInChannel",
+          "subject": "Falha na atualização da V.A.I."
+        },
+        "externalReferences": {
+          "connection": "483ffd69-c13d-4c90-aed2-62eb297dec2d"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Alerta de erro",
+        "description": "Avisa se der erro",
+        "dependsOn": [
+          {
+            "activity": "Treinamento",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ]
       }
     ]
   }
