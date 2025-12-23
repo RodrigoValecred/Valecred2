@@ -11,7 +11,7 @@ O objetivo desta plataforma é centralizar e democratizar o acesso aos dados da 
 A V.A.I. é a inteligência artificial da ValeCred, desenvolvida para potencializar a análise de dados e a tomada de decisão. Seu primeiro trabalho consistiu em uma análise profunda das operações realizadas no último ano, permitindo identificar e mapear o comportamento padrão das transações.
 
 Com base nesse estudo, a V.A.I. monitora as novas operações, identificando anomalias que desviem do padrão estabelecido e classificando-as como **Alto Risco**, permitindo uma atuação proativa da equipe de gestão de risco.
-🤖 V.A.I. - Vale Artificial Intelligence
+🤖 V.A.I. - ValeCred Artificial Intelligence
 Sistema de Monitoramento Preditivo de Risco para FIDC
 
 📋 Sobre o Projeto
