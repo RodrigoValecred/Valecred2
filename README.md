@@ -6,13 +6,13 @@ Este repositório contém o código-fonte da Plataforma de Dados Valecred, uma s
 
 O objetivo desta plataforma é centralizar e democratizar o acesso aos dados da Valecred, garantindo qualidade, governança e agilidade. Através de um fluxo de dados bem definido, transformamos dados brutos em insights acionáveis, alimentando desde dashboards de BI até modelos avançados de machine learning para previsão de risco.
 
-## V.A.I. (ValeCred Artificial Intelligence)
+## 🤖 V.A.I. - ValeCred Artificial Intelligence
+Sistema de Monitoramento Preditivo de Risco para FIDC
 
 A V.A.I. é a inteligência artificial da ValeCred, desenvolvida para potencializar a análise de dados e a tomada de decisão. Seu primeiro trabalho consistiu em uma análise profunda das operações realizadas no último ano, permitindo identificar e mapear o comportamento padrão das transações.
 
 Com base nesse estudo, a V.A.I. monitora as novas operações, identificando anomalias que desviem do padrão estabelecido e classificando-as como **Alto Risco**, permitindo uma atuação proativa da equipe de gestão de risco.
-## 🤖 V.A.I. - ValeCred Artificial Intelligence
-Sistema de Monitoramento Preditivo de Risco para FIDC
+
 
 ## 📋 Sobre o Projeto
 A V.A.I. é uma inteligência artificial desenvolvida para atuar como "Sentinela Digital" nas operações de crédito da ValeCred. Diferente de sistemas tradicionais baseados apenas em regras fixas (ex: "valor > 50k"), a V.A.I. utiliza Machine Learning (Aprendizado Não Supervisionado) para detectar anomalias estatísticas em tempo real.
