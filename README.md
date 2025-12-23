@@ -11,15 +11,15 @@ O objetivo desta plataforma é centralizar e democratizar o acesso aos dados da 
 A V.A.I. é a inteligência artificial da ValeCred, desenvolvida para potencializar a análise de dados e a tomada de decisão. Seu primeiro trabalho consistiu em uma análise profunda das operações realizadas no último ano, permitindo identificar e mapear o comportamento padrão das transações.
 
 Com base nesse estudo, a V.A.I. monitora as novas operações, identificando anomalias que desviem do padrão estabelecido e classificando-as como **Alto Risco**, permitindo uma atuação proativa da equipe de gestão de risco.
-🤖 V.A.I. - ValeCred Artificial Intelligence
+## 🤖 V.A.I. - ValeCred Artificial Intelligence
 Sistema de Monitoramento Preditivo de Risco para FIDC
 
-📋 Sobre o Projeto
+## 📋 Sobre o Projeto
 A V.A.I. é uma inteligência artificial desenvolvida para atuar como "Sentinela Digital" nas operações de crédito da ValeCred. Diferente de sistemas tradicionais baseados apenas em regras fixas (ex: "valor > 50k"), a V.A.I. utiliza Machine Learning (Aprendizado Não Supervisionado) para detectar anomalias estatísticas em tempo real.
 
 O sistema analisa o comportamento histórico do sacado e cruza com as variáveis da operação atual (Taxa x Prazo x Exposição) para identificar riscos que passariam despercebidos pelo olho humano.
 
-🚀 Arquitetura da Solução
+## 🚀 Arquitetura da Solução
 O projeto foi construído 100% no ecossistema Microsoft Fabric, utilizando uma arquitetura Lakehouse moderna.
 
 Fluxo de Dados:
@@ -37,7 +37,7 @@ Inferência: Busca dinâmica pelo "Melhor Modelo" via MLflow, garantindo que a I
 
 Visualização (Power BI): Dashboard em tempo real instalado em TVs corporativas.
 
-🧠 O Cérebro (Machine Learning)
+## 🧠 O Cérebro (Machine Learning)
 A V.A.I. utiliza o algoritmo Isolation Forest para detecção de anomalias.
 
 Features Analisadas: Valor do Título, Taxa de Aquisição, Prazo Médio, Exposição Acumulada, Concentração da Operação.
@@ -50,7 +50,7 @@ Versionamento de modelos via MLflow.
 
 Pipeline de CI/CD para atualização do "cérebro" da IA.
 
-📊 Dashboard & Monitoramento
+## 📊 Dashboard & Monitoramento
 A interface visual foi desenhada com identidade "Cyber-Agro" (Dark Mode com Neon Verde/Amarelo) para fácil leitura em TVs a distância.
 
 Funcionalidades Visuais:
@@ -67,7 +67,7 @@ Status V.A.I.:
 <img width="1202" height="661" alt="image" src="https://github.com/user-attachments/assets/1b844dfe-ec9d-4211-aef8-e8b2c22fb52b" />
 
 
-🛠️ Stack Tecnológica
+## 🛠️ Stack Tecnológica
 Orquestração: Azure Data Factory (Pipelines).
 
 Compute: Spark (PySpark) no Microsoft Fabric.
@@ -80,14 +80,14 @@ Armazenamento: Delta Lake (Bronze/Gold).
 
 Frontend: Power BI (DAX avançado para alertas visuais).
 
-📈 Resultados e Impacto
+## 📈 Resultados e Impacto
 Detecção de Fraude: Identificação de padrões atípicos (ex: alavancagem súbita) antes do desembolso.
 
 Redução de Risco: Monitoramento de 100% das operações, inclusive as de baixo valor (Long tail).
 
 Autonomia: Sistema "Vivo" que aprende semanalmente com novos dados, adaptando-se às mudanças do mercado.
 
-📞 Contato / Consultoria
+## 📞 Contato / Consultoria
 Desenvolvido por RBO Consultoria em Dados. Especialistas em Engenharia de Dados e IA para Mercado Financeiro.
 ## Como Começar
 
