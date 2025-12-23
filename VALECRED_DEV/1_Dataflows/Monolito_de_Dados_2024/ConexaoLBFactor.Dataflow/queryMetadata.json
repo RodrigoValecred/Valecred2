@@ -334,9 +334,9 @@
       "queryName": "replica_tab_operacoes_prorrogacao",
       "loadEnabled": false
     },
-    "prorrogações": {
+    "prorrogacoes": {
       "queryId": "8a7d670a-149d-4b8f-bd0c-3a349581ad72",
-      "queryName": "prorrogações"
+      "queryName": "prorrogacoes"
     },
     "sacados": {
       "queryId": "b03333f8-ff71-490c-9acf-3f0a57cf271d",

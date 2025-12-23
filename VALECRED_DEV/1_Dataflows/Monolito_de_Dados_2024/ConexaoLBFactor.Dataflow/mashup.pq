@@ -1493,7 +1493,7 @@ shared replica_tab_operacoes_prorrogacao = let
     conexaoMySQL = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_operacoes_prorrogacao", ReturnSingleDatabase=true])
 in
     conexaoMySQL;
-shared prorrogações = let
+shared prorrogacoes = let
     // Etapa 1: Definir a fonte de dados inicial
     Fonte = replica_tab_operacoes_prorrogacao,
 
