@@ -114,6 +114,12 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
             # Normaliza para remover acentos (ex: 'ç' -> 'c')
             nfkd_form = unicodedata.normalize('NFKD', str(col_name))
             sanitized = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
+
+            # Trata CamelCase/PascalCase antes de converter para minúsculas
+            # Ex: 'NomeGrupo' -> 'Nome_Grupo'
+            s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', sanitized)
+            sanitized = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
+
             # Converte para minúsculas
             sanitized = sanitized.lower()
             # Substitui espaços e caracteres não-alfanuméricos por underscore
