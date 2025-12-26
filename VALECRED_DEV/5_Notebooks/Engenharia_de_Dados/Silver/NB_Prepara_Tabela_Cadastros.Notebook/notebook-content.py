@@ -27,6 +27,7 @@
 
 # # Notebook de Preparação Silver - Cadastros
 # **Objetivo:** Processamento de tabelas dimensionais e cadastrais (`clientes`, `geral`, `telefones`, `enderecos`, `contratos`, `bridge`, `limites`, `empresas`, `gerentes`, `plataformas`, `status`).
+# 
 # **Estratégia:** Carga Full Overwrite (devido ao volume menor e necessidade de garantir integridade referencial completa das dimensões).
 
 # MARKDOWN ********************
@@ -42,7 +43,8 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, date_sub
+    lead, date_add, lag, max, coalesce, date_sub, transform, 
+    filter as array_filter, split, array_join, array_contains
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from functools import reduce
@@ -82,11 +84,6 @@ df_geral_deduplicated = df_geral_bronze.withColumn("row_num", row_number().over(
     .filter(col("row_num") == 1).drop("row_num") \
     .select(col("CPFCNPJ").alias("cpf_cnpj"), col("NOME").alias("nome"), col("NOME").alias("razao_social"), col("FANTASIA").alias("nome_fantasia"))
 
-from pyspark.sql.functions import (
-    transform, filter as array_filter, split, substring, array_join, 
-    upper, col, coalesce, regexp_replace, length, array_contains, lit
-)
-
 # 1. Definir "Stopwords" (termos que não devem compor a sigla)
 stopwords = ["DA", "DE", "DO", "DAS", "DOS", "E", "LTDA", "S.A", "SA", "ME", "EPP", "S/A"]
 
@@ -109,10 +106,16 @@ df_geral_deduplicated = df_geral_deduplicated \
             "" # Junta tudo sem espaço (Ex: "Fundo Investimento" -> "FI")
         )
     ).drop("nome_base") # Remove coluna auxiliar
+# df_geral_deduplicated.show(5, truncate=False)  
 
+df_cadastros_clean = df_geral_deduplicated \
+    .filter(col("cpf_cnpj").rlike("^[0-9]+$")) \
+    .select("cpf_cnpj", "nome", "sigla")
+    # .dropDuplicates(["cpf_cnpj"])
 # Validação rápida
-df_geral_deduplicated.select("nome", "sigla").show(5, truncate=False)    
-df_geral_deduplicated.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_cad_geral_pf_pj_limpa")
+
+df_cadastros_clean.show(5, truncate=False)    
+df_cadastros_clean.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Silver.staging_cad_geral_pf_pj_limpa")
 
 # METADATA ********************
 

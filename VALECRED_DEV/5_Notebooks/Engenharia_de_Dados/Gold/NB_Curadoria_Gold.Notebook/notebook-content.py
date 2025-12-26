@@ -266,7 +266,6 @@ df_fato_operacoes_joined = df_operacoes_prep.join(
 )
 
 # 3. SELEÇÃO FINAL
-# Note que agora 'cod_cliente' vai funcionar porque corrigimos na célula anterior.
 df_fato_operacoes = df_fato_operacoes_joined.select(
     col("cod_operacao"),
     col("cod_cliente"),
