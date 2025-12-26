@@ -23,7 +23,7 @@
 # META   }
 # META }
 
-# CELL ********************
+# PARAMETERS CELL ********************
 
 # Célula 1: Marque esta célula como "Parameter" no menu do Notebook (Toggle parameter cell)
 table_input = "cad_empresas" # Valor default para teste

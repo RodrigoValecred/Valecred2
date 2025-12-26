@@ -131,7 +131,7 @@ if is_incremental_ops:
         df_ranked = df_corrigido.withColumn("row_num", row_number().over(windowSpec))
         df_dedup = df_ranked.filter(col("row_num") == 1).drop("row_num")
         
-        df_com_chave = df_dedup.withColumn("chave_produto", concat(col("TTO"), col("STTO")))
+        df_com_chave = df_dedup.withColumn("chave_produto", concat(col("TTO"), coalesce(col("STTO"),lit(""))))
         df_final_batch = select_operacoes(df_com_chave)
         
         # 4. Merge
@@ -150,12 +150,16 @@ else:
     print("Modo Full Load: Operações")
     df_bronze_ops = spark.read.table(f"{source_lakehouse}.{source_table_operacoes}")
     
+    # Tratamento TTO específico
     df_corrigido = df_bronze_ops.withColumn("TTO_corrigido", when(col("CODOPERACAO") == 3042074, lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
+    
+    # Deduplicação
     windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
     df_ranked = df_corrigido.withColumn("row_num", row_number().over(windowSpec))
     df_dedup = df_ranked.filter(col("row_num") == 1).drop("row_num")
     
-    df_com_chave = df_dedup.withColumn("chave_produto", concat(col("TTO"), col("STTO")))
+    df_com_chave = df_dedup.withColumn("chave_produto", concat(col("TTO"), coalesce(col("STTO"), lit(""))))
+    
     df_final = select_operacoes(df_com_chave)
     
     df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_operacoes)

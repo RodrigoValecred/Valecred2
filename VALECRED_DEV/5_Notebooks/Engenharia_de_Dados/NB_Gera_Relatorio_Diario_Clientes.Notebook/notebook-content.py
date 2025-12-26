@@ -9,6 +9,12 @@
 # META   "dependencies": {}
 # META }
 
+# MARKDOWN ********************
+
+# Este notebook visa criar um relatório diário do risco do cliente
+# Usado pela mesa de operações que acompanham clientes específicos e encaminham para diretoria diariamente.
+# O objetivo é automatizar essa coleta de dados para disponibilizar um relatório pronto diariamente.
+
 # CELL ********************
 
 import pandas as pd

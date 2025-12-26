@@ -6,7 +6,7 @@
         "typeProperties": {
           "source": {
             "type": "MySqlSource",
-            "query": "SELECT \n    NBORDERO,\n    TOTFAC AS VOLUME_OPERADO,\n    TTO,\n    STATUSACEITE,\n    STATUSANALISE,\n    DATAINCLUSAO,   \n    DATATRAVA,\n    DATAANALISE,\n    CODCLIENTE,\n    CPFCNPJCLIENTE,\n    CASE \n        WHEN DATAANALISE IS NULL OR HOUR(DATAANALISE) < 9 OR HOUR(DATAANALISE) > 18\n             THEN 9\n        ELSE \n            HOUR(DATAANALISE) END AS HORA,\n    TIMESTAMPDIFF(\n        MINUTE,\n        COALESCE(DATATRAVA,DATAINCLUSAO),\n        CASE WHEN STATUSANALISE = \"P\" \n            THEN NOW() \n            ELSE COALESCE(DATAANALISE,  NOW()) END\n    ) AS TEMPO_ANALISE\nFROM tab_operacoes\nWHERE    \n    (DATE(DATAANALISE) = CURDATE() OR DATAANALISE IS NULL OR (DATAANALISE < CURDATE() AND STATUSANALISE NOT IN (\"D\",\"I\")))\n    AND TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)\nORDER BY DATAINCLUSAO DESC",
+            "query": "SELECT \n    NBORDERO,\n    TOTFAC AS VOLUME_OPERADO,\n    TTO,\n    STTO,\n    STATUSACEITE,\n    STATUSANALISE,\n    DATAINCLUSAO,   \n    DATATRAVA,\n    DATAANALISE,\n    CODCLIENTE,\n    CPFCNPJCLIENTE,\n    CASE \n        WHEN DATAANALISE IS NULL OR HOUR(DATAANALISE) < 9 OR HOUR(DATAANALISE) > 18\n             THEN 9\n        ELSE \n            HOUR(DATAANALISE) END AS HORA,\n    TIMESTAMPDIFF(\n        MINUTE,\n        COALESCE(DATATRAVA,DATAINCLUSAO),\n        CASE WHEN STATUSANALISE = \"P\" \n            THEN NOW() \n            ELSE COALESCE(DATAANALISE,  NOW()) END\n    ) AS TEMPO_ANALISE\nFROM tab_operacoes\nWHERE    \n    (DATE(DATAANALISE) = CURDATE() OR DATAANALISE IS NULL OR (DATAANALISE < CURDATE() AND STATUSANALISE NOT IN (\"D\",\"I\")))\n    AND TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)\nORDER BY DATAINCLUSAO DESC",
             "datasetSettings": {
               "type": "MySqlTable",
               "schema": [],
@@ -70,7 +70,7 @@
         "typeProperties": {
           "source": {
             "type": "MySqlSource",
-            "query": "SELECT * FROM \n(SELECT \n    o.NBORDERO as id_operacao,\n    cast(sum(t.VALOR) as decimal(18,2)) AS valor_titulo,\n    o.TTO,\n    o.STATUSACEITE,\n    o.STATUSANALISE,\n    t.ACEITO,\n    o.DATAINCLUSAO,   \n    o.DATATRAVA,\n    o.DATAANALISE,\n    o.CODCLIENTE,\n    o.CPFCNPJCLIENTE,\n    t.CPFCNPJSACADO as cpf_cnpj_sacado,\n    MAX(o.FATOR) as taxa_aquisicao, -- Renomeado\n    AVG(t.PRAZO) as prazo_medio,\n    COUNT(t.CODTITULO) AS QTD_TITULOS\nFROM tab_operacoes o \nJOIN tab_titulos t ON t.CODOPERACAO = o.CODOPERACAO\nWHERE    \n    (DATE(o.DATAANALISE) = CURDATE() OR o.DATAANALISE IS NULL)\n    AND o.TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND o.DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)\nGROUP BY t.CPFCNPJSACADO, o.NBORDERO, o.TTO, o.STATUSACEITE, o.STATUSANALISE, t.ACEITO, o.DATAINCLUSAO, o.DATATRAVA, o.DATAANALISE, o.CODCLIENTE, o.CPFCNPJCLIENTE) as subs",
+            "query": "SELECT * FROM \n(SELECT \n    o.NBORDERO as id_operacao,\n    cast(sum(t.VALOR) as decimal(18,2)) AS valor_titulo,\n    o.TTO,\n    o.STTO,\n    o.STATUSACEITE,\n    o.STATUSANALISE,\n    t.ACEITO,\n    o.DATAINCLUSAO,   \n    o.DATATRAVA,\n    o.DATAANALISE,\n    o.CODCLIENTE,\n    o.CPFCNPJCLIENTE,\n    t.CPFCNPJSACADO as cpf_cnpj_sacado,\n    MAX(o.FATOR) as taxa_aquisicao, -- Renomeado\n    AVG(t.PRAZO) as prazo_medio,\n    COUNT(t.CODTITULO) AS QTD_TITULOS\nFROM tab_operacoes o \nJOIN tab_titulos t ON t.CODOPERACAO = o.CODOPERACAO\nWHERE    \n    (DATE(o.DATAANALISE) = CURDATE() OR o.DATAANALISE IS NULL)\n    AND o.TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND o.DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)\nGROUP BY t.CPFCNPJSACADO, o.NBORDERO, o.TTO, o.STTO, o.STATUSACEITE, o.STATUSANALISE, t.ACEITO, o.DATAINCLUSAO, o.DATATRAVA, o.DATAANALISE, o.CODCLIENTE, o.CPFCNPJCLIENTE) as subs",
             "datasetSettings": {
               "type": "MySqlTable",
               "schema": [],
@@ -191,7 +191,7 @@
         "typeProperties": {
           "source": {
             "type": "LakehouseTableSource",
-            "sqlReaderQuery": "SELECT COALESCE(MAX(id_operacao), 0) as max_id_gold FROM alertas_risco_tv",
+            "sqlReaderQuery": "SELECT \n    COALESCE(MAX(DATAINCLUSAO), '1900-01-01 00:00:00') as max_id_gold \nFROM alertas_risco_tv",
             "partitionOption": "None"
           },
           "datasetSettings": {
@@ -230,7 +230,7 @@
         "typeProperties": {
           "source": {
             "type": "MySqlSource",
-            "query": "SELECT MAX(NBORDERO) as max_id_source \nFROM tab_operacoes \nWHERE (DATE(DATAANALISE) = CURDATE() OR DATAANALISE IS NULL)\n    AND TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+            "query": "SELECT MAX(DATAINCLUSAO) as max_id_source \nFROM tab_operacoes \nWHERE (DATE(DATAANALISE) = CURDATE() OR DATAANALISE IS NULL)\n    AND TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
           },
           "datasetSettings": {
             "type": "MySqlTable",

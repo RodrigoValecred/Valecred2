@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
   "metadata": {
     "type": "Notebook",
-    "displayName": "02-Inferencia_Risco_Online"
+    "displayName": "NB_Prepara_Tabela_Produtos"
   },
   "config": {
     "version": "2.0",
-    "logicalId": "df832447-26c1-84d5-4419-c029b6541c56"
+    "logicalId": "0bcbad34-7693-a915-499d-14faaca003b7"
   }
 }

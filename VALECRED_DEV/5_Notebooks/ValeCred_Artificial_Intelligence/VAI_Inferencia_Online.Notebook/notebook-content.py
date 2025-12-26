@@ -17,6 +17,9 @@
 # META         },
 # META         {
 # META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
+# META         },
+# META         {
+# META           "id": "8f85c372-56ad-4f3f-acf9-3be2e9b99513"
 # META         }
 # META       ]
 # META     }
@@ -25,10 +28,9 @@
 
 # CELL ********************
 
-# Welcome to your new notebook
-# Type here in the cell editor to add code!
 import mlflow
 import pandas as pd
+import numpy as np
 from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType
 
@@ -38,74 +40,117 @@ from pyspark.sql.types import DoubleType
 print("1. Lendo dados do Lakehouse...")
 
 # Leitura da tabela Bronze (Operações do Dia)
-# Usando tratamento de erro caso a tabela não exista ainda
 try:
     df_hoje_raw = spark.table("LH_Bronze.Bronze_Operacoes_Intraday")
 except:
-    # Fallback para nome minúsculo se necessário
     df_hoje_raw = spark.table("LH_Bronze.bronze_operacoes_intraday")
+# df_hoje_raw.show(5)
 
-# Correção preventiva de tipos (Decimal -> Double) para evitar ArithmeticException
+# Leitura da Tabela de Produtos (A nossa "biblioteca" de códigos) 🆕
+df_dim_produto = spark.table("LH_Silver.dim_produto")
+
+try:
+    df_perfil = spark.table("LH_Gold.Perfil_Analitico_Sacado")
+except:
+    print("⚠️ Perfil não encontrado. Usando dummies.")
+    df_perfil = None
+
+# Correção preventiva de tipos (Decimal -> Double)
 cols_numericas = ["valor_titulo", "taxa_aquisicao", "prazo_medio"]
 df_hoje_clean = df_hoje_raw
 for col_name in cols_numericas:
     if col_name in df_hoje_raw.columns:
         df_hoje_clean = df_hoje_clean.withColumn(col_name, F.col(col_name).cast(DoubleType()))
+# df_hoje_clean.show(5)
 
 # Renomear colunas para bater com o treinamento da V.A.I.
-# De (Bronze) -> Para (Modelo Treinado)
+# ⚠️ IMPORTANTE: Garantir que TTO e STTO venham junto!
 df_hoje_ajustado = df_hoje_clean \
     .withColumnRenamed("NBORDERO", "id_operacao") \
     .withColumnRenamed("valor_titulo", "vlr_total_sacado") \
     .withColumnRenamed("prazo_medio", "prazo_medio_titulos") \
     .withColumnRenamed("taxa_aquisicao", "taxa") \
     .withColumnRenamed("QTD_TITULOS", "qtd_titulos") \
-    .withColumnRenamed("cpf_cnpj_sacado", "cpf_cnpj_sacado")
+    .withColumnRenamed("cpf_cnpj_sacado", "cpf_cnpj_sacado") \
+    .withColumnRenamed("TIPO_OPERACAO", "TTO") \
+    .withColumnRenamed("SUBTIPO_OPERACAO", "STTO")
+    # (Ajuste os nomes "TIPO_OPERACAO" acima se na Bronze eles tiverem outro nome)
+# df_hoje_ajustado.show(5)
 
-# Ler o Perfil de Risco (Gold) - Histórico do Cliente
-df_perfil = spark.table("LH_Gold.perfil_risco_sacado")
+# ==============================================================================
+# 🆕 BLOCO DE ENRIQUECIMENTO DE PRODUTO (O Join Mágico)
+# ==============================================================================
+# 1. Tratamento de Nulos para o Join (STTO nulo vira vazio, igual na Dimensão)
+df_ops_preparada = df_hoje_ajustado.fillna("", subset=["STTO"])
 
-# Join (Enriquecimento)
-df_enrich = df_hoje_ajustado.join(df_perfil, on="cpf_cnpj_sacado", how="left")
+# 2. O Join com a Dimensão para pegar o código numérico
+print("🔄 Cruzando com Dimensão Produto...")
+df_enrich_produto = df_ops_preparada.join(
+    df_dim_produto,
+    on=["TTO", "STTO"], 
+    how="left"
+)
 
-# Tratamento de Nulos (Clientes novos ganham zero no histórico)
-df_enrich = df_enrich.fillna(0, subset=["exposicao_total_d1", "qtd_titulos_aberto", "maior_atraso_atual"])
+# 3. Se aparecer algum produto novo/desconhecido, vira 0
+df_enrich_produto = df_enrich_produto.fillna(0, subset=["cod_produto_ia"])
 
-# Cálculos de Métricas em Tempo Real
-df_enrich = df_enrich.withColumn(
-    "exposicao_acumulada", 
-    F.col("exposicao_total_d1") + F.col("vlr_total_sacado")
-).withColumn(
-    "concentracao_operacao",
-    F.col("vlr_total_sacado") / F.col("exposicao_acumulada")
-).fillna(0)
+# ==============================================================================
+# CONTINUAÇÃO DO FLUXO NORMAL (Perfil e Cálculos)
+# ==============================================================================
 
-# --- CONVERSÃO PARA PANDAS (Para aplicar o modelo Scikit-Learn) ---
+if df_perfil:
+    df_enrich = df_enrich_produto.join(df_perfil, on="cpf_cnpj_sacado", how="left")
+    
+    # Preencher nulos para clientes novos (Sem histórico)
+    df_enrich = df_enrich.fillna(0, subset=["exposicao_maxima_historica", "prazo_medio_historico"])
+    df_enrich = df_enrich.fillna(1.0, subset=["media_pagamento_mensal"])
+    
+    # Calcular as features na hora (Usando os dados que vieram do perfil)
+    df_enrich = df_enrich.withColumn(
+        "exposicao_acumulada", 
+        F.col("exposicao_maxima_historica") + F.col("vlr_total_sacado")
+    ).withColumn(
+        "concentracao_operacao",
+        F.col("vlr_total_sacado") / F.col("exposicao_acumulada")
+    ).withColumn(
+        "ratio_cobertura_liquidez",
+        F.col("vlr_total_sacado") / F.col("media_pagamento_mensal")
+    )
+else:
+    # Fallback se não tiver tabela Gold (primeira execução da vida)
+    df_enrich = df_enrich_produto.withColumn("exposicao_acumulada", F.col("vlr_total_sacado")) \
+                             .withColumn("concentracao_operacao", F.lit(1.0)) \
+                             .withColumn("ratio_cobertura_liquidez", F.lit(0.0))
+
+# --- CONVERSÃO PARA PANDAS ---
 print("2. Convertendo para Pandas para aplicar IA...")
 df_pandas = df_enrich.toPandas()
 
-# Lista de colunas de backup (caso a auto-ordenação falhe)
+# Lista de Backup (ATUALIZADA com o produto) 🆕
 features_backup = [
     'vlr_total_sacado', 'prazo_medio_titulos', 'taxa', 
-    'exposicao_acumulada', 'concentracao_operacao', 'qtd_titulos'
+    'exposicao_acumulada', 'concentracao_operacao', 'qtd_titulos',
+    'cod_produto_ia', 'ratio_cobertura_liquidez' # <--- Adicionado aqui!
 ]
+
 # Garante que não existem nulos nas features
 for col in features_backup:
     if col in df_pandas.columns:
         df_pandas[col] = df_pandas[col].fillna(0)
+    else:
+        # Se a coluna não existir (ex: erro no join), cria zerada para não quebrar
+        df_pandas[col] = 0
 
 # ==============================================================================
 # 2. BUSCA DINÂMICA DO CÉREBRO DA V.A.I. (MLflow)
 # ==============================================================================
 
-# Seus dados configurados
 NOME_EXPERIMENTO = "VAI_Treinamento_Semanal"
 ID_EXPERIMENTO_NOVO = "8a9354d9-f2de-4a36-b684-9785a8462997"
 
 try:
     print(f"3. Buscando inteligência mais recente em: {NOME_EXPERIMENTO}...")
     
-    # Busca a run mais recente com status FINISHED (Sucesso)
     runs = mlflow.search_runs(
         experiment_ids=[ID_EXPERIMENTO_NOVO],
         filter_string="status = 'FINISHED'",
@@ -114,26 +159,22 @@ try:
     )
     
     if len(runs) == 0:
-        raise Exception("Nenhum modelo treinado encontrado neste experimento.")
+        raise Exception("Nenhum modelo treinado encontrado.")
         
     latest_run_id = runs.iloc[0].run_id
     print(f"✅ Cérebro encontrado! Usando Run ID: {latest_run_id}")
     
-    # Carrega o modelo
     model_uri = f"runs:/{latest_run_id}/Modelo_Risco_FIDC"
     loaded_model = mlflow.sklearn.load_model(model_uri)
     
-    # Aplica a IA (Com auto-ordenação de colunas)
-    # Isso evita o erro "Feature names must be in the same order"
+    # Aplica a IA
     if hasattr(loaded_model, "feature_names_in_"):
         cols_esperadas = loaded_model.feature_names_in_
-        # Garante que todas as colunas esperadas existam no DF
         for col in cols_esperadas:
             if col not in df_pandas.columns:
                 df_pandas[col] = 0
         df_pandas['anomaly_score'] = loaded_model.predict(df_pandas[cols_esperadas])
     else:
-        # Fallback para modelos antigos
         df_pandas['anomaly_score'] = loaded_model.predict(df_pandas[features_backup])
 
     print("🚀 V.A.I. aplicada com sucesso!")
@@ -141,28 +182,76 @@ try:
 except Exception as e:
     print(f"❌ Erro/Aviso na IA: {e}")
     print("⚠️ ATENÇÃO: Usando regra manual de contingência.")
-    
-    # Regra de Contingência (Plano B se o MLflow falhar)
-    # Taxa < 1.5% ou Prazo > 60 dias = Risco (-1)
     df_pandas['anomaly_score'] = df_pandas.apply(
         lambda x: -1 if (x['taxa'] < 1.5 or x['prazo_medio_titulos'] > 60) else 1, axis=1
     )
+# ==============================================================================
+# 🆕 XAI: EXPLICAR O MOTIVO DA ANOMALIA (DIAGNÓSTICO)
+# ==============================================================================
+print("🕵️ Calculando o motivo principal das anomalias...")
 
+# 1. Calcular médias e desvios padrão globais (do lote atual)
+stats = df_pandas.describe().transpose()
+
+def explicar_anomalia(row):
+    # Se for NORMAL (1), não tem motivo
+    if row['anomaly_score'] == 1:
+        return "Normal"
+    
+    # Se for ANOMALIA (-1), vamos caçar o culpado
+    maior_desvio = 0
+    culpado = "Desconhecido"
+    
+    features_para_analisar = [
+        'vlr_total_sacado', 'prazo_medio_titulos', 'taxa', 
+        'concentracao_operacao', 'ratio_alavancagem_interna'
+    ]
+    
+    for col in features_para_analisar:
+        if col in row.index:
+            # Pega valor da linha
+            valor = row[col]
+            # Pega estatísticas da coluna
+            media = stats.loc[col]['mean']
+            std = stats.loc[col]['std']
+            
+            # Z-Score (Quantos desvios padrão longe da média?)
+            if std > 0:
+                z_score = abs((valor - media) / std)
+            else:
+                z_score = 0
+                
+            # Se esse for o maior desvio até agora, ele é o culpado
+            if z_score > maior_desvio:
+                maior_desvio = z_score
+                culpado = col
+
+    # Traduzir o nome técnico para português amigável
+    mapa_nomes = {
+        'vlr_total_sacado': 'Valor Muito Alto',
+        'prazo_medio_titulos': 'Prazo Fora do Comum',
+        'taxa': 'Taxa Fora do Padrão',
+        'concentracao_operacao': 'Concentração Excessiva',
+        'ratio_alavancagem_interna': 'Alavancagem (Liquidez)'
+    }
+    
+    return mapa_nomes.get(culpado, culpado)
+
+# 2. Aplicar a função linha a linha
+df_pandas['motivo_principal'] = df_pandas.apply(explicar_anomalia, axis=1)
 # ==============================================================================
 # 3. SALVAR RESULTADO NA TV
 # ==============================================================================
 
-# Criação da coluna visual legível
 df_pandas['status_ia'] = df_pandas['anomaly_score'].apply(lambda x: "ALTO RISCO" if x == -1 else "NORMAL")
 df_pandas['data_processamento'] = pd.Timestamp.now()
 
-# Converter de volta para Spark e Salvar Delta Table
 print("4. Salvando resultados na tabela Gold...")
 df_final = spark.createDataFrame(df_pandas)
 df_final.write.mode("overwrite").option("overwriteSchema", "true").format("delta").saveAsTable("LH_Gold.Alertas_Risco_TV")
 
 print(f"✅ Processo Finalizado! {len(df_pandas)} operações enviadas para a TV.")
-display(df_final.select("id_operacao", "vlr_total_sacado", "status_ia"))
+display(df_final.select("id_operacao", "status_ia","motivo_principal"))
 
 # METADATA ********************
 

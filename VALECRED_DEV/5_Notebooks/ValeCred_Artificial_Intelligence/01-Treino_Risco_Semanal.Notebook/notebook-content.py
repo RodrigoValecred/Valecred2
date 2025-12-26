@@ -25,149 +25,166 @@
 
 # CELL ********************
 
+# ==============================================================================
+# IMPORTAÇÕES UNIFICADAS
+# ==============================================================================
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-
-# 1. Carregar as tabelas
-df_ops = spark.table("spark_catalog.LH_Silver.staging_operacoes_limpa")
-df_titulos = spark.table("spark_catalog.LH_Silver.staging_titulos_limpa")
-
-# 2. Agrupar também pelo SACADO
-# Isso garante que se uma operação tiver 3 sacados, teremos 3 linhas, mantendo o ID do sacado vivo.
-df_agg_titulos = df_titulos.groupBy("cod_operacao", "cpf_cnpj_sacado").agg(
-    F.sum("valor").alias("vlr_total_operacao_por_sacado"), # Valor que ESSE sacado tem nessa operação
-    F.count("cod_titulo").alias("qtd_titulos"),
-    F.mean("valor").alias("ticket_medio_titulo"),
-    F.max("valor").alias("maior_titulo")
-)
-
-# 3. Join
-# Agora o df_full terá a granularidade: Operação + Sacado
-df_full = df_ops.join(df_agg_titulos, on="cod_operacao", how="inner")
-
-# 4. A Lógica de Janela
-# Ordenamos por data_analise para ver o histórico de crescimento da dívida desse sacado
-w_sacado = Window.partitionBy("cpf_cnpj_sacado").orderBy("data_analise") \
-                 .rowsBetween(Window.unboundedPreceding, Window.currentRow)
-
-df_features = df_full.withColumn(
-    "exposicao_acumulada_sacado", 
-    F.sum("vlr_total_operacao_por_sacado").over(w_sacado)
-)
-
-# Cálculo de concentração (Quanto essa operação representa da dívida total dele até agora?)
-df_features = df_features.withColumn(
-    "concentracao_operacao",
-    F.col("vlr_total_operacao_por_sacado") / F.col("exposicao_acumulada_sacado")
-)
-
-# Tratamento de nulos/infinitos caso seja a primeira operação
-df_features = df_features.fillna(0, subset=["concentracao_operacao"])
-
-# Visualizar para validar
-display(df_features.select("cod_operacao", "cpf_cnpj_sacado", "data_analise", "exposicao_acumulada_sacado", "concentracao_operacao"))
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
 from sklearn.ensemble import IsolationForest
 import pandas as pd
-from pyspark.sql import functions as F
-from pyspark.sql.window import Window
-from pyspark.sql.types import FloatType
+import mlflow
+import mlflow.sklearn
 
 # ==============================================================================
-# 1. PREPARAÇÃO DOS DADOS (Engenharia - Spark)
+# 1. ENGENHARIA DE DADOS (SPARK) - A BASE ROBUSTA
 # ==============================================================================
+print("1. Iniciando Engenharia de Dados...")
 
-# Definir janela de tempo (ex: últimos 180 ou 365 dias para treino recente)
-# Isso garante que o modelo veja ~3 ciclos completos do Prazo Médio de 50 dias
-# Filtramos ANTES de processar para ganhar performance no Fabric
+# A. Carregar tabelas (Com filtro de data para performance)
+# IMPORTANTE: Selecionar 'chave_produto' para o Join e 'taxa' para a IA
 df_ops = spark.table("spark_catalog.LH_Silver.staging_operacoes_limpa") \
     .filter("data_analise >= date_sub(current_date(), 365)") \
-    .select("cod_operacao", "taxa", "data_analise") # Selecionar só o útil
+    .select("cod_operacao", "taxa", "data_analise", "chave_produto") 
 
 df_titulos = spark.table("spark_catalog.LH_Silver.staging_titulos_limpa") \
     .select("cod_operacao", "cod_titulo", "valor", "prazo", "cpf_cnpj_sacado")
 
-# Agregação Inteligente (Nível Operação + Sacado)
-# Aqui calculamos o prazo médio ponderado ou simples dos títulos daquele sacado
-df_agg = df_titulos.groupBy("cod_operacao", "cpf_cnpj_sacado").agg(
+df_produtos = spark.table("spark_catalog.LH_Silver.dim_produto")
+
+# Calcular a "Liquidez Interna" (Capacidade de Pagamento)
+df_pagamentos = spark.table("LH_Silver.staging_titulos_limpa") \
+    .filter("liquidacao >= date_sub(current_date(), 180)") \
+    .groupBy("cpf_cnpj_sacado") \
+    .agg(
+        ((F.sum("valor") - F.sum("valor_devido")) / 6).alias("media_pagamento_mensal") # Média dos últimos 6 meses
+    )
+# df_pagamentos.show(5)
+
+# B. Agrupar Títulos (Granularidade Sacado)
+df_agg_titulos = df_titulos.groupBy("cod_operacao", "cpf_cnpj_sacado").agg(
     F.sum("valor").alias("vlr_total_sacado"),
     F.count("cod_titulo").alias("qtd_titulos"),
-    F.avg("prazo").alias("prazo_medio_titulos"), # Média do prazo dos títulos
+    F.avg("prazo").alias("prazo_medio_titulos"),
     F.max("valor").alias("maior_titulo")
 )
 
-# Join com a Operação para pegar a TAXA (que é nível operação)
-df_full = df_agg.join(df_ops, on="cod_operacao", how="inner")
+# C. JOIN MESTRE (Operação + Títulos + PRODUTO)
+# Primeiro juntamos operação com títulos
+df_join_ops = df_ops.join(df_agg_titulos, on="cod_operacao", how="inner")
 
-# Janela para Calcular Exposição Acumulada (Risco Sacado)
+# Agora juntamos com o Produto
+df_full = df_join_ops.join(
+    df_produtos,
+    F.col("chave_produto") == F.col("chave_produto_txt"),
+    how="left"
+).drop(df_produtos.chave_produto_txt)
+
+# Tratamento de segurança: Se não achar o produto, vira 0
+df_full = df_full.fillna(0, subset=["cod_produto_ia"])
+
+df_features = df_full.join(df_pagamentos, on="cpf_cnpj_sacado", how="left")
+# df_features.show(5)
+
+# D. Feature Engineering (Janelas de Exposição)
 w_sacado = Window.partitionBy("cpf_cnpj_sacado").orderBy("data_analise") \
                  .rowsBetween(Window.unboundedPreceding, Window.currentRow)
 
-df_features_spark = df_full.withColumn(
+df_features_spark = df_features.withColumn(
     "exposicao_acumulada", 
     F.sum("vlr_total_sacado").over(w_sacado)
 ).withColumn(
     "concentracao_operacao",
     F.col("vlr_total_sacado") / F.col("exposicao_acumulada")
-).fillna(0)
+).fillna(0).withColumn(
+    "ratio_cobertura_liquidez",
+    F.col("vlr_total_sacado") / F.col("media_pagamento_mensal")
+)
+# df_features_spark.show(5)
+
+print("✅ Engenharia concluída!")
 
 # ==============================================================================
-# 2. MODELAGEM (Ciência de Dados - Scikit-Learn)
+# 2. CIÊNCIA DE DADOS (SCIKIT-LEARN)
 # ==============================================================================
+print("2. Iniciando Treinamento da IA...")
 
-# Converter para Pandas (Trazendo para a memória do Driver)
+# Converter para Pandas
 df_pandas = df_features_spark.toPandas()
 
-# Definir as Features (As colunas que o robô vai olhar para julgar)
+# Definir as Features
 feature_cols = [
     'vlr_total_sacado', 
     'prazo_medio_titulos', 
     'taxa', 
     'qtd_titulos',
-    'exposicao_acumulada',  # Fundamental: O robô aprende que exposição alta exige comportamento X
-    'concentracao_operacao' # Fundamental: Detecta "All-in" (operações únicas muito grandes)
+    'exposicao_acumulada',
+    'concentracao_operacao',
+    'cod_produto_ia',
+    'ratio_cobertura_liquidez'
 ]
 
-# Treinamento do Modelo
-# n_estimators=100: cria 100 árvores de decisão
-# contamination=0.02: Estamos dizendo "Marque os 2% mais estranhos como anomalia"
+print("🧹 Limpando dados (Removendo NaNs)...")
+for col in feature_cols:
+    if col in df_pandas.columns:
+        df_pandas[col] = df_pandas[col].fillna(0)
+
+import numpy as np
+df_pandas[feature_cols] = df_pandas[feature_cols].replace([np.inf, -np.inf], 0)
+
+# Treinamento (Isolation Forest)
+# contamination=0.02 (2% de anomalias)
 model = IsolationForest(n_estimators=100, contamination=0.02, random_state=42, n_jobs=-1)
 
-# Fit e Predict (-1 = Anomalia, 1 = Normal)
+# Fit e Predict
 df_pandas['anomaly_score'] = model.fit_predict(df_pandas[feature_cols])
 
+print("✅ Modelo treinado com sucesso!")
+# df_pandas.show(5)
 # ==============================================================================
-# 3. SAÍDA (Output - Lakehouse Gold)
+# 3. SALVAR RESULTADOS (MLFLOW E LAKEHOUSE)
 # ==============================================================================
 
-import mlflow
-import mlflow.sklearn
-
-# 1. Salvar o Cérebro (Modelo)
 with mlflow.start_run():
     mlflow.sklearn.log_model(model, "Modelo_Risco_FIDC")
-    print("Modelo salvo no MLflow com sucesso.")
+    mlflow.log_param("features_usadas", str(feature_cols))
+    print("💾 Modelo salvo no MLflow.")
 
-# 2. Salvar o Contexto (Perfil do Sacado para o Online usar)
-# O robô online precisa saber o histórico do sacado para julgar o presente
-df_perfil_sacados = df_pandas.groupby("cpf_cnpj_sacado").agg({
-    'exposicao_acumulada': 'max', # Pega a última exposição conhecida
-    'prazo_medio_titulos': 'mean'
+# ==============================================================================
+# CONSOLIDAÇÃO GOLD: TABELA MESTRA DE PERFIL DO SACADO 🏆
+# ==============================================================================
+print("💾 Salvando Perfil Analítico Unificado (Gold)...")
+
+df_perfil_unificado = df_pandas.groupby("cpf_cnpj_sacado").agg({
+    'exposicao_acumulada': 'max',      # A maior exposição que ele já teve (ou a última)
+    'prazo_medio_titulos': 'mean',     # O prazo médio que ele costuma operar
+    'media_pagamento_mensal': 'max'    # A capacidade de pagamento (é valor fixo por cliente)
 }).reset_index()
 
-# Salvar essa tabela de apoio
-spark.createDataFrame(df_perfil_sacados).write.mode("overwrite").format("delta").saveAsTable("LH_Gold.Apoio_Perfil_Sacados")
-print("Tabela de Perfil de Sacados atualizada.")
+df_perfil_unificado.columns = [
+    'cpf_cnpj_sacado', 
+    'exposicao_maxima_historica', 
+    'prazo_medio_historico', 
+    'media_pagamento_mensal'
+]
 
+cols_float = ['exposicao_maxima_historica', 'prazo_medio_historico', 'media_pagamento_mensal']
+for col in cols_float:
+    # fillna(0) garante que não tem NaN
+    # astype(float) força virar número decimal simples (Double), matando o tipo Decimal problemático
+    df_perfil_unificado[col] = df_perfil_unificado[col].fillna(0).astype(float)
+
+df_perfil_unificado['media_pagamento_mensal'] = df_perfil_unificado['media_pagamento_mensal'].replace(0, 1.0)
+
+df_perfil_unificado = df_perfil_unificado.fillna(0)
+
+spark.createDataFrame(df_perfil_unificado) \
+    .write \
+    .mode("overwrite") \
+    .format("delta") \
+    .option("overwriteSchema", "true") \
+    .saveAsTable("LH_Gold.Perfil_Analitico_Sacado")
+
+print("🚀 Processo Finalizado! Tabela LH_Gold.Perfil_Analitico_Sacado atualizada.")
 
 # METADATA ********************
 
