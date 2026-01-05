@@ -48,7 +48,8 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, broadcast, dayofweek, date_sub, trim, to_date
+    lead, date_add, lag, max, coalesce, broadcast, dayofweek, date_sub, trim, to_date,
+    datediff
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
@@ -639,11 +640,10 @@ if "valor" in df_cleaned.columns:
     df_cleaned = df_cleaned.drop("valor")
 df_cleaned = df_cleaned.withColumnRenamed("VALOR_TITULO", "valor")
 
-# Etapas 7, 8, 9: Transformações
+# Etapas 7, 8, 9: Transformações (Removido colunas legado: base e chave_base_titulo)
 df_final_prorrogacao = df_cleaned \
-    .withColumn("base", lit(40)) \
-    .withColumn("chave_base_titulo", concat(lit("40-"), col("cod_titulo").cast("string"))) \
-    .withColumn("data", to_date(col("data_inclusao")))
+    .withColumn("data", to_date(col("data_inclusao"))) \
+    .withColumn("dias_prorrogados", datediff(col("vencimentonov"), col("vencimentoant")))
 
 target_fato_prorrogacao = "LH_Gold.fato_operacoes_prorrogacao"
 df_final_prorrogacao.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_prorrogacao)
