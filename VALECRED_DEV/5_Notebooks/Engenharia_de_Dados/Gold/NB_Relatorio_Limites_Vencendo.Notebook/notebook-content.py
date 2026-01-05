@@ -94,7 +94,7 @@ df_final_source = df_joined_1.join(
 df_relatorio = df_final_source.select(
     col("cod_cliente"),
     col("cpf_cnpj"),
-    col("razao_social"),
+    col("nome").alias("razao_social"),
     col("nome_fantasia"),
     col("cod_contrato"),
     col("dt_ini_contrato"),
