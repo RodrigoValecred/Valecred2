@@ -330,9 +330,15 @@ def process_pareceres_clientes_esteira():
     ).withColumn("data_log", col("DATAINCLUSAO"))
 
     # Join com Clientes (para pegar CODCLIENTE)
-    df_joined = df_extracted.join(df_clientes, "CPFCNPJ", "left") \
-        .select("CODCLIENTE", "status_cliente", "data_log", "USUAINCLUSAO") \
-        .filter(col("CODCLIENTE").isNotNull())
+    # Fixed Ambiguous Reference for USUAINCLUSAO by using aliases and explicit selection
+    df_joined = df_extracted.alias("p").join(df_clientes.alias("c"), "CPFCNPJ", "left") \
+        .select(
+            col("c.CODCLIENTE"),
+            col("p.status_cliente"),
+            col("p.data_log"),
+            col("p.USUAINCLUSAO")
+        ) \
+        .filter(col("c.CODCLIENTE").isNotNull())
 
     # Join com Status (Enriquecimento)
     df_enriched = df_joined.join(df_status, df_joined.status_cliente == df_status.status_do_cliente, "left") \
