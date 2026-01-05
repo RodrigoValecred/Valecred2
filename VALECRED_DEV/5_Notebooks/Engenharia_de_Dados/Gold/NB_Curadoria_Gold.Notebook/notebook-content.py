@@ -132,6 +132,9 @@ df_ultima_conf = spark.read.table("LH_Silver.fact_ultima_confirmacao")
 # Calendario (Gold)
 df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
 
+# Sacados (Silver)
+df_sacados_enriquecida = spark.read.table("LH_Silver.staging_sacados_enriquecida")
+
 print("Leitura da Silver concluída.")
 
 # METADATA ********************
@@ -358,6 +361,39 @@ output_path_dim_produto = "LH_Gold.dim_produto"
 df_dim_produto_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_produto)
 df_dim_produto = spark.read.table(output_path_dim_produto).cache()
 print(f"Tabela 'dim_produto' salva e em cache em: {output_path_dim_produto}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 2.4: Construção da Dimensão Sacados
+# ------------------------------------------
+print("\nIniciando construção da dim_sacados...")
+# A tabela já vem tratada da camada Silver (NB_Prepara_Tabela_Cadastros)
+# Selecionamos as colunas e salvamos na Gold.
+df_dim_sacados = df_sacados_enriquecida.select(
+    col("cpf_cnpj"),
+    col("nome_sacado"),
+    col("emails"),
+    col("telefones"),
+    col("endereco"),
+    col("numero"),
+    col("complemento"),
+    col("bairro"),
+    col("cidade"),
+    col("uf"),
+    col("cep"),
+    col("regiao")
+)
+
+output_path_dim_sacados = "LH_Gold.dim_sacados"
+df_dim_sacados.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_sacados)
+print(f"Tabela 'dim_sacados' salva em: {output_path_dim_sacados}")
 
 # METADATA ********************
 
