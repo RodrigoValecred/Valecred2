@@ -42,7 +42,8 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, date_sub, array_contains, create_map, split
+    lead, date_add, lag, max, coalesce, date_sub, array_contains, create_map, split,
+    to_date
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
@@ -458,6 +459,55 @@ def process_prorrogacoes():
 
 # CELL ********************
 
+def process_tab_operacoes_prorrogacao():
+    print("Processando Tab Operações Prorrogação...")
+
+    # Fonte Principal
+    df_prorrogacao = spark.read.table(f"{source_lakehouse}.tab_operacoes_prorrogacao")
+
+    # Fontes Auxiliares (Silver para garantir unicidade e dados mais recentes)
+    # Titulos: CODTITULO -> VALOR
+    df_titulos = spark.read.table(f"{target_lakehouse}.staging_titulos_limpa") \
+        .select(col("cod_titulo"), col("valor").alias("VALOR_TITULO"))
+
+    # Operacoes: CODOPERACAO -> STATUSANALISE, STATUSACEITE
+    df_operacoes = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa") \
+        .select(col("cod_operacao"), col("status_analise").alias("STATUSANALISE"), col("status_aceite").alias("STATUSACEITE"))
+
+    # Joins
+    df_joined = df_prorrogacao \
+        .join(df_titulos, col("CODTITULO") == col("cod_titulo"), "left") \
+        .join(df_operacoes, col("CODOPERACAO") == col("cod_operacao"), "left")
+
+    # Remover colunas desnecessárias (e as chaves duplicadas do join)
+    cols_to_drop = [
+        "TARIFA", "USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO",
+        "VALORDEVIDO", "VALORPROR", "VALORBOLETO",
+        "cod_titulo", "cod_operacao"
+    ]
+    df_cleaned = df_joined.drop(*cols_to_drop)
+
+    # Renomear VALOR trazido de titulos (se necessário) ou garantir que VALOR é o de títulos
+    if "VALOR" in df_prorrogacao.columns:
+        df_cleaned = df_cleaned.drop("VALOR")
+
+    df_cleaned = df_cleaned.withColumnRenamed("VALOR_TITULO", "VALOR")
+
+    # Transformações
+    df_transformed = df_cleaned \
+        .withColumn("BASE", lit(40)) \
+        .withColumn("chave_base_titulo", concat(lit("40-"), col("CODTITULO").cast("string"))) \
+        .withColumn("Data", to_date(col("DATAINCLUSAO")))
+
+    # Padronização para snake_case
+    df_final = df_transformed.select([col(c).alias(c.lower()) for c in df_transformed.columns])
+
+    # Salvar
+    target_table = "staging_operacoes_prorrogacao"
+    df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.{target_table}")
+    print(f"Tabela {target_table} criada com sucesso.")
+
+
 def process_recompras():
     print("Processando Recompras...")
     # Removed try-except to ensure fail-fast if dependencies are missing
@@ -483,6 +533,7 @@ process_pareceres_operacoes()
 process_escrow()
 process_prorrogacoes()
 process_recompras()
+process_tab_operacoes_prorrogacao()
 
 print("Limpeza Silver - Operações finalizada.")
 mssparkutils.notebook.exit("Success")
