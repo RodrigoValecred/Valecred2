@@ -640,10 +640,8 @@ if "valor" in df_cleaned.columns:
     df_cleaned = df_cleaned.drop("valor")
 df_cleaned = df_cleaned.withColumnRenamed("VALOR_TITULO", "valor")
 
-# Etapas 7, 8, 9: Transformações
+# Etapas 7, 8, 9: Transformações (Removido colunas legado: base e chave_base_titulo)
 df_final_prorrogacao = df_cleaned \
-    .withColumn("base", lit(40)) \
-    .withColumn("chave_base_titulo", concat(lit("40-"), col("cod_titulo").cast("string"))) \
     .withColumn("data", to_date(col("data_inclusao"))) \
     .withColumn("dias_prorrogados", datediff(col("vencimentonov"), col("vencimentoant")))
 
