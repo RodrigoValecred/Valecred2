@@ -42,7 +42,8 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, date_sub, array_contains, create_map, split
+    lead, date_add, lag, max, coalesce, date_sub, array_contains, create_map, split,
+    to_date
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
@@ -458,6 +459,26 @@ def process_prorrogacoes():
 
 # CELL ********************
 
+def process_tab_operacoes_prorrogacao():
+    print("Processando Tab Operações Prorrogação...")
+
+    # Simplesmente limpa e padroniza a tabela raw para staging limpa (sem joins)
+    df_prorrogacao = spark.read.table(f"{source_lakehouse}.tab_operacoes_prorrogacao")
+
+    # Padronização e Renomeação Explícita
+    # O M script original usa CODTITULO e CODOPERACAO.
+    # No Silver, devemos padronizar para cod_titulo e cod_operacao para facilitar joins no Gold.
+    df_final = df_prorrogacao.select(
+        [col(c).alias(c.lower()) for c in df_prorrogacao.columns]
+    ).withColumnRenamed("codtitulo", "cod_titulo") \
+     .withColumnRenamed("codoperacao", "cod_operacao") \
+     .withColumnRenamed("datainclusao", "data_inclusao")
+
+    target_table = "staging_operacoes_prorrogacao_limpa"
+    df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.{target_table}")
+    print(f"Tabela {target_table} criada com sucesso (limpeza simples).")
+
+
 def process_recompras():
     print("Processando Recompras...")
     # Removed try-except to ensure fail-fast if dependencies are missing
@@ -483,6 +504,7 @@ process_pareceres_operacoes()
 process_escrow()
 process_prorrogacoes()
 process_recompras()
+process_tab_operacoes_prorrogacao()
 
 print("Limpeza Silver - Operações finalizada.")
 mssparkutils.notebook.exit("Success")

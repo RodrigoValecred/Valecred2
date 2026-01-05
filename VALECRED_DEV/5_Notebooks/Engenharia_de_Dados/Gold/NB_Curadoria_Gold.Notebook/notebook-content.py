@@ -603,3 +603,55 @@ print("Processo Gold Otimizado concluído.")
 # META   "language": "python",
 # META   "language_group": "synapse_pyspark"
 # META }
+
+# CELL ********************
+
+# Célula 5.1: Construção da Fato Operações Prorrogação
+# ---------------------------------------------------
+print("\nIniciando construção da fato_operacoes_prorrogacao...")
+
+# Leitura da Staging Limpa (Silver)
+df_prorrogacao_silver = spark.read.table("LH_Silver.staging_operacoes_prorrogacao_limpa")
+
+# Leitura das tabelas auxiliares (Silver/Gold) já carregadas no início (df_titulos_limpa, df_operacoes_limpa)
+# Mas garantindo a seleção correta
+df_titulos_join = df_titulos_limpa.select(col("cod_titulo"), col("valor").alias("VALOR_TITULO"))
+df_operacoes_join = df_operacoes_limpa.select(col("cod_operacao"), col("status_analise").alias("STATUSANALISE"), col("status_aceite").alias("STATUSACEITE"))
+
+# Join
+# Etapa 2: Mesclar dados de títulos
+df_joined_titulos = df_prorrogacao_silver.join(df_titulos_join, "cod_titulo", "left_outer")
+
+# Etapa 4: Mesclar dados de operações
+df_joined_full = df_joined_titulos.join(df_operacoes_join, "cod_operacao", "left_outer")
+
+# Etapa 6: Remover colunas desnecessárias
+cols_to_remove = ["tarifa", "usuainclusao", "dataalteracao", "usuaalteracao", "valordevido", "valorpror", "valorboleto"]
+# Nota: As colunas originais do bronze foram convertidas para lower case no Silver (staging_operacoes_prorrogacao_limpa)
+# Portanto, removemos as versões lower case.
+
+df_cleaned = df_joined_full.drop(*cols_to_remove)
+
+# Tratamento do campo VALOR (Prioridade para o valor vindo de Títulos, se expandido)
+# Se existir 'valor' na tabela original, ele pode conflitar ou ser substituído.
+# No M script: Table.ExpandTableColumn(..., {"VALOR"}, {"VALOR"}) sugere que usamos o valor do título.
+if "valor" in df_cleaned.columns:
+    df_cleaned = df_cleaned.drop("valor")
+df_cleaned = df_cleaned.withColumnRenamed("VALOR_TITULO", "valor")
+
+# Etapas 7, 8, 9: Transformações
+df_final_prorrogacao = df_cleaned \
+    .withColumn("base", lit(40)) \
+    .withColumn("chave_base_titulo", concat(lit("40-"), col("cod_titulo").cast("string"))) \
+    .withColumn("data", to_date(col("data_inclusao")))
+
+target_fato_prorrogacao = "LH_Gold.fato_operacoes_prorrogacao"
+df_final_prorrogacao.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_prorrogacao)
+print(f"Tabela '{target_fato_prorrogacao}' criada com sucesso.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
