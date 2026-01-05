@@ -274,7 +274,8 @@ def process_usuarios():
         (5, "OPERADOR"), (6, "SEM ACESSO"), (7, "CONSULTA"), (8, "JURIDICO"),
         (9, "COMERCIAL"), (10, "BACKOFFICE")
     ]
-    df_nivel = spark.createDataFrame(data_nivel, ["NIVEL", "descricao_nivel"])
+    # Rename column to avoid ambiguity with 'nivel' in df_usuarios
+    df_nivel = spark.createDataFrame(data_nivel, ["id_nivel", "descricao_nivel"])
 
     df_usuarios = spark.read.table(f"{source_lakehouse}.cad_usuarios") \
         .select(
@@ -288,8 +289,9 @@ def process_usuarios():
         .withColumn("nome", upper(col("nome"))) \
         .withColumn("funcao", upper(col("funcao")))
 
-    df_usuarios_final = df_usuarios.join(df_nivel, col("nivel") == df_nivel.NIVEL, "left") \
-        .drop("NIVEL") \
+    # Update join condition to use new column name
+    df_usuarios_final = df_usuarios.join(df_nivel, col("nivel") == df_nivel.id_nivel, "left") \
+        .drop("id_nivel") \
         .select("cod_usuario", "nome", "funcao", "nivel", "descricao_nivel", "cpf_cnpj", "apelido")
 
     df_usuarios_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_usuarios")
