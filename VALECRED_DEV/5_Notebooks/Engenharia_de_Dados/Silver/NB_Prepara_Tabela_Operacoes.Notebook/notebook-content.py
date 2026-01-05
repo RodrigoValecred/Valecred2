@@ -508,3 +508,10 @@ process_tab_operacoes_prorrogacao()
 
 print("Limpeza Silver - Operações finalizada.")
 mssparkutils.notebook.exit("Success")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
