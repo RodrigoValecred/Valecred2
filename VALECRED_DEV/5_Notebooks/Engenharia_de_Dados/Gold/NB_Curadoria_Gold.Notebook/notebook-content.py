@@ -842,8 +842,8 @@ df_limites_agg = df_contratos.filter(col("status") == "A") \
 # 6.5: Join Final e Colunas Calculadas
 # ------------------------------------
 # Base: Clientes Staging
-# Atualização: Incluindo data_inclusao e data_fundacao (requeridas para idade_cliente e idade_cliente_em_dias)
-df_base = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclusao", "data_fundacao")
+# Atualização: Incluindo data_inclusao (requeridas para idade_cliente e idade_cliente_em_dias)
+df_base = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclusao")
 
 # Prepare Esteira Min Dates for Funnel (Joining back to main flow)
 # Renaming for clarity
@@ -947,7 +947,7 @@ df_final = df_funnel \
     .withColumn("dias_proposta_formalizacao", datediff(col("data_primeira_proposta_concluida"), col("data_primeira_proposta_formalizacao"))) \
     .withColumn("tempo_conclusao", datediff(col("data_conclusao"), col("data_aprovacao"))) \
     .withColumn("tempo_analise", datediff(col("data_aprovacao"), col("data_entrada"))) \
-    .withColumn("idade_cliente", floor(datediff(today_date, to_date(substring(col("data_fundacao").cast("string"), 1, 10))) / 365)) \
+    .withColumn("idade_cliente", floor(datediff(today_date, to_date(substring(col("data_inclusao").cast("string"), 1, 10))) / 365)) \
     .withColumn("idade_cliente_em_dias", coalesce(datediff(today_date, col("data_primeira_operacao")), lit(0))) \
     .withColumn("tipo_proposta",
         when(col("dias_sem_operar") > 120, "REATIVAÇÃO")
@@ -1031,3 +1031,10 @@ df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(o
 print(f"Tabela 'dim_clientes' recriada em: {output_path_dim_clientes}")
 
 # CELL ********************
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
