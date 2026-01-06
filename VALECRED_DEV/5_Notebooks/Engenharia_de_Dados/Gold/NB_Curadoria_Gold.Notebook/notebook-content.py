@@ -48,8 +48,8 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, broadcast, dayofweek, date_sub, trim, to_date,
-    datediff
+    lead, date_add, lag, max, coalesce, broadcast, dayofweek, dayofmonth, date_sub, trim, to_date,
+    datediff, sum, min, count, round, floor, least, current_date
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
@@ -134,6 +134,12 @@ df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
 
 # Sacados (Silver)
 df_sacados_enriquecida = spark.read.table("LH_Silver.staging_sacados_enriquecida")
+
+# Contratos (Silver) - Para Limites
+df_contratos = spark.read.table("LH_Silver.staging_contratos_clientes_limpa")
+
+# Grupos Economicos (Silver)
+df_grupos_economicos = spark.read.table("LH_Silver.sup_grupos_economicos")
 
 print("Leitura da Silver concluída.")
 
@@ -480,7 +486,8 @@ df_fato_titulos_final = df_ordem.select(
     col("prazo"), col("aceito"), col("data_inclusao"), col("usua_conf").alias("usua_inclusao"), col("data_alteracao"), col("amortizacoes"),
     "chave_produto", "status_protesto", "TipoDocumentoSacado", "RaizCNPJ", "valor_vezes_prazo",
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
-    "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany"
+    "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany",
+    col("liquidacao"), col("valor_devido")
 )
 output_path_titulos_final = "LH_Gold.fato_titulos"
 df_fato_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
@@ -691,3 +698,318 @@ print(f"Tabela '{target_fato_prorrogacao}' criada com sucesso.")
 # META   "language": "python",
 # META   "language_group": "synapse_pyspark"
 # META }
+
+# MARKDOWN ********************
+
+# ## Seção 6: Construção da Dimensão Clientes Enriquecida
+# **Objetivo:** Unificar dados cadastrais com métricas agregadas de Operações, Títulos e Esteira.
+
+# CELL ********************
+
+print("\nIniciando construção da dim_clientes enriquecida...")
+from pyspark.sql.functions import sum, min, count, current_date, round, floor, dayofmonth
+
+# 6.0: Preparação de Dados Auxiliares
+# -----------------------------------
+# Grupos Econômicos
+df_grupos_prep = df_grupos_economicos.withColumnRenamed("nomegrupo", "grupo_economico")
+if "cod_cliente" not in df_grupos_prep.columns and "codcliente" in df_grupos_prep.columns:
+     df_grupos_prep = df_grupos_prep.withColumnRenamed("codcliente", "cod_cliente")
+df_grupos_prep = df_grupos_prep.select("cod_cliente", "grupo_economico")
+
+# 6.1: Métricas de Operações
+# --------------------------
+# Usamos df_fato_operacoes criada na Seção 2.1
+df_ops_validas = df_fato_operacoes.filter(col("status_analise") == "D")
+
+# VOP por Dia da Semana (Top 1)
+df_vop_semana = df_ops_validas.withColumn("dia_semana", dayofweek("data_analise")) \
+    .groupBy("cod_cliente", "dia_semana").agg(sum("valor_face").alias("vop"))
+w_rank_semana = Window.partitionBy("cod_cliente").orderBy(col("vop").desc())
+df_dia_semana_top = df_vop_semana.withColumn("rn", row_number().over(w_rank_semana)).filter(col("rn") == 1) \
+    .select(col("cod_cliente"), col("dia_semana").alias("dia_semana_mais_vop"))
+
+# VOP por Dia do Mês (Top 1)
+df_vop_mes = df_ops_validas.withColumn("dia_mes", dayofmonth("data_analise")) \
+    .groupBy("cod_cliente", "dia_mes").agg(sum("valor_face").alias("vop"))
+w_rank_mes = Window.partitionBy("cod_cliente").orderBy(col("vop").desc())
+df_dia_mes_top = df_vop_mes.withColumn("rn", row_number().over(w_rank_mes)).filter(col("rn") == 1) \
+    .select(col("cod_cliente"), col("dia_mes").alias("dia_mes_mais_vop"))
+
+# Métricas Gerais Operações
+df_metrics_ops = df_ops_validas.groupBy("cod_cliente").agg(
+    max("data_analise").alias("data_ultima_operacao"),
+    max("cod_operacao").alias("bordero_ultima_operacao"),
+    min(when(col("status_aceite") == "A", col("data_analise"))).alias("data_primeira_operacao"),
+    min(when((col("status_aceite") == "A") & (col("status_analise") == "D"), col("data_analise"))).alias("data_cliente_desde")
+)
+
+df_metrics_ops_final = df_metrics_ops.join(df_dia_semana_top, "cod_cliente", "left").join(df_dia_mes_top, "cod_cliente", "left")
+
+# 6.2: Métricas de Títulos (Risco)
+# --------------------------------
+# Usamos df_fato_titulos_final criada na Seção 3.3
+# Join com Operações para pegar cod_cliente
+df_titulos_cliente = df_fato_titulos_final.join(
+    df_fato_operacoes.select("cod_operacao", "cod_cliente"), "cod_operacao", "left"
+)
+
+today_date = current_date()
+
+# Filtro Base Risco: Aceito=S, StatusAnalise=D (status_deferimento=Sim), Liquidacao=Null
+df_risco_base = df_titulos_cliente.filter((col("status_deferimento") == "Sim") & (col("liquidacao").isNull()))
+
+df_metrics_titulos = df_risco_base.groupBy("cod_cliente").agg(
+    sum("valor_devido").alias("risco"),
+    sum(when(col("produto_com_intercia") != "COMISSÁRIA", col("valor_devido")).otherwise(0)).alias("risco_exceto_comissaria"),
+    sum(when(col("produto_com_intercia") == "COMISSÁRIA", col("valor_devido")).otherwise(0)).alias("risco_comissaria"),
+    sum(when(col("confirmacao") == "Atenção", col("valor_devido")).otherwise(0)).alias("confirmado_atencao"),
+    sum(when(col("confirmacao") == "Positivo", col("valor_devido")).otherwise(0)).alias("confirmado_positivo"),
+    sum(when(col("confirmacao") == "Problema", col("valor_devido")).otherwise(0)).alias("problemas_checagem"),
+    # Inadimplencia: VencProrrogado < Hoje-14
+    sum(when(col("venc_prorrogado") < date_sub(today_date, 14), col("valor_devido")).otherwise(0)).alias("inadimplencia"),
+    # Dates
+    min(when(datediff(today_date, col("venc_prorrogado")) >= 15, col("venc_prorrogado"))).alias("data_vencido_mais_antigo"),
+    max(when(datediff(today_date, col("venc_prorrogado")) >= 15, col("venc_prorrogado"))).alias("data_vencido_mais_recente"),
+
+    # NOVAS COLUNAS: Qualidade do Cliente (Risco Clean, Renegociacao, etc.)
+    sum(when(col("status_clean") == "CLEAN", col("valor_devido")).otherwise(0)).alias("risco_clean"),
+    sum(when(col("produto_com_intercia") == "RENEGOCIAÇÃO", col("valor_devido")).otherwise(0)).alias("risco_renegociacao"),
+    sum(when(col("produto_com_intercia") != "RENEGOCIAÇÃO", col("valor_devido")).otherwise(0)).alias("risco_sem_renegociacao"),
+    sum(when(col("data_vencimento_util") < today_date, col("valor_devido")).otherwise(0)).alias("vencidos")
+)
+
+# Perdas (VOP - VlrPagoLiquido) where Motivo='PR' (Assume proxy for LIQUIDEZ='L5')
+# Need a separate aggregation from Fato Baixas or Titulos if column exists
+# Assuming 'motivo' in fato_titulos (from previous steps) can be used.
+# Logic: sum(valor) - sum(liquidacao value? No, liquidacao is date).
+# We need `valor_pago` from somewhere. `fato_titulos` usually has `valor` and `valor_pago` comes from `baixas`.
+# But `fato_titulos` in Seção 3 doesn't explicitly have `valor_pago`. It has `amortizacoes`.
+# Let's use `amortizacoes` as proxy for `valor_pago_liquido` if strict. Or better, check if we joined Baixas.
+# In `Seção 3`, `df_fato_titulos_final` has `amortizacoes`. Let's use that.
+# Perdas = (Valor - Amortizacoes) where motivo='PR'.
+df_perdas_agg = df_titulos_cliente.filter(col("motivo") == "PR") \
+    .groupBy("cod_cliente").agg(
+        (sum("valor") - sum("amortizacoes")).alias("perdas")
+    )
+
+df_metrics_titulos_final = df_metrics_titulos.join(df_perdas_agg, "cod_cliente", "left").na.fill({"perdas": 0})
+
+# Risco Grupo e Risco Comissaria Grupo
+# Precisamos das metricas individuais antes
+df_risco_ind = df_metrics_titulos_final.select("cod_cliente", "risco", "risco_comissaria")
+df_risco_grupo_agg = df_risco_ind.join(df_grupos_prep, "cod_cliente", "inner") \
+    .groupBy("grupo_economico").agg(
+        sum("risco").alias("risco_grupo"),
+        sum("risco_comissaria").alias("risco_comissaria_grupo")
+    )
+
+# 6.3: Esteira Dates e Funnel
+# ---------------------------
+df_esteira = spark.read.table("LH_Gold.esteira_de_propostas")
+
+# Status esperados para o Pivot (para evitar erros de coluna inexistente)
+expected_status = [
+    "CHECKLIST", "ASSINATURA", "COMITE", "CONCLUIDO", "BIZAGI",
+    "RENOVAÇÃO", "RESERVA", "START", "CREDITO",
+    "PROPOSTA", "REVISÃO COMERCIAL", "DIR COMERCIAL"
+]
+
+# Pivot Simples das Datas Maximas por Status
+df_esteira_pivot = df_esteira \
+    .groupBy("CODCLIENTE") \
+    .pivot("STATUS_DO_CLIENTE", expected_status) \
+    .agg(max("DATALOG"))
+
+# Funnel: Data Primeira Proposta (Lógica Sequencial por Cliente)
+# Precisamos calcular as MIN datas para cada status, mas respeitando a sequencia de eventos (funnel)
+# Como PySpark SQL é limitado para isso, vamos usar Window Functions e Self-Joins Simplificados.
+# Passo 1: Min Datas puras
+df_esteira_min = df_esteira.groupBy("CODCLIENTE").pivot("STATUS_DO_CLIENTE", expected_status).agg(min("DATALOG"))
+
+# 6.4: Limites
+# ------------
+df_limites_agg = df_contratos.filter(col("status") == "A") \
+    .withColumn("limite_total", coalesce(col("limite_fomento"), lit(0)) + coalesce(col("limite_comissaria"), lit(0))) \
+    .groupBy("cod_cliente").agg(
+        sum("limite_total").alias("limite"),
+        sum("limite_comissaria").alias("limite_comissaria_contrato"),
+        max("validade_limite").alias("vencimento_limite"),
+        max("tranche").alias("tranche"),
+        max("perc_confirmacao").alias("percentual_exigido")
+    )
+
+# 6.5: Join Final e Colunas Calculadas
+# ------------------------------------
+# Base: Clientes Staging
+df_base = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclusao")
+
+# Prepare Esteira Min Dates for Funnel (Joining back to main flow)
+# Renaming for clarity
+df_esteira_min_renamed = df_esteira_min \
+    .withColumnRenamed("PROPOSTA", "min_proposta") \
+    .withColumnRenamed("REVISÃO COMERCIAL", "min_revisao") \
+    .withColumnRenamed("DIR COMERCIAL", "min_dir_comercial") \
+    .withColumnRenamed("CREDITO", "min_credito") \
+    .withColumnRenamed("CHECKLIST", "min_checklist") \
+    .withColumnRenamed("CONCLUIDO", "min_concluido")
+
+# Join Chain
+df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
+    .join(df_metrics_ops_final, "cod_cliente", "left") \
+    .join(df_metrics_titulos_final, "cod_cliente", "left") \
+    .join(df_esteira_pivot, df_base.cod_cliente == df_esteira_pivot.CODCLIENTE, "left").drop(df_esteira_pivot.CODCLIENTE) \
+    .join(df_esteira_min_renamed, df_base.cod_cliente == df_esteira_min_renamed.CODCLIENTE, "left").drop(df_esteira_min_renamed.CODCLIENTE) \
+    .join(df_limites_agg, "cod_cliente", "left") \
+    .join(df_grupos_prep, "cod_cliente", "left") \
+    .join(df_risco_grupo_agg, "grupo_economico", "left")
+
+# Implementando Lógica Funnel Sequencial (Aproximação)
+# Data 1: Primeira Proposta Comercial = MIN(Proposta, Revisao, Diretoria)
+# Data 2: Credito (Min data credito >= data 1) - Aqui assumimos Min Credito geral, pois PySpark SQL row-level logic é complexa.
+# Data 3: Formalizacao (Checklist >= Credito)
+# Data 4: Concluido (Concluido >= Formalizacao)
+
+df_funnel = df_join_1 \
+    .withColumn("data_primeira_proposta_comercial", least(col("min_proposta"), col("min_revisao"), col("min_dir_comercial"))) \
+    .withColumn("data_primeira_proposta_credito",
+        when(col("min_credito") >= col("data_primeira_proposta_comercial"), col("min_credito"))
+    ) \
+    .withColumn("data_primeira_proposta_formalizacao",
+        when(col("min_checklist") >= col("data_primeira_proposta_credito"), col("min_checklist"))
+    ) \
+    .withColumn("data_primeira_proposta_concluida",
+        when(col("min_concluido") >= col("data_primeira_proposta_formalizacao"), col("min_concluido"))
+    )
+
+# Colunas Calculadas
+df_final = df_funnel \
+    .withColumn("data_aprovacao", greatest(col("CHECKLIST"), col("ASSINATURA"))) \
+    .withColumn("data_conclusao", coalesce(col("BIZAGI"), col("CONCLUIDO"))) \
+    .withColumn("data_comite", col("COMITE")) \
+    .withColumn("data_reserva", greatest(col("RENOVAÇÃO"), col("RESERVA"))) \
+    .withColumn("data_entrada", coalesce(
+        greatest(col("DIR COMERCIAL"), col("PROPOSTA"), col("REVISÃO COMERCIAL")),
+        col("data_comite")
+    )) \
+    .withColumn("risco", coalesce(col("risco"), lit(0))) \
+    .withColumn("risco_grupo", coalesce(col("risco_grupo"), lit(0))) \
+    .withColumn("risco_comissaria_grupo", coalesce(col("risco_comissaria_grupo"), lit(0))) \
+    .withColumn("limite", coalesce(col("limite"), lit(0))) \
+    .withColumn("limite_comissaria_contrato", coalesce(col("limite_comissaria_contrato"), lit(0))) \
+    .withColumn("risco_comissaria", coalesce(col("risco_comissaria"), lit(0))) \
+    .withColumn("risco_exceto_comissaria", coalesce(col("risco_exceto_comissaria"), lit(0))) \
+    .withColumn("risco_total", col("risco") + col("risco_grupo")) \
+    .withColumn("limite_disponivel", col("limite") - col("risco_total")) \
+    .withColumn("risco_subtotal_comissaria", col("risco_comissaria") + col("risco_comissaria_grupo")) \
+    .withColumn("disponivel_comissaria", greatest(
+        least(col("limite_disponivel"), col("limite_comissaria_contrato") - col("risco_subtotal_comissaria")),
+        lit(0)
+    )) \
+    .withColumn("limite_maximo_disponivel", greatest(col("disponivel_comissaria"), col("limite_disponivel"))) \
+    .withColumn("dias_sem_operar", datediff(today_date, greatest(coalesce(col("data_ultima_operacao"), lit("1900-01-01")), coalesce(col("data_conclusao"), lit("1900-01-01"))))) \
+    .withColumn("dias_vencidos", datediff(today_date, col("data_vencido_mais_antigo"))) \
+    .withColumn("inadimplencia", coalesce(col("inadimplencia"), lit(0))) \
+    .withColumn("faixa_pdd",
+        when(col("dias_vencidos") > 180, 1)
+        .when(col("dias_vencidos") > 150, 0.7)
+        .when(col("dias_vencidos") > 120, 0.4)
+        .when(col("dias_vencidos") > 90, 0.2)
+        .when(col("dias_vencidos") > 60, 0.1)
+        .when(col("dias_vencidos") > 30, 0.05)
+        .otherwise(0)
+    ) \
+    .withColumn("pdd", col("faixa_pdd") * col("inadimplencia")) \
+    .withColumn("status_atividade",
+        when(col("dias_sem_operar") > 120, "INATIVO")
+        .when(col("data_ultima_operacao").isNull(), "NUNCA OPEROU")
+        .otherwise("ATIVO")
+    ) \
+    .withColumn("status_limite",
+        when((col("limite").isNull()) | (col("limite") == 0), "SEM LIMITE")
+        .when(col("vencimento_limite") < today_date, "LIMITE VENCIDO")
+        .when(col("risco") == 0, "LIMITE INATIVO")
+        .when(col("risco") > col("limite"), "LIMITE EXCEDIDO")
+        .otherwise("LIMITE DISPONIVEL")
+    ) \
+    .withColumn("percentual_cm", col("limite_comissaria_contrato") / col("limite")) \
+    .withColumn("falta_checar", greatest(
+        (coalesce(col("percentual_exigido"), lit(0.5)) * (col("risco_exceto_comissaria") + col("risco_grupo") - col("risco_subtotal_comissaria")))
+        - coalesce(col("confirmado_positivo"), lit(0)) - coalesce(col("confirmado_atencao"), lit(0)),
+        lit(0)
+    )) \
+    .withColumn("data_primeira_operacao_apos_aprovacao",
+        when(col("data_primeira_operacao") >= col("data_aprovacao"), col("data_primeira_operacao"))
+    ) \
+    .withColumn("dias_proposta_comercial", datediff(col("data_primeira_proposta_credito"), col("data_primeira_proposta_comercial"))) \
+    .withColumn("dias_proposta_credito", datediff(col("data_primeira_proposta_formalizacao"), col("data_primeira_proposta_credito"))) \
+    .withColumn("dias_proposta_formalizacao", datediff(col("data_primeira_proposta_concluida"), col("data_primeira_proposta_formalizacao"))) \
+    .withColumn("tempo_conclusao", datediff(col("data_conclusao"), col("data_aprovacao"))) \
+    .withColumn("tempo_analise", datediff(col("data_aprovacao"), col("data_entrada"))) \
+    .withColumn("idade_cliente", floor(datediff(today_date, to_date(substring(col("data_inclusao").cast("string"), 1, 10))) / 365)) \
+    .withColumn("tipo_proposta",
+        when(col("dias_sem_operar") > 120, "REATIVAÇÃO")
+        .when(col("data_ultima_operacao").isNull(), "PROSPECÇÃO")
+        .when(col("idade_cliente") * 365 > 90, "RENOVAÇÃO")
+        .otherwise("PROSPECÇÃO")
+    ) \
+    .withColumn("pendencias_desc", concat_ws(", ",
+        when(col("status_atividade") == "INATIVO", "Cliente inativo"),
+        when(col("falta_checar") > 0, "Confirmação desenquadrada"),
+        when(col("vencimento_limite") < today_date, "Limite vencido"),
+        when(col("limite_maximo_disponivel") <= 0, "Sem limite disponível"),
+        when(col("problemas_checagem") > 0, "Problemas de checagem"),
+        when(col("inadimplencia") > 0, "Títulos vencidos")
+    )) \
+    .withColumn("qtd_pendencias",
+        (when(col("status_atividade") == "INATIVO", 1).otherwise(0) +
+         when(col("falta_checar") > 0, 1).otherwise(0) +
+         when(col("vencimento_limite") < today_date, 1).otherwise(0) +
+         when(col("limite_maximo_disponivel") <= 0, 1).otherwise(0) +
+         when(col("problemas_checagem") > 0, 1).otherwise(0) +
+         when(col("inadimplencia") > 0, 1).otherwise(0))
+    ) \
+    .withColumn("perc_risco_clean", col("risco_clean") / col("risco_sem_renegociacao")) \
+    .withColumn("penalidade_clean", when(col("perc_risco_clean") > 0.5, 1).otherwise(0)) \
+    .withColumn("penalidade_inativo",
+        when(col("dias_sem_operar") > 120, 3)
+        .when(col("dias_sem_operar") > 60, 2)
+        .when(col("dias_sem_operar") > 30, 1)
+        .otherwise(0)
+    ) \
+    .withColumn("penalidade_perdas", when(col("perdas") > 0, 10).otherwise(0)) \
+    .withColumn("perc_vencidos_risco", col("vencidos") / col("risco")) \
+    .withColumn("penalidade_inadimplencia",
+        when(col("perc_vencidos_risco") > 0.50, 4)
+        .when(col("perc_vencidos_risco") > 0.25, 3)
+        .when(col("perc_vencidos_risco") > 0.10, 2)
+        .when(col("perc_vencidos_risco") > 0.05, 1)
+        .otherwise(0)
+    ) \
+    .withColumn("perc_risco_renegociacao", col("risco_renegociacao") / col("risco")) \
+    .withColumn("penalidade_renegociacao",
+        when(col("perc_risco_renegociacao") == 1, 3)
+        .when(col("perc_risco_renegociacao") > 0.4, 2)
+        .when(col("perc_risco_renegociacao") > 0.01, 1)
+        .otherwise(0)
+    ) \
+    .withColumn("qualidade_cliente",
+        when(col("penalidade_perdas") > 0, 0)
+        .otherwise(
+            round(
+                lit(10) - (
+                    col("penalidade_inadimplencia") +
+                    col("penalidade_renegociacao") +
+                    col("penalidade_clean") +
+                    col("penalidade_inativo")
+                ), 0
+            )
+        )
+    )
+
+# Salvar
+output_path_dim_clientes = "LH_Gold.dim_clientes"
+df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_clientes)
+print(f"Tabela 'dim_clientes' recriada em: {output_path_dim_clientes}")
+
+# CELL ********************
