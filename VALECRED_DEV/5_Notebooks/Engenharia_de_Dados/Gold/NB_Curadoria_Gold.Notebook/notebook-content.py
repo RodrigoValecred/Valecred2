@@ -423,7 +423,7 @@ df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao"
 df_ultima_conf_small = df_ultima_conf.select(col("cod_titulo"), col("confirmacao").alias("confirmado_por"))
 df_protestos_small = df_protestos.select("cod_titulo", "status_protesto")
 
-df_titulos_com_chave_sacado = df_titulos_base.join(broadcast(df_operacoes_small), "cod_operacao", "left").withColumn("chave_cliente_sacado", concat(col("cod_cliente").cast("string"), lit("-"), col("RaizCNPJ")))
+df_titulos_com_chave_sacado = df_titulos_base.join(broadcast(df_operacoes_small), "cod_operacao", "left").withColumn("chave_cliente_sacado", concat(col("cod_cliente").cast("string"), lit("-"), col("raiz_cnpj")))
 
 df_enriquecido = df_titulos_com_chave_sacado \
     .join(broadcast(df_limites_small), "chave_cliente_sacado", "left") \
@@ -822,7 +822,7 @@ expected_status = [
 df_esteira_pivot = df_esteira \
     .groupBy("cod_cliente") \
     .pivot("status_do_cliente", expected_status) \
-    .agg(max("datalog"))
+    .agg(max("DATALOG"))
 
 # Renomeando colunas do pivot para evitar ambiguidade com outras tabelas e padronizar
 status_mapping = {
