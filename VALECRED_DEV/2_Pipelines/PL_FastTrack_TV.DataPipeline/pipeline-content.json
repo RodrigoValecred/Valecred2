@@ -63,7 +63,14 @@
           "secureOutput": false
         },
         "name": "Operacoes_do_dia_copy1",
-        "dependsOn": []
+        "dependsOn": [
+          {
+            "activity": "If Condition1",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
       },
       {
         "type": "Copy",
@@ -164,7 +171,7 @@
         "type": "IfCondition",
         "typeProperties": {
           "expression": {
-            "value": "@greater(\n    activity('Check_Origem').output.firstRow.max_id_source,\n    activity('Check_Gold').output.firstRow.max_id_gold\n)",
+            "value": "@greater(\n    formatDateTime(activity('Check_Origem').output.firstRow.max_id_source, 'yyyy-MM-ddTHH:mm:ss'),\n    formatDateTime(activity('Check_Gold').output.firstRow.max_id_gold, 'yyyy-MM-ddTHH:mm:ss')\n)",
             "type": "Expression"
           },
           "ifTrueActivities": [],
