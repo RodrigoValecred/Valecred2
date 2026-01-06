@@ -325,8 +325,8 @@ df_enriquecido_baixas = df_baixas_corrigido \
 df_fato_baixas = df_enriquecido_baixas.select(
     "cod_titulo_baixas", "cod_titulo", "data_baixa", "data_baixa_sist", "valor_pago",
     "desconto", "juros", "tarifa_recompra", "data_vencimento", df_baixas_corrigido["cod_operacao"],
-    df_dim_pago_por["descricao"].alias("PagoPor"), df_dim_forma_pagamento["descricao"].alias("Forma"),
-    df_dim_tipo_taxa["descricao"].alias("TipoBaixa"), df_dim_motivo_baixa["descricao"].alias("Motivo")
+    df_dim_pago_por["descricao"].alias("pago_por"), df_dim_forma_pagamento["descricao"].alias("forma"),
+    df_dim_tipo_taxa["descricao"].alias("tipo_baixa"), df_dim_motivo_baixa["descricao"].alias("motivo")
 )
 output_path_fato_baixas = "LH_Gold.fato_baixas"
 df_fato_baixas.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_baixas)
@@ -413,8 +413,8 @@ print("\nIniciando construção da fato_titulos...")
 # 3.1 Preparação e Enriquecimento
 # --------------------------------------------------------------
 df_titulos_base = df_titulos_limpa.filter(~col("t_doc").isin("BL", "RC")) \
-    .withColumn("TipoDocumentoSacado", when(length(col("cpf_cnpj_sacado")) == 11, "CPF").when(length(col("cpf_cnpj_sacado")) == 14, "CNPJ").otherwise("Inválido")) \
-    .withColumn("RaizCNPJ", when(col("TipoDocumentoSacado") == "CNPJ", substring(col("cpf_cnpj_sacado"), 1, 8)).otherwise(col("cpf_cnpj_sacado")))
+    .withColumn("tipo_documento_sacado", when(length(col("cpf_cnpj_sacado")) == 11, "CPF").when(length(col("cpf_cnpj_sacado")) == 14, "CNPJ").otherwise("Inválido")) \
+    .withColumn("raiz_cnpj", when(col("tipo_documento_sacado") == "CNPJ", substring(col("cpf_cnpj_sacado"), 1, 8)).otherwise(col("cpf_cnpj_sacado")))
 
 df_operacoes_small = df_operacoes_enriquecida.select("cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto")
 df_limites_small = df_limites.select("chave_cliente_sacado", "tipo")
@@ -479,7 +479,7 @@ df_ordem = df_conf.withColumn("ordem_confirmacao", when(col("confirmacao") == "N
 df_fato_titulos_final = df_ordem.select(
     col("cod_titulo"), col("cod_operacao"), col("t_doc"), col("n_doc"), col("cpf_cnpj_sacado"), col("vencimento"), col("venc_prorrogado"), col("valor"),
     col("prazo"), col("aceito"), col("data_inclusao"), col("usua_conf").alias("usua_inclusao"), col("data_alteracao"), col("amortizacoes"),
-    "chave_produto", "status_protesto", "TipoDocumentoSacado", "RaizCNPJ", "valor_vezes_prazo",
+    "chave_produto", "status_protesto", "tipo_documento_sacado", "raiz_cnpj", "valor_vezes_prazo",
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany",
     col("liquidacao"), col("valor_devido"), col("motivo")
@@ -623,7 +623,7 @@ if record_count > 0:
     window_lag = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
     df_com_lag = df_pareceres_completa.withColumn("STATUS_DO_CLIENTE_ANTERIOR", lag("STATUS_DO_CLIENTE").over(window_lag)).withColumn("DATALOG_ANTERIOR", lag("DATALOG").over(window_lag)).withColumn("MACROPROCESSO_ANTERIOR", lag("MACROPROCESSO").over(window_lag)).withColumn("FASE_ANTERIOR", lag("FASE").over(window_lag))
     df_transicoes = df_com_lag.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
-    df_esteira_final = df_transicoes.withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)).withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)).select("INDICE", "CODCLIENTE", "BASE", "DATALOG_ANTERIOR", "DATALOG", "chave_base_cliente", "STATUS_DO_CLIENTE_ANTERIOR", "STATUS_DO_CLIENTE", "MACROPROCESSO_ANTERIOR", "MACROPROCESSO", "FASE_ANTERIOR", "FASE", "USUARIO", "DEVOLUCAO", "RECEBIDA")
+    df_esteira_final = df_transicoes.withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)).withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)).select(col("INDICE").alias("indice"), col("CODCLIENTE").alias("cod_cliente"), col("BASE").alias("base"), col("DATALOG_ANTERIOR").alias("datalog_anterior"), col("DATALOG").alias("datalog"), "chave_base_cliente", col("STATUS_DO_CLIENTE_ANTERIOR").alias("status_do_cliente_anterior"), col("STATUS_DO_CLIENTE").alias("status_do_cliente"), col("MACROPROCESSO_ANTERIOR").alias("macroprocesso_anterior"), col("MACROPROCESSO").alias("macroprocesso"), col("FASE_ANTERIOR").alias("fase_anterior"), col("FASE").alias("fase"), col("USUARIO").alias("usuario"), col("DEVOLUCAO").alias("devolucao"), col("RECEBIDA").alias("recebida"))
     df_esteira_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_esteira_table_name)
     print("Esteira reconstruída.")
 
@@ -655,7 +655,7 @@ df_prorrogacao_silver = spark.read.table("LH_Silver.staging_operacoes_prorrogaca
 # Leitura das tabelas auxiliares (Silver/Gold) já carregadas no início (df_titulos_limpa, df_operacoes_limpa)
 # Mas garantindo a seleção correta
 df_titulos_join = df_titulos_limpa.select(col("cod_titulo"), col("valor").alias("VALOR_TITULO"))
-df_operacoes_join = df_operacoes_limpa.select(col("cod_operacao"), col("status_analise").alias("STATUSANALISE"), col("status_aceite").alias("STATUSACEITE"))
+df_operacoes_join = df_operacoes_limpa.select(col("cod_operacao"), col("status_analise").alias("status_analise"), col("status_aceite").alias("status_aceite"))
 
 # Join
 # Etapa 2: Mesclar dados de títulos
@@ -818,20 +818,30 @@ expected_status = [
 ]
 
 # Pivot Simples das Datas Maximas por Status
+# Atualizado para usar colunas snake_case da esteira Gold
 df_esteira_pivot = df_esteira \
-    .groupBy("CODCLIENTE") \
-    .pivot("STATUS_DO_CLIENTE", expected_status) \
-    .agg(max("DATALOG"))
+    .groupBy("cod_cliente") \
+    .pivot("status_do_cliente", expected_status) \
+    .agg(max("datalog"))
 
-# Renomeando colunas do pivot para evitar ambiguidade com outras tabelas
-for status in expected_status:
-    df_esteira_pivot = df_esteira_pivot.withColumnRenamed(status, f"pivot_{status}")
+# Renomeando colunas do pivot para evitar ambiguidade com outras tabelas e padronizar
+status_mapping = {
+    "CHECKLIST": "checklist", "ASSINATURA": "assinatura", "COMITE": "comite",
+    "CONCLUIDO": "concluido", "BIZAGI": "bizagi", "RENOVAÇÃO": "renovacao",
+    "RESERVA": "reserva", "START": "start", "CREDITO": "credito",
+    "PROPOSTA": "proposta", "REVISÃO COMERCIAL": "revisao_comercial",
+    "DIR COMERCIAL": "dir_comercial"
+}
+
+for status, clean_name in status_mapping.items():
+    if status in df_esteira_pivot.columns:
+        df_esteira_pivot = df_esteira_pivot.withColumnRenamed(status, f"pivot_{clean_name}")
 
 # Funnel: Data Primeira Proposta (Lógica Sequencial por Cliente)
 # Precisamos calcular as MIN datas para cada status, mas respeitando a sequencia de eventos (funnel)
 # Como PySpark SQL é limitado para isso, vamos usar Window Functions e Self-Joins Simplificados.
 # Passo 1: Min Datas puras
-df_esteira_min = df_esteira.groupBy("CODCLIENTE").pivot("STATUS_DO_CLIENTE", expected_status).agg(min("DATALOG"))
+df_esteira_min = df_esteira.groupBy("cod_cliente").pivot("status_do_cliente", expected_status).agg(min("datalog"))
 
 # 6.4: Limites
 # ------------
@@ -859,14 +869,15 @@ df_esteira_min_renamed = df_esteira_min \
     .withColumnRenamed("DIR COMERCIAL", "min_dir_comercial") \
     .withColumnRenamed("CREDITO", "min_credito") \
     .withColumnRenamed("CHECKLIST", "min_checklist") \
-    .withColumnRenamed("CONCLUIDO", "min_concluido")
+    .withColumnRenamed("CONCLUIDO", "min_concluido") \
+    .select("cod_cliente", "min_proposta", "min_revisao", "min_dir_comercial", "min_credito", "min_checklist", "min_concluido")
 
 # Join Chain
 df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_metrics_ops_final, "cod_cliente", "left") \
     .join(df_metrics_titulos_final, "cod_cliente", "left") \
-    .join(df_esteira_pivot, df_base.cod_cliente == df_esteira_pivot.CODCLIENTE, "left").drop(df_esteira_pivot.CODCLIENTE) \
-    .join(df_esteira_min_renamed, df_base.cod_cliente == df_esteira_min_renamed.CODCLIENTE, "left").drop(df_esteira_min_renamed.CODCLIENTE) \
+    .join(df_esteira_pivot, df_base.cod_cliente == df_esteira_pivot.cod_cliente, "left").drop(df_esteira_pivot.cod_cliente) \
+    .join(df_esteira_min_renamed, df_base.cod_cliente == df_esteira_min_renamed.cod_cliente, "left").drop(df_esteira_min_renamed.cod_cliente) \
     .join(df_limites_agg, "cod_cliente", "left") \
     .join(df_grupos_prep, "cod_cliente", "left") \
     .join(df_risco_grupo_agg, "grupo_economico", "left") \
@@ -892,12 +903,12 @@ df_funnel = df_join_1 \
 
 # Colunas Calculadas
 df_final = df_funnel \
-    .withColumn("data_aprovacao", greatest(col("pivot_CHECKLIST"), col("pivot_ASSINATURA"))) \
-    .withColumn("data_conclusao", coalesce(col("pivot_BIZAGI"), col("pivot_CONCLUIDO"))) \
-    .withColumn("data_comite", col("pivot_COMITE")) \
-    .withColumn("data_reserva", greatest(col("pivot_RENOVAÇÃO"), col("pivot_RESERVA"))) \
+    .withColumn("data_aprovacao", greatest(col("pivot_checklist"), col("pivot_assinatura"))) \
+    .withColumn("data_conclusao", coalesce(col("pivot_bizagi"), col("pivot_concluido"))) \
+    .withColumn("data_comite", col("pivot_comite")) \
+    .withColumn("data_reserva", greatest(col("pivot_renovacao"), col("pivot_reserva"))) \
     .withColumn("data_entrada", coalesce(
-        greatest(col("pivot_DIR COMERCIAL"), col("pivot_PROPOSTA"), col("pivot_REVISÃO COMERCIAL")),
+        greatest(col("pivot_dir_comercial"), col("pivot_proposta"), col("pivot_revisao_comercial")),
         col("data_comite")
     )) \
     .withColumn("risco", coalesce(col("risco"), lit(0))) \
