@@ -487,7 +487,7 @@ df_fato_titulos_final = df_ordem.select(
     "chave_produto", "status_protesto", "TipoDocumentoSacado", "RaizCNPJ", "valor_vezes_prazo",
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany",
-    col("liquidacao"), col("valor_devido")
+    col("liquidacao"), col("valor_devido"), col("motivo")
 )
 output_path_titulos_final = "LH_Gold.fato_titulos"
 df_fato_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
