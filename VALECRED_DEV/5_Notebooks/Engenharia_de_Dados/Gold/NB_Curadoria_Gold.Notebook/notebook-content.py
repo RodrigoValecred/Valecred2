@@ -49,7 +49,7 @@ from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
     lead, date_add, lag, max, coalesce, broadcast, dayofweek, dayofmonth, date_sub, trim, to_date,
-    datediff, sum, min, count, round, floor, least, current_date
+    datediff, sum, min, count, round, floor, least, current_date, split
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
