@@ -724,14 +724,14 @@ df_ops_validas = df_fato_operacoes.filter(col("status_analise") == "D")
 
 # VOP por Dia da Semana (Top 1)
 df_vop_semana = df_ops_validas.withColumn("dia_semana", dayofweek("data_analise")) \
-    .groupBy("cod_cliente", "dia_semana").agg(sum("valor_face").alias("vop"))
+    .groupBy("cod_cliente", "dia_semana").agg(sum("valor_de_face").alias("vop"))
 w_rank_semana = Window.partitionBy("cod_cliente").orderBy(col("vop").desc())
 df_dia_semana_top = df_vop_semana.withColumn("rn", row_number().over(w_rank_semana)).filter(col("rn") == 1) \
     .select(col("cod_cliente"), col("dia_semana").alias("dia_semana_mais_vop"))
 
 # VOP por Dia do Mês (Top 1)
 df_vop_mes = df_ops_validas.withColumn("dia_mes", dayofmonth("data_analise")) \
-    .groupBy("cod_cliente", "dia_mes").agg(sum("valor_face").alias("vop"))
+    .groupBy("cod_cliente", "dia_mes").agg(sum("valor_de_face").alias("vop"))
 w_rank_mes = Window.partitionBy("cod_cliente").orderBy(col("vop").desc())
 df_dia_mes_top = df_vop_mes.withColumn("rn", row_number().over(w_rank_mes)).filter(col("rn") == 1) \
     .select(col("cod_cliente"), col("dia_mes").alias("dia_mes_mais_vop"))
