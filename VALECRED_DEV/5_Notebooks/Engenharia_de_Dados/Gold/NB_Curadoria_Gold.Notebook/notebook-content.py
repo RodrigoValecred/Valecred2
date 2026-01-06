@@ -821,6 +821,10 @@ df_esteira_pivot = df_esteira \
     .pivot("STATUS_DO_CLIENTE", expected_status) \
     .agg(max("DATALOG"))
 
+# Renomeando colunas do pivot para evitar ambiguidade com outras tabelas
+for status in expected_status:
+    df_esteira_pivot = df_esteira_pivot.withColumnRenamed(status, f"pivot_{status}")
+
 # Funnel: Data Primeira Proposta (Lógica Sequencial por Cliente)
 # Precisamos calcular as MIN datas para cada status, mas respeitando a sequencia de eventos (funnel)
 # Como PySpark SQL é limitado para isso, vamos usar Window Functions e Self-Joins Simplificados.
@@ -885,12 +889,12 @@ df_funnel = df_join_1 \
 
 # Colunas Calculadas
 df_final = df_funnel \
-    .withColumn("data_aprovacao", greatest(col("CHECKLIST"), col("ASSINATURA"))) \
-    .withColumn("data_conclusao", coalesce(col("BIZAGI"), col("CONCLUIDO"))) \
-    .withColumn("data_comite", col("COMITE")) \
-    .withColumn("data_reserva", greatest(col("RENOVAÇÃO"), col("RESERVA"))) \
+    .withColumn("data_aprovacao", greatest(col("pivot_CHECKLIST"), col("pivot_ASSINATURA"))) \
+    .withColumn("data_conclusao", coalesce(col("pivot_BIZAGI"), col("pivot_CONCLUIDO"))) \
+    .withColumn("data_comite", col("pivot_COMITE")) \
+    .withColumn("data_reserva", greatest(col("pivot_RENOVAÇÃO"), col("pivot_RESERVA"))) \
     .withColumn("data_entrada", coalesce(
-        greatest(col("DIR COMERCIAL"), col("PROPOSTA"), col("REVISÃO COMERCIAL")),
+        greatest(col("pivot_DIR COMERCIAL"), col("pivot_PROPOSTA"), col("pivot_REVISÃO COMERCIAL")),
         col("data_comite")
     )) \
     .withColumn("risco", coalesce(col("risco"), lit(0))) \
