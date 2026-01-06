@@ -355,7 +355,7 @@ def process_pareceres_clientes_esteira():
         .withColumn("data_anterior", lag("data_log").over(window_esteira)) \
         .withColumn("macroprocesso_anterior", lag("macroprocesso").over(window_esteira)) \
         .withColumn("fase_anterior", lag("fase").over(window_esteira)) \
-        .filter(col("status_cliente") != col("status_anterior")) # Remove duplicatas consecutivas de mesmo status
+        .filter((col("status_cliente") != col("status_anterior")) | col("status_anterior").isNull()) # Remove duplicatas consecutivas de mesmo status
 
     # Flags Devolução/Recebida
     df_final_esteira = df_esteira.withColumn(
