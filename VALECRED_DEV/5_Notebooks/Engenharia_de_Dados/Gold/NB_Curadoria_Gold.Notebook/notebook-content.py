@@ -99,6 +99,10 @@ df_enderecos_limpa = spark.read.table("LH_Silver.staging_enderecos_limpa").selec
 # Bridge Gerente
 df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
 
+# Gerentes e Plataformas
+df_gerentes = spark.read.table("LH_Silver.staging_gerentes")
+df_plataformas = spark.read.table("LH_Silver.staging_plataformas")
+
 # Emails & Telefones Agg
 df_emails_agg = spark.read.table("LH_Silver.staging_emails_agg")
 df_telefones_agg = spark.read.table("LH_Silver.staging_telefones_agg")
@@ -708,6 +712,13 @@ if "cod_cliente" not in df_grupos_prep.columns and "codcliente" in df_grupos_pre
      df_grupos_prep = df_grupos_prep.withColumnRenamed("codcliente", "cod_cliente")
 df_grupos_prep = df_grupos_prep.select("cod_cliente", "grupo_economico")
 
+# 6.0.1: Info Gestor (Para join final)
+df_bridge_atual = df_bridge_gerente.filter(col("data_fim_vigencia") == "9999-12-31")
+df_info_gestor = df_bridge_atual \
+    .join(df_gerentes, df_bridge_atual.cod_gerente == df_gerentes.cod_broker, "left") \
+    .join(df_plataformas, "cod_agencia", "left") \
+    .select(df_bridge_atual.cod_cliente, df_plataformas.gestor_da_plataforma)
+
 # 6.1: Métricas de Operações
 # --------------------------
 # Usamos df_fato_operacoes criada na Seção 2.1
@@ -858,7 +869,8 @@ df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_esteira_min_renamed, df_base.cod_cliente == df_esteira_min_renamed.CODCLIENTE, "left").drop(df_esteira_min_renamed.CODCLIENTE) \
     .join(df_limites_agg, "cod_cliente", "left") \
     .join(df_grupos_prep, "cod_cliente", "left") \
-    .join(df_risco_grupo_agg, "grupo_economico", "left")
+    .join(df_risco_grupo_agg, "grupo_economico", "left") \
+    .join(df_info_gestor, "cod_cliente", "left")
 
 # Implementando Lógica Funnel Sequencial (Aproximação)
 # Data 1: Primeira Proposta Comercial = MIN(Proposta, Revisao, Diretoria)
