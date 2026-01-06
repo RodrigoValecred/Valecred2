@@ -181,9 +181,6 @@ print("Criando DataFrame intermediário: Operações Enriquecidas...")
 # Renomeamos o cod_cliente da bridge para garantir unicidade no join
 df_bridge_prep = df_bridge_gerente.withColumnRenamed("cod_cliente", "cod_cliente_bridge")
 
-print("Colunas renomeadas")
-print(df_bridge_prep.columns)
-
 # Enriquecimento com Gerente (Broker)
 df_operacoes_com_historico = df_operacoes_limpa.join(
     df_bridge_prep,
@@ -193,16 +190,10 @@ df_operacoes_com_historico = df_operacoes_limpa.join(
     "left"
 )
 
-print("Colunas PÓS-JOIN (Note que agora temos cod_cliente E cod_cliente_bridge):")
-print(df_operacoes_com_historico.columns)
-
 df_operacoes_com_gerente = df_operacoes_com_historico.withColumn(
     "cod_broker",
     when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker")).otherwise(col("cod_gerente"))
 ).drop("cod_cliente_bridge","cod_gerente", "data_inicio_vigencia", "data_fim_vigencia")
-
-print("Colunas PÓS-DROP (O cod_cliente original deve estar aqui):")
-print(df_operacoes_com_gerente.columns)
 
 # Identificação de Operações Informais
 df_chave_danfe = df_cad_geral_arquivos.filter(col("DESCRICAO") == 'CHAVEDANFE')
@@ -1033,8 +1024,6 @@ df_final = df_funnel \
 output_path_dim_clientes = "LH_Gold.dim_clientes"
 df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_clientes)
 print(f"Tabela 'dim_clientes' recriada em: {output_path_dim_clientes}")
-
-# CELL ********************
 
 # METADATA ********************
 
