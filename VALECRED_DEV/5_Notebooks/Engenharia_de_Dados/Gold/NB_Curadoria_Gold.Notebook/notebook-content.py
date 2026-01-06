@@ -810,6 +810,16 @@ df_risco_grupo_agg = df_risco_ind.join(df_grupos_prep, "cod_cliente", "inner") \
 # ---------------------------
 df_esteira = spark.read.table("LH_Gold.esteira_de_propostas")
 
+# Normalização de colunas (Compatibilidade com Legado/Schema antigo)
+# Se a tabela não foi regerada (incremental = 0), ela pode estar com colunas em UpperCase.
+# Forçamos o rename para snake_case esperado.
+if "CODCLIENTE" in df_esteira.columns:
+    df_esteira = df_esteira.withColumnRenamed("CODCLIENTE", "cod_cliente")
+if "STATUS_DO_CLIENTE" in df_esteira.columns:
+    df_esteira = df_esteira.withColumnRenamed("STATUS_DO_CLIENTE", "status_do_cliente")
+if "DATALOG" in df_esteira.columns:
+    df_esteira = df_esteira.withColumnRenamed("DATALOG", "datalog")
+
 # Status esperados para o Pivot (para evitar erros de coluna inexistente)
 expected_status = [
     "CHECKLIST", "ASSINATURA", "COMITE", "CONCLUIDO", "BIZAGI",
@@ -822,7 +832,7 @@ expected_status = [
 df_esteira_pivot = df_esteira \
     .groupBy("cod_cliente") \
     .pivot("status_do_cliente", expected_status) \
-    .agg(max("DATALOG"))
+    .agg(max("datalog"))
 
 # Renomeando colunas do pivot para evitar ambiguidade com outras tabelas e padronizar
 status_mapping = {
