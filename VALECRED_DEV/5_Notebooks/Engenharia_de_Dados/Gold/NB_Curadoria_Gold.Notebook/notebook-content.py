@@ -842,7 +842,8 @@ df_limites_agg = df_contratos.filter(col("status") == "A") \
 # 6.5: Join Final e Colunas Calculadas
 # ------------------------------------
 # Base: Clientes Staging
-df_base = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclusao")
+# Atualização: Incluindo data_inclusao e data_fundacao (requeridas para idade_cliente e idade_cliente_em_dias)
+df_base = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclusao", "data_fundacao")
 
 # Prepare Esteira Min Dates for Funnel (Joining back to main flow)
 # Renaming for clarity
@@ -946,12 +947,29 @@ df_final = df_funnel \
     .withColumn("dias_proposta_formalizacao", datediff(col("data_primeira_proposta_concluida"), col("data_primeira_proposta_formalizacao"))) \
     .withColumn("tempo_conclusao", datediff(col("data_conclusao"), col("data_aprovacao"))) \
     .withColumn("tempo_analise", datediff(col("data_aprovacao"), col("data_entrada"))) \
-    .withColumn("idade_cliente", floor(datediff(today_date, to_date(substring(col("data_inclusao").cast("string"), 1, 10))) / 365)) \
+    .withColumn("idade_cliente", floor(datediff(today_date, to_date(substring(col("data_fundacao").cast("string"), 1, 10))) / 365)) \
+    .withColumn("idade_cliente_em_dias", coalesce(datediff(today_date, col("data_primeira_operacao")), lit(0))) \
     .withColumn("tipo_proposta",
         when(col("dias_sem_operar") > 120, "REATIVAÇÃO")
         .when(col("data_ultima_operacao").isNull(), "PROSPECÇÃO")
-        .when(col("idade_cliente") * 365 > 90, "RENOVAÇÃO")
+        .when(col("idade_cliente_em_dias") > 90, "RENOVAÇÃO")
         .otherwise("PROSPECÇÃO")
+    ) \
+    .withColumn("pais", lit("Brasil")) \
+    .withColumn("primeiro_nome_gerente", split(col("gestor_da_plataforma"), " ")[0]) \
+    .withColumn("status_operando_vencido",
+        when(
+            (col("data_ultima_operacao") > col("vencimento_limite")) &
+            (col("vencimento_limite").isNotNull()) &
+            (date_add(col("data_ultima_operacao"), 120) >= today_date),
+            "OPERANDO VENCIDO"
+        ).otherwise("OPERANDO NORMAL")
+    ) \
+    .withColumn("taxa_minima_exigida",
+        (when(col("faixa_pdd") == 0.05, 0.0025) # Rating A (0.05 PDD)
+         .when(col("faixa_pdd") == 0.7, 0.0075) # Rating C (0.7 PDD?) - DAX Logic vague on ratingPdd mapping, using best guess from PDD
+         .otherwise(0.0050) # Rating B
+        ) + 0.0150 + 0.0010
     ) \
     .withColumn("pendencias_desc", concat_ws(", ",
         when(col("status_atividade") == "INATIVO", "Cliente inativo"),
