@@ -73,7 +73,12 @@ def process_clientes():
     windowSpec_clientes = Window.partitionBy("CODCLIENTE").orderBy(col("DATAALTERACAO").desc())
     df_deduplicated_clientes = df_bronze_clientes.withColumn("row_num", row_number().over(windowSpec_clientes)) \
         .filter(col("row_num") == 1).drop("row_num") \
-        .select(col("CODCLIENTE").alias("cod_cliente"), col("CPFCNPJ").alias("cpf_cnpj"))
+        .select(
+            col("CODCLIENTE").alias("cod_cliente"),
+            col("CPFCNPJ").alias("cpf_cnpj"),
+            col("DATAINCLUSAO").alias("data_inclusao"),
+            col("DATAFUNDACAO").alias("data_fundacao")
+        )
     df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_clientes_limpa")
 
 def process_cadastro_geral():
