@@ -76,8 +76,7 @@ def process_clientes():
         .select(
             col("CODCLIENTE").alias("cod_cliente"),
             col("CPFCNPJ").alias("cpf_cnpj"),
-            col("DATAINCLUSAO").alias("data_inclusao"),
-            col("DATAFUNDACAO").alias("data_fundacao")
+            col("DATAINCLUSAO").alias("data_inclusao")
         )
     df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_clientes_limpa")
 
@@ -430,3 +429,10 @@ process_sacados_enriquecida()
 
 print("Limpeza Silver - Cadastros finalizada.")
 mssparkutils.notebook.exit("Success")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
