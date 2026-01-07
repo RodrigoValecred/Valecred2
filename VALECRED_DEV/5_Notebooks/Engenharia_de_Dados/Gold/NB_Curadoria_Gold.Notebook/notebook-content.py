@@ -882,12 +882,16 @@ df_esteira_min_renamed = df_esteira_min \
     .withColumnRenamed("CONCLUIDO", "min_concluido") \
     .select("cod_cliente", "min_proposta", "min_revisao", "min_dir_comercial", "min_credito", "min_checklist", "min_concluido")
 
+# Renomeando chaves para evitar ambiguidade nos joins
+df_esteira_pivot_prep = df_esteira_pivot.withColumnRenamed("cod_cliente", "cod_cliente_pivot")
+df_esteira_min_prep = df_esteira_min_renamed.withColumnRenamed("cod_cliente", "cod_cliente_min")
+
 # Join Chain
 df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_metrics_ops_final, "cod_cliente", "left") \
     .join(df_metrics_titulos_final, "cod_cliente", "left") \
-    .join(df_esteira_pivot, df_base.cod_cliente == df_esteira_pivot.cod_cliente, "left").drop(df_esteira_pivot.cod_cliente) \
-    .join(df_esteira_min_renamed, df_base.cod_cliente == df_esteira_min_renamed.cod_cliente, "left").drop(df_esteira_min_renamed.cod_cliente) \
+    .join(df_esteira_pivot_prep, df_base.cod_cliente == df_esteira_pivot_prep.cod_cliente_pivot, "left").drop("cod_cliente_pivot") \
+    .join(df_esteira_min_prep, df_base.cod_cliente == df_esteira_min_prep.cod_cliente_min, "left").drop("cod_cliente_min") \
     .join(df_limites_agg, "cod_cliente", "left") \
     .join(df_grupos_prep, "cod_cliente", "left") \
     .join(df_risco_grupo_agg, "grupo_economico", "left") \
