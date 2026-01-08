@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "NB_Extrai_Observacoes_Contratos"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "6f4fa08e-65b9-8111-4aef-a58631ed10cd"
+  }
+}
