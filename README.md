@@ -31,7 +31,7 @@ Processamento (Spark Notebooks): Limpeza, tipagem e enriquecimento dos dados (Br
 
 Inteligência (Scikit-Learn + MLflow):
 
-Treino: Re-treinamento semanal automático (Domingos à noite) olhando os últimos 365 dias.
+Treino: Re-treinamento semanal automático via **`01-Treino_Risco_Semanal.Notebook`** (Domingos à noite) olhando os últimos 365 dias. Gera a tabela **`LH_Gold.Perfil_Analitico_Sacado`**.
 
 Inferência: Busca dinâmica pelo "Melhor Modelo" via MLflow, garantindo que a IA esteja sempre atualizada sem intervenção manual.
 
@@ -219,6 +219,8 @@ Responsável por limpar, padronizar e desduplicar os dados brutos da camada Bron
 -   **`NB_Prepara_Tabela_Titulos`**: (**Carga Incremental**) Processamento da tabela `tab_titulos` e tabelas relacionadas (baixas, protestos, abatimentos, boletos, danfe).
 -   **`NB_Prepara_Tabela_Operacoes`**: (**Carga Incremental**) Processamento da tabela `tab_operacoes`, `tab_operacoes_devolucoes` e `tab_operacoes_tarifas_extras`.
 -   **`NB_Prepara_Tabela_Contabil`**: (**Carga Incremental/Full**) Processamento da tabela `tab_lancamentos_contabeis` e padronização para a camada Silver.
+-   **`NB_Prepara_Tabela_Produtos`**: Cria a dimensão de produtos (`LH_Silver.Dim_Produto`) padronizada e enriquecida com IDs numéricos para consumo pela I.A.
+-   **`NB_Extrai_Observacoes_Contratos`**: Extrai dados estruturados de limites (Geral, Comissaria, Intercompany, etc.) a partir de observações textuais não estruturadas usando Regex.
 -   **`NB_Process_Contact_Info`**: Processa e limpa dados de contato, tratando campos com múltiplos valores e salvando-os em tabelas de staging na camada Silver.
 -   **`NB_Load_Silver_From_Manual_Uploads`**: Notebook genérico para carga de arquivos manuais (Excel/CSV) armazenados no Bronze para tabelas Silver, com padronização de colunas.
 -   **`NB_Silver_Carteira_PDD`**: Processamento específico para a carteira de PDD (Provisão para Devedores Duvidosos).
@@ -230,14 +232,16 @@ Responsável por limpar, padronizar e desduplicar os dados brutos da camada Bron
 
 Responsável por aplicar regras de negócio complexas, joins e agregações para gerar as tabelas finais de consumo.
 
--   **`NB_Curadoria_Gold`**: Centraliza a lógica de **enriquecimento e joins**. Consome as tabelas tratadas da Silver (staging) e gera as tabelas Fato e Dimensão finais no `LH_Gold`.
+-   **`NB_Curadoria_Gold`**: Centraliza a lógica de **enriquecimento e joins**. Consome as tabelas tratadas da Silver (staging) e gera as tabelas Fato finais no `LH_Gold`.
+-   **`NB_Dim_Cliente_Gold`**: Notebook especializado na criação da dimensão de clientes (`dim_clientes`), integrando dados cadastrais, grupos econômicos e contratos.
 -   **`NB_Calendario_Gold`**: Gera e atualiza a tabela dimensão de calendário (`dim_calendario`).
 -   **`NB_Gold_Risco_Cliente`**: Cria agregações de risco por cliente, segmentado por produto.
 -   **`NB_Risk_Aggregation`**: Calcula métricas históricas de risco (inadimplência, volume).
 -   **`NB_Relatorio_Limites_Vencendo`**: Gera a tabela `relatorio_limites_vencendo`, consolidando dados de contratos e clientes.
+-   **`NB_Gera_Relatorio_Diario_Clientes`**: Protótipo para geração automatizada de relatórios diários de risco e exposição por grupo econômico.
 -   **`NB_Analise_Cliente_Especifico`**: Ferramenta ad-hoc para investigar o histórico detalhado de um cliente.
 -   **`NB_Analyze_FIDC_Performance`**: Notebook para análise de performance do FIDC.
--   
+
 #### `Orquestracao/` - Controle de Fluxo
 
 -   **`Processamento_Completo_Clientes`**: Um fluxo consolidado (Bronze -> Silver -> Gold) focado na entidade Cliente. Realiza limpeza de cadastro, telefones e endereços, gerando a tabela final `gold_cliente_completo`.
