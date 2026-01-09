@@ -43,7 +43,7 @@ from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
     lead, date_add, lag, max, coalesce, date_sub, array_contains, create_map, split,
-    to_date
+    to_date, trim, udf
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
@@ -333,21 +333,41 @@ def process_estudo_op():
 
 # CELL ********************
 
+# 1. Função Python para decodificar entidades HTML (&Ccedil; -> Ç, &nbsp; -> espaço)
+# Isso substitui aquele dicionário manual gigante e cobre TODOS os casos possíveis.
+def decode_html_entities(text):
+    import html
+    if text:
+        return html.unescape(text)
+    return text
+
+# Registra a função para o Spark usar
+unescape_udf = udf(decode_html_entities, StringType())
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 def process_pareceres_operacoes():
     print("Processando Pareceres Operações...")
 
     df_pareceres = spark.read.table(f"{source_lakehouse}.cad_geral_pareceres").alias("cgp")
     df_usuarios = spark.read.table(f"{source_lakehouse}.cad_usuarios").alias("cu")
-    # Usa target_lakehouse explicitamente
     df_operacoes_ref = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa").alias("to2")
 
-    # Filtrar e Join
+# Filtrar
     df_pareceres_filtered = df_pareceres.filter(
         col("OBS").isNotNull() & col("CODOPERACAO").isNotNull() &
         (col("CODTIPOPARECER") == 10) & (year(col("DATAINCLUSAO")) >= 2024) &
         (~col("OBS").like("%<img alt=%"))
     )
 
+# Join
     df_joined = df_pareceres_filtered \
         .join(df_usuarios, col("cgp.USUAINCLUSAO") == col("cu.CODUSUARIO")) \
         .join(df_operacoes_ref, col("cgp.CODOPERACAO") == col("to2.cod_operacao")) \
@@ -355,33 +375,45 @@ def process_pareceres_operacoes():
             col("cgp.CODOPERACAO").alias("cod_operacao"),
             col("cgp.DATAINCLUSAO").alias("data_inclusao"),
             col("cu.APELIDO").alias("apelido_usuario"),
-            col("cgp.OBS").alias("obs")
+            col("cgp.OBS").alias("obs_bruta") # Mantemos a original por segurança
         )
 
     # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
-    replacements = {
-        "&Ccedil;": "Ç", "&Atilde;": "Ã", "&Aacute;": "Á", "&Eacute;": "É", "&Iacute;": "Í",
-        "&Otilde;": "Õ", "&Uacute;": "Ú", "&Oacute;": "Ó", "<div id=\"cke_pastebin\">\r\n\t": "",
-        "&nbsp;</div>\r": " ", "&nbsp;": " ", "</div>\r\n": "", "\n \n": "\n",
-        "<span style=\"background-color:#ffff00;\">": "", "</span>": " ", "<div>\r": "",
-        "<p>\r\n": "", "</p>\r": "", "&#39;": "'", "\t": "", "<span style=\"background-color:#fff;\">": "",
-        "<span style=\"color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-weight: 700;\">": "",
-        "<span style=\"background-color: rgb(255, 255, 0);\">": "", "<u>": "", "&quot;": "\"",
-        "<span style=\"color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-weight: 700; background-color: rgb(255, 255, 0);\">": ""
-    }
+# Passo 1: Remover TODAS as tags HTML (<div...>, </span>, <br>, etc)
+    # A regex <[^>]+> significa: "Encontre qualquer coisa que comece com < e termine com > e apague"
+    df_step1 = df_joined.withColumn(
+        "obs_sem_tags", 
+        regexp_replace(col("obs_bruta"), "<[^>]+>", " ") 
+    )
 
-    df_cleaned = df_joined.withColumn("Parecer", col("obs"))
-    for old, new in replacements.items():
-        df_cleaned = df_cleaned.withColumn("Parecer", regexp_replace(col("Parecer"), old, new))
+# Passo 2: Decodificar caracteres especiais (&Ccedil; virar Ç) usando a UDF
+    df_step2 = df_step1.withColumn(
+        "obs_decodificada", 
+        unescape_udf(col("obs_sem_tags"))
+    )
 
-    # Flags Logic
-    df_final_pareceres = df_cleaned.withColumn("ESCROW", when(col("obs").like("%#ESCROW%"), True).otherwise(False)) \
-        .withColumn("ALCADA_SPENCER", when(col("obs").like("%SPENCER%"), "sim").otherwise("não")) \
-        .withColumn("ALCADA_CAIO", when(col("obs").like("%CAIO%"), "sim").otherwise("não")) \
-        .withColumn("ALCADA_DAIANE", when(col("obs").like("%DAIANE%"), "sim").otherwise("não")) \
-        .drop("obs")
+# Passo 3: Limpar espaços em branco excessivos (tabs, quebras de linha duplas)
+    df_cleaned = df_step2.withColumn(
+        "Parecer", 
+        trim(regexp_replace(col("obs_decodificada"), "\\s+", " ")) # \s+ pega qualquer espaço, tab ou enter
+    )
 
+# --- LÓGICA DE FLAGS (Aplicada já no texto limpo) ---
+    # Dica: Use (?i) no rlike para ignorar maiúscula/minúscula (case insensitive)
+    
+    df_final_pareceres = df_cleaned.withColumn("ESCROW", when(col("Parecer").rlike("(?i)#ESCROW"), True).otherwise(False)) \
+        .withColumn("ALCADA_SPENCER", when(col("Parecer").rlike("(?i)SPENCER"), "sim").otherwise("não")) \
+        .withColumn("ALCADA_CAIO", when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não")) \
+        .withColumn("ALCADA_DAIANE", when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não")) \
+        .withColumn("IS_LIMITE_PLUS", when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO")) \
+        .drop("obs_bruta", "obs_sem_tags", "obs_decodificada") # Remove colunas temporárias
+
+    # Gravação
     df_final_pareceres.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_pareceres_operacoes")
+    print("Pareceres processados com sucesso!")
+
+# Executar
+# process_pareceres_operacoes()
 
 
 # METADATA ********************

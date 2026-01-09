@@ -29,7 +29,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 # 1. Imports (Tudo junto aqui em cima)
-from pyspark.sql.functions import col, regexp_extract, regexp_replace, decode, current_timestamp, trim
+from pyspark.sql.functions import col, regexp_extract, regexp_replace, decode, current_timestamp, trim, coalesce, lit
 
 # METADATA ********************
 
@@ -43,7 +43,7 @@ from pyspark.sql.functions import col, regexp_extract, regexp_replace, decode, c
 # 2. Leitura da Camada Bronze
 # df_bronze = spark.read.format("delta").load("Tables/cad_contratos_clientes") 
 # ou via SQL como você fez:
-df_bronze = spark.sql("SELECT * FROM LH_Bronze.cad_contratos_clientes WHERE STATUS = 'A' and CODCLIENTE =  15283149")
+df_bronze = spark.sql("SELECT * FROM LH_Bronze.cad_contratos_clientes WHERE STATUS = 'A'")
 
 # METADATA ********************
 
@@ -54,11 +54,13 @@ df_bronze = spark.sql("SELECT * FROM LH_Bronze.cad_contratos_clientes WHERE STAT
 
 # CELL ********************
 
-# 3. Definição das Regex
-pat_geral       = r"Limite Geral:.*?R\$\s*([\d\.,]+)"
-pat_comissaria  = r"Comiss.ria Simples:.*?R\$\s*([\d\.,]+)"
-pat_inter       = r"Intercompany:.*?R\$\s*([\d\.,]+)"
-pat_fomento     = r"Fomento:.*?R\$\s*([\d\.,]+)"
+# 3. Definição das Regex "Case Insensitive" ( Ignora Maiúscula/Minúscula)
+# O código (?i) no começo torna a busca insensível a caixa alta/baixa
+pat_geral       = r"(?i)Limite\s+(?:Geral|Total).*?R\$\s*([\d\.,]+)"
+pat_comissaria  = r"(?i)Comiss.ria Simples.*?R\$\s*([\d\.,]+)" 
+pat_inter       = r"(?i)Intercompany.*?R\$\s*([\d\.,]+)"
+pat_fomento     = r"(?i)Fomento.*?R\$\s*([\d\.,]+)"
+pat_plus        = r"(?i)Limite\s+EXTRA\s+PLUS.*?R\$\s*([\d\.,]+)"
 
 # METADATA ********************
 
@@ -88,6 +90,8 @@ df_silver = df_bronze.withColumn(
     "raw_limite_intercompany", regexp_extract(col("texto_limpo"), pat_inter, 1)
 ).withColumn(
     "raw_limite_fomento", regexp_extract(col("texto_limpo"), pat_fomento, 1)
+).withColumn(
+    "raw_limite_plus", regexp_extract(col("texto_limpo"), pat_plus, 1)
 )
 
 # METADATA ********************
@@ -120,12 +124,14 @@ def converter_moeda_br(col_name):
 # 6. Seleção Final e Conversão
 df_final = df_silver.select(
     col("CODCLIENTE"),
-    col("texto_limpo").alias("OBS_TRATADA"),
-    converter_moeda_br("raw_limite_geral").alias("limite_geral"),
-    converter_moeda_br("raw_limite_comissaria").alias("limite_comissaria"),
-    converter_moeda_br("raw_limite_intercompany").alias("limite_intercompany"),
-    converter_moeda_br("raw_limite_fomento").alias("limite_fomento")
-).withColumn("dt_processamento_silver", current_timestamp()) # Adiciona data aqui no final
+    col("texto_limpo").alias("OBS_TRATADA"), 
+    # Se for nulo, coloca 0.0
+    coalesce(converter_moeda_br("raw_limite_geral"), lit(0.0)).alias("limite_geral"),
+    coalesce(converter_moeda_br("raw_limite_comissaria"), lit(0.0)).alias("limite_comissaria"),
+    coalesce(converter_moeda_br("raw_limite_intercompany"), lit(0.0)).alias("limite_intercompany"),
+    coalesce(converter_moeda_br("raw_limite_fomento"), lit(0.0)).alias("limite_fomento"),
+    coalesce(converter_moeda_br("raw_limite_plus"), lit(0.0)).alias("limite_extra_plus")
+).withColumn("dt_processamento_silver", current_timestamp())
 
 # Exibir
 display(df_final)
