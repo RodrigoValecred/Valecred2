@@ -149,8 +149,8 @@ df_status_final = df_calculo_status.withColumn(
 
 # 7. Agregação Final (Por Mês e Tipo de Limite)
 df_agregado_mensal = df_status_final.groupBy("DATA_CORTE", "IS_LIMITE_PLUS").agg(
-    _sum("valor").alias("CARTEIRA_ATIVA"), # Ajuste se usar valor presente
-    _sum(when(col("IS_INADIMPLENTE_NA_DATA") == 1, col("valor")).otherwise(0)).alias("SALDO_INADIMPLENTE")
+    _sum("valor_devido").alias("CARTEIRA_ATIVA"), # Ajuste se usar valor presente
+    _sum(when(col("IS_INADIMPLENTE_NA_DATA") == 1, col("valor_devido")).otherwise(0)).alias("SALDO_INADIMPLENTE")
 )
 
 # METADATA ********************
@@ -164,6 +164,7 @@ df_agregado_mensal = df_status_final.groupBy("DATA_CORTE", "IS_LIMITE_PLUS").agg
 
 # Gravar na Gold
 df_agregado_mensal.write.mode("overwrite").saveAsTable("LH_Gold.dim_historico_inadimplencia")
+print("tabela criada com sucesso!")
 
 # METADATA ********************
 
