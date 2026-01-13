@@ -218,7 +218,7 @@ Responsável por limpar, padronizar e desduplicar os dados brutos da camada Bron
 -   **`NB_Prepara_Tabela_Cadastros`**: (**Carga Full Overwrite**) Processamento de tabelas dimensionais e cadastrais (clientes, geral, telefones, endereços, contratos, bridge, limites, empresas, gerentes, plataformas, status).
 -   **`NB_Prepara_Tabela_Titulos`**: (**Carga Incremental**) Processamento da tabela `tab_titulos` e tabelas relacionadas (baixas, protestos, abatimentos, boletos, danfe).
 -   **`NB_Prepara_Tabela_Operacoes`**: (**Carga Incremental**) Processamento da tabela `tab_operacoes`, `tab_operacoes_devolucoes` e `tab_operacoes_tarifas_extras`.
--   **`NB_Prepara_Tabela_Contabil`**: (**Carga Incremental/Full**) Processamento da tabela `tab_lancamentos_contabeis` e padronização para a camada Silver.
+-   **`NB_Prepara_Tabela_Contabil`**: (**Carga Full Overwrite**) Processamento da tabela `tab_lancamentos_contabeis` e padronização para a camada Silver.
 -   **`NB_Prepara_Tabela_Produtos`**: Cria a dimensão de produtos (`LH_Silver.Dim_Produto`) padronizada e enriquecida com IDs numéricos para consumo pela I.A.
 -   **`NB_Extrai_Observacoes_Contratos`**: Extrai dados estruturados de limites (Geral, Comissaria, Intercompany, etc.) a partir de observações textuais não estruturadas usando Regex.
 -   **`NB_Process_Contact_Info`**: Processa e limpa dados de contato, tratando campos com múltiplos valores e salvando-os em tabelas de staging na camada Silver.
