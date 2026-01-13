@@ -56,6 +56,30 @@
         "dependsOn": []
       },
       {
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "TargetProcessingDate",
+          "value": {
+            "value": "@formatDateTime(utcNow(),'yyyy-MM-dd HH:mm:ss')",
+            "type": "Expression"
+          }
+        },
+        "policy": {
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Set_Variable_TargetProcessingDate",
+        "description": "Armazenar a data atual (início do processo) como novo watermark.",
+        "dependsOn": [
+          {
+            "activity": "Lookup_GetTableList",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
         "type": "ForEach",
         "typeProperties": {
           "isSequential": false,
@@ -137,66 +161,7 @@
         "name": "ForEach_CopyTable",
         "dependsOn": [
           {
-            "activity": "Lookup_GetTableList",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "Lookup",
-        "typeProperties": {
-          "source": {
-            "type": "MySqlSource",
-            "query": "SELECT MAX(DATAINCLUSAO) as NewWatermark FROM tab_operacoes"
-          },
-          "datasetSettings": {
-            "type": "MySqlTable",
-            "schema": [],
-            "externalReferences": {
-              "connection": "ddb03605-7bef-45d9-8c36-aa19be4e5ae4"
-            },
-            "annotations": []
-          }
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Lookup_GetNewWatermark",
-        "description": "Encontrar o valor máximo da data de modificação de TODOS os dados que acabamos de copiar.",
-        "dependsOn": [
-          {
-            "activity": "ForEach_CopyTable",
-            "dependencyConditions": [
-              "Succeeded",
-              "Failed"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "SetVariable",
-        "typeProperties": {
-          "variableName": "TargetProcessingDate",
-          "value": {
-            "value": "@activity('Lookup_GetNewWatermark').output.firstRow.NewWatermark",
-            "type": "Expression"
-          }
-        },
-        "policy": {
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Set_Variable_TargetProcessingDate",
-        "description": "Armazenar este novo valor máximo na nossa variável.",
-        "dependsOn": [
-          {
-            "activity": "Lookup_GetNewWatermark",
+            "activity": "Set_Variable_TargetProcessingDate",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -209,7 +174,7 @@
           "scripts": [
             {
               "text": {
-                "value": "UPDATE etl_watermark_control\nSET LastWatermarkValue = '@{variables('TargetProcessingDate')}'\nWHERE PipelineName = 'PL_Load_Bronze_MVP'",
+                "value": "UPDATE etl_watermark_control\nSET LastWatermarkValue = '@{variables('TargetProcessingDate')}'\nWHERE PipelineName = 'PL_Load_Bronze_Incremental'",
                 "type": "Expression"
               },
               "type": "Query"
@@ -240,7 +205,7 @@
         "description": "Atualizar nossa tabela de controle com o novo valor, para que a próxima execução comece a partir daqui.",
         "dependsOn": [
           {
-            "activity": "Set_Variable_TargetProcessingDate",
+            "activity": "ForEach_CopyTable",
             "dependencyConditions": [
               "Succeeded"
             ]
