@@ -92,7 +92,7 @@ def select_lancamentos(df):
     )
 
 key_columns = ["CODCTBLAN"]
-print(df.max(col(data_lancamento)))
+
 # 1. Leitura Completa do Bronze
 try:
     df_bronze = spark.read.table(f"{source_lakehouse}.{source_table}")
