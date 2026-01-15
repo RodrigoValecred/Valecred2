@@ -461,9 +461,9 @@ except Exception as e:
 # Classificação de Risco e Atraso
 df_classificacao = df_dates_final.withColumn("dias_atraso", datediff(current_date(), col("data_vencimento_util"))) \
     .withColumn("status_risco",
-        when((col("tto") == "RN") & (col("data_vencimento_util") < current_date()), "CRÍTICO (Vermelho)")
-        .when(col("data_vencimento_util") < current_date(), "ATENÇÃO (Amarelo)")
-        .otherwise("NO PRAZO (Verde)")
+        when((col("tto") == "RN") & (col("data_vencimento_util") < current_date()), "CRÍTICO")
+        .when(col("data_vencimento_util") < current_date(), "ATENÇÃO")
+        .otherwise("NO PRAZO")
     )
 
 df_status_1 = df_classificacao.withColumn("status_deferimento", when((col("aceito") == "S") & (col("status_aceite") == "A") & (col("status_analise") == "D"), "Sim").otherwise("Não"))
