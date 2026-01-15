@@ -416,7 +416,7 @@ df_titulos_base = df_titulos_limpa.filter(~col("t_doc").isin("BL", "RC")) \
     .withColumn("tipo_documento_sacado", when(length(col("cpf_cnpj_sacado")) == 11, "CPF").when(length(col("cpf_cnpj_sacado")) == 14, "CNPJ").otherwise("Inválido")) \
     .withColumn("raiz_cnpj", when(col("tipo_documento_sacado") == "CNPJ", substring(col("cpf_cnpj_sacado"), 1, 8)).otherwise(col("cpf_cnpj_sacado")))
 
-df_operacoes_small = df_operacoes_enriquecida.select("cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto")
+df_operacoes_small = df_operacoes_enriquecida.select("cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto", "tto")
 df_limites_small = df_limites.select("chave_cliente_sacado", "tipo")
 df_produtos_small = df_dim_produto.select(col("chave_produto"), col("produto_informacao_de_mercado").alias("produto_temp"))
 df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao").alias("cod_operacao_recompra"))
@@ -458,7 +458,15 @@ except Exception as e:
     print(f"AVISO: Erro ao ler dim_calendario: {e}.")
     df_dates_final = df_com_calcs.withColumn("data_vencimento_util", col("venc_prorrogado"))
 
-df_status_1 = df_dates_final.withColumn("status_deferimento", when((col("aceito") == "S") & (col("status_aceite") == "A") & (col("status_analise") == "D"), "Sim").otherwise("Não"))
+# Classificação de Risco e Atraso
+df_classificacao = df_dates_final.withColumn("dias_atraso", datediff(current_date(), col("data_vencimento_util"))) \
+    .withColumn("status_risco",
+        when((col("tto") == "RN") & (col("data_vencimento_util") < current_date()), "CRÍTICO")
+        .when(col("data_vencimento_util") < current_date(), "ATENÇÃO")
+        .otherwise("NO PRAZO")
+    )
+
+df_status_1 = df_classificacao.withColumn("status_deferimento", when((col("aceito") == "S") & (col("status_aceite") == "A") & (col("status_analise") == "D"), "Sim").otherwise("Não"))
 df_status_2 = df_status_1.withColumn("status_clean", when(col("produto_com_intercia") == "DESCONTO", "NORMAL").otherwise("CLEAN"))
 
 # Confirmacao Logic using Bronze column or Fallback
@@ -482,7 +490,8 @@ df_fato_titulos_final = df_ordem.select(
     "chave_produto", "status_protesto", "tipo_documento_sacado", "raiz_cnpj", "valor_vezes_prazo",
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany",
-    col("liquidacao"), col("valor_devido"), col("motivo")
+    col("liquidacao"), col("valor_devido"), col("motivo"),
+    col("status_risco"), col("dias_atraso")
 )
 output_path_titulos_final = "LH_Gold.fato_titulos"
 df_fato_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
