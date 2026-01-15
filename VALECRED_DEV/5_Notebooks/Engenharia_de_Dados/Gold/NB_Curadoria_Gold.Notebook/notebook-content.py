@@ -51,7 +51,7 @@ from pyspark.sql.functions import (
     lead, date_add, lag, max, coalesce, broadcast, dayofweek, dayofmonth, date_sub, trim, to_date,
     datediff, sum, min, count, round, floor, least, current_date, split
 )
-from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
+from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, DoubleType, DateType
 from delta.tables import *
 from functools import reduce
 import datetime
@@ -1070,6 +1070,90 @@ df_final = df_funnel \
 output_path_dim_clientes = "LH_Gold.dim_clientes"
 df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_clientes)
 print(f"Tabela 'dim_clientes' recriada em: {output_path_dim_clientes}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# MARKDOWN ********************
+
+# ## Seção 7: Métricas de Saúde da Carteira (HHI)
+# **Objetivo:** Calcular o Índice Herfindahl-Hirschman (HHI) para medir a concentração da carteira por Cedente e Sacado.
+
+# CELL ********************
+
+print("\nIniciando cálculo do HHI da Carteira...")
+
+# Garantindo acesso aos DataFrames base (caso a execução não seja sequencial na sessão interativa)
+if "df_fato_titulos_final" not in locals():
+    df_fato_titulos_final = spark.read.table("LH_Gold.fato_titulos")
+if "df_fato_operacoes" not in locals():
+    df_fato_operacoes = spark.read.table("LH_Gold.fato_operacoes")
+
+# Join para obter cod_cliente para cada título
+df_titulos_carteira = df_fato_titulos_final.join(
+    df_fato_operacoes.select("cod_operacao", "cod_cliente"), "cod_operacao", "left"
+)
+
+# Filtro de Risco Ativo (Carteira em Aberto)
+# Critério: Título aceito (status_deferimento='Sim') e em aberto (liquidacao is Null)
+df_carteira_ativa = df_titulos_carteira.filter(
+    (col("status_deferimento") == "Sim") &
+    (col("liquidacao").isNull())
+)
+
+# Valor Total da Carteira
+total_portfolio_row = df_carteira_ativa.agg(sum("valor_devido").alias("total")).collect()
+total_portfolio_value = total_portfolio_row[0]["total"] if total_portfolio_row else 0
+
+if total_portfolio_value > 0:
+    # --- HHI Cedente ---
+    # s_i = (Volume Cedente / Total) * 100
+    df_cedente_shares = df_carteira_ativa.groupBy("cod_cliente") \
+        .agg(sum("valor_devido").alias("valor_cedente")) \
+        .withColumn("share_pct", (col("valor_cedente") / lit(total_portfolio_value)) * 100)
+
+    # HHI = Sum(s^2)
+    hhi_cedente_row = df_cedente_shares.select(sum(col("share_pct") * col("share_pct"))).collect()
+    hhi_cedente = hhi_cedente_row[0][0] if hhi_cedente_row else 0.0
+
+    # --- HHI Sacado ---
+    # s_j = (Volume Sacado / Total) * 100
+    df_sacado_shares = df_carteira_ativa.groupBy("cpf_cnpj_sacado") \
+        .agg(sum("valor_devido").alias("valor_sacado")) \
+        .withColumn("share_pct", (col("valor_sacado") / lit(total_portfolio_value)) * 100)
+
+    hhi_sacado_row = df_sacado_shares.select(sum(col("share_pct") * col("share_pct"))).collect()
+    hhi_sacado = hhi_sacado_row[0][0] if hhi_sacado_row else 0.0
+else:
+    hhi_cedente = 0.0
+    hhi_sacado = 0.0
+
+# Preparando resultado
+today_py = datetime.date.today()
+data_hhi = [
+    (today_py, "CEDENTE", float(hhi_cedente)),
+    (today_py, "SACADO", float(hhi_sacado))
+]
+
+df_hhi = spark.createDataFrame(data_hhi, ["data_referencia", "tipo_concentracao", "hhi"])
+
+# Interpretação
+df_hhi_final = df_hhi.withColumn("interpretacao",
+    when(col("hhi") < 1500, "Carteira diversificada (Saudável)")
+    .when(col("hhi") > 2500, "Risco alto de quebra se um grande player falhar")
+    .otherwise("Concentração Moderada")
+)
+
+# Salvar
+output_path_hhi = "LH_Gold.metricas_carteira_hhi"
+df_hhi_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_hhi)
+print(f"Métricas HHI calculadas e salvas em: {output_path_hhi}")
+print(f"HHI Cedente: {hhi_cedente}")
+print(f"HHI Sacado: {hhi_sacado}")
 
 # METADATA ********************
 
