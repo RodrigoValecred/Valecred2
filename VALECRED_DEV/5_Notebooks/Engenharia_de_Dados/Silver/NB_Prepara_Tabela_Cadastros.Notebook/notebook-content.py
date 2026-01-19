@@ -76,7 +76,9 @@ def process_clientes():
         .select(
             col("CODCLIENTE").alias("cod_cliente"),
             col("CPFCNPJ").alias("cpf_cnpj"),
-            col("DATAINCLUSAO").alias("data_inclusao")
+            col("DATAINCLUSAO").alias("data_inclusao"),
+            col("CODATIVIDADE").alias("cod_atividade"),
+            col("CODBROKER").alias("cod_broker")
         )
     df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_clientes_limpa")
 
