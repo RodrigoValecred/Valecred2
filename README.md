@@ -233,7 +233,6 @@ Responsável por limpar, padronizar e desduplicar os dados brutos da camada Bron
 Responsável por aplicar regras de negócio complexas, joins e agregações para gerar as tabelas finais de consumo.
 
 -   **`NB_Curadoria_Gold`**: Centraliza a lógica de **enriquecimento e joins**. Consome as tabelas tratadas da Silver (staging) e gera as tabelas Fato finais no `LH_Gold`.
--   **`NB_Dim_Cliente_Gold`**: Notebook especializado na criação da dimensão de clientes (`dim_clientes`), integrando dados cadastrais, grupos econômicos e contratos.
 -   **`NB_Calendario_Gold`**: Gera e atualiza a tabela dimensão de calendário (`dim_calendario`).
 -   **`NB_Gold_Risco_Cliente`**: Cria agregações de risco por cliente, segmentado por produto.
 -   **`NB_Risk_Aggregation`**: Calcula métricas históricas de risco (inadimplência, volume).

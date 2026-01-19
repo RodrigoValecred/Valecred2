@@ -746,7 +746,7 @@ df_bridge_atual = df_bridge_gerente.filter(col("data_fim_vigencia") == "9999-12-
 df_info_gestor = df_bridge_atual \
     .join(df_gerentes, df_bridge_atual.cod_gerente == df_gerentes.cod_broker, "left") \
     .join(df_plataformas, "cod_agencia", "left") \
-    .select(df_bridge_atual.cod_cliente, df_plataformas.gestor_da_plataforma)
+    .select(df_bridge_atual.cod_cliente, df_plataformas.gestor_da_plataforma, df_bridge_atual.cod_gerente.alias("cod_broker"))
 
 # 6.1: Métricas de Operações
 # --------------------------
@@ -1018,6 +1018,7 @@ df_final = df_funnel \
     ) \
     .withColumn("pais", lit("Brasil")) \
     .withColumn("primeiro_nome_gerente", split(col("gestor_da_plataforma"), " ")[0]) \
+    .withColumn("cod_broker", col("cod_broker")) \
     .withColumn("status_operando_vencido",
         when(
             (col("data_ultima_operacao") > col("vencimento_limite")) &
