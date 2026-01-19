@@ -898,7 +898,21 @@ df_limites_agg = df_contratos.filter(col("status") == "A") \
 # ------------------------------------
 # Base: Clientes Staging
 # Atualização: Incluindo data_inclusao (requeridas para idade_cliente e idade_cliente_em_dias)
-df_base = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclusao", "cod_atividade")
+df_base_raw = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclusao", "cod_atividade")
+
+# Verificação e Remoção de Duplicados (CNPJ)
+# Objetivo: Garantir que a dim_clientes tenha chave única por CPF/CNPJ.
+# Regra: Se houver duplicidade, mantemos o cadastro com data_inclusao mais recente (ou cod_cliente maior).
+df_dupes = df_base_raw.groupBy("cpf_cnpj").count().filter(col("count") > 1)
+n_dupes = df_dupes.count()
+
+if n_dupes > 0:
+    print(f"AVISO: Detectados {n_dupes} CNPJs duplicados em staging_clientes. Aplicando desduplicação (mantendo o registro mais recente).")
+    w_dedup = Window.partitionBy("cpf_cnpj").orderBy(col("data_inclusao").desc(), col("cod_cliente").desc())
+    df_base = df_base_raw.withColumn("rn", row_number().over(w_dedup)).filter(col("rn") == 1).drop("rn")
+else:
+    print("Nenhum CNPJ duplicado detectado na base de clientes.")
+    df_base = df_base_raw
 
 # Prepare Esteira Min Dates for Funnel (Joining back to main flow)
 # Renaming for clarity
