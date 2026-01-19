@@ -539,17 +539,16 @@ def process_tarifas_esporadicas():
 
     # Join Users (Left) & Filter Analyst
     # Note: Using aliases to avoid ambiguity if USUAINCLUSAO exists in both (though here we join on it)
-    df_joined = df_filtered.join(df_usuarios, col("USUAINCLUSAO") == col("CODUSUARIO"), "left") \
-        .filter((col("NOME") != "RONALDO DANILO UREI GOBBI") | col("NOME").isNull())
+    df_joined = df_filtered.alias("t").join(df_usuarios.alias("u"), col("t.USUAINCLUSAO") == col("u.CODUSUARIO"), "left") \
+        .filter((col("u.NOME") != "RONALDO DANILO UREI GOBBI") | col("u.NOME").isNull())
 
     # Select & Transform
     df_final = df_joined.select(
-        col("CODOPERACAO").alias("cod_operacao"),
-        col("DESCRICAO").alias("descricao"),
-        col("TOTAL").alias("total"),
-        col("DATAINCLUSAO").alias("data_inclusao"),
-        col("NOME").alias("analista"),
-        concat(lit("40-"), col("CODOPERACAO").cast("string")).alias("chave_base_operacao")
+        col("t.CODOPERACAO").alias("cod_operacao"),
+        col("t.DESCRICAO").alias("descricao"),
+        col("t.TOTAL").alias("total"),
+        col("t.DATAINCLUSAO").alias("data_inclusao"),
+        col("u.NOME").alias("analista")
     ).distinct()
 
     target_table = "staging_tarifas_esporadicas"
