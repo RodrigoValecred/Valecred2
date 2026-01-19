@@ -527,6 +527,35 @@ def process_recompras():
         )
     df_recompras.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_operacoes_recompras")
 
+
+def process_tarifas_esporadicas():
+    print("Processando Tarifas Esporádicas...")
+
+    df_tarifas = spark.read.table(f"{source_lakehouse}.tab_operacoes_tarifas_extras")
+    df_usuarios = spark.read.table(f"{source_lakehouse}.cad_usuarios")
+
+    # Filter Year >= 2024
+    df_filtered = df_tarifas.filter(year(col("DATAINCLUSAO")) >= 2024)
+
+    # Join Users (Left) & Filter Analyst
+    # Note: Using aliases to avoid ambiguity if USUAINCLUSAO exists in both (though here we join on it)
+    df_joined = df_filtered.join(df_usuarios, col("USUAINCLUSAO") == col("CODUSUARIO"), "left") \
+        .filter((col("NOME") != "RONALDO DANILO UREI GOBBI") | col("NOME").isNull())
+
+    # Select & Transform
+    df_final = df_joined.select(
+        col("CODOPERACAO").alias("cod_operacao"),
+        col("DESCRICAO").alias("descricao"),
+        col("TOTAL").alias("total"),
+        col("DATAINCLUSAO").alias("data_inclusao"),
+        col("NOME").alias("analista"),
+        concat(lit("40-"), col("CODOPERACAO").cast("string")).alias("chave_base_operacao")
+    ).distinct()
+
+    target_table = "staging_tarifas_esporadicas"
+    df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.{target_table}")
+    print(f"Tabela {target_table} criada com sucesso.")
+
 # Execução
 process_operacoes()
 process_devolucoes()
@@ -537,6 +566,7 @@ process_escrow()
 process_prorrogacoes()
 process_recompras()
 process_tab_operacoes_prorrogacao()
+process_tarifas_esporadicas()
 
 print("Limpeza Silver - Operações finalizada.")
 mssparkutils.notebook.exit("Success")

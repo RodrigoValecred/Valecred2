@@ -65,6 +65,26 @@ import datetime
 
 # CELL ********************
 
+# Célula 5.2: Construção da Fato Tarifas Esporádicas
+# ---------------------------------------------------
+print("\nIniciando construção da fato_tarifas_esporadicas...")
+
+df_tarifas_silver = spark.read.table("LH_Silver.staging_tarifas_esporadicas")
+
+# Salvar
+target_fato_tarifas = "LH_Gold.fato_tarifas_esporadicas"
+df_tarifas_silver.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_tarifas)
+print(f"Tabela '{target_fato_tarifas}' criada com sucesso.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 # Célula 0.2: Leitura das Tabelas Preparadas (Silver)
 # ----------------------------------------------------------------
 print("Iniciando leitura da Silver...")
