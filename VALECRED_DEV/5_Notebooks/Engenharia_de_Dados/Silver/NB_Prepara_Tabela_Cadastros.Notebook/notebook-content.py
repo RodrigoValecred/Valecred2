@@ -253,11 +253,11 @@ def process_gerentes():
         # Identificação dinâmica da chave de junção
         sup_cols = [c.lower() for c in df_sup_ativos.columns]
         join_key = None
-        # Ordem de prioridade: codgerente (solicitado), cod_broker (padrão), cod_gerente
-        if "codgerente" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("codgerente")]
+        # Ordem de prioridade atualizada: cod_gerente (confirmado), seguido de fallbacks
+        if "cod_gerente" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("cod_gerente")]
+        elif "codgerente" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("codgerente")]
         elif "cod_broker" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("cod_broker")]
         elif "codbroker" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("codbroker")]
-        elif "cod_gerente" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("cod_gerente")]
 
         if join_key:
             print(f"Chave de junção encontrada em sup_gerentes_ativos: {join_key}")
