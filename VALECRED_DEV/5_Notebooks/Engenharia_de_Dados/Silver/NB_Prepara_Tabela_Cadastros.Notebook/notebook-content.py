@@ -244,7 +244,38 @@ def process_empresas():
 
 def process_gerentes():
     print("Processando Gerentes...")
-    spark.read.table(f"{source_lakehouse}.cad_brokers").select(col("CODBROKER").alias("cod_broker"), col("CPFCNPJ").alias("cpf_cnpj"), col("CODAGENCIA").alias("cod_agencia"), col("CODUSUARIO").alias("cod_usuario")).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_gerentes")
+    df_brokers = spark.read.table(f"{source_lakehouse}.cad_brokers").select(col("CODBROKER").alias("cod_broker"), col("CPFCNPJ").alias("cpf_cnpj"), col("CODAGENCIA").alias("cod_agencia"), col("CODUSUARIO").alias("cod_usuario"))
+
+    try:
+        # Leitura da tabela de gerentes ativos carregada no Silver
+        df_sup_ativos = spark.read.table(f"{target_lakehouse}.sup_gerentes_ativos")
+
+        # Identificação dinâmica da chave de junção
+        sup_cols = [c.lower() for c in df_sup_ativos.columns]
+        join_key = None
+        # Ordem de prioridade: codgerente (solicitado), cod_broker (padrão), cod_gerente
+        if "codgerente" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("codgerente")]
+        elif "cod_broker" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("cod_broker")]
+        elif "codbroker" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("codbroker")]
+        elif "cod_gerente" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("cod_gerente")]
+
+        if join_key:
+            print(f"Chave de junção encontrada em sup_gerentes_ativos: {join_key}")
+            # Seleciona apenas a chave para evitar colisão e broadcast
+            df_sup_ativos = df_sup_ativos.select(col(join_key).alias("cod_broker_join")).distinct()
+
+            df_brokers = df_brokers.join(df_sup_ativos, df_brokers.cod_broker == df_sup_ativos.cod_broker_join, "left") \
+                .withColumn("status_ativo", when(col("cod_broker_join").isNotNull(), "sim").otherwise("não")) \
+                .drop("cod_broker_join")
+        else:
+             print("AVISO: Chave de junção não encontrada em sup_gerentes_ativos. Definindo status_ativo como 'não'.")
+             df_brokers = df_brokers.withColumn("status_ativo", lit("não"))
+
+    except Exception as e:
+        print(f"AVISO: Erro ao processar sup_gerentes_ativos: {e}. Definindo status_ativo como 'não'.")
+        df_brokers = df_brokers.withColumn("status_ativo", lit("não"))
+
+    df_brokers.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_gerentes")
 
 def process_plataformas():
     print("Processando Plataformas...")
