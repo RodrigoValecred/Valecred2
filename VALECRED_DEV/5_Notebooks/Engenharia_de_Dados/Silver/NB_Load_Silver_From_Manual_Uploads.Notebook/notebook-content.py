@@ -191,6 +191,10 @@ files_to_process = [
         "target_table_name": "LH_Silver.sup_forma_de_pagamento"
     },
     {
+        "source_filename": "gerentes_ativos.xlsx",
+        "target_table_name": "LH_Silver.sup_gerentes_ativos"
+    },
+    {
         "source_filename": "gestor_de_plataforma.xlsx",
         "target_table_name": "LH_Silver.sup_gestor_de_plataforma"
     },
