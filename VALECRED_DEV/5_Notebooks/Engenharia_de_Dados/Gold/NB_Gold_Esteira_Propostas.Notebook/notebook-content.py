@@ -1,10 +1,5 @@
 # Fabric notebook source
 
-
-# CELL ********************
-
-# Fabric notebook source
-
 # METADATA ********************
 
 # META {
@@ -159,7 +154,7 @@ if record_count > 0:
         .withColumnRenamed("DATAINCLUSAO", "DATALOG") \
         .select(
             col("CODPARECER"),
-            col("cod_cliente").alias("CODCLIENTE"), 
+            col("cod_cliente").alias("CODCLIENTE"),
             col("STATUS_DO_CLIENTE"),
             col("DATALOG"),
             col("BASE"),
@@ -177,7 +172,7 @@ if record_count > 0:
         delta_table = DeltaTable.forName(spark, target_pareceres_status_table_name)
         spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
         delta_table.alias("t").merge(
-            df_pareceres_enriquecidos_delta.alias("s"), 
+            df_pareceres_enriquecidos_delta.alias("s"),
             "t.CODPARECER = s.CODPARECER"
         ).whenMatchedUpdateAll() \
          .whenNotMatchedInsertAll() \

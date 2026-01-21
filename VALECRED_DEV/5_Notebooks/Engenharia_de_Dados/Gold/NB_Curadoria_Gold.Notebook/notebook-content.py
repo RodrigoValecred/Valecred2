@@ -28,10 +28,9 @@
 
 # MARKDOWN ********************
 
-# # Notebook de Curadoria da Camada Gold (Refatorado)
+# # Notebook de Curadoria da Camada Gold (Otimizado)
 # **Objetivo:** Aplicar regras de negócio, realizar joins e criar os modelos dimensionais (Fatos e Dimensões) na camada **Gold**.
-# **Refatoração:** Este notebook consome dados tratados da camada **Silver**, preparados pelos notebooks `NB_Prepara_Tabela_Cadastros`, `NB_Prepara_Tabela_Operacoes` e `NB_Prepara_Tabela_Titulos`.
-# **Origem de Dados:** `LH_Silver` (Tabelas Staging Limpas) e `LH_Bronze` (Lookups/Cadastros menores).
+# **Refatoração:** Este notebook consome dados tratados da camada **Silver**. Dimensões independentes (Gerentes, Sacados, Esteira) foram extraídas para notebooks dedicados.
 
 # MARKDOWN ********************
 
@@ -91,13 +90,12 @@ print("Iniciando leitura da Silver...")
 
 # --- 1. Titulos (Origem: LH_Silver.staging_titulos_limpa) ---
 print("Carregando Titulos (Silver)...")
-df_titulos_limpa = spark.read.table("LH_Silver.staging_titulos_limpa")
+df_titulos_limpa = spark.read.table("LH_Silver.staging_titulos_limpa").cache()
 # A tabela já está limpa, desduplicada e com colunas renomeadas para snake_case.
 
 # --- 2. Operacoes (Origem: LH_Silver.staging_operacoes_limpa) ---
 print("Carregando Operacoes (Silver)...")
 df_operacoes_limpa = spark.read.table("LH_Silver.staging_operacoes_limpa")
-# Já possui snake_case e chave_produto.
 
 # --- 3. Baixas (Origem: LH_Silver.staging_baixas_limpa) ---
 print("Carregando Baixas (Silver)...")
@@ -123,7 +121,6 @@ df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
 print("Carregando Gerentes e Plataformas (Silver)...")
 df_gerentes = spark.read.table("LH_Silver.staging_gerentes")
 df_plataformas = spark.read.table("LH_Silver.staging_plataformas")
-df_usuarios_staging = spark.read.table("LH_Silver.staging_usuarios")
 
 # Emails & Telefones Agg
 print("Carregando Emails e Telefones (Silver)...")
@@ -136,7 +133,6 @@ df_dim_pago_por = spark.read.table("LH_Silver.sup_pago_pelo")
 df_dim_forma_pagamento = spark.read.table("LH_Silver.sup_forma_de_pagamento")
 df_dim_tipo_taxa = spark.read.table("LH_Silver.sup_tipo_de_baixa")
 df_dim_motivo_baixa = spark.read.table("LH_Silver.sup_motivo_baixa")
-df_status_clientes_esteira = spark.read.table("LH_Silver.sup_status_de_clientes_da_esteira")
 
 # --- 6. Other Lookups ---
 print("Carregando Lookups (Bronze)...")
@@ -144,8 +140,6 @@ df_cad_geral_arquivos = spark.read.table("LH_Bronze.cad_geral_arquivos")
 df_tipo_op_bronze = spark.read.table("LH_Bronze.tab_tipooperacao")
 df_subtipo_op_bronze = spark.read.table("LH_Bronze.tab_subtipooperacao")
 df_feriados = spark.read.table("LH_Bronze.tab_feriados")
-df_pareceres_raw = spark.read.table("LH_Bronze.cad_geral_pareceres")
-df_usuarios_raw = spark.read.table("LH_Bronze.cad_usuarios")
 
 # Limites (Silver)
 print("Carregando Limites (Silver)...")
@@ -165,10 +159,6 @@ df_ultima_conf = spark.read.table("LH_Silver.fact_ultima_confirmacao")
 # Calendario (Gold)
 print("Carregando Calendario (Gold)...")
 df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
-
-# Sacados (Silver)
-print("Carregando Sacados (Silver)...")
-df_sacados_enriquecida = spark.read.table("LH_Silver.staging_sacados_enriquecida")
 
 # Contratos (Silver) - Para Limites
 print("Carregando Contratos (Silver)...")
@@ -412,85 +402,6 @@ print(f"Tabela 'dim_produto' salva e em cache em: {output_path_dim_produto}")
 # META   "language_group": "synapse_pyspark"
 # META }
 
-# CELL ********************
-
-# Célula 2.4: Construção da Dimensão Sacados
-# ------------------------------------------
-print("\nIniciando construção da dim_sacados...")
-# A tabela já vem tratada da camada Silver (NB_Prepara_Tabela_Cadastros)
-# Selecionamos as colunas e salvamos na Gold.
-df_dim_sacados = df_sacados_enriquecida.select(
-    col("cpf_cnpj"),
-    col("nome_sacado"),
-    col("emails"),
-    col("telefones"),
-    col("endereco"),
-    col("numero"),
-    col("complemento"),
-    col("bairro"),
-    col("cidade"),
-    col("uf"),
-    col("cep"),
-    col("regiao")
-)
-
-output_path_dim_sacados = "LH_Gold.dim_sacados"
-df_dim_sacados.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_sacados)
-print(f"Tabela 'dim_sacados' salva em: {output_path_dim_sacados}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# Célula 2.5: Construção da Dimensão Gerentes
-# -------------------------------------------
-print("\nIniciando construção da dim_gerentes...")
-
-# Join com Usuarios (Prioridade 1)
-df_gerentes_with_users = df_gerentes.alias("g") \
-    .join(df_usuarios_staging.alias("u"), col("g.cod_usuario") == col("u.cod_usuario"), "left")
-
-# Join com Cadastro Geral (Prioridade 2 - Fallback via CPF/CNPJ)
-# Tratamento de CPF/CNPJ para garantir match (apenas números)
-df_gerentes_clean_cpf = df_gerentes_with_users \
-    .withColumn("cpf_cnpj_clean", regexp_replace(col("g.cpf_cnpj"), "[^0-9]", ""))
-
-# df_geral_pf_pj_limpa já está carregada na Seção 0
-df_geral_clean = df_geral_pf_pj_limpa.alias("cad") \
-    .withColumn("cpf_cnpj_clean", regexp_replace(col("cad.cpf_cnpj"), "[^0-9]", ""))
-
-df_gerentes_enriched = df_gerentes_clean_cpf \
-    .join(df_geral_clean.select(col("cpf_cnpj_clean"), col("cad.nome").alias("nome_geral")), "cpf_cnpj_clean", "left")
-
-df_dim_gerentes = df_gerentes_enriched \
-    .join(df_plataformas, "cod_agencia", "left") \
-    .select(
-        col("g.cod_broker"),
-        coalesce(col("u.nome"), col("nome_geral"), lit("GERENTE NÃO IDENTIFICADO")).alias("nome_gerente"),
-        col("g.cpf_cnpj"),
-        col("g.data_inicio_gestao"),
-        col("g.meses_de_casa"),
-        col("g.status_ativo"),
-        col("nome_plataforma"),
-        col("gestor_da_plataforma")
-    )
-
-output_path_dim_gerentes = "LH_Gold.dim_gerentes"
-df_dim_gerentes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_gerentes)
-print(f"Tabela 'dim_gerentes' salva em: {output_path_dim_gerentes}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
 # MARKDOWN ********************
 
 # ## Seção 3: Construção da Fato Títulos (Otimizada)
@@ -589,154 +500,6 @@ df_fato_titulos_final = df_ordem.select(
 output_path_titulos_final = "LH_Gold.fato_titulos"
 df_fato_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
 print(f"Tabela 'fato_titulos' salva em: {output_path_titulos_final}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# MARKDOWN ********************
-
-# ## Seção 4: Esteira de Propostas (Lógica Incremental)
-
-# CELL ********************
-
-# Célula 4.1: Configuração e Watermark
-# ------------------------------------------------
-print("\nIniciando o processamento incremental de pareceres...")
-target_pareceres_status_table_name = "LH_Silver.pareceres_de_alteracao_de_status"
-target_esteira_table_name = "LH_Gold.esteira_de_propostas"
-watermark_table_name = "LH_Silver.etl_watermark_control"
-notebook_name = "NB_Curadoria_Gold"
-
-try:
-    df_watermark = spark.read.table(watermark_table_name)
-    last_watermark_str = df_watermark.filter(col("TableName") == notebook_name).select("LastWatermarkValue").collect()[0][0]
-    last_watermark = datetime.datetime.strptime(last_watermark_str.split('.')[0], "%Y-%m-%d %H:%M:%S")
-    print(f"Watermark encontrado: {last_watermark}")
-except Exception:
-    last_watermark = datetime.datetime(1900, 1, 1)
-    print(f"Usando watermark padrão: {last_watermark}.")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# Célula 4.2: Leitura e Processamento Incremental
-# ------------------------------------------------
-df_pareceres_incremental = df_pareceres_raw.filter((col("DATAINCLUSAO") > last_watermark) | (col("DATAALTERACAO") > last_watermark)).cache()
-record_count = df_pareceres_incremental.count()
-
-print("mostrando colunas da df_pareceres_incremental:")
-print(df_pareceres_incremental.columns)
-
-if record_count > 0:
-    new_watermark = df_pareceres_incremental.agg(max(greatest(coalesce(col("DATAINCLUSAO"), lit(datetime.datetime(1900,1,1))), coalesce(col("DATAALTERACAO"), lit(datetime.datetime(1900,1,1)))))).collect()[0][0]
-    print(f"Registros incrementais: {record_count}. Novo watermark: {new_watermark}")
-
-    df_replica_pareceres_delta = df_pareceres_incremental.filter(year(col("DATAINCLUSAO")) >= 2024).drop("ENCAMINHAR", "ALERTA", "CODPASTA", "CODTAREFA", "USUAALTERACAO", "DATAALTERACAO").withColumn("OBS", col("OBS").substr(1, 255)).withColumn("codTipoParecer", col("CODTIPOPARECER").cast(LongType())).filter((col("codTipoParecer") == 1) & (col("CPFCNPJ").isNotNull()) & (col("CPFCNPJ") != "") & (col("OBS").isNotNull()) & (col("OBS") != "") & (col("USUAINCLUSAO").isNotNull()) & (col("DATAINCLUSAO").isNotNull())).filter(col("OBS").startswith("STATUS ALTERADO PARA ")).withColumn("STATUS_DO_CLIENTE", trim(substring(col("OBS"), 22, 100))).withColumn("BASE", lit(40).cast(LongType())).select("CODPARECER", "CPFCNPJ", "CODOPERACAO", "DATAINCLUSAO", "USUAINCLUSAO", "STATUS_DO_CLIENTE", "BASE")
-
-    # Recuperar MAX INDICE por Cliente da tabela alvo, se existir, para continuar a sequencia
-    if spark.catalog.tableExists(target_pareceres_status_table_name):
-        df_max_indices = spark.read.table(target_pareceres_status_table_name).groupBy("CODCLIENTE").agg(max("INDICE").alias("max_indice"))
-        # Garantir snake_case para join
-        if "CODCLIENTE" in df_max_indices.columns:
-            df_max_indices = df_max_indices.withColumnRenamed("CODCLIENTE", "cod_cliente")
-    else:
-        df_max_indices = None
-
-    # Enriquecimento e Calculo de Indice
-    df_joined = df_replica_pareceres_delta.join(df_clientes_staging.select("cpf_cnpj", "cod_cliente"), df_replica_pareceres_delta.CPFCNPJ == df_clientes_staging.cpf_cnpj, "left")
-
-    if df_max_indices:
-        df_joined = df_joined.join(df_max_indices, "cod_cliente", "left").withColumn("start_index", coalesce(col("max_indice"), lit(0)))
-    else:
-        df_joined = df_joined.withColumn("start_index", lit(0))
-
-    window_cliente_data_delta = Window.partitionBy("cod_cliente").orderBy(col("DATAINCLUSAO").asc())
-
-    # --- AQUI ESTAVA O ERRO E AQUI ESTÁ A CORREÇÃO ---
-    df_pareceres_enriquecidos_delta = df_joined \
-        .withColumn("chave_base_cliente", concat(col("BASE").cast("string"), lit("-"), col("cod_cliente").cast("string"))) \
-        .join(df_usuarios_raw.select("CODUSUARIO", "NOME"), col("USUAINCLUSAO") == col("CODUSUARIO"), "left") \
-        .withColumnRenamed("NOME", "USUARIO") \
-        .join(df_status_clientes_esteira, "STATUS_DO_CLIENTE", "left") \
-        .filter(col("cod_cliente").isNotNull() & (col("cod_cliente") != "")) \
-        .withColumn("INDICE", col("start_index") + row_number().over(window_cliente_data_delta)) \
-        .withColumn("chave_original", (col("INDICE") * 1000000000 + col("cod_cliente")).cast(LongType())) \
-        .withColumnRenamed("DATAINCLUSAO", "DATALOG") \
-        .select(
-            col("CODPARECER"),
-            col("cod_cliente").alias("CODCLIENTE"), # <--- CORREÇÃO: Renomeando explicitamente para o Merge encontrar
-            col("STATUS_DO_CLIENTE"),
-            col("DATALOG"),
-            col("BASE"),
-            col("USUARIO"),
-            col("chave_base_cliente"),
-            col("INDICE"),
-            col("chave_original"),
-            col("MACROPROCESSO"),
-            col("FASE")
-        )
-
-    if spark.catalog.tableExists(target_pareceres_status_table_name):
-        print(f"Executando Merge na tabela {target_pareceres_status_table_name}...")
-        # Schema Evolution: Se houver colunas novas, permite a evolução
-        delta_table = DeltaTable.forName(spark, target_pareceres_status_table_name)
-        spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
-        delta_table.alias("t").merge(
-            df_pareceres_enriquecidos_delta.alias("s"), 
-            "t.CODPARECER = s.CODPARECER"
-        ).whenMatchedUpdateAll() \
-         .whenNotMatchedInsertAll() \
-         .execute()
-    else:
-        print(f"Criando tabela {target_pareceres_status_table_name} pela primeira vez...")
-        df_pareceres_enriquecidos_delta.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_pareceres_status_table_name)
-else:
-    new_watermark = last_watermark
-    print("Nenhum dado novo encontrado.")
-
-if 'df_pareceres_incremental' in locals():
-    df_pareceres_incremental.unpersist()
-
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# Célula 4.3: Reconstrução da Esteira e Atualização do Watermark
-# -------------------------------------------------------------
-if record_count > 0:
-    print("Reconstruindo esteira_de_propostas...")
-    df_pareceres_completa = spark.read.table(target_pareceres_status_table_name)
-    window_lag = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
-    df_com_lag = df_pareceres_completa.withColumn("STATUS_DO_CLIENTE_ANTERIOR", lag("STATUS_DO_CLIENTE").over(window_lag)).withColumn("DATALOG_ANTERIOR", lag("DATALOG").over(window_lag)).withColumn("MACROPROCESSO_ANTERIOR", lag("MACROPROCESSO").over(window_lag)).withColumn("FASE_ANTERIOR", lag("FASE").over(window_lag))
-    df_transicoes = df_com_lag.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
-    df_esteira_final = df_transicoes.withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)).withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)).select(col("INDICE").alias("indice"), col("CODCLIENTE").alias("cod_cliente"), col("BASE").alias("base"), col("DATALOG_ANTERIOR").alias("datalog_anterior"), col("DATALOG").alias("datalog"), "chave_base_cliente", col("STATUS_DO_CLIENTE_ANTERIOR").alias("status_do_cliente_anterior"), col("STATUS_DO_CLIENTE").alias("status_do_cliente"), col("MACROPROCESSO_ANTERIOR").alias("macroprocesso_anterior"), col("MACROPROCESSO").alias("macroprocesso"), col("FASE_ANTERIOR").alias("fase_anterior"), col("FASE").alias("fase"), col("USUARIO").alias("usuario"), col("DEVOLUCAO").alias("devolucao"), col("RECEBIDA").alias("recebida"))
-    df_esteira_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_esteira_table_name)
-    print("Esteira reconstruída.")
-
-    print("Atualizando watermark...")
-    df_new_watermark = spark.createDataFrame([(notebook_name, new_watermark.strftime("%Y-%m-%d %H:%M:%S.%f"))], ["TableName", "LastWatermarkValue"])
-    if spark.catalog.tableExists(watermark_table_name):
-        DeltaTable.forName(spark, watermark_table_name).alias("t").merge(df_new_watermark.alias("s"), "t.TableName = s.TableName").whenMatchedUpdate(set={"LastWatermarkValue": "s.LastWatermarkValue"}).whenNotMatchedInsert(values={"TableName": "s.TableName", "LastWatermarkValue": "s.LastWatermarkValue"}).execute()
-    else:
-        df_new_watermark.write.mode("overwrite").saveAsTable(watermark_table_name)
-
-print("Processo Gold Otimizado concluído.")
 
 # METADATA ********************
 
