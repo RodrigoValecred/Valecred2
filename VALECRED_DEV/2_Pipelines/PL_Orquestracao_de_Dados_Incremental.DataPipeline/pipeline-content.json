@@ -55,12 +55,6 @@
             "dependencyConditions": [
               "Succeeded"
             ]
-          },
-          {
-            "activity": "NB_Gold_Esteira_Propostas",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
           }
         ]
       },
@@ -249,75 +243,6 @@
         "dependsOn": [
           {
             "activity": "Carrega dados brutos",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "e8e7740d-03d3-4149-a389-0cec6dd95775",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "NB_Gold_Dim_Gerentes",
-        "dependsOn": [
-          {
-            "activity": "Cadastros",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "8a89351b-d223-4ab3-a742-f864fd53e126",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "NB_Gold_Dim_Sacados",
-        "dependsOn": [
-          {
-            "activity": "Cadastros",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "8731b65b-248f-4bd0-b43b-83b74a686c2d",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "NB_Gold_Esteira_Propostas",
-        "dependsOn": [
-          {
-            "activity": "Cadastros",
             "dependencyConditions": [
               "Succeeded"
             ]
