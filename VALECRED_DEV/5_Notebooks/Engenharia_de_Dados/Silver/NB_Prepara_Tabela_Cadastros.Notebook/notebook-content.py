@@ -244,7 +244,7 @@ def process_empresas():
 
 def process_gerentes():
     print("Processando Gerentes...")
-    df_brokers = spark.read.table(f"{source_lakehouse}.cad_brokers").select(col("CODBROKER").alias("cod_broker"), col("CPFCNPJ").alias("cpf_cnpj"), col("CODAGENCIA").alias("cod_agencia"), col("CODUSUARIO").alias("cod_usuario"))
+    df_brokers = spark.read.table(f"{source_lakehouse}.cad_brokers").select(col("CODBROKER").alias("cod_broker"), col("CPFCNPJ").alias("cpf_cnpj"), col("CODAGENCIA").alias("cod_agencia"), col("CODUSUARIO").alias("cod_usuario"), col("DATAINCLUSAO").alias("data_contratacao"))
 
     try:
         # Leitura da tabela de gerentes ativos carregada no Silver
