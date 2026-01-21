@@ -121,15 +121,18 @@ df_enderecos_limpa = spark.read.table("LH_Silver.staging_enderecos_limpa").selec
 df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
 
 # Gerentes e Plataformas
+print("Carregando Gerentes e Plataformas (Silver)...")
 df_gerentes = spark.read.table("LH_Silver.staging_gerentes")
 df_plataformas = spark.read.table("LH_Silver.staging_plataformas")
 df_usuarios_staging = spark.read.table("LH_Silver.staging_usuarios")
 
 # Emails & Telefones Agg
+print("Carregando Emails e Telefones (Silver)...")
 df_emails_agg = spark.read.table("LH_Silver.staging_emails_agg")
 df_telefones_agg = spark.read.table("LH_Silver.staging_telefones_agg")
 
 # --- 5. Support Tables ---
+print("Carregando Tabelas de Suporte (Silver)...")
 df_dim_pago_por = spark.read.table("LH_Silver.sup_pago_pelo")
 df_dim_forma_pagamento = spark.read.table("LH_Silver.sup_forma_de_pagamento")
 df_dim_tipo_taxa = spark.read.table("LH_Silver.sup_tipo_de_baixa")
@@ -137,6 +140,7 @@ df_dim_motivo_baixa = spark.read.table("LH_Silver.sup_motivo_baixa")
 df_status_clientes_esteira = spark.read.table("LH_Silver.sup_status_de_clientes_da_esteira")
 
 # --- 6. Other Lookups ---
+print("Carregando Lookups (Bronze)...")
 df_cad_geral_arquivos = spark.read.table("LH_Bronze.cad_geral_arquivos")
 df_tipo_op_bronze = spark.read.table("LH_Bronze.tab_tipooperacao")
 df_subtipo_op_bronze = spark.read.table("LH_Bronze.tab_subtipooperacao")
@@ -145,26 +149,34 @@ df_pareceres_raw = spark.read.table("LH_Bronze.cad_geral_pareceres")
 df_usuarios_raw = spark.read.table("LH_Bronze.cad_usuarios")
 
 # Limites (Silver)
+print("Carregando Limites (Silver)...")
 df_limites = spark.read.table("LH_Silver.staging_rlc_clientes_sacados_limites")
 
 # Devolucoes (Silver)
+print("Carregando Devolucoes (Silver)...")
 df_devolucoes = spark.read.table("LH_Silver.staging_operacoes_devolucoes_limpa")
 
 # Protestos (Silver)
+print("Carregando Protestos (Silver)...")
 df_protestos = spark.read.table("LH_Silver.staging_protestos")
 
+print("Carregando Ultima Confirmacao (Silver)...")
 df_ultima_conf = spark.read.table("LH_Silver.fact_ultima_confirmacao")
 
 # Calendario (Gold)
+print("Carregando Calendario (Gold)...")
 df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
 
 # Sacados (Silver)
+print("Carregando Sacados (Silver)...")
 df_sacados_enriquecida = spark.read.table("LH_Silver.staging_sacados_enriquecida")
 
 # Contratos (Silver) - Para Limites
+print("Carregando Contratos (Silver)...")
 df_contratos = spark.read.table("LH_Silver.staging_contratos_clientes_limpa")
 
 # Grupos Economicos (Silver)
+print("Carregando Grupos Economicos (Silver)...")
 df_grupos_economicos = spark.read.table("LH_Silver.sup_grupos_economicos")
 
 print("Leitura da Silver concluída.")
