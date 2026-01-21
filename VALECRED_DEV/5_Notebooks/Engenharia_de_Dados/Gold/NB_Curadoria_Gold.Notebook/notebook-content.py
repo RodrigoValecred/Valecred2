@@ -178,6 +178,15 @@ df_contratos = spark.read.table("LH_Silver.staging_contratos_clientes_limpa")
 print("Carregando Grupos Economicos (Silver)...")
 df_grupos_economicos = spark.read.table("LH_Silver.sup_grupos_economicos")
 
+# Relatorio Juridico (Silver) - Para flag status_enviado_juridico
+print("Carregando Relatorio Juridico (Silver)...")
+try:
+    df_relatorio_juridico = spark.read.table("LH_Silver.relatorio_titulos_juridico")
+except Exception as e:
+    print(f"AVISO: Tabela LH_Silver.relatorio_titulos_juridico não encontrada ({e}). Criando dataframe vazio.")
+    schema_jur = StructType([StructField("cod_titulo", LongType(), True)])
+    df_relatorio_juridico = spark.createDataFrame([], schema_jur)
+
 print("Leitura da Silver concluída.")
 
 # METADATA ********************
@@ -502,6 +511,9 @@ df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao"
 df_ultima_conf_small = df_ultima_conf.select(col("cod_titulo"), col("confirmacao").alias("confirmado_por"))
 df_protestos_small = df_protestos.select("cod_titulo", "status_protesto")
 
+# Flag Juridico
+df_juridico_flag = df_relatorio_juridico.select("cod_titulo").distinct().withColumn("status_enviado_juridico", lit(True))
+
 df_titulos_com_chave_sacado = df_titulos_base.join(broadcast(df_operacoes_small), "cod_operacao", "left").withColumn("chave_cliente_sacado", concat(col("cod_cliente").cast("string"), lit("-"), col("raiz_cnpj")))
 
 df_enriquecido = df_titulos_com_chave_sacado \
@@ -510,7 +522,9 @@ df_enriquecido = df_titulos_com_chave_sacado \
     .join(broadcast(df_devolucoes_small), "cod_titulo", "left") \
     .join(broadcast(df_ultima_conf_small), "cod_titulo", "left") \
     .join(broadcast(df_protestos_small), "cod_titulo", "left") \
-    .na.fill({"amortizacoes": 0})
+    .join(broadcast(df_juridico_flag), "cod_titulo", "left") \
+    .na.fill({"amortizacoes": 0}) \
+    .withColumn("status_enviado_juridico", coalesce(col("status_enviado_juridico"), lit(False)))
 
 # METADATA ********************
 
@@ -570,7 +584,7 @@ df_fato_titulos_final = df_ordem.select(
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany",
     col("liquidacao"), col("valor_devido"), col("motivo"),
-    col("status_risco"), col("dias_atraso")
+    col("status_risco"), col("dias_atraso"), col("status_enviado_juridico")
 )
 output_path_titulos_final = "LH_Gold.fato_titulos"
 df_fato_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
