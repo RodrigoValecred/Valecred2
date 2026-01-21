@@ -44,7 +44,8 @@ from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
     lead, date_add, lag, max, coalesce, date_sub, transform, 
-    filter as array_filter, split, array_join, array_contains
+    filter as array_filter, split, array_join, array_contains,
+    months_between, current_date, round
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, IntegerType
 from functools import reduce
@@ -244,7 +245,13 @@ def process_empresas():
 
 def process_gerentes():
     print("Processando Gerentes...")
-    df_brokers = spark.read.table(f"{source_lakehouse}.cad_brokers").select(col("CODBROKER").alias("cod_broker"), col("CPFCNPJ").alias("cpf_cnpj"), col("CODAGENCIA").alias("cod_agencia"), col("CODUSUARIO").alias("cod_usuario"), col("DATAINCLUSAO").alias("data_contratacao"))
+    df_brokers = spark.read.table(f"{source_lakehouse}.cad_brokers").select(
+        col("CODBROKER").alias("cod_broker"),
+        col("CPFCNPJ").alias("cpf_cnpj"),
+        col("CODAGENCIA").alias("cod_agencia"),
+        col("CODUSUARIO").alias("cod_usuario"),
+        col("DATAINCLUSAO").alias("data_inicio_gestao")
+    ).withColumn("meses_de_casa", round(months_between(current_date(), col("data_inicio_gestao")), 2))
 
     try:
         # Leitura da tabela de gerentes ativos carregada no Silver
