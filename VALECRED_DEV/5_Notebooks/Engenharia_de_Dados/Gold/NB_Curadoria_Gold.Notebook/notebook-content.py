@@ -63,7 +63,6 @@ import datetime
 # META   "language_group": "synapse_pyspark"
 # META }
 
-
 # CELL ********************
 
 # Célula 5.2: Construção da Fato Tarifas Esporádicas
@@ -424,7 +423,6 @@ print(f"Tabela 'dim_sacados' salva em: {output_path_dim_sacados}")
 # META   "language": "python",
 # META   "language_group": "synapse_pyspark"
 # META }
-
 
 # CELL ********************
 
