@@ -8,7 +8,7 @@
 # META   },
 # META   "dependencies": {
 # META     "lakehouse": {
-# META       "default_lakehouse": "ee40705b-0100-49bc-8f35-81d71839f042",
+# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
 # META       "default_lakehouse_name": "LH_Gold",
 # META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
 # META       "known_lakehouses": [
@@ -60,13 +60,6 @@ if "data_contratacao" not in df_gerentes.columns:
     # Fallback: tentar usar join com usuario ou data default
     df_gerentes = df_gerentes.withColumn("data_contratacao", F.lit("2023-01-01").cast(DateType()))
 
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
 # CELL ********************
 
 # 1. Definição do Eixo de Tempo (Mensal)
@@ -86,15 +79,6 @@ df_calendar_months = spark.createDataFrame([(m,) for m in months], ["data_refere
 df_calendar_months = df_calendar_months.withColumn("ano_mes", F.date_format("data_referencia", "yyyy-MM"))
 df_calendar_months = df_calendar_months.withColumn("ultimo_dia_mes", F.last_day("data_referencia"))
 
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
 # 2. Receita (Spread + Tarifas) por Gerente e Mês
 # Baseado na data de analise da operação
 print("Calculando Receita...")
@@ -106,15 +90,6 @@ df_receita = df_ops.withColumn("data_referencia_op", F.trunc("data_analise", "MM
     ) \
     .withColumnRenamed("data_referencia_op", "data_referencia") \
     .withColumn("receita_total", F.col("spread") + F.col("tarifas"))
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
 
 # 3. Carteira Ativa e Risco (PDD) por Gerente e Mês
 # Complexidade: Reconstruir o histórico
@@ -209,15 +184,6 @@ df_analise = df_full.join(df_gerentes, df_full.id_gerente == df_gerentes.cod_bro
         F.col("cpf_cnpj")
     )
 
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
 # 5. Calcular Indicadores (MOB, ROGm)
 df_final_metrics = df_analise.withColumn(
     "mob",
@@ -234,15 +200,6 @@ df_final_metrics = df_final_metrics.withColumn("comissoes", F.col("receita_total
         F.when(F.col("carteira_ativa") > 0, F.col("resultado_operacional") / F.col("carteira_ativa"))
          .otherwise(0)
     )
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
 
 # 6. Identificar Top Performers (Top 25% Acumulado últimos 12M)
 print("Calculando Top Performers...")
@@ -261,15 +218,6 @@ except:
 # Flag Top Performer
 df_final_metrics = df_final_metrics.withColumn("is_top_performer", F.col("id_gerente").isin(top_performers))
 
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
 # 7. Curvas de Referência (Benchmarks)
 print("Gerando Curvas...")
 # Média Geral por MOB
@@ -282,15 +230,6 @@ df_curve_top = df_final_metrics.filter(F.col("is_top_performer") == True) \
 # Join das Curvas de volta na base (para comparação linha a linha se quiser)
 # Mas para o output final, queremos manter a granularidade Gerente/Mês e ter as colunas de ref.
 df_with_bench = df_final_metrics.join(df_curve_avg, "mob", "left").join(df_curve_top, "mob", "left")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
 
 # 8. Projeção (Python/Pandas + Sklearn)
 # Para cada gerente ativo (MOB < 24), projetar próximo mês
@@ -308,11 +247,11 @@ if not df_recentes.empty:
             # Peso maior para dados recentes? O modelo simples não faz, mas LinearRegression pega tendência.
             model = LinearRegression()
             model.fit(X, y)
-            
+
             last_mob = dados["mob"].max()
             next_mob = last_mob + 1
             pred_rogm = model.predict([[next_mob]])[0]
-            
+
             projections.append({
                 "id_gerente": gerente,
                 "mob_projecao": int(next_mob),
@@ -327,28 +266,12 @@ if projections:
     df_proj.write.mode("overwrite").saveAsTable("LH_Gold.analise_safra_projeccoes")
     print("Projeções salvas em LH_Gold.analise_safra_projeccoes")
 
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
 # 9. Salvar Tabela Final
 df_final_output = df_with_bench.select(
-    "id_gerente", "mes_ref", "mob", "data_contratacao", 
+    "id_gerente", "mes_ref", "mob", "data_contratacao",
     "receita_total", "carteira_ativa", "perda_esperada", "custos_totais", "resultado_operacional",
     "rogm", "is_top_performer", "rogm_medio_mercado", "rogm_medio_top"
 )
 
 df_final_output.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(TARGET_TABLE)
 print(f"Análise concluída. Tabela salva em: {TARGET_TABLE}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }

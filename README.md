@@ -241,6 +241,7 @@ Responsável por aplicar regras de negócio complexas, joins e agregações para
 -   **`NB_Gera_Relatorio_Diario_Clientes`**: Protótipo para geração automatizada de relatórios diários de risco e exposição por grupo econômico.
 -   **`NB_Analise_Cliente_Especifico`**: Ferramenta ad-hoc para investigar o histórico detalhado de um cliente.
 -   **`NB_Analyze_FIDC_Performance`**: Notebook para análise de performance do FIDC.
+-   **`NB_Analise_Safra_Gerentes`**: Realiza Análise de Safra (Vintage Analysis) da performance dos gerentes comerciais. Calcula a métrica **ROGm** (Retorno Operacional sobre Gerente) normalizada pelo tempo de casa (MOB - Month on Book) e projeta resultados futuros via Regressão Linear.
 
 #### `Orquestracao/` - Controle de Fluxo
 
