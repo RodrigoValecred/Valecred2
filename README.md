@@ -224,6 +224,7 @@ Responsável por limpar, padronizar e desduplicar os dados brutos da camada Bron
 -   **`NB_Process_Contact_Info`**: Processa e limpa dados de contato, tratando campos com múltiplos valores e salvando-os em tabelas de staging na camada Silver.
 -   **`NB_Load_Silver_From_Manual_Uploads`**: Notebook genérico para carga de arquivos manuais (Excel/CSV) armazenados no Bronze para tabelas Silver, com padronização de colunas.
 -   **`NB_Silver_Carteira_PDD`**: Processamento específico para a carteira de PDD (Provisão para Devedores Duvidosos).
+-   **`NB_Analise_Titulos_Juridicos`**: Análise de títulos enviados ao jurídico.
 
 -   **`NB_Generic_Silver`**: Ingestor genérico para carga de tabelas Bronze para Silver com padronização automática e Quality Gate.
 **`NB_Preparacao_Silver`**: Notebook legado/consolidado de preparação.
@@ -232,12 +233,13 @@ Responsável por limpar, padronizar e desduplicar os dados brutos da camada Bron
 
 Responsável por aplicar regras de negócio complexas, joins e agregações para gerar as tabelas finais de consumo.
 
--   **`NB_Curadoria_Gold`**: Centraliza a lógica de **enriquecimento e joins**. Consome as tabelas tratadas da Silver (staging) e gera as tabelas Fato finais no `LH_Gold`, além de calcular métricas de concentração de carteira (HHI).
--   **`NB_Dim_Cliente_Gold`**: Notebook especializado na criação da dimensão de clientes (`dim_clientes`), integrando dados cadastrais, grupos econômicos e contratos.
+-   **`NB_Curadoria_Gold`**: Centraliza a lógica de **enriquecimento e joins**. Consome as tabelas tratadas da Silver (staging) e gera as tabelas Fato finais no `LH_Gold` e a dimensão `dim_clientes`. Também calcula métricas de concentração de carteira (HHI).
 -   **`NB_Calendario_Gold`**: Gera e atualiza a tabela dimensão de calendário (`dim_calendario`).
 -   **`NB_Gold_Risco_Cliente`**: Cria agregações de risco por cliente, segmentado por produto.
 -   **`NB_Risk_Aggregation`**: Calcula métricas históricas de risco (inadimplência, volume).
 -   **`NB_Relatorio_Limites_Vencendo`**: Gera a tabela `relatorio_limites_vencendo`, consolidando dados de contratos e clientes.
+-   **`NB_Gold_Cockpit_KPIs`**: Gera a tabela de KPIs de risco (`LH_Gold.Gold_Cockpit_KPIs`).
+-   **`NB_Inadimplencia_Mensal`**: Consolida dados mensais de inadimplência.
 -   **`NB_Gera_Relatorio_Diario_Clientes`**: Protótipo para geração automatizada de relatórios diários de risco e exposição por grupo econômico.
 -   **`NB_Analise_Cliente_Especifico`**: Ferramenta ad-hoc para investigar o histórico detalhado de um cliente.
 -   **`NB_Analyze_FIDC_Performance`**: Notebook para análise de performance do FIDC.
@@ -268,9 +270,11 @@ Atualmente, o notebook `NB_Gold_Risco_Cliente` é responsável por criar as agre
 
 #### Notebooks de Aprendizado de Máquina
 
--   **`ML_Inadimplencia_Aprimorado(1)`**: Notebook principal para o **treinamento** do modelo de classificação (`LightGBM`) que prevê a probabilidade de inadimplência de um título.
+-   **`01-Treino_Risco_Semanal`**: Notebook principal para o **treinamento** do modelo de classificação (`LightGBM`) que prevê a probabilidade de inadimplência de um título.
 -   **`ML_Previsao_Inadimplencia_2025`**: Notebook de **inferência em lote**. Aplica o modelo treinado aos títulos em aberto.
 -   **`ML_Gerador_Score_Risco`**: Ferramenta interativa para obter score de risco em tempo real para um cliente.
+-   **`VAI_Inferencia_Online`**: Notebook para inferência online do sistema V.A.I.
+-   **`NB_PERFIL_RISCO_SACADO`**: Gera perfil de risco do sacado para análise.
 
 ### 7. Dados Externos (`7_Dados_Externos`)
 
@@ -342,6 +346,10 @@ Utilize o notebook genérico `NB_Load_Silver_From_Manual_Uploads` para carregar 
 -   **Notebooks**: `NB_Nome_Da_Acao` ou `ML_Nome_Do_Modelo`.
 -   **Colunas**: `snake_case` (ex: `cod_cliente`, `data_inclusao`).
 -   **Tabelas de Suporte**: Prefixo `sup_`.
+
+### Observabilidade e Logs
+
+-   **Prints Explícitos**: Adicione `print()` explícitos antes de operações de leitura (`spark.read`) e escrita (`.write`) ou blocos lógicos importantes. Isso facilita o monitoramento e debug nos logs de execução do Fabric/Spark.
 
 ## Procedimentos Operacionais
 
