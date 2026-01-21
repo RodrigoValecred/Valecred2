@@ -1,10 +1,5 @@
 # Fabric notebook source
 
-
-# CELL ********************
-
-# Fabric notebook source
-
 # METADATA ********************
 
 # META {
@@ -34,6 +29,7 @@
 # **Objetivo:** Identificar a coluna e o código correspondente ao status "Envio ao Jurídico", validando com o exemplo 'RN 03/89' fornecido pelo usuário.
 # 
 # **Solicitação:** "preciso identificar uma coluna, é um status de cobrança ... pode tentar rastrear essa coluna? preciso descobrir os títulos com esse status"
+# 
 # **Exemplo:** "o titulo com ndoc (numero_documento) = RN 03/89 está com esse registro"
 
 # CELL ********************
@@ -41,6 +37,15 @@
 from pyspark.sql.functions import col, upper, lit
 
 print("Iniciando análise com rastreamento reverso...")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
 
 # ==============================================================================
 # PARTE 1: Investigação do Exemplo 'RN 03/89'
@@ -122,6 +127,14 @@ except Exception as e:
     print(f"Erro na análise do exemplo: {e}")
     codigo_identificado = None
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
 
 # ==============================================================================
 # PARTE 2: Varredura Geral (Baseada na descoberta acima ou busca textual)
