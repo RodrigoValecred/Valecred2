@@ -8,18 +8,15 @@
 # META   },
 # META   "dependencies": {
 # META     "lakehouse": {
-# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Bronze",
+# META       "default_lakehouse": "ee40705b-0100-49bc-8f35-81d71839f042",
+# META       "default_lakehouse_name": "LH_Gold",
 # META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
 # META       "known_lakehouses": [
 # META         {
-# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
+# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
 # META         },
 # META         {
 # META           "id": "8f85c372-56ad-4f3f-acf9-3be2e9b99513"
-# META         },
-# META         {
-# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
 # META         }
 # META       ]
 # META     }
@@ -154,7 +151,7 @@ if record_count > 0:
         .withColumnRenamed("DATAINCLUSAO", "DATALOG") \
         .select(
             col("CODPARECER"),
-            col("cod_cliente").alias("CODCLIENTE"),
+            col("cod_cliente").alias("CODCLIENTE"), 
             col("STATUS_DO_CLIENTE"),
             col("DATALOG"),
             col("BASE"),
@@ -172,7 +169,7 @@ if record_count > 0:
         delta_table = DeltaTable.forName(spark, target_pareceres_status_table_name)
         spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
         delta_table.alias("t").merge(
-            df_pareceres_enriquecidos_delta.alias("s"),
+            df_pareceres_enriquecidos_delta.alias("s"), 
             "t.CODPARECER = s.CODPARECER"
         ).whenMatchedUpdateAll() \
          .whenNotMatchedInsertAll() \
@@ -186,7 +183,6 @@ else:
 
 if 'df_pareceres_incremental' in locals():
     df_pareceres_incremental.unpersist()
-
 
 # METADATA ********************
 

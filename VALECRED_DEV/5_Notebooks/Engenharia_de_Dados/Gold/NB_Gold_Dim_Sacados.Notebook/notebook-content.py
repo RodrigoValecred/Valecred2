@@ -8,13 +8,10 @@
 # META   },
 # META   "dependencies": {
 # META     "lakehouse": {
-# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Bronze",
+# META       "default_lakehouse": "8f85c372-56ad-4f3f-acf9-3be2e9b99513",
+# META       "default_lakehouse_name": "LH_Silver",
 # META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
 # META       "known_lakehouses": [
-# META         {
-# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
-# META         },
 # META         {
 # META           "id": "8f85c372-56ad-4f3f-acf9-3be2e9b99513"
 # META         },
@@ -31,6 +28,7 @@
 # # Notebook Gold: Dimensão Sacados
 # **Objetivo:** Construir a tabela `LH_Gold.dim_sacados` a partir de tabelas Silver (`staging_sacados_enriquecida`).
 # **Dependências:** `NB_Prepara_Tabela_Cadastros` (Silver).
+
 
 # CELL ********************
 

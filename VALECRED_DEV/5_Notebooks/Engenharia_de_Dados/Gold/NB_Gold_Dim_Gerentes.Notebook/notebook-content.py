@@ -8,13 +8,10 @@
 # META   },
 # META   "dependencies": {
 # META     "lakehouse": {
-# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Bronze",
+# META       "default_lakehouse": "8f85c372-56ad-4f3f-acf9-3be2e9b99513",
+# META       "default_lakehouse_name": "LH_Silver",
 # META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
 # META       "known_lakehouses": [
-# META         {
-# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
-# META         },
 # META         {
 # META           "id": "8f85c372-56ad-4f3f-acf9-3be2e9b99513"
 # META         },
@@ -30,6 +27,7 @@
 
 # # Notebook Gold: Dimensão Gerentes
 # **Objetivo:** Construir a tabela `LH_Gold.dim_gerentes` a partir de tabelas Silver (`staging_gerentes`, `staging_usuarios`, etc.).
+# 
 # **Dependências:** `NB_Prepara_Tabela_Cadastros` (Silver).
 
 # CELL ********************
@@ -59,6 +57,7 @@ df_geral_pf_pj_limpa = spark.read.table("LH_Silver.staging_cad_geral_pf_pj_limpa
 df_plataformas = spark.read.table("LH_Silver.staging_plataformas")
 
 # Join com Usuarios (Prioridade 1)
+print("Fazendo Join das tabelas...")
 df_gerentes_with_users = df_gerentes.alias("g") \
     .join(df_usuarios_staging.alias("u"), col("g.cod_usuario") == col("u.cod_usuario"), "left")
 
