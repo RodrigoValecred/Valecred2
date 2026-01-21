@@ -224,6 +224,30 @@
             ]
           }
         ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "91e71089-df02-b910-4986-b32e6dc7ab8c",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Verifica Titulos Enviados ao Juridico",
+        "description": "Notebook_Preparacao_Silver\n",
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
       }
     ]
   }
