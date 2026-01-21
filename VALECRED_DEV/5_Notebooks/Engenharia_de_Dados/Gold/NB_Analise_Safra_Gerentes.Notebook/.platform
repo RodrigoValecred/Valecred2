@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "NB_Analise_Safra_Gerentes",
+    "description": "New notebook"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "e9898550-444d-8465-4ab4-d6f80832bbd5"
+  }
+}
