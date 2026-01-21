@@ -63,6 +63,7 @@ import datetime
 # META   "language_group": "synapse_pyspark"
 # META }
 
+
 # CELL ********************
 
 # Célula 5.2: Construção da Fato Tarifas Esporádicas
@@ -122,6 +123,7 @@ df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
 # Gerentes e Plataformas
 df_gerentes = spark.read.table("LH_Silver.staging_gerentes")
 df_plataformas = spark.read.table("LH_Silver.staging_plataformas")
+df_usuarios_staging = spark.read.table("LH_Silver.staging_usuarios")
 
 # Emails & Telefones Agg
 df_emails_agg = spark.read.table("LH_Silver.staging_emails_agg")
@@ -415,6 +417,36 @@ df_dim_sacados = df_sacados_enriquecida.select(
 output_path_dim_sacados = "LH_Gold.dim_sacados"
 df_dim_sacados.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_sacados)
 print(f"Tabela 'dim_sacados' salva em: {output_path_dim_sacados}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+
+# CELL ********************
+
+# Célula 2.5: Construção da Dimensão Gerentes
+# -------------------------------------------
+print("\nIniciando construção da dim_gerentes...")
+df_dim_gerentes = df_gerentes.join(df_usuarios_staging, "cod_usuario", "left") \
+    .join(df_plataformas, "cod_agencia", "left") \
+    .select(
+        col("cod_broker"),
+        col("nome").alias("nome_gerente"),
+        df_gerentes.cpf_cnpj,
+        col("data_inicio_gestao"),
+        col("meses_de_casa"),
+        col("status_ativo"),
+        col("nome_plataforma"),
+        col("gestor_da_plataforma")
+    )
+
+output_path_dim_gerentes = "LH_Gold.dim_gerentes"
+df_dim_gerentes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_gerentes)
+print(f"Tabela 'dim_gerentes' salva em: {output_path_dim_gerentes}")
 
 # METADATA ********************
 
