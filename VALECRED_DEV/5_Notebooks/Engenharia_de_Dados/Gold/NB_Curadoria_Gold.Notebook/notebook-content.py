@@ -177,6 +177,26 @@ except Exception as e:
     schema_jur = StructType([StructField("cod_titulo", LongType(), True)])
     df_relatorio_juridico = spark.createDataFrame([], schema_jur)
 
+# Usuarios (Silver)
+print("Carregando Usuarios (Silver)...")
+df_usuarios = spark.read.table("LH_Silver.staging_usuarios")
+
+# Motivos Indeferimento (Silver)
+print("Carregando Motivos Indeferimento (Silver)...")
+try:
+    df_motivos_indeferimento = spark.read.table("LH_Silver.sup_motivos_de_indeferimento")
+except Exception as e:
+    print(f"AVISO: Tabela LH_Silver.sup_motivos_de_indeferimento não encontrada ({e}). Criando dataframe vazio.")
+    df_motivos_indeferimento = spark.createDataFrame([], schema=StructType([
+        StructField("cod_indeferimento", LongType(), True),
+        StructField("motivo_indeferimento", StringType(), True),
+        StructField("grupo_motivo_indeferimento", StringType(), True)
+    ]))
+
+# Estudo Operacoes (Silver)
+print("Carregando Estudo Operacoes (Silver)...")
+df_estudo_operacoes = spark.read.table("LH_Silver.staging_estudo_operacoes")
+
 print("Leitura da Silver concluída.")
 
 # METADATA ********************
@@ -247,13 +267,27 @@ df_operacoes_com_chave_filtrado = df_operacoes_com_chave_base.filter(
 df_vcount = df_operacoes_com_chave_filtrado.groupBy(df_operacoes_com_gerente["cod_operacao"]).count()
 df_com_vcount = df_operacoes_com_gerente.join(df_vcount, on="cod_operacao", how="left")
 
-df_operacoes_enriquecida = df_com_vcount.withColumn(
+# Enriquecimento com Usuarios, Motivos e Estudo
+df_ops_enrich_step1 = df_com_vcount \
+    .join(df_usuarios.select(col("cod_usuario"), col("nome").alias("usuario_inclusao"), col("nivel").alias("nivel_usuario_inclusao"), col("funcao").alias("incluido_por")), col("usua_inclusao") == col("cod_usuario"), "left").drop(df_usuarios.cod_usuario) \
+    .join(df_usuarios.select(col("cod_usuario"), col("nome").alias("analista")), col("usua_st_analise") == col("cod_usuario"), "left").drop(df_usuarios.cod_usuario) \
+    .join(df_usuarios.select(col("cod_usuario"), col("nome").alias("analista_trava")), col("usua_trava") == col("cod_usuario"), "left").drop(df_usuarios.cod_usuario) \
+    .join(df_motivos_indeferimento, "cod_indeferimento", "left") \
+    .join(df_estudo_operacoes.select(col("cod_operacao"), col("fator").alias("taxa_cadastro")), "cod_operacao", "left")
+
+df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
     "operacao_informal",
     when(
         ((col("count").isNull()) | (col("count") == 0)) & (col("cod_empresa") == 14) & (col("nota_servico") == 'N'),
         lit(True)
     ).otherwise(lit(False))
-).drop("count").cache()
+).withColumn("data_deferimento", to_date(col("data_analise"))) \
+ .withColumn("era", when(col("data_deferimento") > lit("2023-08-31"), "VALE S").otherwise("VALE N")) \
+ .withColumn("chave_base_cliente", concat(lit("40-"), col("cod_cliente"))) \
+ .withColumn("chave_base_operacao", concat(lit("40-"), col("cod_operacao"))) \
+ .withColumn("chave_base_empresa", concat(lit("40-"), col("cod_empresa"))) \
+ .na.fill(0, subset=["tac", "valor_taxa_adm", "valor_advalorem", "total_de_tarifas", "n_docs_recompra"]) \
+ .drop("count").cache()
 
 print("DataFrames intermediários criados e cacheados.")
 
@@ -322,7 +356,24 @@ df_fato_operacoes = df_fato_operacoes_joined.select(
     col("desagio"),
     col("total_de_tarifas"),
     col("sk_data"),
-    col("valor_recomprado")
+    col("valor_recomprado"),
+    col("usuario_inclusao"),
+    col("nivel_usuario_inclusao"),
+    col("analista"),
+    col("analista_trava"),
+    col("motivo_indeferimento"),
+    col("grupo_motivo_indeferimento"),
+    col("taxa_cadastro"),
+    col("era"),
+    col("data_deferimento"),
+    col("chave_base_cliente"),
+    col("chave_base_operacao"),
+    col("chave_base_empresa"),
+    col("incluido_por"),
+    col("tac"),
+    col("valor_taxa_adm"),
+    col("valor_advalorem"),
+    col("n_docs_recompra")
 )
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
