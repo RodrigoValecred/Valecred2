@@ -80,27 +80,42 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
                                  `lakehouse.tabela` (ex: 'LH_Silver.sup_regiao').
     """
     base_path = "/lakehouse/default/Files/manual_uploads"
-    file_path = f"{base_path}/{source_filename}"
     
     print(f"--- Iniciando processamento para: {source_filename} ---")
     
     try:
-        # Verificar se o arquivo existe
-        if not os.path.exists(file_path):
-            print(f"ERRO: Arquivo não encontrado em '{file_path}'. Pulando...")
+        # Verificar se o diretório existe
+        if not os.path.exists(base_path):
+            print(f"ERRO: Diretório base '{base_path}' não encontrado.")
             return
 
-        # Ler o arquivo com pandas baseado na extensão
-        if source_filename.endswith('.xlsx'):
+        # Busca case-insensitive pelo arquivo
+        available_files = os.listdir(base_path)
+        actual_filename = None
+        for f in available_files:
+            if f.lower() == source_filename.lower():
+                actual_filename = f
+                break
+
+        if not actual_filename:
+            print(f"ERRO: Arquivo '{source_filename}' não encontrado em '{base_path}'.")
+            print(f"Arquivos disponíveis no diretório: {available_files}")
+            return
+
+        file_path = f"{base_path}/{actual_filename}"
+        print(f"Arquivo encontrado: {actual_filename}")
+
+        # Ler o arquivo com pandas baseado na extensão (do arquivo real)
+        if actual_filename.lower().endswith('.xlsx'):
             pandas_df = pd.read_excel(file_path)
-        elif source_filename.endswith('.csv'):
+        elif actual_filename.lower().endswith('.csv'):
             # Assume separador por vírgula e encoding UTF-8. Ajuste se necessário.
             pandas_df = pd.read_csv(file_path)
         else:
-            print(f"AVISO: Formato de arquivo não suportado para '{source_filename}'. Pulando...")
+            print(f"AVISO: Formato de arquivo não suportado para '{actual_filename}'. Pulando...")
             return
 
-        print(f"Arquivo '{source_filename}' lido com sucesso usando pandas.")
+        print(f"Arquivo '{actual_filename}' lido com sucesso usando pandas.")
         # Padroniza os nomes das colunas para serem compatíveis com o formato Delta
         def sanitize_column_name(col_name):
             """Padroniza um nome de coluna para o formato snake_case.
