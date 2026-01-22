@@ -268,12 +268,31 @@ df_vcount = df_operacoes_com_chave_filtrado.groupBy(df_operacoes_com_gerente["co
 df_com_vcount = df_operacoes_com_gerente.join(df_vcount, on="cod_operacao", how="left")
 
 # Enriquecimento com Usuarios, Motivos e Estudo
-df_ops_enrich_step1 = df_com_vcount \
-    .join(df_usuarios.select(col("cod_usuario"), col("nome").alias("usuario_inclusao"), col("nivel").alias("nivel_usuario_inclusao"), col("funcao").alias("incluido_por")), col("usua_inclusao") == col("cod_usuario"), "left").drop(df_usuarios.cod_usuario) \
-    .join(df_usuarios.select(col("cod_usuario"), col("nome").alias("analista")), col("usua_st_analise") == col("cod_usuario"), "left").drop(df_usuarios.cod_usuario) \
-    .join(df_usuarios.select(col("cod_usuario"), col("nome").alias("analista_trava")), col("usua_trava") == col("cod_usuario"), "left").drop(df_usuarios.cod_usuario) \
-    .join(df_motivos_indeferimento, "cod_indeferimento", "left") \
-    .join(df_estudo_operacoes.select(col("cod_operacao"), col("fator").alias("taxa_cadastro")), "cod_operacao", "left")
+# Definindo aliases para tabelas
+df_ops = df_com_vcount.alias("ops")
+df_u_inc = df_usuarios.alias("u_inc")
+df_u_ana = df_usuarios.alias("u_ana")
+df_u_trava = df_usuarios.alias("u_trava")
+df_motivos = df_motivos_indeferimento.alias("motivos")
+df_estudo = df_estudo_operacoes.alias("estudo")
+
+df_ops_enrich_step1 = df_ops \
+    .join(df_u_inc, col("ops.usua_inclusao") == col("u_inc.cod_usuario"), "left") \
+    .join(df_u_ana, col("ops.usua_st_analise") == col("u_ana.cod_usuario"), "left") \
+    .join(df_u_trava, col("ops.usua_trava") == col("u_trava.cod_usuario"), "left") \
+    .join(df_motivos, col("ops.cod_indeferimento") == col("motivos.cod_indeferimento"), "left") \
+    .join(df_estudo, col("ops.cod_operacao") == col("estudo.cod_operacao"), "left") \
+    .select(
+        col("ops.*"),
+        col("u_inc.nome").alias("usuario_inclusao"),
+        col("u_inc.nivel").alias("nivel_usuario_inclusao"),
+        col("u_inc.funcao").alias("incluido_por"),
+        col("u_ana.nome").alias("analista"),
+        col("u_trava.nome").alias("analista_trava"),
+        col("motivos.motivo_indeferimento"),
+        col("motivos.grupo_motivo_indeferimento"),
+        col("estudo.fator").alias("taxa_cadastro")
+    )
 
 df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
     "operacao_informal",
