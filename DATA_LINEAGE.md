@@ -16,30 +16,10 @@ This document outlines the data lineage of the VALECRED project, tracing the flo
 
 ## 2. Silver Layer Preparation
 
-### NB_Preparacao_Silver.Notebook
-- **Source:** `LH_Bronze` (multiple tables: `tab_titulos`, `cad_clientes`, `cad_geral_pf_pj`, etc.)
-- **Destination:** `LH_Silver` (multiple staging tables: `staging_titulos_limpa`, `staging_clientes_limpa`, etc.)
-- **Description:** This notebook is a key part of the data preparation process. It takes raw data from the Bronze layer, applies a series of cleaning and business logic transformations, and saves the results as staging tables in the Silver layer.
-
 ### NB_Load_Silver_From_Manual_Uploads.Notebook
 - **Source:** `Files/manual_uploads`
 - **Destination:** `LH_Silver` (multiple `sup_*` tables)
 - **Description:** This notebook processes manually uploaded files and saves them as dimension/support tables in the Silver layer.
-
-### NB_Build_Bridge_Cliente_Gerente.Notebook
-- **Source:** `LH_Bronze` (`rlc_brokers_clientes_historico`, `rlc_brokers_clientes`)
-- **Destination:** `LH_Silver` (`bridge_cliente_gerente`)
-- **Description:** Creates a historical bridge table that maps the relationship between clients and managers.
-
-### NB_Process_Contact_Info.Notebook
-- **Source:** `LH_Bronze` (`cad_geral_pf_pj`)
-- **Destination:** `LH_Silver` (`staging_email_limpa`, `staging_telefones_limpa`, `staging_enderecos_limpa`)
-- **Description:** Cleans, unfolds, and deduplicates contact information.
-
-### NB_Silver_Carteira_PDD.Notebook
-- **Source:** `LH_Bronze` (`ctrl_*` tables)
-- **Destination:** `LH_Silver` (`carteira_pdd`)
-- **Description:** Processes raw controller data to generate the final `carteira_pdd` table in the Silver layer.
 
 ## 3. Gold Layer - Dimensions and Facts
 

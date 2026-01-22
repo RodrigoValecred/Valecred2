@@ -124,12 +124,6 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** `LH_Gold` (`analise_fidc_performance_mensal`)
 - **Processing Steps:** Filters data for a specific period, calculates the monthly variation in Net Equity, and saves the result.
 
-### NB_Build_Bridge_Cliente_Gerente.Notebook
-- **Description:** Creates a historical bridge table that maps the relationship between clients and managers.
-- **Input:** `LH_Bronze` (`rlc_brokers_clientes_historico`, `rlc_brokers_clientes`)
-- **Output:** `LH_Silver` (`bridge_cliente_gerente`)
-- **Processing Steps:** Unifies historical and current data, cleans it, and calculates the start and end dates for each relationship.
-
 ### NB_Gold_Risco_Cliente.Notebook
 - **Description:** Aggregates risk data by client and product.
 - **Input:** `LH_Silver` (`staging_titulos`, `staging_operacoes`, `staging_clientes`)
@@ -142,26 +136,9 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** `LH_Silver` (multiple `sup_*` tables)
 - **Processing Steps:** Reads, standardizes column names, and saves each file as a Delta table.
 
-### NB_Preparacao_Silver.Notebook
-- **Description:** A comprehensive notebook for preparing the Silver layer.
-- **Input:** `LH_Bronze` (multiple tables)
-- **Output:** `LH_Silver` (multiple staging tables)
-- **Processing Steps:** Performs a wide range of data cleaning, deduplication, enrichment, and transformation tasks.
-
-### NB_Process_Contact_Info.Notebook
-- **Description:** Cleans, unfolds, and deduplicates contact information.
-- **Input:** `LH_Bronze` (`cad_geral_pf_pj`)
-- **Output:** `LH_Silver` (`staging_email_limpa`, `staging_telefones_limpa`, `staging_enderecos_limpa`)
-- **Processing Steps:** Splits concatenated contact information into individual records, cleans them, and removes duplicates.
-
 ### NB_Risk_Aggregation.Notebook
 - **Description:** Aggregates risk metrics for each client.
 - **Input:** `LH_Silver` (`staging_titulos_limpa`, `staging_operacoes_limpa`, `dim_cliente`, `staging_cad_geral_limpa`)
 - **Output:** `WH_Gold` (`risco_por_cliente`)
 - **Processing Steps:** Joins Silver tables, creates a `TARGET` variable, and aggregates risk metrics by client.
 
-### NB_Silver_Carteira_PDD.Notebook
-- **Description:** Processes raw controller data to generate the final `carteira_pdd` table in the Silver layer.
-- **Input:** `LH_Bronze` (`ctrl_*` tables)
-- **Output:** `LH_Silver` (`carteira_pdd`)
-- **Processing Steps:** Unifies multiple source files, calculates PDD ranges, enriches the data, and saves the final table.

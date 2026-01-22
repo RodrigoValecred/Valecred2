@@ -221,13 +221,10 @@ Responsável por limpar, padronizar e desduplicar os dados brutos da camada Bron
 -   **`NB_Prepara_Tabela_Contabil`**: (**Carga Full Overwrite**) Processamento da tabela `tab_lancamentos_contabeis` e padronização para a camada Silver.
 -   **`NB_Prepara_Tabela_Produtos`**: Cria a dimensão de produtos (`LH_Silver.Dim_Produto`) padronizada e enriquecida com IDs numéricos para consumo pela I.A.
 -   **`NB_Extrai_Observacoes_Contratos`**: Extrai dados estruturados de limites (Geral, Comissaria, Intercompany, etc.) a partir de observações textuais não estruturadas usando Regex.
--   **`NB_Process_Contact_Info`**: Processa e limpa dados de contato, tratando campos com múltiplos valores e salvando-os em tabelas de staging na camada Silver.
 -   **`NB_Load_Silver_From_Manual_Uploads`**: Notebook genérico para carga de arquivos manuais (Excel/CSV) armazenados no Bronze para tabelas Silver, com padronização de colunas.
--   **`NB_Silver_Carteira_PDD`**: Processamento específico para a carteira de PDD (Provisão para Devedores Duvidosos).
 -   **`NB_Analise_Titulos_Juridicos`**: Análise de títulos enviados ao jurídico.
 
 -   **`NB_Generic_Silver`**: Ingestor genérico para carga de tabelas Bronze para Silver com padronização automática e Quality Gate.
-**`NB_Preparacao_Silver`**: Notebook legado/consolidado de preparação.
 
 #### `Gold/` - Curadoria e Agregação
 
