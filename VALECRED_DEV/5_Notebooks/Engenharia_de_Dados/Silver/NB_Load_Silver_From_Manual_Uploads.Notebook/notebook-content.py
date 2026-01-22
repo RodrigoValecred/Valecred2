@@ -126,18 +126,27 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
             Returns:
                 str: O nome da coluna padronizado.
             """
-            # Normaliza para remover acentos (ex: 'ç' -> 'c')
+            # 1. Normalize unicode characters (accents)
             nfkd_form = unicodedata.normalize('NFKD', str(col_name))
-            sanitized = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
-            # Converte para minúsculas
-            sanitized = sanitized.lower()
-            # Substitui espaços e caracteres não-alfanuméricos por underscore
-            sanitized = re.sub(r'[^a-z0-9_]+', '_', sanitized)
-            # Remove múltiplos underscores
-            sanitized = re.sub(r'_+', '_', sanitized)
-            # Remove underscores no início ou fim
-            sanitized = sanitized.strip('_')
-            return sanitized
+            col_name = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
+
+            # 2. Handle specific cases
+            if col_name.isupper():
+                col_name = col_name.lower()
+            else:
+                # 3. Convert CamelCase to snake_case
+                s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', col_name)
+                col_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
+
+            # 4. Lowercase
+            col_name = col_name.lower()
+
+            # 5. Replace non-alphanumeric (except underscore) with underscore
+            col_name = re.sub(r'[^a-z0-9_]+', '_', col_name)
+
+            # 6. Clean up multiple underscores and leading/trailing
+            col_name = re.sub(r'_+', '_', col_name)
+            return col_name.strip('_')
 
         original_columns = pandas_df.columns.tolist()
         pandas_df.columns = [sanitize_column_name(col) for col in original_columns]
