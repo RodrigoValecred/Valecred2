@@ -97,7 +97,15 @@ def process_operacoes():
             col("TOTDCP").alias("desagio"),
             col("TOTTAR").alias("total_de_tarifas"),
             col("TOTRECOMPRA").alias("valor_recomprado"),
-            col("FATOR").alias("taxa")
+            col("FATOR").alias("taxa"),
+            col("CODINDEFERIMENTO").alias("cod_indeferimento"),
+            col("USUAINCLUSAO").alias("usua_inclusao"),
+            col("USUASTANALISE").alias("usua_st_analise"),
+            col("USUATRAVA").alias("usua_trava"),
+            col("TAC").alias("tac"),
+            col("TOTTAXAADM").alias("valor_taxa_adm"),
+            col("TOTADVAL").alias("valor_advalorem"),
+            col("NDOCSRECOMPRA").alias("n_docs_recompra")
         )
 
     is_incremental_ops = False
