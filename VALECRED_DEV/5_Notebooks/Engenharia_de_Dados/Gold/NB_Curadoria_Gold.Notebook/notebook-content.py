@@ -280,8 +280,8 @@ df_ops_enrich_step1 = df_ops \
     .join(df_u_inc, col("ops.usua_inclusao") == col("u_inc.cod_usuario"), "left") \
     .join(df_u_ana, col("ops.usua_st_analise") == col("u_ana.cod_usuario"), "left") \
     .join(df_u_trava, col("ops.usua_trava") == col("u_trava.cod_usuario"), "left") \
-    .join(df_motivos, col("ops.cod_indeferimento") == col("motivos.cod_indeferimento"), "left") \
-    .join(df_estudo, col("ops.cod_operacao") == col("estudo.cod_operacao"), "left") \
+    .join(df_motivos, col("ops.cod_indeferimento") == col("motivos.codindeferimento"), "left") \
+    .join(df_estudo, col("ops.cod_operacao") == col("estudo.CODOPERACAO"), "left") \
     .select(
         col("ops.*"),
         col("u_inc.nome").alias("usuario_inclusao"),
