@@ -37,6 +37,7 @@
 
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
+spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
 
 from pyspark.sql.window import Window
 from pyspark.sql.functions import (
@@ -105,7 +106,10 @@ def process_operacoes():
             col("TAC").alias("tac"),
             col("TOTTAXAADM").alias("valor_taxa_adm"),
             col("TOTADVAL").alias("valor_advalorem"),
-            col("NDOCSRECOMPRA").alias("n_docs_recompra")
+            col("NDOCSRECOMPRA").alias("n_docs_recompra"),
+            col("TARIFA").alias("tarifa"),
+            col("NDOCS").alias("n_docs"),
+            col("TARIFARECOMPRA").alias("tarifa_recompra")
         )
 
     is_incremental_ops = False
