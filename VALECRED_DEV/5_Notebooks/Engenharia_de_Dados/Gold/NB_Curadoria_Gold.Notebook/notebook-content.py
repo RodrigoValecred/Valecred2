@@ -50,7 +50,7 @@ from pyspark.sql.functions import (
     lead, date_add, lag, max, coalesce, broadcast, dayofweek, dayofmonth, date_sub, trim, to_date,
     datediff, sum, min, count, round, floor, least, current_date, split
 )
-from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, DoubleType, DateType
+from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, DoubleType, DateType, BooleanType
 from delta.tables import *
 from functools import reduce
 import datetime
@@ -197,6 +197,14 @@ except Exception as e:
 print("Carregando Estudo Operacoes (Silver)...")
 df_estudo_operacoes = spark.read.table("LH_Silver.staging_estudo_operacoes")
 
+# Escrow (Silver)
+print("Carregando Escrow (Silver)...")
+try:
+    df_escrow = spark.read.table("LH_Silver.staging_operacoes_escrow").groupBy("cod_operacao").agg(max("ESCROW").alias("ESCROW"))
+except Exception as e:
+    print(f"AVISO: Tabela LH_Silver.staging_operacoes_escrow não encontrada ({e}). Criando dataframe vazio.")
+    df_escrow = spark.createDataFrame([], schema=StructType([StructField("cod_operacao", LongType(), True), StructField("ESCROW", BooleanType(), True)]))
+
 print("Leitura da Silver concluída.")
 
 # METADATA ********************
@@ -233,6 +241,22 @@ df_cad_geral_enriquecido = df_geral_pf_pj_limpa \
 # Célula 1.2: Operações Enriquecidas
 # -----------------------------------------------------------
 print("Criando DataFrame intermediário: Operações Enriquecidas...")
+from pyspark.sql.functions import unix_timestamp, ceil, abs, hour, month, weekofyear, dayofmonth, last_day, months_between, floor
+
+# PRE-CALCULO: Data Primeira Operação por Cliente (para Meses de Idade)
+df_first_op = df_operacoes_limpa.filter(col("status_aceite") == 'A') \
+    .groupBy("cod_cliente").agg(min("data_analise").alias("data_primeira_operacao_calc"))
+
+# PRE-CALCULO: Taxa Cadastro do Cliente (do Contrato Ativo)
+df_client_rate = df_contratos.filter(col("status") == 'A') \
+    .groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro_cliente"))
+
+# PRE-CALCULO: Gerente Enriquecido (Nome e Comissão)
+# df_gerentes tem cod_broker, cod_usuario, taxa_comissao (added in Silver Prep)
+# df_usuarios tem cod_usuario, nome
+df_gerentes_enrich = df_gerentes.join(df_usuarios, "cod_usuario", "left") \
+    .select(col("cod_broker"), col("taxa_comissao"), col("nome").alias("nome_gerente"))
+
 # PASSO 1: Tratamento de Ambiguidade
 # Renomeamos o cod_cliente da bridge para garantir unicidade no join
 df_bridge_prep = df_bridge_gerente.withColumnRenamed("cod_cliente", "cod_cliente_bridge")
@@ -282,6 +306,10 @@ df_ops_enrich_step1 = df_ops \
     .join(df_u_trava, col("ops.usua_trava") == col("u_trava.cod_usuario"), "left") \
     .join(df_motivos, col("ops.cod_indeferimento") == col("motivos.codindeferimento"), "left") \
     .join(df_estudo, col("ops.cod_operacao") == col("estudo.CODOPERACAO"), "left") \
+    .join(df_gerentes_enrich, col("ops.cod_broker") == col("df_gerentes_enrich.cod_broker"), "left") \
+    .join(df_escrow, "cod_operacao", "left") \
+    .join(df_first_op, "cod_cliente", "left") \
+    .join(df_client_rate, "cod_cliente", "left") \
     .select(
         col("ops.*"),
         col("u_inc.nome").alias("usuario_inclusao"),
@@ -291,7 +319,12 @@ df_ops_enrich_step1 = df_ops \
         col("u_trava.nome").alias("analista_trava"),
         col("motivos.motivo_indeferimento"),
         col("motivos.grupo_motivo_indeferimento"),
-        col("estudo.fator").alias("taxa_cadastro")
+        col("estudo.fator").alias("taxa_cadastro"),
+        col("df_gerentes_enrich.taxa_comissao"),
+        col("df_gerentes_enrich.nome_gerente").alias("gestor_da_operacao"),
+        col("df_escrow.ESCROW").alias("flag_escrow"),
+        col("df_first_op.data_primeira_operacao_calc"),
+        col("df_client_rate.taxa_cadastro_cliente")
     )
 
 df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
@@ -305,6 +338,35 @@ df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
  .withColumn("chave_base_cliente", concat(lit("40-"), col("cod_cliente"))) \
  .withColumn("chave_base_operacao", concat(lit("40-"), col("cod_operacao"))) \
  .withColumn("chave_base_empresa", concat(lit("40-"), col("cod_empresa"))) \
+ .withColumn("chave_ano_mes_base_empresa", concat(lit("40-"), col("cod_empresa"), lit("-"), year(col("data_deferimento")), lit("-"), month(col("data_deferimento")))) \
+ .withColumn("chave_meta", concat(col("chave_ano_mes_base_empresa"), lit("-"), col("gestor_da_operacao"))) \
+ .withColumn("ano_do_deferimento", year(col("data_deferimento"))) \
+ .withColumn("comissao_das_tarifas", col("taxa_comissao") * col("total_de_tarifas")) \
+ .withColumn("data_inicio_do_mes", to_date(date_add(last_day(date_add(col("data_deferimento"), -1)), 1))) \
+ .withColumn("dia_da_operacao", dayofmonth(col("data_deferimento"))) \
+ .withColumn("dia_da_semana_da_operacao", dayofweek(col("data_deferimento"))) \
+ .withColumn("dia_da_semana_da_operacao_por_extenso",
+    when(col("dia_da_semana_da_operacao") == 2, "Segunda")
+    .when(col("dia_da_semana_da_operacao") == 3, "Terça")
+    .when(col("dia_da_semana_da_operacao") == 4, "Quarta")
+    .when(col("dia_da_semana_da_operacao") == 5, "Quinta")
+    .when(col("dia_da_semana_da_operacao") == 6, "Sexta")
+    .otherwise(None)) \
+ .withColumn("faixa_de_tempo_de_analise_horas", abs(ceil((unix_timestamp(col("data_analise")) - unix_timestamp(col("data_inclusao")))/3600))) \
+ .withColumn("faixa_de_tempo_de_analise_minutos", abs(ceil((unix_timestamp(col("data_analise")) - unix_timestamp(col("data_inclusao")))/60))) \
+ .withColumn("tempo_de_analise_minutos", (unix_timestamp(col("data_analise")) - unix_timestamp(col("data_inclusao"))) / 60) \
+ .withColumn("hora_da_inclusao", hour(col("data_inclusao"))) \
+ .withColumn("meses_de_idade_do_cliente", floor(months_between(col("data_deferimento"), col("data_primeira_operacao_calc")))) \
+ .withColumn("semana_do_deferimento", weekofyear(col("data_deferimento"))) \
+ .withColumn("status_analisado_no_mesmo_dia", to_date(col("data_inclusao")) == to_date(col("data_analise"))) \
+ .withColumn("status_escrow", when(col("flag_escrow").cast("boolean") == True, "sim").otherwise("não")) \
+ .withColumn("status_meta", lit("SIM")) \
+ .withColumn("status_taxa_majorada",
+    when(col("taxa") > col("taxa_cadastro_cliente"), "MAJORADA")
+    .when(col("taxa") < col("taxa_cadastro_cliente"), "REDUZIDA")
+    .otherwise("MANTIDA")) \
+ .withColumn("tarifa_de_recompra", col("tarifa_recompra") * col("n_docs_recompra")) \
+ .withColumn("tarifa_de_titulos", col("n_docs") * col("tarifa")) \
  .na.fill(0, subset=["tac", "valor_taxa_adm", "valor_advalorem", "total_de_tarifas", "n_docs_recompra"]) \
  .drop("count").cache()
 
@@ -392,7 +454,27 @@ df_fato_operacoes = df_fato_operacoes_joined.select(
     col("tac"),
     col("valor_taxa_adm"),
     col("valor_advalorem"),
-    col("n_docs_recompra")
+    col("n_docs_recompra"),
+    col("chave_meta"),
+    col("ano_do_deferimento"),
+    col("comissao_das_tarifas"),
+    col("data_inicio_do_mes"),
+    col("dia_da_operacao"),
+    col("dia_da_semana_da_operacao"),
+    col("dia_da_semana_da_operacao_por_extenso"),
+    col("faixa_de_tempo_de_analise_horas"),
+    col("faixa_de_tempo_de_analise_minutos"),
+    col("tempo_de_analise_minutos"),
+    col("hora_da_inclusao"),
+    col("meses_de_idade_do_cliente"),
+    col("semana_do_deferimento"),
+    col("status_analisado_no_mesmo_dia"),
+    col("status_escrow"),
+    col("status_meta"),
+    col("status_taxa_majorada"),
+    col("tarifa_de_recompra"),
+    col("tarifa_de_titulos"),
+    col("gestor_da_operacao")
 )
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)

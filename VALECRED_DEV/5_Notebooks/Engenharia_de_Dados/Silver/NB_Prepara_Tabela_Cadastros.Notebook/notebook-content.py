@@ -250,7 +250,8 @@ def process_gerentes():
         col("CPFCNPJ").alias("cpf_cnpj"),
         col("CODAGENCIA").alias("cod_agencia"),
         col("CODUSUARIO").alias("cod_usuario"),
-        col("DATAINCLUSAO").alias("data_inicio_gestao")
+        col("DATAINCLUSAO").alias("data_inicio_gestao"),
+        col("COMISSAO").alias("taxa_comissao")
     ).withColumn("meses_de_casa", round(months_between(current_date(), col("data_inicio_gestao")), 2))
 
     try:
