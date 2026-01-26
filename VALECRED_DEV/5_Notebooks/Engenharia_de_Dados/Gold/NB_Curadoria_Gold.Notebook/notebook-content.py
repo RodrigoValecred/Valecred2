@@ -255,7 +255,7 @@ df_client_rate = df_contratos.filter(col("status") == 'A') \
 # df_gerentes tem cod_broker, cod_usuario, taxa_comissao (added in Silver Prep)
 # df_usuarios tem cod_usuario, nome
 df_gerentes_enrich = df_gerentes.join(df_usuarios, "cod_usuario", "left") \
-    .select(col("cod_broker"), col("taxa_comissao"), col("nome").alias("nome_gerente")).alias("gerentes")
+    .select(col("cod_broker"), col("taxa_comissao"), col("nome").alias("nome_gerente")).dropDuplicates(["cod_broker"]).alias("gerentes")
 
 # Aliasing other tables for join safety
 df_escrow = df_escrow.alias("escrow")
@@ -273,7 +273,7 @@ df_operacoes_com_historico = df_operacoes_limpa.join(
     (df_operacoes_limpa["data_analise"].cast("date") >= df_bridge_prep["data_inicio_vigencia"]) &
     (df_operacoes_limpa["data_analise"].cast("date") <= df_bridge_prep["data_fim_vigencia"]),
     "left"
-)
+).dropDuplicates(["cod_operacao"])
 
 df_operacoes_com_gerente = df_operacoes_com_historico.withColumn(
     "cod_broker",
@@ -303,7 +303,7 @@ df_u_inc = df_usuarios.alias("u_inc")
 df_u_ana = df_usuarios.alias("u_ana")
 df_u_trava = df_usuarios.alias("u_trava")
 df_motivos = df_motivos_indeferimento.alias("motivos")
-df_estudo = df_estudo_operacoes.alias("estudo")
+df_estudo = df_estudo_operacoes.dropDuplicates(["CODOPERACAO"]).alias("estudo")
 
 df_ops_enrich_step1 = df_ops \
     .join(df_u_inc, col("ops.usua_inclusao") == col("u_inc.cod_usuario"), "left") \
@@ -480,7 +480,7 @@ df_fato_operacoes = df_fato_operacoes_joined.select(
     col("tarifa_de_recompra"),
     col("tarifa_de_titulos"),
     col("gestor_da_operacao")
-)
+).dropDuplicates(["cod_operacao"])
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
 print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
