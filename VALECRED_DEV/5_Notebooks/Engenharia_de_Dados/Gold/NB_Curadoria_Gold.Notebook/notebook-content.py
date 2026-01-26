@@ -739,7 +739,7 @@ df_bridge_atual = df_bridge_gerente.filter(col("data_fim_vigencia") == "9999-12-
 df_info_gestor = df_bridge_atual \
     .join(df_gerentes, df_bridge_atual.cod_gerente == df_gerentes.cod_broker, "left") \
     .join(df_plataformas, "cod_agencia", "left") \
-    .select(df_bridge_atual.cod_cliente, df_plataformas.gestor_da_plataforma, df_bridge_atual.cod_gerente.alias("cod_broker"))
+    .select(df_bridge_atual.cod_cliente, df_plataformas.gestor_da_plataforma, df_bridge_atual.cod_gerente.alias('cod_broker'), df_gerentes.taxa_comissao)
 
 # 6.1: Métricas de Operações
 # --------------------------
@@ -795,6 +795,8 @@ df_metrics_titulos = df_risco_base.groupBy("cod_cliente").agg(
     # Dates
     min(when(datediff(today_date, col("venc_prorrogado")) >= 15, col("venc_prorrogado"))).alias("data_vencido_mais_antigo"),
     max(when(datediff(today_date, col("venc_prorrogado")) >= 15, col("venc_prorrogado"))).alias("data_vencido_mais_recente"),
+    max(when(col("status_risco") == "CRÍTICO", 1).otherwise(0)).alias("has_critico"),
+    max(when(col("status_risco") == "ATENÇÃO", 1).otherwise(0)).alias("has_atencao"),
 
     # NOVAS COLUNAS: Qualidade do Cliente (Risco Clean, Renegociacao, etc.)
     sum(when(col("status_clean") == "CLEAN", col("valor_devido")).otherwise(0)).alias("risco_clean"),
@@ -875,6 +877,12 @@ for status, clean_name in status_mapping.items():
 # Passo 1: Min Datas puras
 df_esteira_min = df_esteira.groupBy("cod_cliente").pivot("status_do_cliente", expected_status).agg(min("datalog"))
 
+
+# 6.3.1: Latest Status Esteira (Power BI Requirement)
+w_latest = Window.partitionBy("cod_cliente").orderBy(col("datalog").desc())
+df_esteira_latest = df_esteira.withColumn("rn", row_number().over(w_latest)).filter(col("rn") == 1) \
+    .select(col("cod_cliente").alias("cod_cliente_latest"), col("status_do_cliente").alias("Status do cliente"), col("macroprocesso").alias("MACROPROCESSO"), col("fase").alias("FASE"))
+
 # 6.4: Limites
 # ------------
 df_limites_agg = df_contratos.filter(col("status") == "A") \
@@ -923,6 +931,10 @@ df_esteira_pivot_prep = df_esteira_pivot.withColumnRenamed("cod_cliente", "cod_c
 df_esteira_min_prep = df_esteira_min_renamed.withColumnRenamed("cod_cliente", "cod_cliente_min")
 
 # Join Chain
+
+# Taxa Cadastro (Power BI Requirement)
+df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("Taxa cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
+
 df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_metrics_ops_final, "cod_cliente", "left") \
     .join(df_metrics_titulos_final, "cod_cliente", "left") \
@@ -931,7 +943,7 @@ df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_limites_agg, "cod_cliente", "left") \
     .join(df_grupos_prep, "cod_cliente", "left") \
     .join(df_risco_grupo_agg, "grupo_economico", "left") \
-    .join(df_info_gestor, "cod_cliente", "left")
+    .join(df_info_gestor, "cod_cliente", "left").join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest").join(df_client_rate_gold, df_base.cod_cliente == df_client_rate_gold.cod_cliente_rate, "left").drop("cod_cliente_rate")
 
 # Implementando Lógica Funnel Sequencial (Aproximação)
 # Data 1: Primeira Proposta Comercial = MIN(Proposta, Revisao, Diretoria)
@@ -1095,7 +1107,17 @@ df_final = df_funnel \
 
 # Salvar
 output_path_dim_clientes = "LH_Gold.dim_clientes"
-df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_clientes)
+
+# Apply Power BI Adjustments (New Columns Only)
+df_final_adjusted = df_final \
+    .withColumn("DESCONSIDERAR PDD", lit(False)) \
+    .withColumn("Status Risco",
+        when(col("has_critico") == 1, "CRÍTICO")
+        .when(col("has_atencao") == 1, "ATENÇÃO")
+        .otherwise("NO PRAZO")
+    )
+
+df_final_adjusted.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_clientes)
 print(f"Tabela 'dim_clientes' recriada em: {output_path_dim_clientes}")
 
 # METADATA ********************
