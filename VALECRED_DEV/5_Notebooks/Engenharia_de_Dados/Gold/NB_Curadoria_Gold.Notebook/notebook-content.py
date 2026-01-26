@@ -1108,28 +1108,14 @@ df_final = df_funnel \
 # Salvar
 output_path_dim_clientes = "LH_Gold.dim_clientes"
 
-# Apply Power BI Adjustments (Renames and New Columns)
+# Apply Power BI Adjustments (New Columns Only)
 df_final_adjusted = df_final \
-    .withColumnRenamed("nome", "Nome do cliente") \
-    .withColumnRenamed("vencimento_limite", "Vencimento limite") \
-    .withColumnRenamed("status_limite", "Status Limite") \
-    .withColumnRenamed("status_operando_vencido", "Status Operando Vencido") \
-    .withColumnRenamed("limite_comissaria_contrato", "Limite comissaria") \
-    .withColumnRenamed("data_primeira_operacao_apos_aprovacao", "Operou após a proposta") \
-    .withColumnRenamed("data_ultima_operacao", "Data ultima operação") \
-    .withColumnRenamed("data_primeira_operacao", "Data primeira operação") \
-    .withColumnRenamed("data_vencido_mais_antigo", "Data primeira inadimplência >14") \
-    .withColumnRenamed("percentual_exigido", "Percentual exigido de confirmação") \
-    .withColumnRenamed("falta_checar", "Falta checar") \
-    .withColumnRenamed("data_conclusao", "Data conclusão") \
-    .withColumnRenamed("dias_proposta_comercial", "Dias da proposta no comercial") \
     .withColumn("DESCONSIDERAR PDD", lit(False)) \
     .withColumn("Status Risco",
         when(col("has_critico") == 1, "CRÍTICO")
         .when(col("has_atencao") == 1, "ATENÇÃO")
         .otherwise("NO PRAZO")
-    ) \
-    .withColumnRenamed("taxa_comissao", "Taxa de Comissão")
+    )
 
 df_final_adjusted.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_clientes)
 print(f"Tabela 'dim_clientes' recriada em: {output_path_dim_clientes}")
