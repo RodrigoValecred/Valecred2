@@ -39,18 +39,6 @@
         "name": "NB_Curadoria_Gold",
         "dependsOn": [
           {
-            "activity": "Cadastros",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "Titulos",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
             "activity": "Operacoes",
             "dependencyConditions": [
               "Succeeded"
@@ -75,7 +63,7 @@
         "description": "Notebook_Preparacao_Silver\n",
         "dependsOn": [
           {
-            "activity": "Carrega dados brutos",
+            "activity": "Observacoes_Contratos",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -123,7 +111,7 @@
         "description": "NB_Prepara_Operacoes\n",
         "dependsOn": [
           {
-            "activity": "Carrega dados brutos",
+            "activity": "Titulos",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -147,7 +135,7 @@
         "description": "NB_Prepara_Titulos",
         "dependsOn": [
           {
-            "activity": "Carrega dados brutos",
+            "activity": "Cadastros",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -171,7 +159,7 @@
         "description": "Crédito",
         "dependsOn": [
           {
-            "activity": "Cadastros",
+            "activity": "Esteira de Propostas",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -195,7 +183,7 @@
         "description": "Notebook_Preparacao_Silver\n",
         "dependsOn": [
           {
-            "activity": "Carrega dados brutos",
+            "activity": "Processamento_Clientes_Gold",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -218,7 +206,7 @@
         "name": "Observacoes_Contratos",
         "dependsOn": [
           {
-            "activity": "Cadastros",
+            "activity": "RelatorioLimitesVencendo",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -242,7 +230,7 @@
         "description": "Notebook_Preparacao_Silver\n",
         "dependsOn": [
           {
-            "activity": "Carrega dados brutos",
+            "activity": "LancamentosContabeis",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -265,7 +253,7 @@
         "name": "Gerentes",
         "dependsOn": [
           {
-            "activity": "Cadastros",
+            "activity": "NB_Curadoria_Gold",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -288,13 +276,7 @@
         "name": "Sacados",
         "dependsOn": [
           {
-            "activity": "Titulos",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "Cadastros",
+            "activity": "Gerentes",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -317,7 +299,7 @@
         "name": "Esteira de Propostas",
         "dependsOn": [
           {
-            "activity": "Cadastros",
+            "activity": "Empresas",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -341,7 +323,7 @@
         "description": "NB_Prepara_Operacoes\n",
         "dependsOn": [
           {
-            "activity": "Cadastros",
+            "activity": "Sacados",
             "dependencyConditions": [
               "Succeeded"
             ]
