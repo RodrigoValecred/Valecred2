@@ -140,7 +140,7 @@ def process_operacoes():
 
         if df_bronze_ops.count() > 0:
             # 3. Transform & Deduplicate Batch
-            df_corrigido = df_bronze_ops.withColumn("TTO_corrigido", when(col("CODOPERACAO") == 3042074, lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
+            df_corrigido = df_bronze_ops.withColumn("TTO_corrigido", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
 
             windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
             df_ranked = df_corrigido.withColumn("row_num", row_number().over(windowSpec))
@@ -166,7 +166,7 @@ def process_operacoes():
         df_bronze_ops = spark.read.table(f"{source_lakehouse}.{source_table_operacoes}")
         
         # Tratamento TTO específico
-        df_corrigido = df_bronze_ops.withColumn("TTO_corrigido", when(col("CODOPERACAO") == 3042074, lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
+        df_corrigido = df_bronze_ops.withColumn("TTO_corrigido", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
         
         # Deduplicação
         windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
