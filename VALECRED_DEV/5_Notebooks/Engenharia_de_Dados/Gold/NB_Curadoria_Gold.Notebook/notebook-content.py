@@ -572,12 +572,12 @@ df_titulos_base = df_titulos_limpa.filter(~col("t_doc").isin("BL", "RC")) \
     .withColumn("tipo_documento_sacado", when(length(col("cpf_cnpj_sacado")) == 11, "CPF").when(length(col("cpf_cnpj_sacado")) == 14, "CNPJ").otherwise("Inválido")) \
     .withColumn("raiz_cnpj", when(col("tipo_documento_sacado") == "CNPJ", substring(col("cpf_cnpj_sacado"), 1, 8)).otherwise(col("cpf_cnpj_sacado")))
 
-df_operacoes_small = df_operacoes_enriquecida.select("cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto", "tto")
-df_limites_small = df_limites.select("chave_cliente_sacado", "tipo")
-df_produtos_small = df_dim_produto.select(col("chave_produto"), col("produto_informacao_de_mercado").alias("produto_temp"))
-df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao").alias("cod_operacao_recompra"))
-df_ultima_conf_small = df_ultima_conf.select(col("cod_titulo"), col("confirmacao").alias("confirmado_por"))
-df_protestos_small = df_protestos.select("cod_titulo", "status_protesto")
+df_operacoes_small = df_operacoes_enriquecida.select("cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto", "tto").dropDuplicates(["cod_operacao"])
+df_limites_small = df_limites.select("chave_cliente_sacado", "tipo").dropDuplicates(["chave_cliente_sacado"])
+df_produtos_small = df_dim_produto.select(col("chave_produto"), col("produto_informacao_de_mercado").alias("produto_temp")).dropDuplicates(["chave_produto"])
+df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao").alias("cod_operacao_recompra")).dropDuplicates(["cod_titulo"])
+df_ultima_conf_small = df_ultima_conf.select(col("cod_titulo"), col("confirmacao").alias("confirmado_por")).dropDuplicates(["cod_titulo"])
+df_protestos_small = df_protestos.select("cod_titulo", "status_protesto").dropDuplicates(["cod_titulo"])
 
 # Flag Juridico
 df_juridico_flag = df_relatorio_juridico.select("cod_titulo").distinct().withColumn("status_enviado_juridico", lit(True))
