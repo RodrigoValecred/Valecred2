@@ -1,365 +1,365 @@
 {
-    "properties": {
-        "activities": [
-            {
-                "type": "InvokePipeline",
-                "typeProperties": {
-                    "parameters": {},
-                    "waitOnCompletion": true,
-                    "workspaceId": "00000000-0000-0000-0000-000000000000",
-                    "pipelineId": "87c89073-9db5-be70-479f-8465e32ce154",
-                    "operationType": "InvokeFabricPipeline"
-                },
-                "externalReferences": {
-                    "connection": "1fb34559-579a-4de4-92c2-20ab69297bef"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Carrega dados brutos",
-                "dependsOn": []
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "9fbc5396-06ff-95eb-4de9-eccf4bdc8bea",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Cadastros",
-                "description": "NB_Prepara_Cadastros\n",
-                "dependsOn": [
-                    {
-                        "activity": "Carrega dados brutos",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "687fc79c-337a-b59b-45cf-b36e93afb62d",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Titulos",
-                "description": "NB_Prepara_Titulos",
-                "dependsOn": [
-                    {
-                        "activity": "Carrega dados brutos",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "10799147-769b-a246-499f-370ac65c3eb4",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Operacoes",
-                "description": "NB_Prepara_Operacoes\n",
-                "dependsOn": [
-                    {
-                        "activity": "Carrega dados brutos",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "22f216c0-231e-b4d4-4338-112491f23c92",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "LancamentosContabeis",
-                "description": "Notebook_Preparacao_Silver\n",
-                "dependsOn": [
-                    {
-                        "activity": "Operacoes",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "6f4fa08e-65b9-8111-4aef-a58631ed10cd",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Observacoes_Contratos",
-                "dependsOn": [
-                    {
-                        "activity": "LancamentosContabeis",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "91e71089-df02-b910-4986-b32e6dc7ab8c",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Verifica Titulos Enviados ao Juridico",
-                "description": "NB_Analise_Titulos_Juridicos",
-                "dependsOn": [
-                    {
-                        "activity": "Titulos",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "536f9221-4228-a38f-48f4-f7c6869b1577",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Gerentes",
-                "dependsOn": [
-                    {
-                        "activity": "Cadastros",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "0840f03d-173a-bbf5-45be-e33a649c7f96",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Sacados",
-                "dependsOn": [
-                    {
-                        "activity": "Cadastros",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "b506676e-cc75-a48e-4c69-f933a9693cd3",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Empresas",
-                "description": "NB_Gold_Dim_Empresas",
-                "dependsOn": [
-                    {
-                        "activity": "Cadastros",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "eedf6dd8-bf72-9e14-4f58-fc93b2e2bd0a",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Esteira de Propostas",
-                "dependsOn": [
-                    {
-                        "activity": "Cadastros",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "508582b1-4e33-87a9-4785-8b882d886bb6",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "NB_Curadoria_Gold",
-                "dependsOn": [
-                    {
-                        "activity": "Gerentes",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    },
-                    {
-                        "activity": "Sacados",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    },
-                    {
-                        "activity": "Empresas",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    },
-                    {
-                        "activity": "Esteira de Propostas",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    },
-                    {
-                        "activity": "Verifica Titulos Enviados ao Juridico",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    },
-                    {
-                        "activity": "Observacoes_Contratos",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "d466cb11-2557-a868-4e49-071ead810ec6",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "RelatorioLimitesVencendo",
-                "description": "Cr\u00e9dito",
-                "dependsOn": [
-                    {
-                        "activity": "NB_Curadoria_Gold",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "TridentNotebook",
-                "typeProperties": {
-                    "notebookId": "d724b5e9-2be8-a846-4882-4433c7fe28b0",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                },
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "name": "Processamento_Clientes_Gold",
-                "description": "NB_Gera_Relatorio_Diario_Clientes",
-                "dependsOn": [
-                    {
-                        "activity": "NB_Curadoria_Gold",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ]
-            }
+  "properties": {
+    "activities": [
+      {
+        "type": "InvokePipeline",
+        "typeProperties": {
+          "parameters": {},
+          "waitOnCompletion": true,
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "pipelineId": "87c89073-9db5-be70-479f-8465e32ce154",
+          "operationType": "InvokeFabricPipeline"
+        },
+        "externalReferences": {
+          "connection": "1fb34559-579a-4de4-92c2-20ab69297bef"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Carrega dados brutos",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "9fbc5396-06ff-95eb-4de9-eccf4bdc8bea",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Cadastros",
+        "description": "NB_Prepara_Cadastros\n",
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
         ]
-    }
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "687fc79c-337a-b59b-45cf-b36e93afb62d",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Titulos",
+        "description": "NB_Prepara_Titulos",
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "10799147-769b-a246-499f-370ac65c3eb4",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Operacoes",
+        "description": "NB_Prepara_Operacoes\n",
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "22f216c0-231e-b4d4-4338-112491f23c92",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "LancamentosContabeis",
+        "description": "Notebook_Preparacao_Silver\n",
+        "dependsOn": [
+          {
+            "activity": "Operacoes",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "6f4fa08e-65b9-8111-4aef-a58631ed10cd",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Observacoes_Contratos",
+        "dependsOn": [
+          {
+            "activity": "LancamentosContabeis",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "91e71089-df02-b910-4986-b32e6dc7ab8c",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Verifica Titulos Enviados ao Juridico",
+        "description": "NB_Analise_Titulos_Juridicos",
+        "dependsOn": [
+          {
+            "activity": "Titulos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "536f9221-4228-a38f-48f4-f7c6869b1577",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Gerentes",
+        "dependsOn": [
+          {
+            "activity": "Cadastros",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "0840f03d-173a-bbf5-45be-e33a649c7f96",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Sacados",
+        "dependsOn": [
+          {
+            "activity": "Cadastros",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "b506676e-cc75-a48e-4c69-f933a9693cd3",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Empresas",
+        "description": "NB_Gold_Dim_Empresas",
+        "dependsOn": [
+          {
+            "activity": "Cadastros",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "eedf6dd8-bf72-9e14-4f58-fc93b2e2bd0a",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Esteira de Propostas",
+        "dependsOn": [
+          {
+            "activity": "Cadastros",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "508582b1-4e33-87a9-4785-8b882d886bb6",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Curadoria_Gold",
+        "dependsOn": [
+          {
+            "activity": "Gerentes",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Sacados",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Empresas",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Esteira de Propostas",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Verifica Titulos Enviados ao Juridico",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Observacoes_Contratos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "d466cb11-2557-a868-4e49-071ead810ec6",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "RelatorioLimitesVencendo",
+        "description": "Crédito",
+        "dependsOn": [
+          {
+            "activity": "NB_Curadoria_Gold",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "d724b5e9-2be8-a846-4882-4433c7fe28b0",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Processamento_Clientes_Gold",
+        "description": "NB_Gera_Relatorio_Diario_Clientes",
+        "dependsOn": [
+          {
+            "activity": "NB_Curadoria_Gold",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ]
+  }
 }
