@@ -151,6 +151,7 @@ df_final = df_joined \
     .withColumn("chave_base_empresa", concat(col("base").cast("string"), lit("-"), col("e.cod_empresa").cast("string"))) \
     .withColumn("chave_base_cadastro", concat(col("base").cast("string"), lit("-"), col("e.cnpj_clean"))) \
     .withColumn("empresa_calculada", derive_empresa_name_udf(col("c.nome"))) \
+    .withColumn("TIPO", when(col("chave_base_empresa") == "40-14", "SECURITIZADORA").otherwise("FIDC")) \
     .select(
         col("base"),
         col("chave_base_empresa"),
@@ -158,7 +159,8 @@ df_final = df_joined \
         col("e.cnpj"),
         col("e.cod_empresa"),
         col("c.nome").alias("nome_original"),
-        col("empresa_calculada").alias("empresa")
+        col("empresa_calculada").alias("empresa"),
+        col("TIPO")
     )
 
 # 4. Escrita
