@@ -881,7 +881,7 @@ df_esteira_min = df_esteira.groupBy("cod_cliente").pivot("status_do_cliente", ex
 # 6.3.1: Latest Status Esteira (Power BI Requirement)
 w_latest = Window.partitionBy("cod_cliente").orderBy(col("datalog").desc())
 df_esteira_latest = df_esteira.withColumn("rn", row_number().over(w_latest)).filter(col("rn") == 1) \
-    .select(col("cod_cliente").alias("cod_cliente_latest"), col("status_do_cliente").alias("Status do cliente"), col("macroprocesso").alias("MACROPROCESSO"), col("fase").alias("FASE"))
+    .select(col("cod_cliente").alias("cod_cliente_latest"), col("status_do_cliente").alias("status_do_cliente"), col("macroprocesso").alias("MACROPROCESSO"), col("fase").alias("FASE"))
 
 # 6.4: Limites
 # ------------
@@ -933,7 +933,7 @@ df_esteira_min_prep = df_esteira_min_renamed.withColumnRenamed("cod_cliente", "c
 # Join Chain
 
 # Taxa Cadastro (Power BI Requirement)
-df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("Taxa cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
+df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
 
 df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_metrics_ops_final, "cod_cliente", "left") \
@@ -1110,8 +1110,8 @@ output_path_dim_clientes = "LH_Gold.dim_clientes"
 
 # Apply Power BI Adjustments (New Columns Only)
 df_final_adjusted = df_final \
-    .withColumn("DESCONSIDERAR PDD", lit(False)) \
-    .withColumn("Status Risco",
+    .withColumn("desconsiderar_pdd", lit(False)) \
+    .withColumn("status_risco",
         when(col("has_critico") == 1, "CRÍTICO")
         .when(col("has_atencao") == 1, "ATENÇÃO")
         .otherwise("NO PRAZO")
