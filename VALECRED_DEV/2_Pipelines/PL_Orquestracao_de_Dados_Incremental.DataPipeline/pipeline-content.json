@@ -26,53 +26,6 @@
       {
         "type": "TridentNotebook",
         "typeProperties": {
-          "notebookId": "508582b1-4e33-87a9-4785-8b882d886bb6",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "NB_Curadoria_Gold",
-        "dependsOn": [
-          {
-            "activity": "Operacoes",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "d724b5e9-2be8-a846-4882-4433c7fe28b0",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Processamento_Clientes_Gold",
-        "description": "Notebook_Preparacao_Silver\n",
-        "dependsOn": [
-          {
-            "activity": "Observacoes_Contratos",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
           "notebookId": "9fbc5396-06ff-95eb-4de9-eccf4bdc8bea",
           "workspaceId": "00000000-0000-0000-0000-000000000000"
         },
@@ -88,30 +41,6 @@
         "dependsOn": [
           {
             "activity": "Carrega dados brutos",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "10799147-769b-a246-499f-370ac65c3eb4",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Operacoes",
-        "description": "NB_Prepara_Operacoes\n",
-        "dependsOn": [
-          {
-            "activity": "Titulos",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -145,7 +74,7 @@
       {
         "type": "TridentNotebook",
         "typeProperties": {
-          "notebookId": "d466cb11-2557-a868-4e49-071ead810ec6",
+          "notebookId": "10799147-769b-a246-499f-370ac65c3eb4",
           "workspaceId": "00000000-0000-0000-0000-000000000000"
         },
         "policy": {
@@ -155,11 +84,11 @@
           "secureInput": false,
           "secureOutput": false
         },
-        "name": "RelatorioLimitesVencendo",
-        "description": "Crédito",
+        "name": "Operacoes",
+        "description": "NB_Prepara_Operacoes\n",
         "dependsOn": [
           {
-            "activity": "Esteira de Propostas",
+            "activity": "Titulos",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -183,7 +112,7 @@
         "description": "Notebook_Preparacao_Silver\n",
         "dependsOn": [
           {
-            "activity": "Processamento_Clientes_Gold",
+            "activity": "Operacoes",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -206,7 +135,7 @@
         "name": "Observacoes_Contratos",
         "dependsOn": [
           {
-            "activity": "RelatorioLimitesVencendo",
+            "activity": "LancamentosContabeis",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -230,7 +159,7 @@
         "description": "Notebook_Preparacao_Silver\n",
         "dependsOn": [
           {
-            "activity": "LancamentosContabeis",
+            "activity": "Observacoes_Contratos",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -253,7 +182,7 @@
         "name": "Gerentes",
         "dependsOn": [
           {
-            "activity": "NB_Curadoria_Gold",
+            "activity": "Verifica Titulos Enviados ao Juridico",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -286,6 +215,30 @@
       {
         "type": "TridentNotebook",
         "typeProperties": {
+          "notebookId": "b506676e-cc75-a48e-4c69-f933a9693cd3",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Empresas",
+        "description": "NB_Prepara_Operacoes\n",
+        "dependsOn": [
+          {
+            "activity": "Sacados",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
           "notebookId": "eedf6dd8-bf72-9e14-4f58-fc93b2e2bd0a",
           "workspaceId": "00000000-0000-0000-0000-000000000000"
         },
@@ -309,7 +262,7 @@
       {
         "type": "TridentNotebook",
         "typeProperties": {
-          "notebookId": "b506676e-cc75-a48e-4c69-f933a9693cd3",
+          "notebookId": "508582b1-4e33-87a9-4785-8b882d886bb6",
           "workspaceId": "00000000-0000-0000-0000-000000000000"
         },
         "policy": {
@@ -319,11 +272,58 @@
           "secureInput": false,
           "secureOutput": false
         },
-        "name": "Empresas",
-        "description": "NB_Prepara_Operacoes\n",
+        "name": "NB_Curadoria_Gold",
         "dependsOn": [
           {
-            "activity": "Sacados",
+            "activity": "Esteira de Propostas",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "d466cb11-2557-a868-4e49-071ead810ec6",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "RelatorioLimitesVencendo",
+        "description": "Crédito",
+        "dependsOn": [
+          {
+            "activity": "NB_Curadoria_Gold",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "d724b5e9-2be8-a846-4882-4433c7fe28b0",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Processamento_Clientes_Gold",
+        "description": "Notebook_Preparacao_Silver\n",
+        "dependsOn": [
+          {
+            "activity": "RelatorioLimitesVencendo",
             "dependencyConditions": [
               "Succeeded"
             ]
