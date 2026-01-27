@@ -182,7 +182,7 @@
         "name": "Gerentes",
         "dependsOn": [
           {
-            "activity": "Cadastros",
+            "activity": "Sacados",
             "dependencyConditions": [
               "Succeeded"
             ]
