@@ -1,6 +1,5 @@
 {
   "properties": {
-    "description": "Pipeline dedicado para carga incremental da tabela tab_titulos_cobranca (Volume Alto - 20GB). Usa DATAINCLUSAO como watermark.",
     "activities": [
       {
         "type": "Lookup",
@@ -8,6 +7,7 @@
           "source": {
             "type": "DataWarehouseSource",
             "sqlReaderQuery": "SELECT LastWatermarkValue FROM etl_watermark_control WHERE PipelineName = 'PL_Load_Bronze_TitulosCobranca'",
+            "partitionOption": "None",
             "queryTimeout": "02:00:00"
           },
           "datasetSettings": {
@@ -20,9 +20,11 @@
                   "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
                   "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
                   "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
-                }
+                },
+                "annotations": []
               }
-            }
+            },
+            "annotations": []
           },
           "firstRowOnly": true
         },
@@ -41,9 +43,13 @@
         "typeProperties": {
           "variableName": "TargetDate",
           "value": {
-            "value": "@formatDateTime(utcNow(),'yyyy-MM-dd HH:mm:ss')",
+            "value": "@formatDateTime(addHours(utcNow(), -3), 'yyyy-MM-dd HH:mm:ss')",
             "type": "Expression"
           }
+        },
+        "policy": {
+          "secureInput": false,
+          "secureOutput": false
         },
         "name": "Set_Target_Date",
         "dependsOn": [
@@ -68,7 +74,8 @@
               "type": "MySqlTable",
               "externalReferences": {
                 "connection": "ddb03605-7bef-45d9-8c36-aa19be4e5ae4"
-              }
+              },
+              "annotations": []
             }
           },
           "sink": {
@@ -80,6 +87,7 @@
               "typeProperties": {
                 "table": "tab_titulos_cobranca"
               },
+              "schema": [],
               "linkedService": {
                 "name": "LH_Bronze",
                 "properties": {
@@ -88,9 +96,11 @@
                     "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
                     "workspaceId": "00000000-0000-0000-0000-000000000000",
                     "rootFolder": "Tables"
-                  }
+                  },
+                  "annotations": []
                 }
-              }
+              },
+              "annotations": []
             }
           },
           "enableStaging": false
@@ -134,8 +144,15 @@
               "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
               "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
               "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
-            }
+            },
+            "annotations": []
           }
+        },
+        "policy": {
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
         },
         "name": "Update_Watermark",
         "dependsOn": [
@@ -152,7 +169,6 @@
       "TargetDate": {
         "type": "String"
       }
-    },
-    "annotations": []
+    }
   }
 }
