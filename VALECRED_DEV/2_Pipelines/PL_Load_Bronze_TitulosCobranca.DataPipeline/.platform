@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataPipeline",
+    "displayName": "PL_Load_Bronze_TitulosCobranca"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "a10709a4-fec8-a0f5-4bad-3d845f0c3746"
+  }
+}

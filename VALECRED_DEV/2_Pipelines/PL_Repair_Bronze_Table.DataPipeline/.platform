@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataPipeline",
+    "displayName": "PL_Repair_Bronze_Table"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "2acc3ccc-36e3-a75d-4c33-13a187f77a1b"
+  }
+}
