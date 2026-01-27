@@ -1,0 +1,77 @@
+{
+    "name": "PL_Repair_Bronze_Table",
+    "properties": {
+        "description": "Pipeline de reparo para carga cirúrgica (backfill) de tabelas Bronze sem necessidade de Full Load.",
+        "activities": [
+            {
+                "name": "Copy_Missing_Data",
+                "type": "Copy",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureInput": false,
+                    "secureOutput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "MySqlSource",
+                        "query": {
+                            "value": "@concat('SELECT * FROM ', pipeline().parameters.TableName, ' WHERE ', pipeline().parameters.WatermarkColumn, ' >= ''', pipeline().parameters.StartDate, '''')",
+                            "type": "Expression"
+                        },
+                        "datasetSettings": {
+                            "type": "MySqlTable",
+                            "externalReferences": {
+                                "connection": "ddb03605-7bef-45d9-8c36-aa19be4e5ae4"
+                            }
+                        }
+                    },
+                    "sink": {
+                        "type": "LakehouseTableSink",
+                        "tableActionOption": "Append",
+                        "partitionOption": "None",
+                        "datasetSettings": {
+                            "type": "LakehouseTable",
+                            "linkedService": {
+                                "name": "LH_Bronze",
+                                "properties": {
+                                    "type": "Lakehouse",
+                                    "typeProperties": {
+                                        "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
+                                        "workspaceId": "00000000-0000-0000-0000-000000000000",
+                                        "rootFolder": "Tables"
+                                    }
+                                }
+                            },
+                            "typeProperties": {
+                                "table": {
+                                    "value": "@pipeline().parameters.TableName",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    },
+                    "enableStaging": false
+                }
+            }
+        ],
+        "parameters": {
+            "TableName": {
+                "type": "string",
+                "defaultValue": "tab_titulos_cobranca"
+            },
+            "WatermarkColumn": {
+                "type": "string",
+                "defaultValue": "DATAINCLUSAO"
+            },
+            "StartDate": {
+                "type": "string",
+                "defaultValue": "2025-01-01 00:00:00"
+            }
+        },
+        "annotations": []
+    }
+}
