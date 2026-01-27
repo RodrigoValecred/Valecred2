@@ -159,7 +159,7 @@
         "description": "NB_Analise_Titulos_Juridicos",
         "dependsOn": [
           {
-            "activity": "Titulos",
+            "activity": "Sacados",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -182,7 +182,7 @@
         "name": "Gerentes",
         "dependsOn": [
           {
-            "activity": "Sacados",
+            "activity": "Empresas",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -205,7 +205,7 @@
         "name": "Sacados",
         "dependsOn": [
           {
-            "activity": "Empresas",
+            "activity": "Titulos",
             "dependencyConditions": [
               "Succeeded"
             ]
