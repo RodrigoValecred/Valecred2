@@ -1,158 +1,158 @@
 {
-    "properties": {
-        "description": "Pipeline dedicado para carga incremental da tabela tab_titulos_cobranca (Volume Alto - 20GB). Usa DATAINCLUSAO como watermark.",
-        "activities": [
-            {
-                "name": "Get_Last_Watermark",
-                "type": "Lookup",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
+  "properties": {
+    "description": "Pipeline dedicado para carga incremental da tabela tab_titulos_cobranca (Volume Alto - 20GB). Usa DATAINCLUSAO como watermark.",
+    "activities": [
+      {
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "DataWarehouseSource",
+            "sqlReaderQuery": "SELECT LastWatermarkValue FROM etl_watermark_control WHERE PipelineName = 'PL_Load_Bronze_TitulosCobranca'",
+            "queryTimeout": "02:00:00"
+          },
+          "datasetSettings": {
+            "type": "DataWarehouseTable",
+            "linkedService": {
+              "name": "WH_Gold",
+              "properties": {
+                "type": "DataWarehouse",
                 "typeProperties": {
-                    "source": {
-                        "type": "DataWarehouseSource",
-                        "sqlReaderQuery": "SELECT LastWatermarkValue FROM etl_watermark_control WHERE PipelineName = 'PL_Load_Bronze_TitulosCobranca'",
-                        "queryTimeout": "02:00:00"
-                    },
-                    "datasetSettings": {
-                        "type": "DataWarehouseTable",
-                        "linkedService": {
-                            "name": "WH_Gold",
-                            "properties": {
-                                "type": "DataWarehouse",
-                                "typeProperties": {
-                                    "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
-                                    "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
-                                    "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
-                                }
-                            }
-                        }
-                    },
-                    "firstRowOnly": true
+                  "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
+                  "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
+                  "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
                 }
-            },
-            {
-                "name": "Set_Target_Date",
-                "type": "SetVariable",
-                "dependsOn": [
-                    {
-                        "activity": "Get_Last_Watermark",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ],
-                "typeProperties": {
-                    "variableName": "TargetDate",
-                    "value": {
-                        "value": "@formatDateTime(utcNow(),'yyyy-MM-dd HH:mm:ss')",
-                        "type": "Expression"
-                    }
-                }
-            },
-            {
-                "name": "Copy_Titulos_Cobranca",
-                "type": "Copy",
-                "dependsOn": [
-                    {
-                        "activity": "Set_Target_Date",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 3,
-                    "retryIntervalInSeconds": 30,
-                    "secureInput": false,
-                    "secureOutput": false
-                },
-                "typeProperties": {
-                    "source": {
-                        "type": "MySqlSource",
-                        "query": {
-                            "value": "@concat('SELECT * FROM tab_titulos_cobranca WHERE DATAINCLUSAO > ''', activity('Get_Last_Watermark').output.firstRow.LastWatermarkValue, ''' AND DATAINCLUSAO <= ''', variables('TargetDate'), '''')",
-                            "type": "Expression"
-                        },
-                        "datasetSettings": {
-                            "type": "MySqlTable",
-                            "externalReferences": {
-                                "connection": "ddb03605-7bef-45d9-8c36-aa19be4e5ae4"
-                            }
-                        }
-                    },
-                    "sink": {
-                        "type": "LakehouseTableSink",
-                        "tableActionOption": "Append",
-                        "partitionOption": "None",
-                        "datasetSettings": {
-                            "type": "LakehouseTable",
-                            "linkedService": {
-                                "name": "LH_Bronze",
-                                "properties": {
-                                    "type": "Lakehouse",
-                                    "typeProperties": {
-                                        "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
-                                        "workspaceId": "00000000-0000-0000-0000-000000000000",
-                                        "rootFolder": "Tables"
-                                    }
-                                }
-                            },
-                            "typeProperties": {
-                                "table": "tab_titulos_cobranca"
-                            }
-                        }
-                    },
-                    "enableStaging": false
-                }
-            },
-            {
-                "name": "Update_Watermark",
-                "type": "Script",
-                "dependsOn": [
-                    {
-                        "activity": "Copy_Titulos_Cobranca",
-                        "dependencyConditions": [
-                            "Succeeded"
-                        ]
-                    }
-                ],
-                "typeProperties": {
-                    "scripts": [
-                        {
-                            "text": {
-                                "value": "UPDATE etl_watermark_control SET LastWatermarkValue = '@{variables('TargetDate')}' WHERE PipelineName = 'PL_Load_Bronze_TitulosCobranca'",
-                                "type": "Expression"
-                            },
-                            "type": "Query"
-                        }
-                    ],
-                    "scriptBlockExecutionTimeout": "02:00:00"
-                },
-                "linkedService": {
-                    "name": "WH_Gold",
-                    "properties": {
-                        "type": "DataWarehouse",
-                        "typeProperties": {
-                            "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
-                            "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
-                            "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
-                        }
-                    }
-                }
+              }
             }
-        ],
-        "variables": {
-            "TargetDate": {
-                "type": "String"
-            }
+          },
+          "firstRowOnly": true
         },
-        "annotations": []
-    }
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Get_Last_Watermark",
+        "dependsOn": []
+      },
+      {
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "TargetDate",
+          "value": {
+            "value": "@formatDateTime(utcNow(),'yyyy-MM-dd HH:mm:ss')",
+            "type": "Expression"
+          }
+        },
+        "name": "Set_Target_Date",
+        "dependsOn": [
+          {
+            "activity": "Get_Last_Watermark",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Copy",
+        "typeProperties": {
+          "source": {
+            "type": "MySqlSource",
+            "query": {
+              "value": "@concat('SELECT * FROM tab_titulos_cobranca WHERE DATAINCLUSAO > ''', activity('Get_Last_Watermark').output.firstRow.LastWatermarkValue, ''' AND DATAINCLUSAO <= ''', variables('TargetDate'), '''')",
+              "type": "Expression"
+            },
+            "datasetSettings": {
+              "type": "MySqlTable",
+              "externalReferences": {
+                "connection": "ddb03605-7bef-45d9-8c36-aa19be4e5ae4"
+              }
+            }
+          },
+          "sink": {
+            "type": "LakehouseTableSink",
+            "tableActionOption": "Append",
+            "partitionOption": "None",
+            "datasetSettings": {
+              "type": "LakehouseTable",
+              "typeProperties": {
+                "table": "tab_titulos_cobranca"
+              },
+              "linkedService": {
+                "name": "LH_Bronze",
+                "properties": {
+                  "type": "Lakehouse",
+                  "typeProperties": {
+                    "artifactId": "01306d32-a70a-838d-4db0-573b553c2931",
+                    "workspaceId": "00000000-0000-0000-0000-000000000000",
+                    "rootFolder": "Tables"
+                  }
+                }
+              }
+            }
+          },
+          "enableStaging": false
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 3,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Copy_Titulos_Cobranca",
+        "dependsOn": [
+          {
+            "activity": "Set_Target_Date",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Script",
+        "typeProperties": {
+          "scripts": [
+            {
+              "text": {
+                "value": "UPDATE etl_watermark_control SET LastWatermarkValue = '@{variables('TargetDate')}' WHERE PipelineName = 'PL_Load_Bronze_TitulosCobranca'",
+                "type": "Expression"
+              },
+              "type": "Query"
+            }
+          ],
+          "scriptBlockExecutionTimeout": "02:00:00"
+        },
+        "linkedService": {
+          "name": "WH_Gold",
+          "properties": {
+            "type": "DataWarehouse",
+            "typeProperties": {
+              "artifactId": "94658e27-4b41-4bdf-b511-de32f3e1c90b",
+              "endpoint": "gjdb6aepx2pujchian7qjs46o4-3mm24qi564pupgwhzs6cy5ooce.datawarehouse.fabric.microsoft.com",
+              "workspaceId": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
+            }
+          }
+        },
+        "name": "Update_Watermark",
+        "dependsOn": [
+          {
+            "activity": "Copy_Titulos_Cobranca",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ],
+    "variables": {
+      "TargetDate": {
+        "type": "String"
+      }
+    },
+    "annotations": []
+  }
 }

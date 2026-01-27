@@ -64,7 +64,7 @@
         "description": "NB_Prepara_Titulos",
         "dependsOn": [
           {
-            "activity": "Carrega dados brutos",
+            "activity": "Cobranca",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -205,7 +205,7 @@
         "name": "Sacados",
         "dependsOn": [
           {
-            "activity": "Cadastros",
+            "activity": "Empresas",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -252,7 +252,7 @@
         "name": "Esteira de Propostas",
         "dependsOn": [
           {
-            "activity": "Cadastros",
+            "activity": "Gerentes",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -274,24 +274,6 @@
         },
         "name": "NB_Curadoria_Gold",
         "dependsOn": [
-          {
-            "activity": "Gerentes",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "Sacados",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "Empresas",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
           {
             "activity": "Esteira de Propostas",
             "dependencyConditions": [
@@ -359,6 +341,28 @@
             ]
           }
         ]
+      },
+      {
+        "type": "InvokePipeline",
+        "typeProperties": {
+          "parameters": {},
+          "waitOnCompletion": true,
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "pipelineId": "a10709a4-fec8-a0f5-4bad-3d845f0c3746",
+          "operationType": "InvokeFabricPipeline"
+        },
+        "externalReferences": {
+          "connection": "1fb34559-579a-4de4-92c2-20ab69297bef"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Cobranca",
+        "dependsOn": []
       }
     ]
   }
