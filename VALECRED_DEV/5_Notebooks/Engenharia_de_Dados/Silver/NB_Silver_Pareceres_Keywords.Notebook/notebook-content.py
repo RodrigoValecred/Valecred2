@@ -19,9 +19,19 @@
 
 # # Notebook: Análise de Keywords em Pareceres
 #
-# **Objetivo:** Processar pareceres de alteração de status, limpando o texto e identificando a presença de keywords específicas solicitadas.
+# **Objetivo:** Processar pareceres de alteração de status, limpando o texto e identificando a presença de siglas (keywords) específicas solicitadas.
 #
-# **Keywords:** POLITICA, INSTABILIDADE FINANCEIRA, APONTAMENTOS RELEVANTES, ORIGEM DA EMPRESA, RAMO DE ATIVIDADE, INFORMACAO DE MERCADO NEGATIVA, ESTRUTURA DE CAPITAL, HISTORICO INTERNO NEGATIVO, PERFIL DA OPERACAO.
+# **Keywords (Siglas):**
+# - (PLT) POLÍTICA
+# - (IBF) INSTABILIDADE FINANCEIRA
+# - (APR) APONTAMENTOS RELEVANTES
+# - (ODE) ORIGEM DA EMPRESA
+# - (EDC) ESTRUTURA DE CAPITAL
+# - (POP) PERFIL DA OPERAÇÃO
+# - (IMN) INFORMAÇÃO DE MERCADO NEGATIVA
+# - (RDA) RAMO DE ATIVIDADE
+# - (HIN) HISTÓRICO INTERNO NEGATIVO
+# - (DSC) DESINTERESSE DO CEDENTE
 
 # CELL ********************
 
@@ -42,7 +52,6 @@ df_usuarios = spark.read.table(f"{source_lakehouse}.cad_usuarios")
 df_clientes_pj = spark.read.table(f"{source_lakehouse}.cad_geral_pf_pj")
 
 # Filtrar Pareceres de Alteração de Status (Tipo 1)
-# Opcional: Filtrar datas recentes se necessário, mas o pedido não especificou.
 df_pareceres_filtered = df_pareceres.filter(col("CODTIPOPARECER") == 1)
 
 # CELL ********************
@@ -80,24 +89,26 @@ df_clean = df_enriched.withColumn(
 
 # CELL ********************
 
-# Definição das Keywords e criação das colunas (0/1)
+# Definição das Keywords (Siglas) e criação das colunas (0/1)
+# Mapping: Nome da Coluna -> Termo de Busca (Sigla)
 keywords = {
-    "POLITICA": "POLITICA",
-    "INSTABILIDADE_FINANCEIRA": "INSTABILIDADE FINANCEIRA",
-    "APONTAMENTOS_RELEVANTES": "APONTAMENTOS RELEVANTES",
-    "ORIGEM_DA_EMPRESA": "ORIGEM DA EMPRESA",
-    "RAMO_DE_ATIVIDADE": "RAMO DE ATIVIDADE",
-    "INFORMACAO_DE_MERCADO_NEGATIVA": "INFORMACAO DE MERCADO NEGATIVA",
-    "ESTRUTURA_DE_CAPITAL": "ESTRUTURA DE CAPITAL",
-    "HISTORICO_INTERNO_NEGATIVO": "HISTORICO INTERNO NEGATIVO",
-    "PERFIL_DA_OPERACAO": "PERFIL DA OPERACAO"
+    "POLITICA": "(PLT)",
+    "INSTABILIDADE_FINANCEIRA": "(IBF)",
+    "APONTAMENTOS_RELEVANTES": "(APR)",
+    "ORIGEM_DA_EMPRESA": "(ODE)",
+    "ESTRUTURA_DE_CAPITAL": "(EDC)",
+    "PERFIL_DA_OPERACAO": "(POP)",
+    "INFORMACAO_DE_MERCADO_NEGATIVA": "(IMN)",
+    "RAMO_DE_ATIVIDADE": "(RDA)",
+    "HISTORICO_INTERNO_NEGATIVO": "(HIN)",
+    "DESINTERESSE_DO_CEDENTE": "(DSC)"
 }
 
 df_keywords = df_clean
 for col_name, search_term in keywords.items():
-    # O termo de busca já está normalizado (maísculo, sem acentos)
+    # O termo de busca (sigla) deve ser buscado no texto normalizado
     df_keywords = df_keywords.withColumn(
-        col_name.lower(), # Coluna em snake_case (ex: politica, instabilidade_financeira)
+        col_name.lower(), # Coluna em snake_case
         when(col("obs_normalized").contains(search_term), 1).otherwise(0)
     )
 
@@ -111,20 +122,21 @@ df_final = df_keywords.select(
     col("CODTIPOPARECER").alias("cod_tipo_parecer"),
     col("DATAINCLUSAO").alias("data_inclusao_parecer"),
     col("USUAINCLUSAO").alias("cod_usuario_inclusao"),
-    lit("ALTERACAO DE STATUS").alias("descricao_tipo_parecer"), # Descrição fixa para o tipo
+    lit("ALTERACAO DE STATUS").alias("descricao_tipo_parecer"),
     col("NOME_USUARIO_INCLUSAO").alias("nome_usuario_inclusao"),
-    col("obs_clean").alias("parecer_texto"), # O Parecer (tratado como texto)
+    col("obs_clean").alias("parecer_texto"),
 
     # Colunas de Keywords
     col("politica"),
     col("instabilidade_financeira"),
     col("apontamentos_relevantes"),
     col("origem_da_empresa"),
-    col("ramo_de_atividade"),
-    col("informacao_de_mercado_negativa"),
     col("estrutura_de_capital"),
+    col("perfil_da_operacao"),
+    col("informacao_de_mercado_negativa"),
+    col("ramo_de_atividade"),
     col("historico_interno_negativo"),
-    col("perfil_da_operacao")
+    col("desinteresse_do_cedente")
 )
 
 # CELL ********************
