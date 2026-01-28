@@ -660,9 +660,9 @@ print(f"Tabela 'fato_titulos' salva em: {output_path_titulos_final}")
 
 # CELL ********************
 
-# Célula 5.1: Construção da Fato Operações Prorrogação
+# Célula 5.1: Construção da Fato Prorrogações de Títulos (Antiga Fato Operações Prorrogação)
 # ---------------------------------------------------
-print("\nIniciando construção da fato_operacoes_prorrogacao...")
+print("\nIniciando construção da fato_prorrogacoes_de_titulos...")
 
 # Leitura da Staging Limpa (Silver)
 df_prorrogacao_silver = spark.read.table("LH_Silver.staging_operacoes_prorrogacao_limpa")
@@ -698,9 +698,121 @@ df_final_prorrogacao = df_cleaned \
     .withColumn("data", to_date(col("data_inclusao"))) \
     .withColumn("dias_prorrogados", datediff(col("vencimentonov"), col("vencimentoant")))
 
-target_fato_prorrogacao = "LH_Gold.fato_operacoes_prorrogacao"
+target_fato_prorrogacao = "LH_Gold.fato_prorrogacoes_de_titulos"
 df_final_prorrogacao.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_prorrogacao)
 print(f"Tabela '{target_fato_prorrogacao}' criada com sucesso.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 5.3: Construção da Fato Operações Prorrogação (Nova)
+# -----------------------------------------------------------
+print("\nIniciando construção da fato_operacoes_prorrogacao (NOVA)...")
+
+# Fonte = stg_operacoes (df_operacoes_limpa)
+# Explicit read for robustness
+df_operacoes_source = spark.read.table("LH_Silver.staging_operacoes_limpa")
+
+# Filtrar TTO = 'PR'
+df_ops_pr = df_operacoes_source.filter(col("tto") == "PR")
+
+# Remover colunas (Mapeamento M Script -> Snake Case)
+# M: DATAACEITE, DATAENVIOEMAIL, STTO, FATOR, TARIFA, TARIFARECOMPRA, TAC, NDOCS, NDOCSRECOMPRA, TOTADVAL, TOTTAXAADM, TOTTAR,
+# APROVACAO1, DATAALTERACAO, CODINDEFERIMENTO, CONTRATOFISICO, TAXACADASTRO, MOTIVO INDEFERIMENTO, GRUPO MOTIVO INDEFERIMENTO
+cols_to_remove_pr = [
+    "stto", "taxa", "tarifa", "tarifa_recompra", "tac", "n_docs", "n_docs_recompra",
+    "valor_advalorem", "valor_taxa_adm", "total_de_tarifas", "data_alteracao", "cod_indeferimento",
+    "data_aceite", "data_envio_email", "aprovacao1", "contrato_fisico", "taxa_cadastro"
+]
+# Colunas que podem não existir no DF Silver (Ignorando erro se não existirem)
+df_ops_pr_clean = df_ops_pr.drop(*cols_to_remove_pr)
+
+# Join com Boletos (LH_Silver.staging_boletos_titulos)
+# Precisamos carregar a tabela boletos, pois não foi carregada no início explicitamente (apenas df_titulos_limpa)
+print("Carregando Boletos (Silver)...")
+try:
+    df_boletos_titulos = spark.read.table("LH_Silver.staging_boletos_titulos")
+except:
+    print("AVISO: staging_boletos_titulos não encontrada. Usando df_titulos_limpa filtrada.")
+    df_boletos_titulos = df_titulos_limpa.filter(col("t_doc") == "BL")
+
+# Selecionar colunas de interesse do boleto antes do join para evitar duplicação/ambiguidade
+# M: {"CODTITULO", "NDOC", "CPFCNPJSACADO", "CPFCNPJCEDENTE", "VALOR",  "AMORTIZACOES", "LIQUIDACAO"}
+df_boletos_select = df_boletos_titulos.select(
+    col("cod_operacao"),
+    col("cod_titulo"),
+    col("n_doc"),
+    col("cpf_cnpj_sacado"),
+    col("cpf_cnpj_cedente"),
+    col("valor"),
+    col("amortizacoes"),
+    col("liquidacao")
+)
+
+# Join Left Outer
+df_joined_pr = df_ops_pr_clean.join(df_boletos_select, "cod_operacao", "left")
+
+# Expandido já feito pelo select.
+# Remover colunas finais: STATUSANALISE, STATUSACEITE, TTO
+df_final_pr = df_joined_pr.drop("status_analise", "status_aceite", "tto")
+
+target_nova_fato_prorrogacao = "LH_Gold.fato_operacoes_prorrogacao"
+df_final_pr.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_nova_fato_prorrogacao)
+print(f"Tabela '{target_nova_fato_prorrogacao}' criada com sucesso.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 5.4: Construção da Fato Operações Recompra
+# -------------------------------------------------
+print("\nIniciando construção da fato_operacoes_recompra...")
+
+# Fonte = stg_operacoes
+# Explicit read for robustness
+if "df_operacoes_source" not in locals():
+    df_operacoes_source = spark.read.table("LH_Silver.staging_operacoes_limpa")
+
+# Filter TTO = 'RC' or 'RE' AND status_analise = 'D' AND status_aceite = 'A'
+df_ops_rc = df_operacoes_source.filter(
+    (col("tto").isin(["RC", "RE"])) &
+    (col("status_analise") == "D") &
+    (col("status_aceite") == "A")
+)
+
+# Remover colunas: TOTADVAL, TOTTAXAADM, DATAACEITE
+# Mapeamento: valor_advalorem, valor_taxa_adm, data_aceite
+df_ops_rc_clean = df_ops_rc.drop("valor_advalorem", "valor_taxa_adm", "data_aceite")
+
+# Join com Boletos (Mesma tabela df_boletos_select)
+df_joined_rc = df_ops_rc_clean.join(df_boletos_select, "cod_operacao", "left")
+
+# Remover: STATUSANALISE, STATUSACEITE
+df_joined_rc_clean = df_joined_rc.drop("status_analise", "status_aceite")
+
+# Renomear: chave_base_operacao -> chave_base_operacao_recompra
+# Nota: chave_base_operacao não existe nativamente no df_operacoes_limpa (é criada no enriched).
+# Mas vamos criar se não existir ou renomear se existir.
+# Se não existir, criamos: "40-" + CODOPERACAO
+if "chave_base_operacao" in df_joined_rc_clean.columns:
+    df_final_rc = df_joined_rc_clean.withColumnRenamed("chave_base_operacao", "chave_base_operacao_recompra")
+else:
+    df_final_rc = df_joined_rc_clean.withColumn("chave_base_operacao_recompra", concat(lit("40-"), col("cod_operacao")))
+
+target_fato_recompra = "LH_Gold.fato_operacoes_recompra"
+df_final_rc.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_recompra)
+print(f"Tabela '{target_fato_recompra}' criada com sucesso.")
 
 # METADATA ********************
 
