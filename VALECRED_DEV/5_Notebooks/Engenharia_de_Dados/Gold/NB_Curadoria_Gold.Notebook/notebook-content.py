@@ -164,6 +164,15 @@ df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
 print("Carregando Contratos (Silver)...")
 df_contratos = spark.read.table("LH_Silver.staging_contratos_clientes_limpa")
 
+# Dimensao Produtos (Gold) - Refatorado
+print("Carregando Dimensao Produtos (Gold)...")
+try:
+    df_dim_produto = spark.read.table("LH_Gold.dim_produtos").cache()
+except Exception as e:
+    print(f"AVISO: Tabela LH_Gold.dim_produtos não encontrada ({e}).")
+    schema_prod = StructType([StructField("chave_produto", StringType(), True), StructField("produto_informacao_de_mercado", StringType(), True)])
+    df_dim_produto = spark.createDataFrame([], schema_prod)
+
 # Grupos Economicos (Silver)
 print("Carregando Grupos Economicos (Silver)...")
 df_grupos_economicos = spark.read.table("LH_Silver.sup_grupos_economicos")
@@ -532,25 +541,9 @@ print(f"Tabela 'fato_baixas' salva em: {output_path_fato_baixas}")
 
 # Célula 2.3: Construção da Dimensão Produto
 # ------------------------------------------
-print("\nIniciando construção da dim_produto...")
-df_produtos_base = df_operacoes_enriquecida.select("stto", "tto").distinct()
-df_com_tipo = df_produtos_base.join(broadcast(df_tipo_op_bronze.select("CODTTO", "DESCRICAO")), df_produtos_base.tto == df_tipo_op_bronze.CODTTO, "left").withColumnRenamed("DESCRICAO", "TipoProduto")
-df_com_subtipo = df_com_tipo.join(broadcast(df_subtipo_op_bronze.select("CODSTTO", "DESCRICAO")), df_com_tipo.stto == df_subtipo_op_bronze.CODSTTO, "left").withColumnRenamed("DESCRICAO", "SubTipoProduto")
-df_com_chaves = df_com_subtipo.withColumn("chave_produto", concat(col("tto"), col("stto"))).withColumn("Produto", when(col("SubTipoProduto").isNull(), col("TipoProduto")).otherwise(concat(col("SubTipoProduto"), lit(" - "), col("TipoProduto"))))
-df_nomes_limpos = df_com_chaves.withColumn("Produto", regexp_replace(col("Produto"), "COMISSÁRIA", "COMISSARIA SIMPLES")).withColumn("Produto", regexp_replace(col("Produto"), "COMISSARIA SIMPLES - COMISSARIA SIMPLES", "COMISSARIA SIMPLES"))
-df_info_mercado = df_nomes_limpos.withColumn("ProdutoInformacaoMercado", col("Produto")).withColumn("ProdutoInformacaoMercado", regexp_replace(col("ProdutoInformacaoMercado"), "NORMAL", "DESCONTO"))
-df_staging_produto_lbfactor = df_info_mercado.select("ProdutoInformacaoMercado", "Produto", "chave_produto")
-df_filtrado = df_staging_produto_lbfactor.filter(col("Produto").isNotNull() & (col("Produto") != ""))
-window_dedup = Window.partitionBy("chave_produto").orderBy(col("Produto").asc())
-df_deduplicado = df_filtrado.withColumn("rn", row_number().over(window_dedup)).filter(col("rn") == 1).drop("rn")
-window_spec_sk = Window.orderBy("chave_produto")
-df_com_sk = df_deduplicado.sort("chave_produto").withColumn("sk_produto", row_number().over(window_spec_sk))
-df_dim_produto_final = df_com_sk.select(col("sk_produto"), col("chave_produto"), col("Produto").alias("produto"), col("ProdutoInformacaoMercado").alias("produto_informacao_de_mercado"))
-
-output_path_dim_produto = "LH_Gold.dim_produto"
-df_dim_produto_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_produto)
-df_dim_produto = spark.read.table(output_path_dim_produto).cache()
-print(f"Tabela 'dim_produto' salva e em cache em: {output_path_dim_produto}")
+# OBS: A tabela LH_Gold.dim_produtos foi movida para NB_Gold_Dim_Produtos.Notebook
+# A leitura agora ocorre na Célula 0.2.
+print("Dimensão Produto (dim_produtos) já carregada na inicialização.")
 
 # METADATA ********************
 
