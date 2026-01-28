@@ -142,7 +142,13 @@
         "description": "Notebook_Preparacao_Silver\n",
         "dependsOn": [
           {
-            "activity": "Operacoes",
+            "activity": "Esteira de Propostas",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Cobranca",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -189,7 +195,7 @@
         "description": "NB_Analise_Titulos_Juridicos",
         "dependsOn": [
           {
-            "activity": "Sacados",
+            "activity": "Titulos",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -236,6 +242,12 @@
         "dependsOn": [
           {
             "activity": "Titulos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Cadastros",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -392,7 +404,14 @@
           "secureOutput": false
         },
         "name": "Cobranca",
-        "dependsOn": []
+        "dependsOn": [
+          {
+            "activity": "Carrega dados brutos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
       }
     ]
   }
