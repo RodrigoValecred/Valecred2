@@ -1,5 +1,12 @@
 # Fabric notebook source
 
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   }
+# META }
 
 # CELL ********************
 
@@ -138,3 +145,10 @@ df_final = df_keywords.select(
 print("Escrevendo tabela LH_Silver.analise_pareceres_keywords...")
 df_final.write.format("delta").mode("overwrite").saveAsTable(f"{target_lakehouse}.analise_pareceres_keywords")
 print("Concluído.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
