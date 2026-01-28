@@ -202,6 +202,7 @@ O processo de orquestração e ingestão de dados é gerenciado por um conjunto 
             -   `WatermarkColumn`: Coluna de data utilizada para filtrar os dados (ex: `DATAINCLUSAO`).
             -   `StartDate`: Data de início para o filtro (formato `YYYY-MM-DD HH:MM:SS`). A query executada será `SELECT * FROM TableName WHERE WatermarkColumn >= 'StartDate'`.
         -   **Exemplo de Utilização**: Para reprocessar títulos incluídos a partir de 1º de Março de 2025, execute o pipeline com: `TableName="tab_titulos_cobranca"`, `WatermarkColumn="DATAINCLUSAO"`, `StartDate="2025-03-01 00:00:00"`.
+    -   **`PL_Load_Bronze_TitulosCobranca`**: Pipeline dedicado para a ingestão incremental da tabela volumosa `tab_titulos_cobranca`. Utiliza controle de watermark específico baseado na coluna `DATAINCLUSAO` para garantir performance e evitar processamento redundante.
 
 ### 3. Lakehouses (`3_Lakehouses`)
 
