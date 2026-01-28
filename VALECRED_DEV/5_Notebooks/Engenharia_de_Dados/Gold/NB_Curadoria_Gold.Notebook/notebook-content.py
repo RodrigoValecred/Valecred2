@@ -456,6 +456,7 @@ df_fato_operacoes_joined = df_operacoes_prep.join(
 # 3. SELEÇÃO FINAL
 df_fato_operacoes = df_fato_operacoes_joined.select(
     col("cod_operacao"),
+    col("nbordero"),
     col("cod_cliente"),
     col("cod_empresa"),
     col("data_inclusao"),
@@ -692,7 +693,7 @@ df_prorrogacao_silver = spark.read.table("LH_Silver.staging_operacoes_prorrogaca
 # Leitura das tabelas auxiliares (Silver/Gold) já carregadas no início (df_titulos_limpa, df_operacoes_limpa)
 # Mas garantindo a seleção correta
 df_titulos_join = df_titulos_limpa.select(col("cod_titulo"), col("valor").alias("VALOR_TITULO"))
-df_operacoes_join = df_operacoes_limpa.select(col("cod_operacao"), col("status_analise").alias("status_analise"), col("status_aceite").alias("status_aceite"))
+df_operacoes_join = df_operacoes_limpa.select(col("cod_operacao"), col("status_analise").alias("status_analise"), col("status_aceite").alias("status_aceite"), col("nbordero"))
 
 # Join
 # Etapa 2: Mesclar dados de títulos

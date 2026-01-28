@@ -88,6 +88,7 @@ def process_operacoes():
             col("STATUSACEITE").alias("status_aceite"),
             col("STATUSANALISE").alias("status_analise"),
             col("CODBROKER").alias("cod_broker"),
+            col("NBORDERO").alias("nbordero"),
             col("NOTASERVICO").alias("nota_servico"),
             col("TTO").alias("tto"),
             col("STTO").alias("stto"),
