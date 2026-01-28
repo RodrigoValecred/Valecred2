@@ -263,8 +263,30 @@ df_client_rate = df_contratos.filter(col("status") == 'A') \
 # PRE-CALCULO: Gerente Enriquecido (Nome e Comissão)
 # df_gerentes tem cod_broker, cod_usuario, taxa_comissao (added in Silver Prep)
 # df_usuarios tem cod_usuario, nome
-df_gerentes_enrich = df_gerentes.join(df_usuarios, "cod_usuario", "left") \
-    .select(col("cod_broker"), col("taxa_comissao"), col("nome").alias("nome_gerente")).dropDuplicates(["cod_broker"]).alias("gerentes")
+# Refatorado para incluir fallback de nome via Cadastro Geral (Fix Broker 7/71)
+df_gerentes_alias = df_gerentes.alias("g")
+df_usuarios_alias = df_usuarios.alias("u")
+df_geral_alias = df_geral_pf_pj_limpa.alias("cad")
+
+# Join com Usuarios
+df_join_users = df_gerentes_alias.join(df_usuarios_alias, col("g.cod_usuario") == col("u.cod_usuario"), "left")
+
+# Clean CPF/CNPJ for Join
+df_join_users_clean = df_join_users.withColumn("cpf_cnpj_clean", regexp_replace(col("g.cpf_cnpj"), "[^0-9]", ""))
+df_geral_clean = df_geral_alias.withColumn("cpf_cnpj_clean", regexp_replace(col("cad.cpf_cnpj"), "[^0-9]", ""))
+
+# Join Fallback
+df_gerentes_full = df_join_users_clean.join(
+    df_geral_clean.select(col("cpf_cnpj_clean"), col("cad.nome").alias("nome_geral")),
+    "cpf_cnpj_clean",
+    "left"
+)
+
+df_gerentes_enrich = df_gerentes_full.select(
+    col("g.cod_broker"),
+    col("g.taxa_comissao"),
+    coalesce(col("u.nome"), col("nome_geral"), lit("GERENTE NÃO IDENTIFICADO")).alias("nome_gerente")
+).dropDuplicates(["cod_broker"]).alias("gerentes")
 
 # Aliasing other tables for join safety
 df_escrow = df_escrow.alias("escrow")
