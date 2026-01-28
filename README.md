@@ -196,6 +196,7 @@ O processo de orquestração e ingestão de dados é gerenciado por um conjunto 
 -   **Pipelines de Ingestão (Bronze)**:
     -   **`PL_Load_Bronze_Incremental`**: Responsável pela ingestão incremental diária de dados de um banco de origem **MySQL** para o Lakehouse Bronze. Ele usa uma tabela de watermark para buscar apenas registros novos ou modificados.
     -   **`PL_Load_Bronze_FullOverwrite`**: Projetado para cargas de dados iniciais ou atualizações completas, copiando o conteúdo total das tabelas de origem para a camada Bronze.
+    -   **`PL_Load_Bronze_TitulosCobranca`**: Pipeline dedicado para a ingestão incremental da tabela volumosa `tab_titulos_cobranca`. Utiliza controle de watermark específico baseado na coluna `DATAINCLUSAO` para garantir performance e evitar processamento redundante.
 
 ### 3. Lakehouses (`3_Lakehouses`)
 
