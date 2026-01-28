@@ -5,46 +5,66 @@
 # META {
 # META   "kernel_info": {
 # META     "name": "synapse_pyspark"
-# META   }
-# META }
-
-# CELL ********************
-
-# Fabric notebook source
-
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
 # META   },
 # META   "dependencies": {
 # META     "lakehouse": {
-# META       "default_lakehouse": "528f869c-46e3-448f-8d26-663857d42813",
-# META       "default_lakehouse_name": "LH_Silver",
-# META       "default_lakehouse_workspace_id": "4950666d-1768-4503-ad37-567475308694"
+# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
+# META       "default_lakehouse_name": "LH_Bronze",
+# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
+# META       "known_lakehouses": [
+# META         {
+# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
+# META         },
+# META         {
+# META           "id": "8f85c372-56ad-4f3f-acf9-3be2e9b99513"
+# META         }
+# META       ]
 # META     }
 # META   }
 # META }
 
 # MARKDOWN ********************
 
-# # Notebook: Análise de Keywords em Pareceres
+#  # Notebook: Análise de Keywords em Pareceres
 # 
-# **Objetivo:** Processar pareceres de alteração de status, limpando o texto e identificando a presença de keywords específicas solicitadas.
+# **Objetivo:** Processar pareceres de alteração de status, limpando o texto e identificando a presença de siglas (keywords) específicas solicitadas.
 # 
-# **Keywords:** POLITICA, INSTABILIDADE FINANCEIRA, APONTAMENTOS RELEVANTES, ORIGEM DA EMPRESA, RAMO DE ATIVIDADE, INFORMACAO DE MERCADO NEGATIVA, ESTRUTURA DE CAPITAL, HISTORICO INTERNO NEGATIVO, PERFIL DA OPERACAO.
+# **Keywords (Siglas):** 
+# - (PLT) POLÍTICA
+# - (IBF) INSTABILIDADE FINANCEIRA
+# - (APR) APONTAMENTOS RELEVANTES
+# - (ODE) ORIGEM DA EMPRESA
+# - (EDC) ESTRUTURA DE CAPITAL
+# - (POP) PERFIL DA OPERAÇÃO
+# - (IMN) INFORMAÇÃO DE MERCADO NEGATIVA
+# - (RDA) RAMO DE ATIVIDADE
+# - (HIN) HISTÓRICO INTERNO NEGATIVO
+# - (DSC) DESINTERESSE DO CEDENTE
 
 # CELL ********************
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when, lit, upper, regexp_replace, translate, trim, date_format
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
 # Definição dos Lakehouses
 source_lakehouse = "LH_Bronze"
 target_lakehouse = "LH_Silver"
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -56,6 +76,13 @@ df_clientes_pj = spark.read.table(f"{source_lakehouse}.cad_geral_pf_pj")
 # Filtrar Pareceres de Alteração de Status (Tipo 1)
 # Opcional: Filtrar datas recentes se necessário, mas o pedido não especificou.
 df_pareceres_filtered = df_pareceres.filter(col("CODTIPOPARECER") == 1)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -74,6 +101,13 @@ df_enriched = df_joined_users.join(
     "left"
 ).drop("CPFCNPJ_JOIN")
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
 # Limpeza e Normalização do Texto do Parecer
@@ -90,28 +124,45 @@ df_clean = df_enriched.withColumn(
     upper(translate(col("obs_clean"), "áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ", "AAAAAEEEEIIIIOOOOOUUUUCAAAAAEEEEIIIIOOOOOUUUUC"))
 )
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
-# Definição das Keywords e criação das colunas (0/1)
+# Definição das Keywords (Siglas) e criação das colunas (0/1)
+# Mapping: Nome da Coluna -> Termo de Busca (Sigla)
 keywords = {
-    "POLITICA": "POLITICA",
-    "INSTABILIDADE_FINANCEIRA": "INSTABILIDADE FINANCEIRA",
-    "APONTAMENTOS_RELEVANTES": "APONTAMENTOS RELEVANTES",
-    "ORIGEM_DA_EMPRESA": "ORIGEM DA EMPRESA",
-    "RAMO_DE_ATIVIDADE": "RAMO DE ATIVIDADE",
-    "INFORMACAO_DE_MERCADO_NEGATIVA": "INFORMACAO DE MERCADO NEGATIVA",
-    "ESTRUTURA_DE_CAPITAL": "ESTRUTURA DE CAPITAL",
-    "HISTORICO_INTERNO_NEGATIVO": "HISTORICO INTERNO NEGATIVO",
-    "PERFIL_DA_OPERACAO": "PERFIL DA OPERACAO"
+    "POLITICA": "(PLT)",
+    "INSTABILIDADE_FINANCEIRA": "(IBF)",
+    "APONTAMENTOS_RELEVANTES": "(APR)",
+    "ORIGEM_DA_EMPRESA": "(ODE)",
+    "ESTRUTURA_DE_CAPITAL": "(EDC)",
+    "PERFIL_DA_OPERACAO": "(POP)",
+    "INFORMACAO_DE_MERCADO_NEGATIVA": "(IMN)",
+    "RAMO_DE_ATIVIDADE": "(RDA)",
+    "HISTORICO_INTERNO_NEGATIVO": "(HIN)",
+    "DESINTERESSE_DO_CEDENTE": "(DSC)"
 }
 
 df_keywords = df_clean
 for col_name, search_term in keywords.items():
-    # O termo de busca já está normalizado (maísculo, sem acentos)
+    # O termo de busca (sigla) deve ser buscado no texto normalizado
     df_keywords = df_keywords.withColumn(
-        col_name.lower(), # Coluna em snake_case (ex: politica, instabilidade_financeira)
+        col_name.lower(), # Coluna em snake_case
         when(col("obs_normalized").contains(search_term), 1).otherwise(0)
     )
+
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -123,27 +174,35 @@ df_final = df_keywords.select(
     col("CODTIPOPARECER").alias("cod_tipo_parecer"),
     col("DATAINCLUSAO").alias("data_inclusao_parecer"),
     col("USUAINCLUSAO").alias("cod_usuario_inclusao"),
-    lit("ALTERACAO DE STATUS").alias("descricao_tipo_parecer"), # Descrição fixa para o tipo
+    lit("ALTERACAO DE STATUS").alias("descricao_tipo_parecer"),
     col("NOME_USUARIO_INCLUSAO").alias("nome_usuario_inclusao"),
-    col("obs_clean").alias("parecer_texto"), # O Parecer (tratado como texto)
+    col("obs_clean").alias("parecer_texto"), 
     
     # Colunas de Keywords
     col("politica"),
     col("instabilidade_financeira"),
     col("apontamentos_relevantes"),
     col("origem_da_empresa"),
-    col("ramo_de_atividade"),
-    col("informacao_de_mercado_negativa"),
     col("estrutura_de_capital"),
+    col("perfil_da_operacao"),
+    col("informacao_de_mercado_negativa"),
+    col("ramo_de_atividade"),
     col("historico_interno_negativo"),
-    col("perfil_da_operacao")
+    col("desinteresse_do_cedente")
 )
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
 # Escrita da Tabela no Silver
 print("Escrevendo tabela LH_Silver.analise_pareceres_keywords...")
-df_final.write.format("delta").mode("overwrite").saveAsTable(f"{target_lakehouse}.analise_pareceres_keywords")
+df_final.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.analise_pareceres_keywords")
 print("Concluído.")
 
 # METADATA ********************
