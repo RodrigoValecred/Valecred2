@@ -860,23 +860,20 @@ from pyspark.sql.functions import sum, min, count, current_date, round, floor, d
 
 # 6.0: Preparação de Dados Auxiliares
 # -----------------------------------
-# Status Mapping (Decoded from M Code)
-data_status_mapping = [
-    (1, 'REVISÃO COMERCIAL'), (2, 'CREDITO'), (4, 'DIRETORIA'), (5, 'CONCLUIDO'),
-    (6, 'COMITE'), (7, 'ARQUIVO MORTO'), (11, 'ASSINATURA'), (14, 'BASE 50'),
-    (17, 'DECLINADO'), (19, 'RESERVA'), (21, 'STAND BY'), (22, 'BLOQUEADO COMERCIAL'),
-    (23, 'LIVRE DE RESERVA'), (24, 'INATIVO'), (25, 'SAÍDA DE RISCO'), (29, 'JURÍDICO'),
-    (31, 'START'), (35, 'RENOVAÇÃO'), (38, 'SUSPENSO'), (39, 'ANÁLISE'),
-    (40, 'CHECKLIST'), (41, 'MONITORAMENTO'), (42, 'BIZAGI'), (43, 'CADASTRO E EMISSÃO'),
-    (44, 'DIR COMERCIAL'), (45, 'PENDÊNCIA DOCUMENTOS'), (46, 'BLOQUEADO'), (47, 'PLATAFORMA'),
-    (48, 'PROPOSTA'), (49, 'RECUPERAÇÃO')
-]
-schema_status = StructType([StructField("CODSTATUSCLIENTE", LongType(), True), StructField("status_do_cliente_cad", StringType(), True)])
-df_status_mapping = spark.createDataFrame(data_status_mapping, schema_status)
+# Sup Status Clientes (Silver)
+df_sup_status = spark.read.table("LH_Silver.sup_status_de_clientes_da_esteira")
 
 # Prepare Cad Clientes Status
-df_status_cad_prep = df_cad_clientes_bronze.join(df_status_mapping, "CODSTATUSCLIENTE", "left") \
-    .select(col("CODCLIENTE").alias("cod_cliente_status"), col("status_do_cliente_cad"))
+# Bronze: CODSTATUSCLIENTE
+# Silver: codstatuscliente (normalized from CODSTATUSCLIENTE by manual upload loader)
+df_status_cad_prep = df_cad_clientes_bronze.join(
+    df_sup_status,
+    df_cad_clientes_bronze.CODSTATUSCLIENTE == df_sup_status.codstatuscliente,
+    "left"
+).select(
+    col("CODCLIENTE").alias("cod_cliente_status"),
+    col("status_do_cliente").alias("status_do_cliente_cad")
+)
 
 # Grupos Econômicos
 df_grupos_prep = df_grupos_economicos.withColumnRenamed("nomegrupo", "grupo_economico")
