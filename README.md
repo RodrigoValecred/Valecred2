@@ -240,7 +240,7 @@ Responsável por limpar, padronizar e desduplicar os dados brutos da camada Bron
 
 Responsável por aplicar regras de negócio complexas, joins e agregações para gerar as tabelas finais de consumo.
 
--   **`NB_Curadoria_Gold`**: Centraliza a lógica de **enriquecimento e joins**. Consome as tabelas tratadas da Silver (staging) e gera as tabelas Fato finais no `LH_Gold` e a dimensão `dim_clientes`. Também calcula métricas de concentração de carteira (HHI).
+-   **`NB_Curadoria_Gold`**: Centraliza a lógica de **enriquecimento e joins**. Consome as tabelas tratadas da Silver (staging) e gera as tabelas Fato finais no `LH_Gold` (`fato_operacoes`, `fato_titulos`, `fato_prorrogacoes_de_titulos`, `fato_operacoes_prorrogacao`, `fato_operacoes_recompra`) e a dimensão `dim_clientes`. Também calcula métricas de concentração de carteira (HHI).
 -   **`NB_Gold_Dim_Produtos`**: Cria a dimensão de produtos (`LH_Gold.dim_produtos`) aplicando a lógica de negócio unificada para nomenclatura e categorização de mercado (substituindo o antigo "monolito" do Power BI).
 -   **`NB_Gold_Dim_Danfe`**: Cria a dimensão de chaves Danfe (`LH_Gold.dim_danfe`) realizando o parsing e estruturação das chaves de nota fiscal.
 -   **`NB_Calendario_Gold`**: Gera e atualiza a tabela dimensão de calendário (`dim_calendario`).
