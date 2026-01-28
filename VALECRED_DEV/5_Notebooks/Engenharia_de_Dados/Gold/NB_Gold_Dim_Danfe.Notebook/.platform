@@ -2,11 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
   "metadata": {
     "type": "Notebook",
-    "displayName": "NB_Gold_Dim_Danfe",
-    "description": "New notebook"
+    "displayName": "NB_Gold_Dim_Danfe"
   },
   "config": {
     "version": "2.0",
-    "logicalId": "d385b7e6-d4d6-af8e-4929-9a9e7dcc6f63"
+    "logicalId": "0356feb1-171b-431f-9437-aa23ac76909b"
   }
 }

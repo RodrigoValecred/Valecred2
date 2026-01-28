@@ -26,6 +26,30 @@
       {
         "type": "TridentNotebook",
         "typeProperties": {
+          "notebookId": "0356feb1-171b-431f-9437-aa23ac76909b",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Dim Danfe",
+        "description": "NB_Gold_Dim_Danfe",
+        "dependsOn": [
+          {
+            "activity": "Titulos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
           "notebookId": "9fbc5396-06ff-95eb-4de9-eccf4bdc8bea",
           "workspaceId": "00000000-0000-0000-0000-000000000000"
         },

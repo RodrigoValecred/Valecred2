@@ -1,10 +1,5 @@
 # Fabric notebook source
 
-
-# CELL ********************
-
-# Fabric notebook source
-
 # METADATA ********************
 
 # META {
