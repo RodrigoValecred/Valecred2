@@ -196,6 +196,12 @@ O processo de orquestração e ingestão de dados é gerenciado por um conjunto 
 -   **Pipelines de Ingestão (Bronze)**:
     -   **`PL_Load_Bronze_Incremental`**: Responsável pela ingestão incremental diária de dados de um banco de origem **MySQL** para o Lakehouse Bronze. Ele usa uma tabela de watermark para buscar apenas registros novos ou modificados.
     -   **`PL_Load_Bronze_FullOverwrite`**: Projetado para cargas de dados iniciais ou atualizações completas, copiando o conteúdo total das tabelas de origem para a camada Bronze.
+    -   **`PL_Repair_Bronze_Table`**: Pipeline ad-hoc para realizar cargas cirúrgicas ("backfills") em tabelas Bronze sem a necessidade de um Full Overwrite. Útil para recuperar dados perdidos ou reprocessar períodos específicos.
+        -   **Parâmetros**:
+            -   `TableName`: Nome da tabela no banco de origem e no Lakehouse (ex: `tab_titulos_cobranca`).
+            -   `WatermarkColumn`: Coluna de data utilizada para filtrar os dados (ex: `DATAINCLUSAO`).
+            -   `StartDate`: Data de início para o filtro (formato `YYYY-MM-DD HH:MM:SS`). A query executada será `SELECT * FROM TableName WHERE WatermarkColumn >= 'StartDate'`.
+        -   **Exemplo de Utilização**: Para reprocessar títulos incluídos a partir de 1º de Março de 2025, execute o pipeline com: `TableName="tab_titulos_cobranca"`, `WatermarkColumn="DATAINCLUSAO"`, `StartDate="2025-03-01 00:00:00"`.
 
 ### 3. Lakehouses (`3_Lakehouses`)
 
