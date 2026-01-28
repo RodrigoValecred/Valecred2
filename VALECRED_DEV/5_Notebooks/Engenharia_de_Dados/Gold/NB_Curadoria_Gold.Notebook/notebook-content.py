@@ -164,6 +164,10 @@ df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
 print("Carregando Contratos (Silver)...")
 df_contratos = spark.read.table("LH_Silver.staging_contratos_clientes_limpa")
 
+# Cad Clientes (Bronze) - Para Status
+print("Carregando Cad Clientes (Bronze)...")
+df_cad_clientes_bronze = spark.read.table("LH_Bronze.cad_clientes")
+
 # Dimensao Produtos (Gold) - Refatorado
 print("Carregando Dimensao Produtos (Gold)...")
 try:
@@ -856,6 +860,21 @@ from pyspark.sql.functions import sum, min, count, current_date, round, floor, d
 
 # 6.0: Preparação de Dados Auxiliares
 # -----------------------------------
+# Sup Status Clientes (Silver)
+df_sup_status = spark.read.table("LH_Silver.sup_status_de_clientes_da_esteira")
+
+# Prepare Cad Clientes Status
+# Bronze: CODSTATUSCLIENTE
+# Silver: codstatuscliente (normalized from CODSTATUSCLIENTE by manual upload loader)
+df_status_cad_prep = df_cad_clientes_bronze.join(
+    df_sup_status,
+    df_cad_clientes_bronze.CODSTATUSCLIENTE == df_sup_status.codstatuscliente,
+    "left"
+).select(
+    col("CODCLIENTE").alias("cod_cliente_status"),
+    col("status_do_cliente").alias("status_do_cliente_cad")
+)
+
 # Grupos Econômicos
 df_grupos_prep = df_grupos_economicos.withColumnRenamed("nomegrupo", "grupo_economico")
 if "cod_cliente" not in df_grupos_prep.columns and "codcliente" in df_grupos_prep.columns:
@@ -1071,7 +1090,8 @@ df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_limites_agg, "cod_cliente", "left") \
     .join(df_grupos_prep, "cod_cliente", "left") \
     .join(df_risco_grupo_agg, "grupo_economico", "left") \
-    .join(df_info_gestor, "cod_cliente", "left").join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest").join(df_client_rate_gold, df_base.cod_cliente == df_client_rate_gold.cod_cliente_rate, "left").drop("cod_cliente_rate")
+    .join(df_info_gestor, "cod_cliente", "left").join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest").join(df_client_rate_gold, df_base.cod_cliente == df_client_rate_gold.cod_cliente_rate, "left").drop("cod_cliente_rate") \
+    .join(df_status_cad_prep, df_base.cod_cliente == df_status_cad_prep.cod_cliente_status, "left").drop("cod_cliente_status")
 
 # Implementando Lógica Funnel Sequencial (Aproximação)
 # Data 1: Primeira Proposta Comercial = MIN(Proposta, Revisao, Diretoria)
@@ -1157,6 +1177,7 @@ df_final = df_funnel \
     .withColumn("tempo_analise", datediff(col("data_aprovacao"), col("data_entrada"))) \
     .withColumn("idade_cliente", floor(datediff(today_date, to_date(substring(col("data_inclusao").cast("string"), 1, 10))) / 365)) \
     .withColumn("idade_cliente_em_dias", coalesce(datediff(today_date, col("data_primeira_operacao")), lit(0))) \
+    .withColumn("status_do_cliente", coalesce(col("status_do_cliente_cad"), col("status_do_cliente"))) \
     .withColumn("tipo_proposta",
         when(col("dias_sem_operar") > 120, "REATIVAÇÃO")
         .when(col("data_ultima_operacao").isNull(), "PROSPECÇÃO")
