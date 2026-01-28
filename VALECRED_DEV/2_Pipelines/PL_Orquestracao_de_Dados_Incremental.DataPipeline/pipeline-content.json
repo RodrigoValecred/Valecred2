@@ -50,6 +50,30 @@
       {
         "type": "TridentNotebook",
         "typeProperties": {
+          "notebookId": "cce9e319-520c-493c-ac6a-19e56fb1e374",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Dim Produtos",
+        "description": "NB_Gold_Dim_Produtos",
+        "dependsOn": [
+          {
+            "activity": "Operacoes",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
           "notebookId": "687fc79c-337a-b59b-45cf-b36e93afb62d",
           "workspaceId": "00000000-0000-0000-0000-000000000000"
         },
@@ -65,6 +89,12 @@
         "dependsOn": [
           {
             "activity": "Cobranca",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Dim Produtos",
             "dependencyConditions": [
               "Succeeded"
             ]
