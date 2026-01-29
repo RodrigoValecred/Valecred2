@@ -331,6 +331,12 @@ df_operacoes_com_chave_filtrado = df_operacoes_com_chave_base.filter(
 df_vcount = df_operacoes_com_chave_filtrado.groupBy(df_operacoes_com_gerente["cod_operacao"]).count()
 df_com_vcount = df_operacoes_com_gerente.join(df_vcount, on="cod_operacao", how="left")
 
+# Backward Compatibility Check: valor_pendencias
+# Se a tabela Silver ainda não foi atualizada com a nova coluna, criamos ela com 0 para evitar erro na Gold.
+if "valor_pendencias" not in df_com_vcount.columns:
+    print("AVISO: Coluna 'valor_pendencias' não encontrada na Silver. Adicionando com valor 0 (Backward Compatibility).")
+    df_com_vcount = df_com_vcount.withColumn("valor_pendencias", lit(0))
+
 # Enriquecimento com Usuarios, Motivos e Estudo
 # Definindo aliases para tabelas
 df_ops = df_com_vcount.alias("ops")
