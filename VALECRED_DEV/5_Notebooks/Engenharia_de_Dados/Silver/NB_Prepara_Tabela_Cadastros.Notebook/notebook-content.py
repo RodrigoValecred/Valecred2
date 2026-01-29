@@ -302,7 +302,10 @@ def process_plataformas():
 
     # Support Table Fallback
     try:
-        df_sup_gestor = spark.read.table(f"{target_lakehouse}.sup_gestor_de_plataforma")
+        # Select only necessary columns to avoid ambiguity with 'plataforma' column
+        df_sup_gestor = spark.read.table(f"{target_lakehouse}.sup_gestor_de_plataforma") \
+            .select(col("cod_agencia"), col("gestor_da_plataforma"))
+
         df_joined = df_calc.join(df_sup_gestor, on="cod_agencia", how="left")
 
         # Coalesce: Hardcoded -> Support Table -> "NÃO ATRIBUÍDO"
