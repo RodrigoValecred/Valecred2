@@ -859,6 +859,9 @@ print(f"Tabela '{target_fato_recompra}' criada com sucesso.")
 
 # CELL ********************
 
+# Célula 6.1: Configuração e Auxiliares
+# -----------------------------------
+
 print("\nIniciando construção da dim_clientes enriquecida...")
 from pyspark.sql.functions import sum, min, count, current_date, round, floor, dayofmonth
 
@@ -892,6 +895,17 @@ df_info_gestor = df_bridge_atual \
     .join(df_plataformas, "cod_agencia", "left") \
     .select(df_bridge_atual.cod_cliente, df_plataformas.gestor_da_plataforma, df_bridge_atual.cod_gerente.alias('cod_broker'), df_gerentes.taxa_comissao)
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 6.2: Métricas de Operações
+# -----------------------------------
 # 6.1: Métricas de Operações
 # --------------------------
 # Usamos df_fato_operacoes criada na Seção 2.1
@@ -921,6 +935,17 @@ df_metrics_ops = df_ops_validas.groupBy("cod_cliente").agg(
 
 df_metrics_ops_final = df_metrics_ops.join(df_dia_semana_top, "cod_cliente", "left").join(df_dia_mes_top, "cod_cliente", "left")
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 6.3: Métricas de Títulos
+# -----------------------------------
 # 6.2: Métricas de Títulos (Risco)
 # --------------------------------
 # Usamos df_fato_titulos_final criada na Seção 3.3
@@ -981,6 +1006,17 @@ df_risco_grupo_agg = df_risco_ind.join(df_grupos_prep, "cod_cliente", "inner") \
         sum("risco_comissaria").alias("risco_comissaria_grupo")
     )
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 6.4: Métricas de Esteira
+# -----------------------------------
 # 6.3: Esteira Dates e Funnel
 # ---------------------------
 df_esteira = spark.read.table("LH_Gold.esteira_de_propostas")
@@ -1034,6 +1070,17 @@ w_latest = Window.partitionBy("cod_cliente").orderBy(col("datalog").desc())
 df_esteira_latest = df_esteira.withColumn("rn", row_number().over(w_latest)).filter(col("rn") == 1) \
     .select(col("cod_cliente").alias("cod_cliente_latest"), col("status_do_cliente").alias("status_do_cliente"), col("macroprocesso").alias("MACROPROCESSO"), col("fase").alias("FASE"))
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 6.5: Limites e Preparação
+# -----------------------------------
 # 6.4: Limites
 # ------------
 df_limites_agg = df_contratos.filter(col("status") == "A") \
@@ -1086,6 +1133,17 @@ df_esteira_min_prep = df_esteira_min_renamed.withColumnRenamed("cod_cliente", "c
 # Taxa Cadastro (Power BI Requirement)
 df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 6.6: Join Central
+# -----------------------------------
 df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_metrics_ops_final, "cod_cliente", "left") \
     .join(df_metrics_titulos_final, "cod_cliente", "left") \
@@ -1103,6 +1161,17 @@ df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
 # Data 3: Formalizacao (Checklist >= Credito)
 # Data 4: Concluido (Concluido >= Formalizacao)
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 6.7: Regras de Negócio
+# -----------------------------------
 df_funnel = df_join_1 \
     .withColumn("data_primeira_proposta_comercial", least(col("min_proposta"), col("min_revisao"), col("min_dir_comercial"))) \
     .withColumn("data_primeira_proposta_credito",
@@ -1258,6 +1327,17 @@ df_final = df_funnel \
         )
     )
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 6.8: Persistência
+# -----------------------------------
 # Salvar
 output_path_dim_clientes = "LH_Gold.dim_clientes"
 
