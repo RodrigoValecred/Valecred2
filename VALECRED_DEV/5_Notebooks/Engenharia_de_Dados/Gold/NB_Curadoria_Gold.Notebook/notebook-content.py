@@ -1181,7 +1181,7 @@ df_final = df_funnel \
     .withColumn("tempo_analise", datediff(col("data_aprovacao"), col("data_entrada"))) \
     .withColumn("idade_cliente", floor(datediff(today_date, to_date(substring(col("data_inclusao").cast("string"), 1, 10))) / 365)) \
     .withColumn("idade_cliente_em_dias", coalesce(datediff(today_date, col("data_primeira_operacao")), lit(0))) \
-    .withColumn("status_do_cliente", coalesce(col("status_do_cliente_cad"), col("status_do_cliente"))) \
+    .withColumn("status_do_cliente", coalesce(col("status_do_cliente_cad").cast("string"), col("status_do_cliente").cast("string"))) \
     .withColumn("tipo_proposta",
         when(col("dias_sem_operar") > 120, "REATIVAÇÃO")
         .when(col("data_ultima_operacao").isNull(), "PROSPECÇÃO")
