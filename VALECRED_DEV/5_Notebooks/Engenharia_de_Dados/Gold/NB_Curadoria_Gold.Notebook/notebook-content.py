@@ -286,10 +286,17 @@ df_gerentes_full = df_join_users_clean.join(
     "left"
 )
 
-df_gerentes_enrich = df_gerentes_full.select(
+# Join with Plataformas to get Platform Info
+df_plataformas_alias = df_plataformas.alias("plat")
+
+df_gerentes_plat = df_gerentes_full.join(df_plataformas_alias, col("g.cod_agencia") == col("plat.cod_agencia"), "left")
+
+df_gerentes_enrich = df_gerentes_plat.select(
     col("g.cod_broker"),
     col("g.taxa_comissao"),
-    coalesce(col("u.nome"), col("nome_geral"), lit("GERENTE NÃO IDENTIFICADO")).alias("nome_gerente")
+    coalesce(col("u.nome"), col("nome_geral"), lit("GERENTE NÃO IDENTIFICADO")).alias("nome_gerente"),
+    col("plat.nome_plataforma"),
+    col("plat.gestor_da_plataforma")
 ).dropDuplicates(["cod_broker"]).alias("gerentes")
 
 # Aliasing other tables for join safety
@@ -368,6 +375,8 @@ df_ops_enrich_step1 = df_ops \
         col("estudo.fator").alias("taxa_cadastro"),
         col("gerentes.taxa_comissao"),
         col("gerentes.nome_gerente").alias("gestor_da_operacao"),
+        col("gerentes.nome_plataforma"),
+        col("gerentes.gestor_da_plataforma"),
         col("escrow.ESCROW").alias("flag_escrow"),
         col("first_op.data_primeira_operacao_calc"),
         col("client_rate.taxa_cadastro_cliente")
@@ -525,7 +534,9 @@ df_fato_operacoes = df_fato_operacoes_filtered.select(
     col("status_taxa_majorada"),
     col("tarifa_de_recompra"),
     col("tarifa_de_titulos"),
-    col("gestor_da_operacao")
+    col("gestor_da_operacao"),
+    col("nome_plataforma"),
+    col("gestor_da_plataforma")
 ).dropDuplicates(["cod_operacao"])
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
