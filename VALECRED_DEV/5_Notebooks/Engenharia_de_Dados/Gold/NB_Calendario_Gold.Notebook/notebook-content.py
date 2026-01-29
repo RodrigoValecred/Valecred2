@@ -45,7 +45,7 @@ spark.conf.set("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
 from pyspark.sql.functions import (
     col, lit, date_format, dayofweek, expr, when,
     date_add, to_date, year, month, dayofmonth, quarter,
-    first, row_number, concat
+    first, row_number, concat, min, max
 )
 from pyspark.sql.window import Window
 from pyspark.sql.types import IntegerType
@@ -124,8 +124,32 @@ except Exception as e:
 
 # CELL ********************
 
-start_date = "2017-01-01"
-end_date = "2030-12-31"
+try:
+    print("Calculando datas dinâmicas...")
+
+    # Min Data Inclusão de Operações
+    df_ops = spark.read.table("LH_Silver.staging_operacoes_limpa")
+    min_date_row = df_ops.agg(min("data_inclusao")).collect()
+
+    # Max Data Vencimento (Efetivo) de Títulos
+    df_titles = spark.read.table("LH_Silver.staging_titulos_limpa")
+    max_date_row = df_titles.agg(max("vencimento_efetivo")).collect()
+
+    start_date = "2017-01-01"
+    end_date = "2030-12-31"
+
+    if min_date_row and min_date_row[0][0]:
+        start_date = str(min_date_row[0][0]).split(' ')[0] # Garantir yyyy-MM-dd se for timestamp
+
+    if max_date_row and max_date_row[0][0]:
+        end_date = str(max_date_row[0][0]).split(' ')[0]
+
+    print(f"Intervalo dinâmico definido: {start_date} até {end_date}")
+
+except Exception as e:
+    print(f"Erro ao calcular datas dinâmicas: {e}. Usando fallback.")
+    start_date = "2017-01-01"
+    end_date = "2030-12-31"
 
 print(f"Gerando calendário de {start_date} a {end_date}...")
 
