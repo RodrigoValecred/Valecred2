@@ -254,7 +254,7 @@ df_cad_geral_enriquecido = df_geral_pf_pj_limpa \
 # Célula 1.2: Operações Enriquecidas
 # -----------------------------------------------------------
 print("Criando DataFrame intermediário: Operações Enriquecidas...")
-from pyspark.sql.functions import unix_timestamp, ceil, abs, hour, month, weekofyear, dayofmonth, last_day, months_between, floor
+from pyspark.sql.functions import unix_timestamp, ceil, abs, hour, month, weekofyear, dayofmonth, last_day, months_between, floor, trunc
 
 # PRE-CALCULO: Data Primeira Operação por Cliente (para Meses de Idade)
 df_first_op = df_operacoes_limpa.filter(col("status_aceite") == 'A') \
@@ -397,7 +397,7 @@ df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
  .withColumn("chave_meta", concat(col("chave_ano_mes_base_empresa"), lit("-"), col("gestor_da_operacao"))) \
  .withColumn("ano_do_deferimento", year(col("data_deferimento"))) \
  .withColumn("comissao_das_tarifas", col("taxa_comissao") * col("total_de_tarifas")) \
- .withColumn("data_inicio_do_mes", to_date(date_add(last_day(date_add(col("data_deferimento"), -1)), 1))) \
+ .withColumn("data_inicio_do_mes", trunc(col("data_deferimento"), "MM")) \
  .withColumn("dia_da_operacao", dayofmonth(col("data_deferimento"))) \
  .withColumn("dia_da_semana_da_operacao", dayofweek(col("data_deferimento"))) \
  .withColumn("dia_da_semana_da_operacao_por_extenso",
