@@ -288,8 +288,33 @@ def process_gerentes():
 def process_plataformas():
     print("Processando Plataformas...")
     df_agencias = spark.read.table(f"{source_lakehouse}.cad_agencias").select(col("CODAGENCIA").alias("cod_agencia"), col("NOME").alias("nome_plataforma"))
-    df_sup_gestor = spark.read.table(f"{target_lakehouse}.sup_gestor_de_plataforma")
-    df_agencias.join(df_sup_gestor, on="cod_agencia", how="left").withColumn("plataforma", regexp_replace(col("nome_plataforma"), "^.*? ", "")).select("cod_agencia", "nome_plataforma", "gestor_da_plataforma", "plataforma").write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_plataformas")
+
+    # Hardcoded Logic requested by User (matches Power Query logic)
+    df_calc = df_agencias.withColumn("plataforma", regexp_replace(col("nome_plataforma"), "^.*? ", "")) \
+        .withColumn("gestor_hardcoded",
+            when(col("nome_plataforma") == "PLATAFORMA CONTENCIOSO", "VINICIUS")
+            .when(col("nome_plataforma") == "PLATAFORMA VALECRED 2.0", "RICARDO")
+            .when(col("nome_plataforma") == "PLATAFORMA BROKER", "RICARDO")
+            .when(col("nome_plataforma") == "PLATAFORMA VALECRED 4.0", "DANIEL")
+            .when(col("nome_plataforma") == "PLATAFORMA VALECRED 5.0", "WILLIAN")
+            .otherwise(lit(None))
+        )
+
+    # Support Table Fallback
+    try:
+        df_sup_gestor = spark.read.table(f"{target_lakehouse}.sup_gestor_de_plataforma")
+        df_joined = df_calc.join(df_sup_gestor, on="cod_agencia", how="left")
+
+        # Coalesce: Hardcoded -> Support Table -> "NÃO ATRIBUÍDO"
+        df_final = df_joined.withColumn("gestor_da_plataforma",
+            coalesce(col("gestor_hardcoded"), col("gestor_da_plataforma"), lit("NÃO ATRIBUÍDO"))
+        )
+    except Exception as e:
+        print(f"AVISO: sup_gestor_de_plataforma não disponível ({e}). Usando apenas lógica hardcoded.")
+        df_final = df_calc.withColumn("gestor_da_plataforma", coalesce(col("gestor_hardcoded"), lit("NÃO ATRIBUÍDO")))
+
+    df_final.select("cod_agencia", "nome_plataforma", "gestor_da_plataforma", "plataforma") \
+        .write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_plataformas")
 
 def process_status_esteira():
     print("Processando Status Esteira...")
