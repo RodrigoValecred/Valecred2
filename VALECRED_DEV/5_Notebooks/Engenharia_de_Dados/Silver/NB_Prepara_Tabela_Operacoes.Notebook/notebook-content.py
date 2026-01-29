@@ -98,6 +98,7 @@ def process_operacoes():
             col("TOTFAC").alias("valor_de_face"),
             col("TOTDCP").alias("desagio"),
             col("TOTTAR").alias("total_de_tarifas"),
+            col("TOTPENDENCIAS").alias("valor_pendencias"),
             col("TOTRECOMPRA").alias("valor_recomprado"),
             col("FATOR").alias("taxa"),
             col("CODINDEFERIMENTO").alias("cod_indeferimento"),
