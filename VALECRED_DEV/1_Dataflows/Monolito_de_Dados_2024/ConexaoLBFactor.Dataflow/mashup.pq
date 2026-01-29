@@ -268,30 +268,37 @@ else "Inválido"),
 in
     duplicatasRemovidas;
 shared stg_operacoes = let
+    // Buffer tables to avoid Firewall issues
+    Buffered_Tab_Operacoes = Table.Buffer(replica_tab_operacoes),
+    Buffered_Tab_Estudo_Op = Table.Buffer(replica_tab_estudo_op),
+    Buffered_Cad_Usuarios = Table.Buffer(replica_cad_usuarios),
+    Buffered_Nivel_Usuario = Table.Buffer(nivel_usuario),
+    Buffered_Grupos_Indeferimento = Table.Buffer(#"grupos indeferimento"),
+
     // Conecta ao banco de dados SQL.
-    conexaoBancoDados = replica_tab_operacoes,
+    conexaoBancoDados = Buffered_Tab_Operacoes,
     // Classifica as linhas pela data de análise em ordem decrescente.
     linhasOrdenadasPorDataAnalise = Table.Sort(conexaoBancoDados,{{"DATAANALISE", Order.Descending}}),
     // Altera o tipo da coluna 'base' para texto.
     tipoColunaBaseAlterado = Table.TransformColumnTypes(linhasOrdenadasPorDataAnalise,{{"BASE", type text}}),
 
     // Mescla com estudo de operações para obter TAXACADASTRO.
-    estudoOperacoesMesclado = Table.NestedJoin(tipoColunaBaseAlterado, {"CODOPERACAO"}, replica_tab_estudo_op, {"CODOPERACAO"}, "estudoOpTabela", JoinKind.LeftOuter),
+    estudoOperacoesMesclado = Table.NestedJoin(tipoColunaBaseAlterado, {"CODOPERACAO"}, Buffered_Tab_Estudo_Op, {"CODOPERACAO"}, "estudoOpTabela", JoinKind.LeftOuter),
     // Expande a coluna TAXACADASTRO.
     taxaCadastroExpandida = Table.ExpandTableColumn(estudoOperacoesMesclado, "estudoOpTabela", {"FATOR"}, {"TAXACADASTRO"}),
 
     // Mescla com usuários enriquecidos para dados de inclusão.
-    usuariosInclusaoMesclado = Table.NestedJoin(taxaCadastroExpandida, {"USUAINCLUSAO"}, replica_cad_usuarios, {"CODUSUARIO"}, "usuariosInclusaoTabela", JoinKind.LeftOuter),
+    usuariosInclusaoMesclado = Table.NestedJoin(taxaCadastroExpandida, {"USUAINCLUSAO"}, Buffered_Cad_Usuarios, {"CODUSUARIO"}, "usuariosInclusaoTabela", JoinKind.LeftOuter),
     // Expande nome, função e nível do usuário de inclusão.
     usuariosInclusaoExpandido = Table.ExpandTableColumn(usuariosInclusaoMesclado, "usuariosInclusaoTabela", {"NOME", "FUNCAO", "NIVEL"}, {"USUARIO_INCLUSAO", "INCLUIDO_POR", "NIVEL"}),
 
     // Mescla com usuários enriquecidos para dados do analista.
-    usuariosAnaliseMesclado = Table.NestedJoin(usuariosInclusaoExpandido, {"USUASTANALISE"}, replica_cad_usuarios, {"CODUSUARIO"}, "usuariosAnaliseTabela", JoinKind.LeftOuter),
+    usuariosAnaliseMesclado = Table.NestedJoin(usuariosInclusaoExpandido, {"USUASTANALISE"}, Buffered_Cad_Usuarios, {"CODUSUARIO"}, "usuariosAnaliseTabela", JoinKind.LeftOuter),
     // Expande o nome do analista.
     analistaExpandido = Table.ExpandTableColumn(usuariosAnaliseMesclado, "usuariosAnaliseTabela", {"NOME"}, {"ANALISTA"}),
 
     // Mescla com usuários enriquecidos para dados do analista que travou.
-    usuariosTravaMesclado = Table.NestedJoin(analistaExpandido, {"USUATRAVA"}, replica_cad_usuarios, {"CODUSUARIO"}, "usuariosTravaTabela", JoinKind.LeftOuter),
+    usuariosTravaMesclado = Table.NestedJoin(analistaExpandido, {"USUATRAVA"}, Buffered_Cad_Usuarios, {"CODUSUARIO"}, "usuariosTravaTabela", JoinKind.LeftOuter),
     // Expande o nome do analista que travou.
     analistaTravaExpandido = Table.ExpandTableColumn(usuariosTravaMesclado, "usuariosTravaTabela", {"NOME"}, {"ANALISTA_TRAVA"}),
 
@@ -299,10 +306,10 @@ shared stg_operacoes = let
     textoParaMaiusculas = Table.TransformColumns(analistaTravaExpandido, {{"USUARIO_INCLUSAO", Text.Upper, type text}, {"INCLUIDO_POR", Text.Upper, type text}}),
 
     // Mescla com 'nivel_usuario' para informações de nível.
-    nivelUsuarioMesclado = Table.NestedJoin(textoParaMaiusculas, {"NIVEL"}, nivel_usuario, {"NIVEL"}, "nivelUsuarioTabela", JoinKind.LeftOuter),
+    nivelUsuarioMesclado = Table.NestedJoin(textoParaMaiusculas, {"NIVEL"}, Buffered_Nivel_Usuario, {"NIVEL"}, "nivelUsuarioTabela", JoinKind.LeftOuter),
 
     // Mescla com grupos de indeferimento para obter motivos.
-    gruposIndeferimentoMesclado = Table.NestedJoin(nivelUsuarioMesclado, {"CODINDEFERIMENTO"}, #"grupos indeferimento", {"CODINDEFERIMENTO"}, "motivosIndeferimentoTabela", JoinKind.LeftOuter),
+    gruposIndeferimentoMesclado = Table.NestedJoin(nivelUsuarioMesclado, {"CODINDEFERIMENTO"}, Buffered_Grupos_Indeferimento, {"CODINDEFERIMENTO"}, "motivosIndeferimentoTabela", JoinKind.LeftOuter),
     // Expande colunas de motivo e grupo de indeferimento.
     motivosIndeferimentoExpandido = Table.ExpandTableColumn(gruposIndeferimentoMesclado, "motivosIndeferimentoTabela", {"MOTIVO INDEFERIMENTO", "GRUPO MOTIVO INDEFERIMENTO"}, {"MOTIVO INDEFERIMENTO", "GRUPO MOTIVO INDEFERIMENTO"}),
 
