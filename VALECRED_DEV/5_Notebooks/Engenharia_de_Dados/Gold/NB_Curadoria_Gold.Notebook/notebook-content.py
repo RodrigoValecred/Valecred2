@@ -407,7 +407,7 @@ df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
     .otherwise("MANTIDA")) \
  .withColumn("tarifa_de_recompra", col("tarifa_recompra") * col("n_docs_recompra")) \
  .withColumn("tarifa_de_titulos", col("n_docs") * col("tarifa")) \
- .na.fill(0, subset=["tac", "valor_taxa_adm", "valor_advalorem", "total_de_tarifas", "n_docs_recompra"]) \
+ .na.fill(0, subset=["tac", "valor_taxa_adm", "valor_advalorem", "total_de_tarifas", "n_docs_recompra", "valor_pendencias"]) \
  .drop("count").cache()
 
 print("DataFrames intermediários criados e cacheados.")
@@ -480,6 +480,7 @@ df_fato_operacoes = df_fato_operacoes_filtered.select(
     col("valor_de_face"),
     col("desagio"),
     col("total_de_tarifas"),
+    col("valor_pendencias"),
     col("sk_data"),
     col("valor_recomprado"),
     col("usuario_inclusao"),
