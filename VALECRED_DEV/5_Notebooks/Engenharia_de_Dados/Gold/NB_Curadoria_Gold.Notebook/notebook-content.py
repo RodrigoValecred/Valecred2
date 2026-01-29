@@ -457,8 +457,11 @@ df_fato_operacoes_joined = df_operacoes_prep.join(
     "left"
 )
 
+# Filtra TTOs que já possuem tabelas fato dedicadas (Prorrogacao e Recompra) para evitar duplicidade
+df_fato_operacoes_filtered = df_fato_operacoes_joined.filter(~col("tto").isin(["PR", "RC", "RE"]))
+
 # 3. SELEÇÃO FINAL
-df_fato_operacoes = df_fato_operacoes_joined.select(
+df_fato_operacoes = df_fato_operacoes_filtered.select(
     col("cod_operacao"),
     col("nbordero"),
     col("cod_cliente"),
