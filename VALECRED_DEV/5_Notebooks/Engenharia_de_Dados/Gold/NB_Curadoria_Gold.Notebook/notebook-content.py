@@ -357,6 +357,12 @@ df_estudo = df_estudo_operacoes.dropDuplicates(["CODOPERACAO"]).alias("estudo")
 print("Schema df_estudo:")
 df_estudo.printSchema()
 
+# Safety Check: Garantir que risco e limite existam
+for required_col in ["risco", "limite"]:
+    if required_col not in df_estudo.columns:
+        print(f"AVISO: Coluna '{required_col}' não encontrada em staging_estudo_operacoes. Criando com valor 0.")
+        df_estudo = df_estudo.withColumn(required_col, lit(0))
+
 df_ops_enrich_step1 = df_ops \
     .join(df_u_inc, col("ops.usua_inclusao") == col("u_inc.cod_usuario"), "left") \
     .join(df_u_ana, col("ops.usua_st_analise") == col("u_ana.cod_usuario"), "left") \
