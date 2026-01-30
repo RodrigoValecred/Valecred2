@@ -61,8 +61,8 @@ pat_comissaria  = r"(?i)Comiss.ria Simples.*?R\$\s*([\d\.,]+)"
 pat_inter       = r"(?i)Intercompany.*?R\$\s*([\d\.,]+)"
 pat_fomento     = r"(?i)Fomento.*?R\$\s*([\d\.,]+)"
 pat_plus        = r"(?i)Limite\s+EXTRA\s+PLUS.*?R\$\s*([\d\.,]+)"
-pat_extra_formal   = r"(?i)Limite\s+extra\s+desconto(?:\s+Normal)?\s+formal.*?R\$\s*([\d\.,]+)"
-pat_extra_informal = r"(?i)Limite\s+extra\s+desconto\s+informal.*?R\$\s*([\d\.,]+)"
+pat_extra_formal   = r"(?i)Limite\s+extra\s+desconto.*?\bformal.*?R\$\s*([\d\.,]+)"
+pat_extra_informal = r"(?i)Limite\s+extra\s+desconto.*?\binformal.*?R\$\s*([\d\.,]+)"
 
 # METADATA ********************
 
@@ -81,8 +81,9 @@ df_silver = df_bronze.withColumn(
     decode(col("OBSERVACOES"), "ISO-8859-1") 
 ).withColumn(
     # Passo B: Limpar (Igual ao REPLACE \r e \n por espaço)
+    # Adicionando replace para NBSP (\u00A0) e tabulações para garantir o match
     "texto_limpo", 
-    trim(regexp_replace(col("obs_decodificada"), "[\r\n]+", " "))
+    trim(regexp_replace(col("obs_decodificada"), "[\r\n\t\u00A0]+", " "))
 ).withColumn(
     # Passo C: Extrair os valores (Regex)
     "raw_limite_geral", regexp_extract(col("texto_limpo"), pat_geral, 1)
