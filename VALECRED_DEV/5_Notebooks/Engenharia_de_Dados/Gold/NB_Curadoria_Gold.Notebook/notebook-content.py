@@ -357,6 +357,26 @@ df_estudo = df_estudo_operacoes.dropDuplicates(["CODOPERACAO"]).alias("estudo")
 print("Schema df_estudo:")
 df_estudo.printSchema()
 
+# Dynamic Column Resolution: Identificar colunas de Risco e Limite com nomes variáveis
+print(f"Colunas disponíveis em staging_estudo_operacoes: {df_estudo.columns}")
+
+def find_column(df, candidates):
+    for candidate in candidates:
+        # Check normalized candidates (lowercase) against df columns (which are likely lowercase due to silver prep)
+        if candidate.lower() in [c.lower() for c in df.columns]:
+            print(f"Coluna encontrada: '{candidate}'")
+            return col(candidate)
+    print(f"Nenhuma coluna encontrada para candidatos: {candidates}. Usando 0.")
+    return lit(0)
+
+# Candidatos comuns
+risk_candidates = ["valoremabertort", "risco", "vl_risco", "valor_risco", "total_risco", "risco_total", "saldo_devedor", "tot_risco"]
+limit_candidates = ["limitefomento", "limite", "vl_limite", "valor_limite", "total_limite", "limite_total", "limite_global", "tot_limite", "limite_credito"]
+
+# Definir colunas resolvidas (lazy evaluation)
+col_risco_resolved = find_column(df_estudo, risk_candidates)
+col_limite_resolved = find_column(df_estudo, limit_candidates)
+
 df_ops_enrich_step1 = df_ops \
     .join(df_u_inc, col("ops.usua_inclusao") == col("u_inc.cod_usuario"), "left") \
     .join(df_u_ana, col("ops.usua_st_analise") == col("u_ana.cod_usuario"), "left") \
@@ -377,8 +397,8 @@ df_ops_enrich_step1 = df_ops \
         col("motivos.motivo_indeferimento"),
         col("motivos.grupo_motivo_indeferimento"),
         col("estudo.fator").alias("taxa_cadastro"),
-        col("estudo.risco").alias("risco_estudo_op"),
-        col("estudo.limite").alias("limite_estudo_op"),
+        col_risco_resolved.alias("risco_estudo_op"),
+        col_limite_resolved.alias("limite_estudo_op"),
         col("gerentes.taxa_comissao"),
         col("gerentes.nome_gerente").alias("gestor_da_operacao"),
         col("gerentes.nome_plataforma"),
