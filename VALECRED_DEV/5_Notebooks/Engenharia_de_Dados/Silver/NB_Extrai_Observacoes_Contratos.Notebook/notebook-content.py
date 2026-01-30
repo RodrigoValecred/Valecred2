@@ -61,6 +61,8 @@ pat_comissaria  = r"(?i)Comiss.ria Simples.*?R\$\s*([\d\.,]+)"
 pat_inter       = r"(?i)Intercompany.*?R\$\s*([\d\.,]+)"
 pat_fomento     = r"(?i)Fomento.*?R\$\s*([\d\.,]+)"
 pat_plus        = r"(?i)Limite\s+EXTRA\s+PLUS.*?R\$\s*([\d\.,]+)"
+pat_extra_formal   = r"(?i)Limite\s+extra\s+desconto(?:\s+Normal)?\s+formal.*?R\$\s*([\d\.,]+)"
+pat_extra_informal = r"(?i)Limite\s+extra\s+desconto\s+informal.*?R\$\s*([\d\.,]+)"
 
 # METADATA ********************
 
@@ -92,6 +94,10 @@ df_silver = df_bronze.withColumn(
     "raw_limite_fomento", regexp_extract(col("texto_limpo"), pat_fomento, 1)
 ).withColumn(
     "raw_limite_plus", regexp_extract(col("texto_limpo"), pat_plus, 1)
+).withColumn(
+    "raw_limite_extra_formal", regexp_extract(col("texto_limpo"), pat_extra_formal, 1)
+).withColumn(
+    "raw_limite_extra_informal", regexp_extract(col("texto_limpo"), pat_extra_informal, 1)
 )
 
 # METADATA ********************
@@ -130,7 +136,9 @@ df_final = df_silver.select(
     coalesce(converter_moeda_br("raw_limite_comissaria"), lit(0.0)).alias("limite_comissaria"),
     coalesce(converter_moeda_br("raw_limite_intercompany"), lit(0.0)).alias("limite_intercompany"),
     coalesce(converter_moeda_br("raw_limite_fomento"), lit(0.0)).alias("limite_fomento"),
-    coalesce(converter_moeda_br("raw_limite_plus"), lit(0.0)).alias("limite_extra_plus")
+    coalesce(converter_moeda_br("raw_limite_plus"), lit(0.0)).alias("limite_extra_plus"),
+    coalesce(converter_moeda_br("raw_limite_extra_formal"), lit(0.0)).alias("limite_extra_desconto_formal"),
+    coalesce(converter_moeda_br("raw_limite_extra_informal"), lit(0.0)).alias("limite_extra_desconto_informal")
 ).withColumn("dt_processamento_silver", current_timestamp())
 
 # Exibir
