@@ -370,8 +370,8 @@ def find_column(df, candidates):
     return lit(0)
 
 # Candidatos comuns
-risk_candidates = ["risco", "vl_risco", "valor_risco", "total_risco", "risco_total", "saldo_devedor", "tot_risco"]
-limit_candidates = ["limite", "vl_limite", "valor_limite", "total_limite", "limite_total", "limite_global", "tot_limite", "limite_credito"]
+risk_candidates = ["valoremabertort", "risco", "vl_risco", "valor_risco", "total_risco", "risco_total", "saldo_devedor", "tot_risco"]
+limit_candidates = ["limitefomento", "limite", "vl_limite", "valor_limite", "total_limite", "limite_total", "limite_global", "tot_limite", "limite_credito"]
 
 # Definir colunas resolvidas (lazy evaluation)
 col_risco_resolved = find_column(df_estudo, risk_candidates)
