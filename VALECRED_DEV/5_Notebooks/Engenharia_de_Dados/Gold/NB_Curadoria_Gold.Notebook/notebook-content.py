@@ -353,6 +353,10 @@ df_u_trava = df_usuarios.alias("u_trava")
 df_motivos = df_motivos_indeferimento.alias("motivos")
 df_estudo = df_estudo_operacoes.dropDuplicates(["CODOPERACAO"]).alias("estudo")
 
+# Debug: Verificar schema de estudo para confirmar colunas de Risco/Limite
+print("Schema df_estudo:")
+df_estudo.printSchema()
+
 df_ops_enrich_step1 = df_ops \
     .join(df_u_inc, col("ops.usua_inclusao") == col("u_inc.cod_usuario"), "left") \
     .join(df_u_ana, col("ops.usua_st_analise") == col("u_ana.cod_usuario"), "left") \
@@ -373,6 +377,8 @@ df_ops_enrich_step1 = df_ops \
         col("motivos.motivo_indeferimento"),
         col("motivos.grupo_motivo_indeferimento"),
         col("estudo.fator").alias("taxa_cadastro"),
+        col("estudo.risco").alias("risco_estudo_op"),
+        col("estudo.limite").alias("limite_estudo_op"),
         col("gerentes.taxa_comissao"),
         col("gerentes.nome_gerente").alias("gestor_da_operacao"),
         col("gerentes.nome_plataforma"),
@@ -389,6 +395,8 @@ df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
         lit(True)
     ).otherwise(lit(False))
 ).withColumn("data_deferimento", to_date(col("data_analise"))) \
+ .withColumn("valor_utilizacao_limite_plus_excedente",
+             greatest(lit(0), (coalesce(col("risco_estudo_op"), lit(0)) + coalesce(col("valor_de_face"), lit(0)) - coalesce(col("limite_estudo_op"), lit(0))))) \
  .withColumn("era", when(col("data_deferimento") > lit("2023-08-31"), "VALE S").otherwise("VALE N")) \
  .withColumn("chave_base_cliente", concat(lit("40-"), col("cod_cliente"))) \
  .withColumn("chave_base_operacao", concat(lit("40-"), col("cod_operacao"))) \
@@ -496,6 +504,7 @@ df_fato_operacoes = df_fato_operacoes_filtered.select(
     col("desagio"),
     col("total_de_tarifas"),
     col("valor_pendencias"),
+    col("valor_utilizacao_limite_plus_excedente"),
     col("sk_data"),
     col("valor_recomprado"),
     col("usuario_inclusao"),
