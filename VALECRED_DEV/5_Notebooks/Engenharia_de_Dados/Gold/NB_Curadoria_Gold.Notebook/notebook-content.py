@@ -317,10 +317,26 @@ df_operacoes_com_historico = df_operacoes_limpa.join(
     "left"
 ).dropDuplicates(["cod_operacao"])
 
-df_operacoes_com_gerente = df_operacoes_com_historico.withColumn(
+# Fallback Logic (Earliest Manager)
+# Para operações antigas (ex: antes de Junho 2025) onde cod_broker é 0 e a bridge não tem histórico da data exata.
+w_fallback = Window.partitionBy("cod_cliente_bridge").orderBy(col("data_inicio_vigencia").asc())
+df_bridge_fallback = df_bridge_prep.withColumn("rn", row_number().over(w_fallback)) \
+    .filter(col("rn") == 1) \
+    .select(col("cod_cliente_bridge").alias("cod_cliente_fb"), col("cod_gerente").alias("cod_gerente_fb"))
+
+df_operacoes_com_fallback = df_operacoes_com_historico.join(
+    df_bridge_fallback,
+    df_operacoes_com_historico.cod_cliente == df_bridge_fallback.cod_cliente_fb,
+    "left"
+)
+
+# Prioridade Atualizada: 1. Bridge Strict > 2. Broker Original (se válido) > 3. Bridge Fallback
+df_operacoes_com_gerente = df_operacoes_com_fallback.withColumn(
     "cod_broker",
-    when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker")).otherwise(col("cod_gerente"))
-).drop("cod_cliente_bridge","cod_gerente", "data_inicio_vigencia", "data_fim_vigencia")
+    when(col("cod_gerente").isNotNull(), col("cod_gerente"))
+    .when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker"))
+    .otherwise(col("cod_gerente_fb"))
+).drop("cod_cliente_bridge", "cod_gerente", "data_inicio_vigencia", "data_fim_vigencia", "cod_cliente_fb", "cod_gerente_fb")
 
 # Identificação de Operações Informais
 df_chave_danfe = df_cad_geral_arquivos.filter(col("DESCRICAO") == 'CHAVEDANFE')
