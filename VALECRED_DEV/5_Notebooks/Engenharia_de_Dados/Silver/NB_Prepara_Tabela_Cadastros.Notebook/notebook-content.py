@@ -269,19 +269,56 @@ def process_gerentes():
 
         if join_key:
             print(f"Chave de junção encontrada em sup_gerentes_ativos: {join_key}")
-            # Seleciona apenas a chave para evitar colisão e broadcast
-            df_sup_ativos = df_sup_ativos.select(col(join_key).alias("cod_broker_join")).distinct()
 
-            df_brokers = df_brokers.join(df_sup_ativos, df_brokers.cod_broker == df_sup_ativos.cod_broker_join, "left") \
+            # Identifica colunas adicionais para trazer (Ex: data_inicio)
+            cols_select = [col(join_key).alias("cod_broker_join")]
+
+            # Tenta encontrar 'data_inicio' ou similar
+            col_data = None
+            if "data_inicio" in sup_cols: col_data = df_sup_ativos.columns[sup_cols.index("data_inicio")]
+            elif "datainicio" in sup_cols: col_data = df_sup_ativos.columns[sup_cols.index("datainicio")]
+            elif "data_de_inicio" in sup_cols: col_data = df_sup_ativos.columns[sup_cols.index("data_de_inicio")]
+
+            if col_data:
+                print(f"Coluna de data encontrada: {col_data}")
+                cols_select.append(col(col_data).alias("data_inicio_real"))
+            else:
+                print("AVISO: Coluna de data_inicio não encontrada em sup_gerentes_ativos.")
+
+            # Tenta encontrar 'comissao' ou similar
+            col_comissao = None
+            if "comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("comissao")]
+            elif "taxa_comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("taxa_comissao")]
+            elif "percentual_comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("percentual_comissao")]
+
+            if col_comissao:
+                print(f"Coluna de comissão encontrada: {col_comissao}")
+                cols_select.append(col(col_comissao).alias("taxa_comissao_manual"))
+            else:
+                 print("AVISO: Coluna de comissão não encontrada em sup_gerentes_ativos.")
+
+            # Seleciona as colunas de interesse
+            df_sup_ativos_filt = df_sup_ativos.select(*cols_select).distinct()
+
+            df_brokers = df_brokers.join(df_sup_ativos_filt, df_brokers.cod_broker == df_sup_ativos_filt.cod_broker_join, "left") \
                 .withColumn("status_ativo", when(col("cod_broker_join").isNotNull(), "sim").otherwise("não")) \
                 .drop("cod_broker_join")
+
+            # Aplica override de comissão se houver valor manual, senão mantém do sistema
+            if "taxa_comissao_manual" in df_brokers.columns:
+                 df_brokers = df_brokers.withColumn("taxa_comissao", coalesce(col("taxa_comissao_manual"), col("taxa_comissao"))) \
+                                        .drop("taxa_comissao_manual")
+
+            # Se não encontrou a coluna, garante a existência dela no schema
+            if "data_inicio_real" not in df_brokers.columns:
+                 df_brokers = df_brokers.withColumn("data_inicio_real", lit(None).cast("string"))
         else:
              print("AVISO: Chave de junção não encontrada em sup_gerentes_ativos. Definindo status_ativo como 'não'.")
-             df_brokers = df_brokers.withColumn("status_ativo", lit("não"))
+             df_brokers = df_brokers.withColumn("status_ativo", lit("não")).withColumn("data_inicio_real", lit(None).cast("string"))
 
     except Exception as e:
         print(f"AVISO: Erro ao processar sup_gerentes_ativos: {e}. Definindo status_ativo como 'não'.")
-        df_brokers = df_brokers.withColumn("status_ativo", lit("não"))
+        df_brokers = df_brokers.withColumn("status_ativo", lit("não")).withColumn("data_inicio_real", lit(None).cast("string"))
 
     df_brokers.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_gerentes")
 
