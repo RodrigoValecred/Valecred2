@@ -32,7 +32,8 @@
 # *   Agrupamento: Se o cliente faz parte de um grupo, vale a data da primeira operação do grupo todo.
 # *   Contagem: O grupo vale apenas 1 cliente.
 # *   Gerente: O gerente atribuído é aquele responsável pela primeira operação do grupo/cliente.
-#     *   **Enriquecimento:** Caso a operação não tenha gerente vinculado (cod_broker=0), utiliza-se a tabela bridge (histórico de carteira) para identificar o gerente na data da operação.
+#     *   **Enriquecimento (Strict):** Caso a operação não tenha gerente (cod_broker=0), busca na bridge pela data da operação.
+#     *   **Enriquecimento (Fallback):** Se a operação for anterior ao histórico da bridge, assume o primeiro gerente registrado para o cliente.
 
 # CELL ********************
 
@@ -79,12 +80,12 @@ df_ops_validas = df_ops.filter(col("status_aceite") == 'A') \
     .select("cod_operacao", "cod_cliente", "data_inclusao", "data_analise", "cod_broker")
 
 # 4. Enriquecimento de Gerente (Bridge)
-# Resolvemos "Gerente Não Identificado" (cod_broker=0) usando o histórico da carteira
-print("Aplicando enriquecimento de gerentes via Bridge...")
+print("Aplicando enriquecimento de gerentes via Bridge (Strict + Fallback)...")
 
 df_bridge_prep = df_bridge.withColumnRenamed("cod_cliente", "cod_cliente_bridge")
 
-# Join com Bridge baseado na data da análise (data de efetivação da operação)
+# 4.1 Strict Join (Date Match)
+# Join com Bridge baseado na data da análise
 df_ops_enriched = df_ops_validas.join(
     df_bridge_prep,
     (df_ops_validas["cod_cliente"] == df_bridge_prep["cod_cliente_bridge"]) &
@@ -93,12 +94,29 @@ df_ops_enriched = df_ops_validas.join(
     "left"
 )
 
-# Prioriza cod_broker da operação. Se for 0 ou Null, usa cod_gerente da bridge.
-df_ops_final_broker = df_ops_enriched.withColumn(
+# 4.2 Fallback Logic (Earliest Manager)
+# Prepara fallback para casos onde a operação é anterior ao histórico da bridge
+w_fallback = Window.partitionBy("cod_cliente").orderBy(col("data_inicio_vigencia").asc())
+df_bridge_fallback = df_bridge.withColumn("rn", row_number().over(w_fallback)) \
+    .filter(col("rn") == 1) \
+    .select(col("cod_cliente").alias("cod_cliente_fb"), col("cod_gerente").alias("cod_gerente_fb"))
+
+df_ops_enriched_2 = df_ops_enriched.join(
+    df_bridge_fallback,
+    df_ops_enriched.cod_cliente == df_bridge_fallback.cod_cliente_fb,
+    "left"
+)
+
+# 4.3 Final Broker Selection
+# Regra de Ouro (Descoberta): O campo cod_gerente (cod_broker) da tab_operacoes só começou a ser preenchido em 06/2025.
+# Portanto, a prioridade deve ser a Bridge (Histórico de Vigência).
+# Prioridade Atualizada: 1. Bridge Strict > 2. Broker Original (se válido) > 3. Bridge Fallback
+df_ops_final_broker = df_ops_enriched_2.withColumn(
     "cod_broker_final",
-    when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker"))
-    .otherwise(col("cod_gerente"))
-).drop("cod_cliente_bridge", "cod_gerente", "data_inicio_vigencia", "data_fim_vigencia")
+    when(col("cod_gerente").isNotNull(), col("cod_gerente"))
+    .when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker"))
+    .otherwise(col("cod_gerente_fb"))
+).drop("cod_cliente_bridge", "cod_gerente", "data_inicio_vigencia", "data_fim_vigencia", "cod_cliente_fb", "cod_gerente_fb")
 
 # 5. Join com Grupos
 df_ops_grp = df_ops_final_broker.join(df_grupos, "cod_cliente", "left")

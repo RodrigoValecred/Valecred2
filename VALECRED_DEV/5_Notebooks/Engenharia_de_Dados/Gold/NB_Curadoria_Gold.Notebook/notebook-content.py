@@ -1132,14 +1132,6 @@ df_esteira_min_prep = df_esteira_min_renamed.withColumnRenamed("cod_cliente", "c
 # Taxa Cadastro (Power BI Requirement)
 df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
 
-# 6.4.1: Data da Primeira Operação do Grupo
-# Juntar clientes com grupos para calcular min(data_primeira_operacao) por grupo
-df_group_dates_prep = df_metrics_ops_final.select("cod_cliente", "data_primeira_operacao") \
-    .join(df_grupos_prep, "cod_cliente", "inner")
-
-df_group_start_dates = df_group_dates_prep.groupBy("grupo_economico") \
-    .agg(min("data_primeira_operacao").alias("data_inicio_grupo"))
-
 df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_metrics_ops_final, "cod_cliente", "left") \
     .join(df_metrics_titulos_final, "cod_cliente", "left") \
@@ -1148,7 +1140,6 @@ df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_limites_agg, "cod_cliente", "left") \
     .join(df_grupos_prep, "cod_cliente", "left") \
     .join(df_risco_grupo_agg, "grupo_economico", "left") \
-    .join(df_group_start_dates, "grupo_economico", "left") \
     .join(df_info_gestor, "cod_cliente", "left").join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest").join(df_client_rate_gold, df_base.cod_cliente == df_client_rate_gold.cod_cliente_rate, "left").drop("cod_cliente_rate") \
     .join(df_status_cad_prep, df_base.cod_cliente == df_status_cad_prep.cod_cliente_status, "left").drop("cod_cliente_status")
 
@@ -1172,14 +1163,6 @@ df_funnel = df_join_1 \
 
 # Colunas Calculadas
 df_final = df_funnel \
-    .withColumn("nome_do_grupo",
-         when(col("grupo_economico").isNotNull(), col("grupo_economico"))
-         .otherwise(col("nome"))
-    ) \
-    .withColumn("data_primeira_operacao_grupo",
-         when(col("grupo_economico").isNotNull(), col("data_inicio_grupo"))
-         .otherwise(col("data_primeira_operacao"))
-    ) \
     .withColumn("data_aprovacao", greatest(col("pivot_checklist"), col("pivot_assinatura"))) \
     .withColumn("data_conclusao", coalesce(col("pivot_bizagi"), col("pivot_concluido"))) \
     .withColumn("data_comite", col("pivot_comite")) \
