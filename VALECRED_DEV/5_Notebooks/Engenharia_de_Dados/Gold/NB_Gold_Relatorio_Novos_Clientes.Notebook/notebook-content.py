@@ -1,10 +1,5 @@
 # Fabric notebook source
 
-
-# CELL ********************
-
-# Fabric notebook source
-
 # METADATA ********************
 
 # META {
@@ -32,11 +27,17 @@
 
 # # Notebook Gold: Relatório de Entrada de Novos Clientes
 # **Objetivo:** Gerar uma tabela que registre a data de entrada de clientes novos (ou grupos).
+# 
 # **Regra de Negócio:**
+# 
 # *   Data de entrada = Data da primeira operação aceita.
+# 
 # *   Agrupamento: Se o cliente faz parte de um grupo, vale a data da primeira operação do grupo todo.
+# 
 # *   Contagem: O grupo vale apenas 1 cliente.
+# 
 # *   Gerente: O gerente atribuído é aquele responsável pela primeira operação do grupo/cliente.
+
 
 # CELL ********************
 
