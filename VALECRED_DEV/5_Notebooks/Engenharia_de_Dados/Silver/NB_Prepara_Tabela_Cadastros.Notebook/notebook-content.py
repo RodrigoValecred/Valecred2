@@ -285,12 +285,29 @@ def process_gerentes():
             else:
                 print("AVISO: Coluna de data_inicio não encontrada em sup_gerentes_ativos.")
 
+            # Tenta encontrar 'comissao' ou similar
+            col_comissao = None
+            if "comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("comissao")]
+            elif "taxa_comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("taxa_comissao")]
+            elif "percentual_comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("percentual_comissao")]
+
+            if col_comissao:
+                print(f"Coluna de comissão encontrada: {col_comissao}")
+                cols_select.append(col(col_comissao).alias("taxa_comissao_manual"))
+            else:
+                 print("AVISO: Coluna de comissão não encontrada em sup_gerentes_ativos.")
+
             # Seleciona as colunas de interesse
             df_sup_ativos_filt = df_sup_ativos.select(*cols_select).distinct()
 
             df_brokers = df_brokers.join(df_sup_ativos_filt, df_brokers.cod_broker == df_sup_ativos_filt.cod_broker_join, "left") \
                 .withColumn("status_ativo", when(col("cod_broker_join").isNotNull(), "sim").otherwise("não")) \
                 .drop("cod_broker_join")
+
+            # Aplica override de comissão se houver valor manual, senão mantém do sistema
+            if "taxa_comissao_manual" in df_brokers.columns:
+                 df_brokers = df_brokers.withColumn("taxa_comissao", coalesce(col("taxa_comissao_manual"), col("taxa_comissao"))) \
+                                        .drop("taxa_comissao_manual")
 
             # Se não encontrou a coluna, garante a existência dela no schema
             if "data_inicio_real" not in df_brokers.columns:

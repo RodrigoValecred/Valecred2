@@ -80,8 +80,10 @@ df_dim_gerentes = df_gerentes_enriched \
         col("g.cpf_cnpj"),
         col("g.data_inicio_gestao"),
         col("g.data_inicio_real").alias("data_inicio"),
+        col("g.taxa_comissao"),
         col("g.meses_de_casa"),
         col("g.status_ativo"),
+        col("cod_agencia"),
         col("nome_plataforma"),
         col("gestor_da_plataforma")
     )
