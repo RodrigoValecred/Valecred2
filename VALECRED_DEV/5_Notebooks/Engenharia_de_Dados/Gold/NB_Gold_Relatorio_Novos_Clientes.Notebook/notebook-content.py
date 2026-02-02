@@ -196,6 +196,52 @@ print("Concluído com sucesso.")
 # META   "language_group": "synapse_pyspark"
 # META }
 
+# CELL ********************
+
+from pyspark.sql.functions import add_months, countDistinct
+
+print("Calculando performance de Novos Clientes (Primeiros 6 meses)...")
+
+# 1. Carregar Tabelas
+# Usamos o resultado recém-gerado e a dimensão de gerentes
+df_novos = spark.read.table("LH_Gold.relatorio_novos_clientes")
+df_gerentes_dim = spark.read.table("LH_Gold.dim_gerentes")
+
+# 2. Join para trazer Data de Início do Gerente
+# O relatório de novos clientes tem 'codigo_gerente' que equivale a 'cod_broker'
+df_joined = df_novos.join(
+    df_gerentes_dim.select(col("cod_broker").alias("codigo_gerente_join"), col("data_inicio"), col("nome_gerente").alias("nome_gerente_dim")),
+    df_novos.codigo_gerente == col("codigo_gerente_join"),
+    "inner"
+)
+
+# 3. Aplicar Filtro de Tempo (6 Meses)
+# A data de entrada do cliente deve ser >= data de início do gerente
+# E <= data de início + 6 meses
+df_filtered = df_joined.filter(
+    (col("data_entrada") >= col("data_inicio")) &
+    (col("data_entrada") <= add_months(col("data_inicio"), 6))
+)
+
+# 4. Agregação
+# Contamos quantos clientes/grupos distintos cada gerente trouxe nesse período
+df_result = df_filtered.groupBy(
+    col("codigo_gerente"),
+    coalesce(col("nome_gerente"), col("nome_gerente_dim")).alias("nome_gerente"),
+    col("data_inicio")
+).agg(
+    countDistinct("codigo_grupo_ou_cliente").alias("qtd_novos_clientes_6_meses")
+).orderBy(col("qtd_novos_clientes_6_meses").desc())
+
+# 5. Exibição e Persistência
+print("Top 20 Gerentes (Novos Clientes nos Primeiros 6 Meses):")
+df_result.show(20, truncate=False)
+
+output_perf_path = "LH_Gold.analise_performance_novos_clientes_6m"
+print(f"Salvando análise em {output_perf_path}...")
+df_result.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_perf_path)
+print("Análise de performance concluída.")
+
 # METADATA ********************
 
 # META {
