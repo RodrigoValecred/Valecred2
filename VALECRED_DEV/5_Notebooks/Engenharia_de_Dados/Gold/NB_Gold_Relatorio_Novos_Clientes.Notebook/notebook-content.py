@@ -108,11 +108,13 @@ df_ops_enriched_2 = df_ops_enriched.join(
 )
 
 # 4.3 Final Broker Selection
-# Prioridade: 1. Broker Original > 2. Bridge Strict > 3. Bridge Fallback
+# Regra de Ouro (Descoberta): O campo cod_gerente (cod_broker) da tab_operacoes só começou a ser preenchido em 06/2025.
+# Portanto, a prioridade deve ser a Bridge (Histórico de Vigência).
+# Prioridade Atualizada: 1. Bridge Strict > 2. Broker Original (se válido) > 3. Bridge Fallback
 df_ops_final_broker = df_ops_enriched_2.withColumn(
     "cod_broker_final",
-    when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker"))
-    .when(col("cod_gerente").isNotNull(), col("cod_gerente"))
+    when(col("cod_gerente").isNotNull(), col("cod_gerente"))
+    .when((col("cod_broker").isNotNull()) & (col("cod_broker") != 0), col("cod_broker"))
     .otherwise(col("cod_gerente_fb"))
 ).drop("cod_cliente_bridge", "cod_gerente", "data_inicio_vigencia", "data_fim_vigencia", "cod_cliente_fb", "cod_gerente_fb")
 
