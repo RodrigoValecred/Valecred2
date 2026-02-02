@@ -253,6 +253,7 @@ Responsável por aplicar regras de negócio complexas, joins e agregações para
 -   **`NB_Analise_Cliente_Especifico`**: Ferramenta ad-hoc para investigar o histórico detalhado de um cliente.
 -   **`NB_Analyze_FIDC_Performance`**: Notebook para análise de performance do FIDC.
 -   **`NB_Analise_Safra_Gerentes`**: Realiza Análise de Safra (Vintage Analysis) da performance dos gerentes comerciais. Calcula a métrica **ROGm** (Retorno Operacional sobre Gerente) normalizada pelo tempo de casa (MOB - Month on Book) e projeta resultados futuros via Regressão Linear.
+-   **`NB_Gold_Relatorio_Novos_Clientes`**: Gera a tabela `LH_Gold.relatorio_novos_clientes`, que identifica a data de entrada de novos clientes ou grupos econômicos com base na primeira operação aceita, atribuindo o gerente responsável por essa operação inicial.
 
 #### `Orquestracao/` - Controle de Fluxo
 
