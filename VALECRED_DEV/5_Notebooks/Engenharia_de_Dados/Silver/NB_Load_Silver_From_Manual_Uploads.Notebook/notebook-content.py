@@ -158,25 +158,6 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
                 if original != new:
                     print(f"  '{original}' -> '{new}'")
 
-        # Lógica Específica: limites_extra_plus.xlsx (Desduplicação por Grupo)
-        # O arquivo original contem limites repetidos para cada CNPJ do grupo.
-        # Agrupamos pelo nome (Grupo) e pegamos o valor máximo dos limites para remover a granularidade de CNPJ.
-        if "limites_extra_plus" in actual_filename.lower():
-            print("Aplicando regra de desduplicação por Grupo (MAX dos limites) para limites_extra_plus...")
-            if 'nome' in pandas_df.columns:
-                 agg_dict = {}
-                 for col_limit in ['limite', 'limite_extra', 'limite_plus']:
-                     if col_limit in pandas_df.columns:
-                         agg_dict[col_limit] = 'max'
-
-                 if agg_dict:
-                     rows_before = len(pandas_df)
-                     pandas_df = pandas_df.groupby('nome', as_index=False).agg(agg_dict)
-                     rows_after = len(pandas_df)
-                     print(f"Desduplicação concluída. Linhas: {rows_before} -> {rows_after}")
-            else:
-                print("AVISO: Coluna 'nome' não encontrada para desduplicação.")
-
         # Converter para DataFrame Spark
         df_spark = spark.createDataFrame(pandas_df)
         print("DataFrame convertido para Spark com sucesso.")
