@@ -415,23 +415,40 @@ def process_pareceres_operacoes():
         )
 
     # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
-# Passo 1: Remover TODAS as tags HTML (<div...>, </span>, <br>, etc)
-    # A regex <[^>]+> significa: "Encontre qualquer coisa que comece com < e termine com > e apague"
+    placeholder = "||NEWLINE||"
+
+# Passo 1: Marcar quebras de linha (<br>, </p>, </div>, </li>, </tr>)
+    # Regex: (?i) flag for case-insensitive
+    # <br\s*/?> matches <br>, <br/>, <br />
     df_step1 = df_joined.withColumn(
-        "obs_sem_tags", 
-        regexp_replace(col("obs_bruta"), "<[^>]+>", " ") 
+        "obs_marked",
+        regexp_replace(col("obs_bruta"), "(?i)<br\\s*/?>|</p>|</div>|</li>|</tr>", placeholder)
     )
 
-# Passo 2: Decodificar caracteres especiais (&Ccedil; virar Ç) usando a UDF
+# Passo 2: Remover TODAS as tags HTML restantes
     df_step2 = df_step1.withColumn(
-        "obs_decodificada", 
-        unescape_udf(col("obs_sem_tags"))
+        "obs_no_tags",
+        regexp_replace(col("obs_marked"), "<[^>]+>", " ")
     )
 
-# Passo 3: Limpar espaços em branco excessivos (tabs, quebras de linha duplas)
-    df_cleaned = df_step2.withColumn(
+# Passo 3: Decodificar caracteres especiais
+    df_step3 = df_step2.withColumn(
+        "obs_decoded",
+        unescape_udf(col("obs_no_tags"))
+    )
+
+# Passo 4: Normalizar espaços
+    # Substituir múltiplos espaços horizontais (tab, space, newline) por um único espaço
+    # (Incluindo newlines originais, pois no HTML newlines geralmente são renderizados como espaço)
+    df_step4 = df_step3.withColumn(
+        "obs_squashed",
+        regexp_replace(col("obs_decoded"), "\\s+", " ")
+    )
+
+# Passo 5: Restaurar quebras de linha (substituir placeholder por \n)
+    df_cleaned = df_step4.withColumn(
         "Parecer", 
-        trim(regexp_replace(col("obs_decodificada"), "\\s+", " ")) # \s+ pega qualquer espaço, tab ou enter
+        trim(regexp_replace(col("obs_squashed"), placeholder, "\n"))
     )
 
 # --- LÓGICA DE FLAGS (Aplicada já no texto limpo) ---
