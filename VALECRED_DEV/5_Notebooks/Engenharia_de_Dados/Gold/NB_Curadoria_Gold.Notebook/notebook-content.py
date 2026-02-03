@@ -181,6 +181,20 @@ except Exception as e:
 print("Carregando Grupos Economicos (Silver)...")
 df_grupos_economicos = spark.read.table("LH_Silver.sup_grupos_economicos")
 
+# Limites Extra Plus (Silver)
+print("Carregando Limites Extra Plus (Silver)...")
+try:
+    df_limites_extra_plus = spark.read.table("LH_Silver.sup_limites_extra_plus")
+except Exception as e:
+    print(f"AVISO: Tabela LH_Silver.sup_limites_extra_plus não encontrada ({e}). Criando dataframe vazio.")
+    df_limites_extra_plus = spark.createDataFrame([], schema=StructType([
+        StructField("nome", StringType(), True),
+        StructField("cnpj", StringType(), True),
+        StructField("limite", DoubleType(), True),
+        StructField("limite_extra", DoubleType(), True),
+        StructField("limite_plus", DoubleType(), True)
+    ]))
+
 # Relatorio Juridico (Silver) - Para flag status_enviado_juridico
 print("Carregando Relatorio Juridico (Silver)...")
 try:
@@ -1096,8 +1110,9 @@ w_latest = Window.partitionBy("cod_cliente").orderBy(col("datalog").desc())
 df_esteira_latest = df_esteira.withColumn("rn", row_number().over(w_latest)).filter(col("rn") == 1) \
     .select(col("cod_cliente").alias("cod_cliente_latest"), col("status_do_cliente").alias("status_do_cliente"), col("macroprocesso").alias("MACROPROCESSO"), col("fase").alias("FASE"))
 
-# 6.4: Limites
+# 6.4: Limites (Contratos e Extra/Plus)
 # ------------
+# 6.4.1 Limites Contratos (Legado)
 df_limites_agg = df_contratos.filter(col("status") == "A") \
     .withColumn("limite_total", coalesce(col("limite_fomento"), lit(0)) + coalesce(col("limite_comissaria"), lit(0))) \
     .groupBy("cod_cliente").agg(
@@ -1107,6 +1122,34 @@ df_limites_agg = df_contratos.filter(col("status") == "A") \
         max("tranche").alias("tranche"),
         max("perc_confirmacao").alias("percentual_exigido")
     )
+
+# 6.4.2 Limites Extra e Plus (Desduplicação por Grupo)
+# ----------------------------------------------------
+# 1. Normalizar CNPJ para Join com Clientes
+df_limites_ep_prep = df_limites_extra_plus.withColumn("cnpj_clean", regexp_replace(col("cnpj"), "[^0-9]", ""))
+
+# 2. Join com Staging Clientes para obter cod_cliente
+df_limites_ep_clientes = df_limites_ep_prep.join(
+    df_clientes_staging.select(col("cpf_cnpj").alias("cnpj_clean"), "cod_cliente"),
+    "cnpj_clean",
+    "inner"
+)
+
+# 3. Join com Grupos Economicos para obter nome do grupo
+# df_grupos_prep tem 'cod_cliente' e 'grupo_economico'
+df_limites_ep_grupos = df_limites_ep_clientes.join(
+    df_grupos_prep,
+    "cod_cliente",
+    "inner"
+)
+
+# 4. Desduplicação por Grupo (Max Limites)
+# Os limites são repetidos por CNPJ no arquivo. Queremos o limite ÚNICO do GRUPO.
+df_limites_grupo_dedup = df_limites_ep_grupos.groupBy("grupo_economico").agg(
+    max("limite").alias("limite_grupo_manual"),
+    max("limite_extra").alias("limite_extra_grupo"),
+    max("limite_plus").alias("limite_plus_grupo")
+)
 
 # 6.5: Join Final e Colunas Calculadas
 # ------------------------------------
@@ -1155,6 +1198,7 @@ df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
     .join(df_esteira_min_prep, df_base.cod_cliente == df_esteira_min_prep.cod_cliente_min, "left").drop("cod_cliente_min") \
     .join(df_limites_agg, "cod_cliente", "left") \
     .join(df_grupos_prep, "cod_cliente", "left") \
+    .join(df_limites_grupo_dedup, "grupo_economico", "left") \
     .join(df_risco_grupo_agg, "grupo_economico", "left") \
     .join(df_info_gestor, "cod_cliente", "left").join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest").join(df_client_rate_gold, df_base.cod_cliente == df_client_rate_gold.cod_cliente_rate, "left").drop("cod_cliente_rate") \
     .join(df_status_cad_prep, df_base.cod_cliente == df_status_cad_prep.cod_cliente_status, "left").drop("cod_cliente_status")
@@ -1190,12 +1234,16 @@ df_final = df_funnel \
     .withColumn("risco", coalesce(col("risco"), lit(0))) \
     .withColumn("risco_grupo", coalesce(col("risco_grupo"), lit(0))) \
     .withColumn("risco_comissaria_grupo", coalesce(col("risco_comissaria_grupo"), lit(0))) \
-    .withColumn("limite", coalesce(col("limite"), lit(0))) \
+    .withColumn("limite_contrato", coalesce(col("limite"), lit(0))) \
+    .withColumn("limite_grupo_manual", coalesce(col("limite_grupo_manual"), lit(0))) \
+    .withColumn("limite_extra_grupo", coalesce(col("limite_extra_grupo"), lit(0))) \
+    .withColumn("limite_plus_grupo", coalesce(col("limite_plus_grupo"), lit(0))) \
+    .withColumn("limite", greatest(col("limite_contrato"), col("limite_grupo_manual"))) \
     .withColumn("limite_comissaria_contrato", coalesce(col("limite_comissaria_contrato"), lit(0))) \
     .withColumn("risco_comissaria", coalesce(col("risco_comissaria"), lit(0))) \
     .withColumn("risco_exceto_comissaria", coalesce(col("risco_exceto_comissaria"), lit(0))) \
     .withColumn("risco_total", col("risco") + col("risco_grupo")) \
-    .withColumn("limite_disponivel", col("limite") - col("risco_total")) \
+    .withColumn("limite_disponivel", (col("limite") + col("limite_extra_grupo") + col("limite_plus_grupo")) - col("risco_total")) \
     .withColumn("risco_subtotal_comissaria", col("risco_comissaria") + col("risco_comissaria_grupo")) \
     .withColumn("disponivel_comissaria", greatest(
         least(col("limite_disponivel"), col("limite_comissaria_contrato") - col("risco_subtotal_comissaria")),

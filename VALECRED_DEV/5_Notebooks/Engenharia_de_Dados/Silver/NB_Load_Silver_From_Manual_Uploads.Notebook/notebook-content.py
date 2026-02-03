@@ -273,6 +273,10 @@ files_to_process = [
     {
         "source_filename": "uf.xlsx",
         "target_table_name": "LH_Silver.sup_uf"
+    },
+    {
+        "source_filename": "limites_extra_plus.xlsx",
+        "target_table_name": "LH_Silver.sup_limites_extra_plus"
     }
 ]
 
