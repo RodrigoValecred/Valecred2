@@ -411,7 +411,7 @@ def process_pareceres_operacoes():
             col("cgp.CODOPERACAO").alias("cod_operacao"),
             col("cgp.DATAINCLUSAO").alias("data_inclusao"),
             col("cu.APELIDO").alias("apelido_usuario"),
-            col("cgp.OBS").alias("parecer_original") # Mantemos a original a pedido do usuario
+            col("cgp.OBS").cast("string").alias("parecer_original") # Mantemos a original a pedido do usuario (cast para string)
         )
 
     # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
@@ -454,7 +454,7 @@ def process_pareceres_operacoes():
 # --- LÓGICA DE FLAGS (Aplicada já no texto limpo) ---
     # Dica: Use (?i) no rlike para ignorar maiúscula/minúscula (case insensitive)
     
-    df_final_pareceres = df_cleaned.withColumn("ESCROW", when(col("Parecer").rlike("(?i)#ESCROW"), True).otherwise(False)) \
+    df_final_pareceres = df_cleaned.withColumn("ESCROW", when(col("Parecer").rlike("(?i)#?ESCROW"), True).otherwise(False)) \
         .withColumn("ALCADA_SPENCER", when(col("Parecer").rlike("(?i)SPENCER"), "sim").otherwise("não")) \
         .withColumn("ALCADA_CAIO", when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não")) \
         .withColumn("ALCADA_DAIANE", when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não")) \
