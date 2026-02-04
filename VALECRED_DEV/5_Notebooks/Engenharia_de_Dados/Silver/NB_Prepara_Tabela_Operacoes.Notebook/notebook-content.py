@@ -411,7 +411,7 @@ def process_pareceres_operacoes():
             col("cgp.CODOPERACAO").alias("cod_operacao"),
             col("cgp.DATAINCLUSAO").alias("data_inclusao"),
             col("cu.APELIDO").alias("apelido_usuario"),
-            col("cgp.OBS").alias("parecer_original") # Mantemos a original a pedido do usuario
+            col("cgp.OBS").cast("string").alias("parecer_original") # Mantemos a original a pedido do usuario (cast para string)
         )
 
     # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
