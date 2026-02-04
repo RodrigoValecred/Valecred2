@@ -454,7 +454,7 @@ def process_pareceres_operacoes():
 # --- LÓGICA DE FLAGS (Aplicada já no texto limpo) ---
     # Dica: Use (?i) no rlike para ignorar maiúscula/minúscula (case insensitive)
     
-    df_final_pareceres = df_cleaned.withColumn("ESCROW", when(col("Parecer").rlike("(?i)#ESCROW"), True).otherwise(False)) \
+    df_final_pareceres = df_cleaned.withColumn("ESCROW", when(col("Parecer").rlike("(?i)#?ESCROW"), True).otherwise(False)) \
         .withColumn("ALCADA_SPENCER", when(col("Parecer").rlike("(?i)SPENCER"), "sim").otherwise("não")) \
         .withColumn("ALCADA_CAIO", when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não")) \
         .withColumn("ALCADA_DAIANE", when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não")) \
