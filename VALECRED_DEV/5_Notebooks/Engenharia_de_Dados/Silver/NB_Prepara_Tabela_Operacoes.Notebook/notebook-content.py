@@ -411,7 +411,7 @@ def process_pareceres_operacoes():
             col("cgp.CODOPERACAO").alias("cod_operacao"),
             col("cgp.DATAINCLUSAO").alias("data_inclusao"),
             col("cu.APELIDO").alias("apelido_usuario"),
-            col("cgp.OBS").alias("obs_bruta") # Mantemos a original por segurança
+            col("cgp.OBS").alias("parecer_original") # Mantemos a original a pedido do usuario
         )
 
     # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
@@ -422,7 +422,7 @@ def process_pareceres_operacoes():
     # <br\s*/?> matches <br>, <br/>, <br />
     df_step1 = df_joined.withColumn(
         "obs_marked",
-        regexp_replace(col("obs_bruta"), "(?i)<br\\s*/?>|</p>|</div>|</li>|</tr>", placeholder)
+        regexp_replace(col("parecer_original"), "(?i)<br\\s*/?>|</p>|</div>|</li>|</tr>", placeholder)
     )
 
 # Passo 2: Remover TODAS as tags HTML restantes
@@ -459,7 +459,7 @@ def process_pareceres_operacoes():
         .withColumn("ALCADA_CAIO", when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não")) \
         .withColumn("ALCADA_DAIANE", when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não")) \
         .withColumn("IS_LIMITE_PLUS", when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO")) \
-        .drop("obs_bruta", "obs_marked", "obs_no_tags", "obs_decoded", "obs_squashed") # Remove colunas temporárias
+        .drop("obs_marked", "obs_no_tags", "obs_decoded", "obs_squashed") # Remove colunas temporárias (Mantendo parecer_original)
 
     # Gravação
     df_final_pareceres.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_pareceres_operacoes")
