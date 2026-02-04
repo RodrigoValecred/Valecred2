@@ -415,7 +415,7 @@ def process_pareceres_operacoes():
         )
 
     # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
-    placeholder = "||NEWLINE||"
+    placeholder = "__NEWLINE__"
 
 # Passo 1: Marcar quebras de linha (<br>, </p>, </div>, </li>, </tr>)
     # Regex: (?i) flag for case-insensitive
@@ -459,7 +459,7 @@ def process_pareceres_operacoes():
         .withColumn("ALCADA_CAIO", when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não")) \
         .withColumn("ALCADA_DAIANE", when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não")) \
         .withColumn("IS_LIMITE_PLUS", when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO")) \
-        .drop("obs_bruta", "obs_sem_tags", "obs_decodificada") # Remove colunas temporárias
+        .drop("obs_bruta", "obs_marked", "obs_no_tags", "obs_decoded", "obs_squashed") # Remove colunas temporárias
 
     # Gravação
     df_final_pareceres.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_pareceres_operacoes")
