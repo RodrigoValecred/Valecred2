@@ -26,7 +26,7 @@
 # MARKDOWN ********************
 
 # # Notebook de Análise: Taxa Média Ponderada (2025)
-# **Objetivo:** Calcular a taxa média ponderada geral e por gerente para o ano de 2025.
+# **Objetivo:** Calcular a taxa média ponderada geral, por gerente e distribuição por cliente para o ano de 2025.
 # **Fórmula (User Defined):** `(Desagio / (Prazo * Valor)) * 30` para mensalizar.
 # **Origem:**
 # * `LH_Gold.fato_operacoes` (Deságio, Datas, Gerentes)
@@ -37,7 +37,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, sum, round, desc, coalesce, lit
+from pyspark.sql.functions import col, sum, round, desc, coalesce, lit, floor, count, concat
 from delta.tables import *
 
 print("Iniciando análise de Taxa Média Ponderada (2025) - Método Prazo Médio...")
@@ -130,6 +130,54 @@ if count_ops > 0:
     output_table = "LH_Gold.analise_taxa_media_2025"
     print(f"Salvando análise detalhada em: {output_table}")
     df_manager.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
+
+    # 7. Cálculo por Cliente e Distribuição por Faixa
+    print("\nCalculando distribuição de taxas médias por cliente...")
+
+    # 7.1 Taxa Média por Cliente
+    df_client_rate = df_filtered.groupBy("cod_cliente").agg(
+        sum("desagio").alias("total_desagio"),
+        sum("total_valor_vezes_prazo_op").alias("total_vp_client"),
+        sum("valor_de_face").alias("volume_operado")
+    ).withColumn(
+        "taxa_media_cliente",
+        (col("total_desagio") / col("total_vp_client")) * 30 * 100
+    )
+
+    # 7.2 Classificação em Faixas (Bins de 0.05%)
+    # Logic: floor(taxa / 0.05) * 0.05
+    # Example: 3.52 -> floor(70.4) -> 70 * 0.05 -> 3.50
+    # Range Label: "3.50% - 3.55%"
+    df_client_bins = df_client_rate.withColumn(
+        "bin_start",
+        floor(col("taxa_media_cliente") / 0.05) * 0.05
+    ).withColumn(
+        "bin_end",
+        col("bin_start") + 0.05
+    ).withColumn(
+        "faixa_taxa",
+        concat(
+            round(col("bin_start"), 2).cast("string"),
+            lit("% - "),
+            round(col("bin_end"), 2).cast("string"),
+            lit("%")
+        )
+    )
+
+    # 7.3 Contagem por Faixa
+    df_distribution = df_client_bins.groupBy("bin_start", "faixa_taxa").agg(
+        count("cod_cliente").alias("qtd_clientes"),
+        sum("volume_operado").alias("volume_total_faixa")
+    ).orderBy("bin_start")
+
+    print("\nDISTRIBUIÇÃO DE CLIENTES POR FAIXA DE TAXA (0.05% bins):")
+    df_distribution.select("faixa_taxa", "qtd_clientes", round("volume_total_faixa", 2).alias("volume_faixa")).show(50, truncate=False)
+
+    # 7.4 Salvar Distribuição
+    output_dist_table = "LH_Gold.analise_distribuicao_taxa_clientes_2025"
+    print(f"Salvando distribuição em: {output_dist_table}")
+    df_distribution.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_dist_table)
+
     print("Concluído.")
 
 else:
