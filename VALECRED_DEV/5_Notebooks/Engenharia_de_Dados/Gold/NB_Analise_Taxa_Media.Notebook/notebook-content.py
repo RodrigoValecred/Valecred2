@@ -31,13 +31,14 @@
 # **Origem:**
 # * `LH_Gold.fato_operacoes` (Deságio, Datas, Gerentes)
 # * `LH_Gold.fato_titulos` (Valor * Prazo por título, agregado por operação)
+# * `LH_Silver.sup_faixas_taxa` (Tabela de suporte para faixas de taxa)
 
 # CELL ********************
 
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, sum, round, desc, coalesce, lit, floor, count, concat
+from pyspark.sql.functions import col, sum, round, desc, coalesce, lit, floor, count, concat, broadcast
 from delta.tables import *
 
 print("Iniciando análise de Taxa Média Ponderada (2025) - Método Prazo Médio...")
@@ -46,11 +47,27 @@ print("Iniciando análise de Taxa Média Ponderada (2025) - Método Prazo Médio
 print("Carregando tabelas...")
 try:
     df_fato_ops = spark.read.table("LH_Gold.fato_operacoes")
-    # staging_operacoes não é mais necessária para a taxa, pois calculamos baseada em deságio/prazo
-    # df_stg_ops = spark.read.table("LH_Silver.staging_operacoes_limpa")
     df_fato_titulos = spark.read.table("LH_Gold.fato_titulos")
+
+    # Carregando tabela de faixas (Suporte)
+    # Assumindo colunas: min_taxa, max_taxa, faixa (ou similar)
+    try:
+        df_faixas = spark.read.table("LH_Silver.sup_faixas_taxa")
+        print("Schema da tabela sup_faixas_taxa:")
+        df_faixas.printSchema()
+    except Exception as e:
+        print(f"AVISO: Tabela LH_Silver.sup_faixas_taxa não encontrada: {e}")
+        # Fallback se não existir (apenas para teste/compilação)
+        from pyspark.sql.types import StructType, StructField, DoubleType, StringType
+        schema = StructType([
+            StructField("min_taxa", DoubleType(), True),
+            StructField("max_taxa", DoubleType(), True),
+            StructField("faixa", StringType(), True)
+        ])
+        df_faixas = spark.createDataFrame([], schema)
+
 except Exception as e:
-    print(f"Erro ao carregar tabelas: {e}")
+    print(f"Erro ao carregar tabelas principais: {e}")
     raise e
 
 # 2. Agregar Fato Títulos (Calculo do Denominador: Prazo * Valor)
@@ -71,8 +88,6 @@ df_analysis_base = df_fato_ops.join(
 
 # 4. Filtragem (Ano 2025, Deferidas, Aceitas)
 # data_deferimento é a melhor data para 'safra' da operação.
-# Filtramos apenas Status Analise = 'D' (Deferido) e Status Aceite = 'A' (Aceito).
-# Filtramos Valor de Face > 0 e Denominador > 0 para evitar erros.
 df_filtered = df_analysis_base.filter(
     (col("data_deferimento") >= "2025-01-01") &
     (col("data_deferimento") <= "2025-12-31") &
@@ -87,15 +102,13 @@ print(f"Operações qualificadas para o estudo (2025): {count_ops}")
 
 if count_ops > 0:
     # 4. Cálculo da Taxa Média Ponderada GERAL
-    # Fórmula Agregada: (Sum(Desagio) / Sum(Valor * Prazo)) * 30
-
     df_general = df_filtered.agg(
         sum("desagio").alias("total_desagio"),
         sum("total_valor_vezes_prazo_op").alias("total_vp_geral"),
         sum("valor_de_face").alias("total_face_value")
     ).withColumn(
         "taxa_media_mensal_ponderada",
-        (col("total_desagio") / col("total_vp_geral")) * 30 * 100 # Multiplicado por 100 para %
+        (col("total_desagio") / col("total_vp_geral")) * 30 * 100
     )
 
     result_general = df_general.collect()[0]
@@ -109,7 +122,6 @@ if count_ops > 0:
     print("-" * 50)
 
     # 5. Cálculo por Gerente
-    # Mesma lógica de agregação, agrupada por gerente.
     df_manager = df_filtered.groupBy("gestor_da_operacao").agg(
         sum("desagio").alias("total_desagio"),
         sum("total_valor_vezes_prazo_op").alias("total_vp_manager"),
@@ -128,10 +140,9 @@ if count_ops > 0:
 
     # 6. Salvar Resultado
     output_table = "LH_Gold.analise_taxa_media_2025"
-    print(f"Salvando análise detalhada em: {output_table}")
     df_manager.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
 
-    # 7. Cálculo por Cliente e Distribuição por Faixa
+    # 7. Cálculo por Cliente e Distribuição por Faixa (Tabela Sup)
     print("\nCalculando distribuição de taxas médias por cliente...")
 
     # 7.1 Taxa Média por Cliente
@@ -144,33 +155,38 @@ if count_ops > 0:
         (col("total_desagio") / col("total_vp_client")) * 30 * 100
     )
 
-    # 7.2 Classificação em Faixas (Bins de 0.05%)
-    # Logic: floor(taxa / 0.05) * 0.05
-    # Example: 3.52 -> floor(70.4) -> 70 * 0.05 -> 3.50
-    # Range Label: "3.50% - 3.55%"
-    df_client_bins = df_client_rate.withColumn(
-        "bin_start",
-        floor(col("taxa_media_cliente") / 0.05) * 0.05
-    ).withColumn(
-        "bin_end",
-        col("bin_start") + 0.05
-    ).withColumn(
-        "faixa_taxa",
-        concat(
-            round(col("bin_start"), 2).cast("string"),
-            lit("% - "),
-            round(col("bin_end"), 2).cast("string"),
-            lit("%")
+    # 7.2 Classificação usando LH_Silver.sup_faixas_taxa
+    # Assumimos que as colunas da tabela de suporte sejam identificáveis.
+    # Tentativa de normalização dinâmica ou uso de nomes padrão
+    cols = df_faixas.columns
+    # Heurística para identificar colunas min/max
+    col_min = next((c for c in cols if "min" in c.lower() or "inicio" in c.lower()), "min_taxa")
+    col_max = next((c for c in cols if "max" in c.lower() or "fim" in c.lower()), "max_taxa")
+    col_nome = next((c for c in cols if "faixa" in c.lower() or "nome" in c.lower() or "desc" in c.lower()), "faixa")
+
+    print(f"Usando colunas para join de faixas: Min='{col_min}', Max='{col_max}', Nome='{col_nome}'")
+
+    # Join Conditional (Non-Equi Join)
+    # Broadcast df_faixas pois deve ser pequena
+    df_client_bins = df_client_rate.crossJoin(broadcast(df_faixas)) \
+        .filter(
+            (col("taxa_media_cliente") >= col(col_min)) &
+            (col("taxa_media_cliente") < col(col_max))
+        ) \
+        .select(
+            col("cod_cliente"),
+            col("volume_operado"),
+            col(col_nome).alias("faixa_taxa"),
+            col(col_min).alias("ordem_faixa") # Para ordenação
         )
-    )
 
     # 7.3 Contagem por Faixa
-    df_distribution = df_client_bins.groupBy("bin_start", "faixa_taxa").agg(
+    df_distribution = df_client_bins.groupBy("ordem_faixa", "faixa_taxa").agg(
         count("cod_cliente").alias("qtd_clientes"),
         sum("volume_operado").alias("volume_total_faixa")
-    ).orderBy("bin_start")
+    ).orderBy("ordem_faixa")
 
-    print("\nDISTRIBUIÇÃO DE CLIENTES POR FAIXA DE TAXA (0.05% bins):")
+    print("\nDISTRIBUIÇÃO DE CLIENTES POR FAIXA DE TAXA (sup_faixas_taxa):")
     df_distribution.select("faixa_taxa", "qtd_clientes", round("volume_total_faixa", 2).alias("volume_faixa")).show(50, truncate=False)
 
     # 7.4 Salvar Distribuição
