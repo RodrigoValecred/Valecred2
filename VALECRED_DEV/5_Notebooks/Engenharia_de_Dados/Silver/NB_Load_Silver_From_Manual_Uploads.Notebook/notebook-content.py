@@ -211,6 +211,10 @@ files_to_process = [
         "target_table_name": "LH_Silver.sup_cor_clientes_inadimplencia"
     },
     {
+        "source_filename": "faixa_taxa.xlsx",
+        "target_table_name": "LH_Silver.sup_faixa_taxa"
+    },
+    {
         "source_filename": "forma_de_pagamento.xlsx",
         "target_table_name": "LH_Silver.sup_forma_de_pagamento"
     },
