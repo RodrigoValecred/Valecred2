@@ -65,9 +65,9 @@ from pyspark.sql.utils import AnalysisException
 # Parâmetros do Notebook
 # Estes valores podem ser substituídos por parâmetros de pipeline do Fabric.
 # Veja a célula de markdown acima para instruções.
-ano = "2024"
-mes = "07"
-lista_periodos = [] # Ex: ["202401", "202402"] - Se preenchido e buscar_novos_meses=False, processa estes
+ano = ""
+mes = ""
+lista_periodos = ["202507", "202508","202509", "202510", "202511", "202512", "202601", "202602"] # Ex: ["202401", "202402"] - Se preenchido e buscar_novos_meses=False, processa estes
 buscar_novos_meses = False # Se True, tenta descobrir e processar novos meses após o último existente
 
 # METADATA ********************
