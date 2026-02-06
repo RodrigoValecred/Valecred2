@@ -273,18 +273,6 @@ def process_gerentes():
             # Identifica colunas adicionais para trazer (Ex: data_inicio)
             cols_select = [col(join_key).alias("cod_broker_join")]
 
-            # Tenta encontrar 'data_inicio' ou similar
-            col_data = None
-            if "data_inicio" in sup_cols: col_data = df_sup_ativos.columns[sup_cols.index("data_inicio")]
-            elif "datainicio" in sup_cols: col_data = df_sup_ativos.columns[sup_cols.index("datainicio")]
-            elif "data_de_inicio" in sup_cols: col_data = df_sup_ativos.columns[sup_cols.index("data_de_inicio")]
-
-            if col_data:
-                print(f"Coluna de data encontrada: {col_data}")
-                cols_select.append(col(col_data).alias("data_inicio_real"))
-            else:
-                print("AVISO: Coluna de data_inicio não encontrada em sup_gerentes_ativos.")
-
             # Tenta encontrar 'comissao' ou similar
             col_comissao = None
             if "comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("comissao")]
@@ -301,6 +289,10 @@ def process_gerentes():
             col_data_contratacao = None
             if "data_contratacao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("data_contratacao")]
             elif "datacontratacao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("datacontratacao")]
+            elif "admissao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("admissao")]
+            elif "data_admissao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("data_admissao")]
+            elif "dt_admissao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("dt_admissao")]
+            elif "dt_contratacao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("dt_contratacao")]
 
             if col_data_contratacao:
                 print(f"Coluna de data_contratacao encontrada: {col_data_contratacao}")
@@ -332,10 +324,6 @@ def process_gerentes():
                  df_brokers = df_brokers.withColumn("taxa_comissao", coalesce(col("taxa_comissao_manual"), col("taxa_comissao"))) \
                                         .drop("taxa_comissao_manual")
 
-            # Se não encontrou a coluna, garante a existência dela no schema
-            if "data_inicio_real" not in df_brokers.columns:
-                 df_brokers = df_brokers.withColumn("data_inicio_real", lit(None).cast("string"))
-
             if "data_contratacao" not in df_brokers.columns:
                  df_brokers = df_brokers.withColumn("data_contratacao", lit(None).cast("string"))
 
@@ -343,11 +331,11 @@ def process_gerentes():
                  df_brokers = df_brokers.withColumn("tipo_gerente", lit(None).cast("string"))
         else:
              print("AVISO: Chave de junção não encontrada em sup_gerentes_ativos. Definindo status_ativo como 'não'.")
-             df_brokers = df_brokers.withColumn("status_ativo", lit("não")).withColumn("data_inicio_real", lit(None).cast("string")).withColumn("data_contratacao", lit(None).cast("string")).withColumn("tipo_gerente", lit(None).cast("string"))
+             df_brokers = df_brokers.withColumn("status_ativo", lit("não")).withColumn("data_contratacao", lit(None).cast("string")).withColumn("tipo_gerente", lit(None).cast("string"))
 
     except Exception as e:
         print(f"AVISO: Erro ao processar sup_gerentes_ativos: {e}. Definindo status_ativo como 'não'.")
-        df_brokers = df_brokers.withColumn("status_ativo", lit("não")).withColumn("data_inicio_real", lit(None).cast("string")).withColumn("data_contratacao", lit(None).cast("string")).withColumn("tipo_gerente", lit(None).cast("string"))
+        df_brokers = df_brokers.withColumn("status_ativo", lit("não")).withColumn("data_contratacao", lit(None).cast("string")).withColumn("tipo_gerente", lit(None).cast("string"))
 
     df_brokers.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_gerentes")
 

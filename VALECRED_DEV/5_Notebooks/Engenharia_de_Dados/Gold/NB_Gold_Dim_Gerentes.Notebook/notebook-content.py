@@ -79,7 +79,6 @@ df_dim_gerentes = df_gerentes_enriched \
         coalesce(col("u.nome"), col("nome_geral"), lit("GERENTE NÃO IDENTIFICADO")).alias("nome_gerente"),
         col("g.cpf_cnpj"),
         col("g.data_inicio_gestao"),
-        col("g.data_inicio_real").alias("data_inicio"),
         col("g.data_contratacao"),
         col("g.tipo_gerente"),
         col("g.taxa_comissao"),
