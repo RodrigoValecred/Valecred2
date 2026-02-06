@@ -293,6 +293,10 @@ def process_gerentes():
             elif "data_admissao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("data_admissao")]
             elif "dt_admissao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("dt_admissao")]
             elif "dt_contratacao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("dt_contratacao")]
+            elif "contratacao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("contratacao")]
+            elif "inicio" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("inicio")]
+            elif "data_inicio" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("data_inicio")]
+            elif "datainicio" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("datainicio")]
 
             if col_data_contratacao:
                 print(f"Coluna de data_contratacao encontrada: {col_data_contratacao}")
