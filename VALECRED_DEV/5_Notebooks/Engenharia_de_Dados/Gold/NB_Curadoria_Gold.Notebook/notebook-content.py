@@ -1521,6 +1521,39 @@ print("Tabela 'LH_Gold.analise_score_clientes' criada com sucesso.")
 # Remover colunas de score do DataFrame principal (dim_clientes)
 df_final = df_final.drop(*cols_score)
 
+# -------------------------------------------------------------
+# Refatoração: Separação da Análise de Prazos da Esteira
+# Objetivo: Mover colunas de datas e tempos da esteira para tabela dedicada
+# -------------------------------------------------------------
+cols_esteira_prazos = [
+    "pivot_checklist", "pivot_assinatura", "pivot_comite", "pivot_concluido",
+    "pivot_bizagi", "pivot_renovacao", "pivot_reserva", "pivot_start",
+    "pivot_credito", "pivot_proposta", "pivot_revisao_comercial", "pivot_dir_comercial",
+    "min_proposta", "min_revisao", "min_dir_comercial", "min_credito",
+    "min_checklist", "min_concluido",
+    "data_primeira_proposta_comercial", "data_primeira_proposta_credito",
+    "data_primeira_proposta_formalizacao", "data_primeira_proposta_concluida",
+    "data_aprovacao", "data_conclusao", "data_comite", "data_reserva", "data_entrada",
+    "data_primeira_operacao_apos_aprovacao",
+    "dias_proposta_comercial", "dias_proposta_credito", "dias_proposta_formalizacao",
+    "tempo_conclusao", "tempo_analise"
+]
+
+print("Criando tabela 'analise_prazos_esteira' e removendo colunas da dim_clientes...")
+# Selecionar apenas colunas de esteira + chave
+# Verificar quais colunas realmente existem no df_final para evitar erro
+existing_cols = [c for c in cols_esteira_prazos if c in df_final.columns]
+missing_cols = set(cols_esteira_prazos) - set(existing_cols)
+if missing_cols:
+    print(f"AVISO: As seguintes colunas de esteira não foram encontradas em df_final e serão ignoradas: {missing_cols}")
+
+df_analise_prazos = df_final.select("cod_cliente", *existing_cols)
+df_analise_prazos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Gold.analise_prazos_esteira")
+print("Tabela 'LH_Gold.analise_prazos_esteira' criada com sucesso.")
+
+# Remover colunas de esteira do DataFrame principal (dim_clientes)
+df_final = df_final.drop(*existing_cols)
+
 # Salvar
 output_path_dim_clientes = "LH_Gold.dim_clientes"
 
