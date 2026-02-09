@@ -977,10 +977,16 @@ df_grupos_prep = df_grupos_prep.select("cod_cliente", "grupo_economico")
 
 # 6.0.1: Info Gestor (Para join final)
 df_bridge_atual = df_bridge_gerente.filter(col("data_fim_vigencia") == "9999-12-31")
+# Join com df_gerentes_enrich (criada na Seção 1.2) para obter nome_gerente correto
 df_info_gestor = df_bridge_atual \
-    .join(df_gerentes, df_bridge_atual.cod_gerente == df_gerentes.cod_broker, "left") \
-    .join(df_plataformas, "cod_agencia", "left") \
-    .select(df_bridge_atual.cod_cliente, df_plataformas.gestor_da_plataforma, df_bridge_atual.cod_gerente.alias('cod_broker'), df_gerentes.taxa_comissao)
+    .join(df_gerentes_enrich, df_bridge_atual.cod_gerente == df_gerentes_enrich.cod_broker, "left") \
+    .select(
+        df_bridge_atual.cod_cliente,
+        df_gerentes_enrich.gestor_da_plataforma,
+        df_gerentes_enrich.nome_gerente,
+        df_bridge_atual.cod_gerente.alias('cod_broker'),
+        df_gerentes_enrich.taxa_comissao
+    )
 
 # 6.1: Métricas de Operações
 # --------------------------
@@ -1122,7 +1128,13 @@ df_esteira_min = df_esteira.groupBy("cod_cliente").pivot("status_do_cliente", ex
 # 6.3.1: Latest Status Esteira (Power BI Requirement)
 w_latest = Window.partitionBy("cod_cliente").orderBy(col("datalog").desc())
 df_esteira_latest = df_esteira.withColumn("rn", row_number().over(w_latest)).filter(col("rn") == 1) \
-    .select(col("cod_cliente").alias("cod_cliente_latest"), col("status_do_cliente").alias("status_do_cliente"), col("macroprocesso").alias("MACROPROCESSO"), col("fase").alias("FASE"))
+    .select(
+        col("cod_cliente").alias("cod_cliente_latest"),
+        col("status_do_cliente").alias("status_do_cliente"),
+        col("macroprocesso").alias("MACROPROCESSO"),
+        col("fase").alias("FASE"),
+        col("datalog").alias("data_status")
+    )
 
 # 6.4: Limites (Contratos e Extra/Plus)
 # ------------
@@ -1367,6 +1379,8 @@ df_final = df_funnel \
     .withColumn("limite_extra_grupo", coalesce(col("limite_extra_grupo"), lit(0))) \
     .withColumn("limite_plus_grupo", coalesce(col("limite_plus_grupo"), lit(0))) \
     .withColumn("limite", greatest(col("limite_contrato"), col("limite_grupo_manual"))) \
+    .withColumn("nome_do_grupo", coalesce(col("grupo_economico"), col("nome"))) \
+    .withColumn("limite_comissaria", coalesce(col("limite_comissaria_contrato"), lit(0))) \
     .withColumn("limite_comissaria_contrato", coalesce(col("limite_comissaria_contrato"), lit(0))) \
     .withColumn("risco_comissaria", coalesce(col("risco_comissaria"), lit(0))) \
     .withColumn("risco_exceto_comissaria", coalesce(col("risco_exceto_comissaria"), lit(0))) \
@@ -1565,7 +1579,6 @@ df_final_adjusted = df_final \
         .when(col("has_atencao") == 1, "ATENÇÃO")
         .otherwise("NO PRAZO")
     ).drop(
-        "limite",
         "limite_contrato",
         "limite_grupo_manual",
         "limite_extra_grupo",
