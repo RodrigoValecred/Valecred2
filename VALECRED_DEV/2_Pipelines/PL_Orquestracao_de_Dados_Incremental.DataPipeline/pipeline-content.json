@@ -219,7 +219,7 @@
         "description": "NB_Analise_Titulos_Juridicos",
         "dependsOn": [
           {
-            "activity": "Titulos",
+            "activity": "Dim Danfe",
             "dependencyConditions": [
               "Succeeded"
             ]
