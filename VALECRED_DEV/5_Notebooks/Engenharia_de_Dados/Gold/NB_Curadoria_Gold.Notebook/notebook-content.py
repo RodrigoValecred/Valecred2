@@ -164,6 +164,20 @@ df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
 print("Carregando Contratos (Silver)...")
 df_contratos = spark.read.table("LH_Silver.staging_contratos_clientes_limpa")
 
+# Limites Contratos Silver (Regex) - Para colunas faltantes
+print("Carregando Limites Contratos Silver (Regex)...")
+try:
+    df_limites_obs_silver = spark.read.table("LH_Silver.stg_limites_contratos_silver")
+except Exception as e:
+    print(f"AVISO: Tabela LH_Silver.stg_limites_contratos_silver não encontrada ({e}). Criando dataframe vazio.")
+    df_limites_obs_silver = spark.createDataFrame([], schema=StructType([
+        StructField("codcliente", LongType(), True),
+        StructField("limite_geral", DoubleType(), True),
+        StructField("limite_intercompany", DoubleType(), True),
+        StructField("limite_extra_desconto_formal", DoubleType(), True),
+        StructField("limite_extra_desconto_informal", DoubleType(), True)
+    ]))
+
 # Cad Clientes (Bronze) - Para Status
 print("Carregando Cad Clientes (Bronze)...")
 df_cad_clientes_bronze = spark.read.table("LH_Bronze.cad_clientes")
@@ -1160,13 +1174,33 @@ print("\nConstruindo Fato Limites de Crédito (Consolidada)...")
 
 # 1. Preparar Base Contratos (Limits per Client)
 # df_contratos tem: cod_cliente, limite_fomento, limite_comissaria, validade_limite...
-# Precisamos garantir nomes de colunas
-df_limites_base = df_contratos.select(
+# df_limites_obs_silver tem: CODCLIENTE, limite_geral, limite_intercompany, limite_extra_desconto_formal, limite_extra_desconto_informal
+
+# Normalizar nomes de colunas para join
+if "CODCLIENTE" in df_limites_obs_silver.columns:
+    df_limites_obs_silver = df_limites_obs_silver.withColumnRenamed("CODCLIENTE", "cod_cliente")
+
+# Seleção explícita de colunas do regex
+df_limites_obs_select = df_limites_obs_silver.select(
     col("cod_cliente"),
-    coalesce(col("limite_fomento"), lit(0)).alias("limite_fomento"),
-    coalesce(col("limite_comissaria"), lit(0)).alias("limite_comissaria"),
-    col("validade_limite")
+    coalesce(col("limite_geral"), lit(0)).alias("limite_geral_obs"),
+    coalesce(col("limite_intercompany"), lit(0)).alias("limite_intercompany_obs"),
+    coalesce(col("limite_extra_desconto_formal"), lit(0)).alias("limite_extra_desconto_formal_obs"),
+    coalesce(col("limite_extra_desconto_informal"), lit(0)).alias("limite_extra_desconto_informal_obs")
 )
+
+# Join Contratos + Obs
+df_limites_base = df_contratos.join(df_limites_obs_select, "cod_cliente", "left") \
+    .select(
+        col("cod_cliente"),
+        coalesce(col("limite_fomento"), lit(0)).alias("limite_fomento"),
+        coalesce(col("limite_comissaria"), lit(0)).alias("limite_comissaria"),
+        col("validade_limite"),
+        coalesce(col("limite_geral_obs"), lit(0)).alias("limite_geral"),
+        coalesce(col("limite_intercompany_obs"), lit(0)).alias("limite_intercompany"),
+        coalesce(col("limite_extra_desconto_formal_obs"), lit(0)).alias("limite_extra_desconto_formal"),
+        coalesce(col("limite_extra_desconto_informal_obs"), lit(0)).alias("limite_extra_desconto_informal")
+    )
 
 # 2. Join com Grupos (df_grupos_prep: cod_cliente, grupo_economico)
 df_limites_base_grp = df_limites_base.join(df_grupos_prep, "cod_cliente", "left")
@@ -1180,7 +1214,11 @@ df_sem_grupo = df_limites_base_grp.filter(col("grupo_economico").isNull())
 df_grupo_contract_agg = df_com_grupo.groupBy("grupo_economico").agg(
     max("limite_fomento").alias("limite_fomento_auto"),
     max("limite_comissaria").alias("limite_comissaria_auto"),
-    max("validade_limite").alias("validade_limite_auto")
+    max("validade_limite").alias("validade_limite_auto"),
+    max("limite_geral").alias("limite_geral_auto"),
+    max("limite_intercompany").alias("limite_intercompany_auto"),
+    max("limite_extra_desconto_formal").alias("limite_extra_desconto_formal_auto"),
+    max("limite_extra_desconto_informal").alias("limite_extra_desconto_informal_auto")
 )
 
 # Passo 4.2: Join com Manual (df_limites_grupo_dedup já calculado na 6.4.2)
@@ -1195,7 +1233,11 @@ df_grupo_final = df_grupo_contract_agg.join(df_limites_grupo_dedup, "grupo_econo
         coalesce(col("limite_comissaria_auto"), lit(0)).alias("limite_comissaria"),
         coalesce(col("limite_extra_grupo"), lit(0)).alias("limite_extra"),
         coalesce(col("limite_plus_grupo"), lit(0)).alias("limite_plus"),
-        col("validade_limite_auto").alias("validade_limite")
+        col("validade_limite_auto").alias("validade_limite"),
+        coalesce(col("limite_geral_auto"), lit(0)).alias("limite_geral"),
+        coalesce(col("limite_intercompany_auto"), lit(0)).alias("limite_intercompany"),
+        coalesce(col("limite_extra_desconto_formal_auto"), lit(0)).alias("limite_extra_desconto_formal"),
+        coalesce(col("limite_extra_desconto_informal_auto"), lit(0)).alias("limite_extra_desconto_informal")
     ).filter(col("nome_entidade").isNotNull())
 
 # 5. Tratamento Clientes Individuais
@@ -1217,7 +1259,11 @@ df_cliente_final = df_sem_grupo_named.select(
     col("limite_comissaria"),
     lit(0.0).alias("limite_extra"),
     lit(0.0).alias("limite_plus"),
-    col("validade_limite")
+    col("validade_limite"),
+    col("limite_geral"),
+    col("limite_intercompany"),
+    col("limite_extra_desconto_formal"),
+    col("limite_extra_desconto_informal")
 )
 
 # 6. Union e Calculo Total
