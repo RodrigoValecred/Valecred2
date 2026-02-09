@@ -1510,6 +1510,17 @@ df_final_adjusted = df_final \
         when(col("has_critico") == 1, "CRÍTICO")
         .when(col("has_atencao") == 1, "ATENÇÃO")
         .otherwise("NO PRAZO")
+    ).drop(
+        "limite",
+        "limite_contrato",
+        "limite_grupo_manual",
+        "limite_extra_grupo",
+        "limite_plus_grupo",
+        "limite_comissaria_contrato",
+        "limite_disponivel",
+        "limite_maximo_disponivel",
+        "disponivel_comissaria",
+        "percentual_cm"
     )
 
 df_final_adjusted.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_dim_clientes)
