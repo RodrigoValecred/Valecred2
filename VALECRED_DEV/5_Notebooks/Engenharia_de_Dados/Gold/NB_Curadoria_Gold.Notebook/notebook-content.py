@@ -1500,6 +1500,27 @@ df_final = df_funnel \
         )
     )
 
+# -------------------------------------------------------------
+# Refatoração: Separação da Tabela de Score de Clientes
+# Objetivo: Mover colunas de cálculo de score para tabela dedicada
+# -------------------------------------------------------------
+cols_score = [
+    "perc_risco_clean", "penalidade_clean",
+    "penalidade_inativo", "penalidade_perdas",
+    "perc_vencidos_risco", "penalidade_inadimplencia",
+    "perc_risco_renegociacao", "penalidade_renegociacao",
+    "qualidade_cliente"
+]
+
+print("Criando tabela 'analise_score_clientes' e removendo colunas da dim_clientes...")
+# Selecionar apenas colunas de score + chave
+df_score_clientes = df_final.select("cod_cliente", *cols_score)
+df_score_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Gold.analise_score_clientes")
+print("Tabela 'LH_Gold.analise_score_clientes' criada com sucesso.")
+
+# Remover colunas de score do DataFrame principal (dim_clientes)
+df_final = df_final.drop(*cols_score)
+
 # Salvar
 output_path_dim_clientes = "LH_Gold.dim_clientes"
 
