@@ -1151,6 +1151,88 @@ df_limites_grupo_dedup = df_limites_ep_grupos.groupBy("grupo_economico").agg(
     max("limite_plus").alias("limite_plus_grupo")
 )
 
+# 6.4.3: Construção da Fato Limites de Crédito (Consolidada)
+# ----------------------------------------------------------
+# Objetivo: Criar uma tabela única de limites onde a chave é a Entidade (Grupo ou Cliente),
+# resolvendo a duplicação de limites de grupo cadastrados em múltiplos clientes.
+
+print("\nConstruindo Fato Limites de Crédito (Consolidada)...")
+
+# 1. Preparar Base Contratos (Limits per Client)
+# df_contratos tem: cod_cliente, limite_fomento, limite_comissaria, validade_limite...
+# Precisamos garantir nomes de colunas
+df_limites_base = df_contratos.select(
+    col("cod_cliente"),
+    coalesce(col("limite_fomento"), lit(0)).alias("limite_fomento"),
+    coalesce(col("limite_comissaria"), lit(0)).alias("limite_comissaria"),
+    col("validade_limite")
+)
+
+# 2. Join com Grupos (df_grupos_prep: cod_cliente, grupo_economico)
+df_limites_base_grp = df_limites_base.join(df_grupos_prep, "cod_cliente", "left")
+
+# 3. Separar em Grupos vs Clientes Individuais
+df_com_grupo = df_limites_base_grp.filter(col("grupo_economico").isNotNull())
+df_sem_grupo = df_limites_base_grp.filter(col("grupo_economico").isNull())
+
+# 4. Tratamento Grupo (Deduplicação + Enriquecimento Manual)
+# Passo 4.1: Deduplicar Contratos (MAX) - Assumindo que limites de grupo são duplicados identicamente nos clientes
+df_grupo_contract_agg = df_com_grupo.groupBy("grupo_economico").agg(
+    max("limite_fomento").alias("limite_fomento_auto"),
+    max("limite_comissaria").alias("limite_comissaria_auto"),
+    max("validade_limite").alias("validade_limite_auto")
+)
+
+# Passo 4.2: Join com Manual (df_limites_grupo_dedup já calculado na 6.4.2)
+# Colunas em df_limites_grupo_dedup: limite_grupo_manual, limite_extra_grupo, limite_plus_grupo
+df_grupo_final = df_grupo_contract_agg.join(df_limites_grupo_dedup, "grupo_economico", "full_outer") \
+    .select(
+        coalesce(col("grupo_economico"), col("grupo_economico")).alias("nome_entidade"),
+        lit("GRUPO").alias("tipo_entidade"),
+        concat(lit("G-"), upper(trim(coalesce(col("grupo_economico"), col("grupo_economico"))))).alias("id_limite_credito"),
+        # Lógica de Consolidação: Limite Geral = Greatest(Auto, Manual)
+        greatest(coalesce(col("limite_fomento_auto"), lit(0)), coalesce(col("limite_grupo_manual"), lit(0))).alias("limite_fomento"),
+        coalesce(col("limite_comissaria_auto"), lit(0)).alias("limite_comissaria"),
+        coalesce(col("limite_extra_grupo"), lit(0)).alias("limite_extra"),
+        coalesce(col("limite_plus_grupo"), lit(0)).alias("limite_plus"),
+        col("validade_limite_auto").alias("validade_limite")
+    ).filter(col("nome_entidade").isNotNull())
+
+# 5. Tratamento Clientes Individuais
+# Recuperar nome do cliente para 'nome_entidade'
+# df_base (Clientes Staging) tem: cod_cliente
+# Precisamos do nome. df_geral_pf_pj_limpa tem cpf_cnpj, nome. df_base tem cpf_cnpj.
+# df_base já foi carregado na 6.5 (mas ainda não executamos a 6.5). Vamos reutilizar df_cad_geral_enriquecido ou ler de novo.
+# df_clientes_staging tem cpf_cnpj. df_cad_geral_enriquecido tem nome.
+# Vamos fazer um join rapido para pegar o nome.
+df_nomes_clientes = df_clientes_staging.join(df_geral_pf_pj_limpa, "cpf_cnpj", "left").select("cod_cliente", "nome")
+
+df_sem_grupo_named = df_sem_grupo.join(df_nomes_clientes, "cod_cliente", "left")
+
+df_cliente_final = df_sem_grupo_named.select(
+    coalesce(col("nome"), concat(lit("CLIENTE "), col("cod_cliente"))).alias("nome_entidade"),
+    lit("CLIENTE").alias("tipo_entidade"),
+    concat(lit("C-"), col("cod_cliente")).alias("id_limite_credito"),
+    col("limite_fomento"),
+    col("limite_comissaria"),
+    lit(0.0).alias("limite_extra"),
+    lit(0.0).alias("limite_plus"),
+    col("validade_limite")
+)
+
+# 6. Union e Calculo Total
+df_fato_limites = df_grupo_final.unionByName(df_cliente_final, allowMissingColumns=True) \
+    .withColumn("limite_total_calculado",
+        coalesce(col("limite_fomento"), lit(0)) +
+        coalesce(col("limite_extra"), lit(0)) +
+        coalesce(col("limite_plus"), lit(0))
+    )
+
+# 7. Salvar
+output_path_fato_limites = "LH_Gold.fato_limites_credito"
+df_fato_limites.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_limites)
+print(f"Tabela 'fato_limites_credito' criada em: {output_path_fato_limites}")
+
 # 6.5: Join Final e Colunas Calculadas
 # ------------------------------------
 # Base: Clientes Staging
@@ -1300,6 +1382,10 @@ df_final = df_funnel \
     ) \
     .withColumn("pais", lit("Brasil")) \
     .withColumn("primeiro_nome_gerente", split(col("gestor_da_plataforma"), " ")[0]) \
+    .withColumn("id_limite_credito",
+        when(col("grupo_economico").isNotNull(), concat(lit("G-"), upper(trim(col("grupo_economico")))))
+        .otherwise(concat(lit("C-"), col("cod_cliente")))
+    ) \
     .withColumn("status_operando_vencido",
         when(
             (col("data_ultima_operacao") > col("vencimento_limite")) &
