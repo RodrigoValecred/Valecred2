@@ -155,6 +155,17 @@ df_report = df_base_cliente \
                 when(col("volume_operado_cliente") > 0, 
                      (col("receita_total_cliente") / col("volume_operado_cliente")) * 100
                 ).otherwise(0)) \
+    .withColumn("soma_valor_prazo_produto", sum("total_valor_prazo_op").over(w_produto)) \
+    .withColumn("receita_desagio_produto", sum("desagio").over(w_produto)) \
+    .withColumn("soma_valor_face_produto", sum("valor_face_titulos_op").over(w_produto)) \
+    .withColumn("taxa_media_ponderada_produto",
+                when(col("soma_valor_prazo_produto") > 0,
+                     (col("receita_desagio_produto") / col("soma_valor_prazo_produto")) * 30 * 100
+                ).otherwise(0)) \
+    .withColumn("prazo_medio_produto",
+                when(col("soma_valor_face_produto") > 0,
+                     col("soma_valor_prazo_produto") / col("soma_valor_face_produto")
+                ).otherwise(0)) \
     .select(
         # Identificadores da Operação
         col("cod_operacao"),
@@ -180,7 +191,10 @@ df_report = df_base_cliente \
         col("qtd_operacoes_cliente"),
         round(col("taxa_media_ponderada_mensal_cliente"), 4).alias("taxa_media_pond_2025_cliente"),
         round(col("rentabilidade_percentual_cliente"), 4).alias("rentabilidade_perc_cliente"),
-        round(col("receita_total_cliente"), 2).alias("receita_total_cliente")
+        round(col("receita_total_cliente"), 2).alias("receita_total_cliente"),
+        # Métricas Agregadas por Produto (Repetidas nas linhas)
+        round(col("taxa_media_ponderada_produto"), 4).alias("taxa_media_prod_cliente"),
+        round(col("prazo_medio_produto"), 0).alias("prazo_medio_prod_cliente")
     )
 
 # METADATA ********************
