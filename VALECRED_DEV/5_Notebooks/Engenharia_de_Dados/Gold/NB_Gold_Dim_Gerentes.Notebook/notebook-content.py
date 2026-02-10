@@ -82,7 +82,7 @@ df_dim_gerentes = df_gerentes_enriched \
         col("g.data_contratacao"),
         col("g.tipo_gerente"),
         col("g.taxa_comissao"),
-        col("g.taxa_comissao").alias("Taxa de Comissão"),
+        col("g.taxa_comissao"),
         col("g.meses_de_casa"),
         col("g.status_ativo"),
         col("cod_agencia"),
