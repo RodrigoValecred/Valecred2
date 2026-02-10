@@ -85,6 +85,26 @@ df_desc = df_prod_base \
 # Coalesce: Garante que chave_produto não seja nulo quando stto é nulo (ex: TTO='NC')
 df_calc = df_desc.withColumn("chave_produto", concat(col("tto"), coalesce(col("stto"), lit(""))))
 
+# 4.1. Incorporar Descrições de Produtos Ausentes (Manual Upload)
+try:
+    # Tabela de suporte manual para produtos que não existem no sistema legado
+    df_produtos_ausentes = spark.read.table("LH_Silver.sup_produtos_ausentes")
+
+    # Selecionar apenas colunas relevantes e renomear para evitar conflitos
+    # Assumimos que sup_produtos_ausentes tem: tto, descricao (mapeado para tipo_produto)
+    df_ausentes_lookup = df_produtos_ausentes.select(
+        trim(col("tto")).alias("tto_ausente"),
+        col("descricao").alias("desc_ausente")
+    )
+
+    # Join para preencher tipo_produto nulo ou incorreto
+    df_calc = df_calc.join(broadcast(df_ausentes_lookup), trim(df_calc.tto) == df_ausentes_lookup.tto_ausente, "left_outer") \
+        .withColumn("tipo_produto", coalesce(col("tipo_produto"), col("desc_ausente"))) \
+        .drop("tto_ausente", "desc_ausente")
+
+except Exception as e:
+    print(f"Aviso: Não foi possível carregar ou utilizar LH_Silver.sup_produtos_ausentes: {e}. Prosseguindo sem enrichment manual.")
+
 # Coluna 'Produto'
 # Lógica: Se subtipo nulo, usa tipo. Senão "Subtipo - Tipo"
 df_calc = df_calc.withColumn("Produto",
