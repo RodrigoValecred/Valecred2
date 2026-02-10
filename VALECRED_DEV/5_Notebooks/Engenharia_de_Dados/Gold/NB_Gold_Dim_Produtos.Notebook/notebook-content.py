@@ -82,6 +82,7 @@ df_desc = df_prod_base \
 # 4. Transformações (Lógica do Power BI Monolito)
 
 # Chave Produto
+# Coalesce: Garante que chave_produto não seja nulo quando stto é nulo (ex: TTO='NC')
 df_calc = df_desc.withColumn("chave_produto", concat(col("tto"), coalesce(col("stto"), lit(""))))
 
 # Coluna 'Produto'
