@@ -81,6 +81,7 @@ df_dim_gerentes = df_gerentes_enriched \
         col("g.data_inicio_gestao"),
         col("g.data_contratacao"),
         col("g.tipo_gerente"),
+        # Taxa de Comissão (aliased as snake_case to avoid Delta errors)
         col("g.taxa_comissao"),
         col("g.meses_de_casa"),
         col("g.status_ativo"),
