@@ -116,7 +116,7 @@ print("Dados carregados.")
 print("Realizando joins e cálculos de métricas...")
 
 # Join Operações com Agregados
-df_base = df_ops.join(df_titulos_agg, "cod_operacao", "left") \
+df_base = df_ops.join(df_titulos_agg, "cod_operacao", "inner") \
     .join(df_baixas_agg, "cod_operacao", "left") \
     .join(broadcast(df_produtos), "chave_produto", "left")
 

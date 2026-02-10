@@ -38,7 +38,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, lit, concat, when, regexp_replace, upper, row_number, broadcast
+from pyspark.sql.functions import col, lit, concat, when, regexp_replace, upper, row_number, broadcast, trim
 from pyspark.sql.window import Window
 
 # METADATA ********************
@@ -63,12 +63,14 @@ df_prod_base = df_operacoes.select(col("tto"), col("stto")).distinct()
 
 # 3. Join com descrições (Tipo e Subtipo)
 # Aliasing para evitar ambiguidade na coluna DESCRICAO
-df_tto_alias = df_tto.select(col("CODTTO"), col("DESCRICAO").alias("desc_tipo"))
-df_stto_alias = df_stto.select(col("CODSTTO"), col("DESCRICAO").alias("desc_subtipo"))
+df_tto_alias = df_tto.select(trim(col("CODTTO")).alias("CODTTO"), col("DESCRICAO").alias("desc_tipo"))
+df_stto_alias = df_stto.select(trim(col("CODSTTO")).alias("CODSTTO"), col("DESCRICAO").alias("desc_subtipo"))
 
+
+# Join robusto com Trim nas chaves
 df_desc = df_prod_base \
-    .join(broadcast(df_tto_alias), df_prod_base.tto == df_tto_alias.CODTTO, "left") \
-    .join(broadcast(df_stto_alias), df_prod_base.stto == df_stto_alias.CODSTTO, "left") \
+    .join(broadcast(df_tto_alias), trim(df_prod_base.tto) == df_tto_alias.CODTTO, "left") \
+    .join(broadcast(df_stto_alias), trim(df_prod_base.stto) == df_stto_alias.CODSTTO, "left") \
     .select(
         col("tto"),
         col("stto"),
