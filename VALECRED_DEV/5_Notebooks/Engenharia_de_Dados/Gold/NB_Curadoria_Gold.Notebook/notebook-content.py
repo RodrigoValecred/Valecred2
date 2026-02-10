@@ -1382,7 +1382,7 @@ df_final = df_funnel \
     .withColumn("nome_do_grupo", coalesce(col("grupo_economico"), col("nome"))) \
     .withColumn("limite_comissaria", coalesce(col("limite_comissaria_contrato"), lit(0))) \
     .withColumn("limite_comissaria_contrato", coalesce(col("limite_comissaria_contrato"), lit(0))) \
-    .withColumn("percentual_exigido_de_confirmacao", coalesce(col("percentual_exigido"), lit(0))) \
+    .withColumn("Percentual exigido de confirmação", coalesce(col("percentual_exigido"), lit(0))) \
     .withColumn("risco_comissaria", coalesce(col("risco_comissaria"), lit(0))) \
     .withColumn("risco_exceto_comissaria", coalesce(col("risco_exceto_comissaria"), lit(0))) \
     .withColumn("risco_total", col("risco") + col("risco_grupo")) \
