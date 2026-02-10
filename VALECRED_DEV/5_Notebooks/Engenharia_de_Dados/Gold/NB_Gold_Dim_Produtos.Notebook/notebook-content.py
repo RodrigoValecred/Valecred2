@@ -82,7 +82,7 @@ df_desc = df_prod_base \
 # 4. Transformações (Lógica do Power BI Monolito)
 
 # Chave Produto
-df_calc = df_desc.withColumn("chave_produto", concat(col("tto"), col("stto")))
+df_calc = df_desc.withColumn("chave_produto", concat(col("tto"), coalesce(col("stto"), lit(""))))
 
 # Coluna 'Produto'
 # Lógica: Se subtipo nulo, usa tipo. Senão "Subtipo - Tipo"
