@@ -62,7 +62,9 @@ df_ops = spark.read.table("LH_Gold.fato_operacoes") \
 
 # Títulos (Para cálculo da Taxa Ponderada: Valor * Prazo)
 # Agregado por Operação
-df_titulos = spark.read.table("LH_Gold.fato_titulos")
+df_titulos = spark.read.table("LH_Gold.fato_titulos") \
+    .filter(col("aceito") == "S")
+
 df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_vezes_prazo").alias("total_valor_prazo_op"),
     sum("valor").alias("valor_face_titulos_op")
