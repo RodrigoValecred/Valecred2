@@ -74,7 +74,7 @@ df_baixas_agg = df_baixas.groupBy("cod_operacao").agg(
 
 # Dimensão Clientes (Para Nome e Risco Atual)
 df_clientes = spark.read.table("LH_Gold.dim_clientes") \
-    .select("cod_cliente", "nome", "risco", "risco_comissaria", "classificacao_risco", "grupo_economico")
+    .select("cod_cliente", "nome", "risco", "risco_comissaria", "status_risco", "grupo_economico")
 
 # Análise Score Clientes (Para Qualidade/Classificação Detalhada se existir)
 try:
@@ -151,6 +151,7 @@ df_report = df_analise_final \
         col("grupo_economico"),
         col("produto_informacao_de_mercado").alias("produto"),
         col("qualidade_cliente"),
+        col("status_risco"),
         col("risco").alias("risco_total_atual"),
         col("risco_comissaria").alias("risco_comissaria_atual"),
         col("volume_operado"),
