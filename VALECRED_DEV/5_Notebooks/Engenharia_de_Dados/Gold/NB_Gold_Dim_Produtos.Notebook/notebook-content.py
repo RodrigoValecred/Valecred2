@@ -74,14 +74,16 @@ df_desc = df_prod_base \
     .select(
         col("tto"),
         col("stto"),
-        col("desc_tipo").alias("tipo_produto"),
+        when(trim(col("tto")) == "NC", lit("NOTA COMERCIAL"))
+        .otherwise(col("desc_tipo")).alias("tipo_produto"),
         col("desc_subtipo").alias("subtipo_produto")
     )
 
 # 4. Transformações (Lógica do Power BI Monolito)
 
 # Chave Produto
-df_calc = df_desc.withColumn("chave_produto", concat(col("tto"), col("stto")))
+# Coalesce: Garante que chave_produto não seja nulo quando stto é nulo (ex: TTO='NC')
+df_calc = df_desc.withColumn("chave_produto", concat(col("tto"), coalesce(col("stto"), lit(""))))
 
 # Coluna 'Produto'
 # Lógica: Se subtipo nulo, usa tipo. Senão "Subtipo - Tipo"
