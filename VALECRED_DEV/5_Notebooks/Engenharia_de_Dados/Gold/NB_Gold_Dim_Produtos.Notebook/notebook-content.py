@@ -74,7 +74,8 @@ df_desc = df_prod_base \
     .select(
         col("tto"),
         col("stto"),
-        col("desc_tipo").alias("tipo_produto"),
+        when(trim(col("tto")) == "NC", lit("NOTA COMERCIAL"))
+        .otherwise(col("desc_tipo")).alias("tipo_produto"),
         col("desc_subtipo").alias("subtipo_produto")
     )
 
