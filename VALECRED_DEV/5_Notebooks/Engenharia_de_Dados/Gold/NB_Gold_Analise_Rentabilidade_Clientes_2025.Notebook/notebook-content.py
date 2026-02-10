@@ -24,7 +24,9 @@
 
 # # Relatório de Rentabilidade e Risco de Clientes (Safra 2025)
 # **Objetivo:** Analisar a taxa média ponderada, receitas (tarifas, juros de mora) e risco dos clientes que operaram em 2025.
+# 
 # **Contexto:** A taxa média de 2025 apresentou queda. Este relatório identifica os clientes com menores taxas e cruza com perfil de risco e rentabilidade total.
+
 
 # CELL ********************
 
@@ -64,7 +66,8 @@ df_ops = spark.read.table("LH_Gold.fato_operacoes") \
 # Títulos (Para cálculo da Taxa Ponderada: Valor * Prazo)
 # Agregado por Operação
 df_titulos = spark.read.table("LH_Gold.fato_titulos") \
-    .filter(col("aceito") == "S")
+    .filter(col("aceito") == "S") \
+    .filter(col("t_doc") != "BL")
 
 df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_vezes_prazo").alias("total_valor_prazo_op"),
@@ -135,21 +138,21 @@ w_produto = Window.partitionBy("cod_cliente", "produto_informacao_de_mercado")
 
 df_report = df_base_cliente \
     .withColumn("produto_final", coalesce(col("produto_informacao_de_mercado"), lit("PRODUTO NÃO IDENTIFICADO"))) \
-    .withColumn("receita_total_op",
-                coalesce(col("desagio"), lit(0)) +
-                coalesce(col("total_de_tarifas"), lit(0)) +
+    .withColumn("receita_total_op", 
+                coalesce(col("desagio"), lit(0)) + 
+                coalesce(col("total_de_tarifas"), lit(0)) + 
                 coalesce(col("total_juros_mora_pago_op"), lit(0))) \
     .withColumn("soma_valor_prazo_cliente", sum("total_valor_prazo_op").over(w_cliente)) \
     .withColumn("receita_desagio_cliente", sum("desagio").over(w_cliente)) \
     .withColumn("receita_total_cliente", sum("receita_total_op").over(w_cliente)) \
     .withColumn("volume_operado_cliente", sum("valor_de_face").over(w_cliente)) \
     .withColumn("qtd_operacoes_cliente", count("cod_operacao").over(w_cliente)) \
-    .withColumn("taxa_media_ponderada_mensal_cliente",
-                when(col("soma_valor_prazo_cliente") > 0,
+    .withColumn("taxa_media_ponderada_mensal_cliente", 
+                when(col("soma_valor_prazo_cliente") > 0, 
                      (col("receita_desagio_cliente") / col("soma_valor_prazo_cliente")) * 30 * 100
                 ).otherwise(0)) \
-    .withColumn("rentabilidade_percentual_cliente",
-                when(col("volume_operado_cliente") > 0,
+    .withColumn("rentabilidade_percentual_cliente", 
+                when(col("volume_operado_cliente") > 0, 
                      (col("receita_total_cliente") / col("volume_operado_cliente")) * 100
                 ).otherwise(0)) \
     .select(
@@ -194,8 +197,8 @@ print("Gerando output...")
 
 # Para visualização (Top 20 Clientes), agregamos para evitar duplicatas visuais
 df_top_clientes = df_report.select(
-    "cod_cliente", "nome_cliente", "grupo_economico",
-    "volume_operado_cliente", "qtd_operacoes_cliente",
+    "cod_cliente", "nome_cliente", "grupo_economico", 
+    "volume_operado_cliente", "qtd_operacoes_cliente", 
     "taxa_media_pond_2025_cliente", "rentabilidade_perc_cliente", "receita_total_cliente"
 ).dropDuplicates(["cod_cliente"])
 
@@ -232,7 +235,7 @@ print("\n--- Seção de Validação de Dados (Conciliação) ---")
 print("Validando Cliente 15258059 (Conciliação)...")
 df_validacao = df_report.filter(col("cod_cliente") == 15258059) \
     .select(
-        "nbordero", "cod_operacao", "data_deferimento",
+        "nbordero", "cod_operacao", "data_deferimento", 
         "volume_operacao", "produto", "status_risco"
     ).orderBy("data_deferimento")
 
