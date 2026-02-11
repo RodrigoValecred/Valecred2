@@ -71,7 +71,9 @@ df_titulos = spark.read.table("LH_Gold.fato_titulos") \
 
 df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_vezes_prazo").alias("total_valor_prazo_op"),
-    sum("valor").alias("valor_face_titulos_op")
+    sum("valor").alias("valor_face_titulos_op"),
+    sum("custo_financeiro").alias("custo_financeiro_op"),
+    sum("spread").alias("spread_op")
 )
 
 # Baixas (Para cálculo de Receita de Juros de Mora Pagos)
@@ -145,6 +147,8 @@ df_report = df_base_cliente \
     .withColumn("soma_valor_prazo_cliente", sum("total_valor_prazo_op").over(w_cliente)) \
     .withColumn("receita_desagio_cliente", sum("desagio").over(w_cliente)) \
     .withColumn("receita_total_cliente", sum("receita_total_op").over(w_cliente)) \
+    .withColumn("custo_financeiro_cliente", sum("custo_financeiro_op").over(w_cliente)) \
+    .withColumn("spread_cliente", sum("spread_op").over(w_cliente)) \
     .withColumn("volume_operado_cliente", sum("valor_de_face").over(w_cliente)) \
     .withColumn("qtd_operacoes_cliente", count("cod_operacao").over(w_cliente)) \
     .withColumn("taxa_media_ponderada_mensal_cliente", 
@@ -175,12 +179,16 @@ df_report = df_base_cliente \
         col("total_de_tarifas").alias("receita_tarifas_op"),
         col("total_juros_mora_pago_op").alias("receita_juros_mora_op"),
         col("receita_total_op"),
+        col("custo_financeiro_op"),
+        col("spread_op"),
         # Métricas Agregadas do Cliente (Repetidas nas linhas)
         col("volume_operado_cliente"),
         col("qtd_operacoes_cliente"),
         round(col("taxa_media_ponderada_mensal_cliente"), 4).alias("taxa_media_pond_2025_cliente"),
         round(col("rentabilidade_percentual_cliente"), 4).alias("rentabilidade_perc_cliente"),
-        round(col("receita_total_cliente"), 2).alias("receita_total_cliente")
+        round(col("receita_total_cliente"), 2).alias("receita_total_cliente"),
+        round(col("custo_financeiro_cliente"), 2).alias("custo_financeiro_cliente"),
+        round(col("spread_cliente"), 2).alias("spread_cliente")
     )
 
 # METADATA ********************
@@ -199,7 +207,8 @@ print("Gerando output...")
 df_top_clientes = df_report.select(
     "cod_cliente", "nome_cliente", "grupo_economico", 
     "volume_operado_cliente", "qtd_operacoes_cliente", 
-    "taxa_media_pond_2025_cliente", "rentabilidade_perc_cliente", "receita_total_cliente"
+    "taxa_media_pond_2025_cliente", "rentabilidade_perc_cliente", "receita_total_cliente",
+    "custo_financeiro_cliente", "spread_cliente"
 ).dropDuplicates(["cod_cliente"])
 
 # Ordenar por Taxa Média Cliente (Menores Taxas Primeiro)
