@@ -159,6 +159,18 @@ df_report = df_base_cliente \
                 when(col("volume_operado_cliente") > 0, 
                      (col("receita_total_cliente") / col("volume_operado_cliente")) * 100
                 ).otherwise(0)) \
+    .withColumn("taxa_operacao",
+                when(col("total_valor_prazo_op") > 0,
+                     (col("desagio") / col("total_valor_prazo_op")) * 30 * 100
+                ).otherwise(0)) \
+    .withColumn("prazo_medio_operacao",
+                when(col("valor_de_face") > 0,
+                     col("total_valor_prazo_op") / col("valor_de_face")
+                ).otherwise(0)) \
+    .withColumn("prazo_medio_ponderado_cliente",
+                when(col("volume_operado_cliente") > 0,
+                     col("soma_valor_prazo_cliente") / col("volume_operado_cliente")
+                ).otherwise(0)) \
     .select(
         # Identificadores da Operação
         col("cod_operacao"),
@@ -179,12 +191,15 @@ df_report = df_base_cliente \
         col("total_de_tarifas").alias("receita_tarifas_op"),
         col("total_juros_mora_pago_op").alias("receita_juros_mora_op"),
         col("receita_total_op"),
-        col("custo_financeiro_op"),
-        col("spread_op"),
+        col("custo_financeiro_op").alias("custo_financeiro"),
+        col("spread_op").alias("spread"),
+        round(col("taxa_operacao"), 4).alias("taxa_operacao"),
+        round(col("prazo_medio_operacao"), 2).alias("prazo_medio_operacao"),
         # Métricas Agregadas do Cliente (Repetidas nas linhas)
         col("volume_operado_cliente"),
         col("qtd_operacoes_cliente"),
         round(col("taxa_media_ponderada_mensal_cliente"), 4).alias("taxa_media_pond_2025_cliente"),
+        round(col("prazo_medio_ponderado_cliente"), 2).alias("prazo_medio_ponderado_cliente"),
         round(col("rentabilidade_percentual_cliente"), 4).alias("rentabilidade_perc_cliente"),
         round(col("receita_total_cliente"), 2).alias("receita_total_cliente"),
         round(col("custo_financeiro_cliente"), 2).alias("custo_financeiro_cliente"),
