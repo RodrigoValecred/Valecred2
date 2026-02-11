@@ -24,8 +24,7 @@
 # CELL ********************
 
 from pyspark.sql import functions as F
-from pyspark.sql.functions import col, when, lit, datediff, current_date, sum, coalesce
-from pyspark.sql.window import Window
+from pyspark.sql.functions import col, when, lit, datediff, current_date, coalesce
 
 # Leitura das tabelas Silver (já limpas) do OneLake
 # Adaptado para os nomes reais das tabelas Silver
