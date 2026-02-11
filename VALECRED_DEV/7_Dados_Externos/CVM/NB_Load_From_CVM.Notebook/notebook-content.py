@@ -215,13 +215,16 @@ else:
                 continue
 
             local_csv_path = os.path.join(unzip_path, target_file)
-            print(f"Lendo o arquivo com Pandas: {local_csv_path}")
+            print(f"Lendo o arquivo com Spark: {local_csv_path}")
 
-            # Ler com Pandas
-            pandas_df = pd.read_csv(local_csv_path, sep=';', encoding='ISO-8859-1', dtype=str)
-
-            # Criar DataFrame Spark
-            df = spark.createDataFrame(pandas_df)
+            # Ler diretamente com Spark para maior performance e eficiência de memória
+            # Seguindo o padrão recomendado no README.md
+            df = (spark.read
+                  .option("header", "true")
+                  .option("sep", ";")
+                  .option("encoding", "ISO-8859-1")
+                  .option("inferSchema", "false")
+                  .csv(local_csv_path))
 
             # Forçar tipo String
             for column in df.columns:
