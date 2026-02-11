@@ -38,7 +38,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, lit, concat, when, regexp_replace, upper, row_number, broadcast, trim
+from pyspark.sql.functions import col, lit, concat, when, regexp_replace, upper, row_number, broadcast, trim, coalesce
 from pyspark.sql.window import Window
 
 # METADATA ********************
@@ -93,7 +93,7 @@ try:
     # Selecionar apenas colunas relevantes e renomear para evitar conflitos
     # Assumimos que sup_produtos_ausentes tem: tto, descricao (mapeado para tipo_produto)
     df_ausentes_lookup = df_produtos_ausentes.select(
-        trim(col("tto")).alias("tto_ausente"),
+        trim(col("codtto")).alias("tto_ausente"),
         col("descricao").alias("desc_ausente")
     )
 
