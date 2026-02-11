@@ -113,7 +113,6 @@ def select_titulos(df):
         col("STATUSCONFIRMACAO").alias("status_confirmacao"),
         col("SEUNUMERO").alias("seu_numero_bancario"),
         col("CODREMESSA").alias("cod_remessa"),
-        col("CUSTOFINANCEIRO").alias("custo_financeiro"),
         # 1. Definir qual vencimento vale (Prorrogado ganha do Original)
         # Se VENCPRORROGADO for nulo, usa VENCIMENTO.
         # Criamos essa coluna calculada para facilitar contas futuras.
@@ -144,10 +143,10 @@ if DeltaTable.isDeltaTable(spark, output_path_titulos):
     try:
         # Check for new snake_case column and data_alteracao
         target_cols = spark.read.format("delta").load(output_path_titulos).columns
-        if "cod_titulo" in target_cols and "data_alteracao" in target_cols and "custo_financeiro" in target_cols:
+        if "cod_titulo" in target_cols and "data_alteracao" in target_cols:
             is_incremental_possible = True
         else:
-            print("Schema mismatch (cod_titulo, data_alteracao or custo_financeiro missing). Forcing Full Load.")
+            print("Schema mismatch (cod_titulo or data_alteracao missing). Forcing Full Load.")
             is_incremental_possible = False
     except AnalysisException:
         print("Error accessing target table. Forcing Full Load.")
