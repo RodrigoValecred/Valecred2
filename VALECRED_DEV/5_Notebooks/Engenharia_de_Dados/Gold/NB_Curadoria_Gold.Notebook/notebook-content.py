@@ -767,7 +767,8 @@ df_fato_titulos_final = df_ordem.select(
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany",
     col("liquidacao"), col("valor_devido"), col("motivo"),
     col("status_risco"), col("dias_atraso"), col("status_enviado_juridico"),
-    col("custo_financeiro")
+    col("custo_financeiro"),
+    col("cod_cliente")
 )
 output_path_titulos_final = "LH_Gold.fato_titulos"
 df_fato_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
@@ -1022,9 +1023,8 @@ df_metrics_ops_final = df_metrics_ops.join(df_dia_semana_top, "cod_cliente", "le
 # --------------------------------
 # Usamos df_fato_titulos_final criada na Seção 3.3
 # Join com Operações para pegar cod_cliente
-df_titulos_cliente = df_fato_titulos_final.join(
-    df_fato_operacoes.select("cod_operacao", "cod_cliente"), "cod_operacao", "left"
-)
+# OTIMIZAÇÃO: cod_cliente foi adicionado à fato_titulos na Seção 3.3, evitando este join.
+df_titulos_cliente = df_fato_titulos_final
 
 today_date = current_date()
 
@@ -1618,9 +1618,8 @@ if "df_fato_operacoes" not in locals():
     df_fato_operacoes = spark.read.table("LH_Gold.fato_operacoes")
 
 # Join para obter cod_cliente para cada título
-df_titulos_carteira = df_fato_titulos_final.join(
-    df_fato_operacoes.select("cod_operacao", "cod_cliente"), "cod_operacao", "left"
-)
+# OTIMIZAÇÃO: cod_cliente foi adicionado à fato_titulos na Seção 3.3, evitando este join.
+df_titulos_carteira = df_fato_titulos_final
 
 # Filtro de Risco Ativo (Carteira em Aberto)
 # Critério: Título aceito (status_deferimento='Sim') e em aberto (liquidacao is Null)
