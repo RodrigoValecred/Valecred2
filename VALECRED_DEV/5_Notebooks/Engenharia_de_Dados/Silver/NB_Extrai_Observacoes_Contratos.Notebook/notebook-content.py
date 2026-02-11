@@ -56,13 +56,14 @@ df_bronze = spark.sql("SELECT * FROM LH_Bronze.cad_contratos_clientes WHERE STAT
 
 # 3. Definição das Regex "Case Insensitive" ( Ignora Maiúscula/Minúscula)
 # O código (?i) no começo torna a busca insensível a caixa alta/baixa
-pat_geral       = r"(?i)Limite\s+(?:Geral|Total).*?R\$\s*([\d\.,]+)"
-pat_comissaria  = r"(?i)Comiss.ria Simples.*?R\$\s*([\d\.,]+)" 
-pat_inter       = r"(?i)Intercompany.*?R\$\s*([\d\.,]+)"
-pat_fomento     = r"(?i)Fomento.*?R\$\s*([\d\.,]+)"
-pat_plus        = r"(?i)Limite\s+EXTRA\s+PLUS.*?R\$\s*([\d\.,]+)"
-pat_extra_formal   = r"(?i)Limite\s+extra\s+desconto.*?\bformal.*?R\$\s*([\d\.,]+)"
-pat_extra_informal = r"(?i)Limite\s+extra\s+desconto.*?\binformal.*?R\$\s*([\d\.,]+)"
+# ReDoS Mitigation: Use bounded quantifier .{0,200}? instead of unbounded .*? to prevent excessive backtracking
+pat_geral       = r"(?i)Limite\s+(?:Geral|Total).{0,200}?R\$\s*([\d\.,]+)"
+pat_comissaria  = r"(?i)Comiss.ria Simples.{0,200}?R\$\s*([\d\.,]+)"
+pat_inter       = r"(?i)Intercompany.{0,200}?R\$\s*([\d\.,]+)"
+pat_fomento     = r"(?i)Fomento.{0,200}?R\$\s*([\d\.,]+)"
+pat_plus        = r"(?i)Limite\s+EXTRA\s+PLUS.{0,200}?R\$\s*([\d\.,]+)"
+pat_extra_formal   = r"(?i)Limite\s+extra\s+desconto.{0,200}?\bformal.{0,200}?R\$\s*([\d\.,]+)"
+pat_extra_informal = r"(?i)Limite\s+extra\s+desconto.{0,200}?\binformal.{0,200}?R\$\s*([\d\.,]+)"
 
 # METADATA ********************
 
