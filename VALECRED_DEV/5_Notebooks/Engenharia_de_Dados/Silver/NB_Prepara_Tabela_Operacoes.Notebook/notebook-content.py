@@ -50,6 +50,21 @@ from pyspark.sql.types import StructType, StructField, StringType, LongType, Tim
 from delta.tables import *
 from notebookutils import mssparkutils
 import datetime
+import re
+import unicodedata
+
+def normalize_col(col_name):
+    nfkd_form = unicodedata.normalize('NFKD', str(col_name))
+    col_name = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
+    if col_name.isupper():
+        col_name = col_name.lower()
+    else:
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', col_name)
+        col_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
+    col_name = col_name.lower()
+    col_name = re.sub(r'[^a-z0-9_]+', '_', col_name)
+    col_name = re.sub(r'_+', '_', col_name)
+    return col_name.strip('_')
 
 source_lakehouse = "LH_Bronze"
 target_lakehouse = "LH_Silver"
@@ -331,23 +346,6 @@ def process_tac_m():
 def process_estudo_op():
     print("Processando Estudo Op...")
     df_estudo = spark.read.table(f"{source_lakehouse}.tab_estudo_op")
-
-    # Normalização de Colunas
-    import re
-    import unicodedata
-
-    def normalize_col(col_name):
-        nfkd_form = unicodedata.normalize('NFKD', str(col_name))
-        col_name = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
-        if col_name.isupper():
-            col_name = col_name.lower()
-        else:
-            s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', col_name)
-            col_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
-        col_name = col_name.lower()
-        col_name = re.sub(r'[^a-z0-9_]+', '_', col_name)
-        col_name = re.sub(r'_+', '_', col_name)
-        return col_name.strip('_')
 
     # Apply normalization
     new_cols = [col(c).alias(normalize_col(c)) for c in df_estudo.columns]

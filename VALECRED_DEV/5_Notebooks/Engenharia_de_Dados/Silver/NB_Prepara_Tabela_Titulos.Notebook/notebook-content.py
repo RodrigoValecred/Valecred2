@@ -113,7 +113,6 @@ def select_titulos(df):
         col("STATUSCONFIRMACAO").alias("status_confirmacao"),
         col("SEUNUMERO").alias("seu_numero_bancario"),
         col("CODREMESSA").alias("cod_remessa"),
-        col("CUSTOFINANCEIRO").alias("custo_financeiro"),
         # 1. Definir qual vencimento vale (Prorrogado ganha do Original)
         # Se VENCPRORROGADO for nulo, usa VENCIMENTO.
         # Criamos essa coluna calculada para facilitar contas futuras.
@@ -136,6 +135,19 @@ def select_titulos(df):
         ).alias("status_titulo")
     )
 
+def deduplicate_titulos(df, key_columns):
+    """
+    Deduplicates the dataframe based on the latest activity date.
+    Prioritizes DATAALTERACAO, DATAINCLUSAO, and LIQUIDACAO.
+    """
+    df_with_latest = df.withColumn(
+        "DATA_MAIS_RECENTE",
+        greatest(col("DATAALTERACAO"), col("DATAINCLUSAO"), col("LIQUIDACAO"))
+    )
+    windowSpec = Window.partitionBy([col(c) for c in key_columns]).orderBy(col("DATA_MAIS_RECENTE").desc())
+    return df_with_latest.withColumn("row_num", row_number().over(windowSpec)) \
+        .filter(col("row_num") == 1).drop("row_num", "DATA_MAIS_RECENTE")
+
 key_columns_titulos = ["CODTITULO"]
 
 # Verifica se a tabela existe e se tem a coluna necessária para incremental (Schema Evolution Check)
@@ -144,10 +156,10 @@ if DeltaTable.isDeltaTable(spark, output_path_titulos):
     try:
         # Check for new snake_case column and data_alteracao
         target_cols = spark.read.format("delta").load(output_path_titulos).columns
-        if "cod_titulo" in target_cols and "data_alteracao" in target_cols and "custo_financeiro" in target_cols:
+        if "cod_titulo" in target_cols and "data_alteracao" in target_cols:
             is_incremental_possible = True
         else:
-            print("Schema mismatch (cod_titulo, data_alteracao or custo_financeiro missing). Forcing Full Load.")
+            print("Schema mismatch (cod_titulo or data_alteracao missing). Forcing Full Load.")
             is_incremental_possible = False
     except AnalysisException:
         print("Error accessing target table. Forcing Full Load.")
@@ -178,13 +190,7 @@ if is_incremental_possible:
     
     if df_bronze_titulos.count() > 0:
         # 3. Desduplicar o batch incremental
-        df_with_latest = df_bronze_titulos.withColumn(
-            "DATA_MAIS_RECENTE",
-            greatest(col("DATAALTERACAO"), col("DATAINCLUSAO"), col("LIQUIDACAO"))
-        )
-        windowSpec = Window.partitionBy([col(c) for c in key_columns_titulos]).orderBy(col("DATA_MAIS_RECENTE").desc())
-        df_dedup = df_with_latest.withColumn("row_num", row_number().over(windowSpec)) \
-            .filter(col("row_num") == 1).drop("row_num", "DATA_MAIS_RECENTE")
+        df_dedup = deduplicate_titulos(df_bronze_titulos, key_columns_titulos)
             
         df_final_batch = select_titulos(df_dedup)
         
@@ -202,13 +208,7 @@ else:
     print("Modo Full Load: Carga Inicial ou Atualização de Schema.")
     df_bronze_titulos = spark.read.table(f"{source_lakehouse}.{source_table_titulos}")
     
-    df_with_latest = df_bronze_titulos.withColumn(
-        "DATA_MAIS_RECENTE",
-        greatest(col("DATAALTERACAO"), col("DATAINCLUSAO"), col("LIQUIDACAO"))
-    )
-    windowSpec = Window.partitionBy([col(c) for c in key_columns_titulos]).orderBy(col("DATA_MAIS_RECENTE").desc())
-    df_dedup = df_with_latest.withColumn("row_num", row_number().over(windowSpec)) \
-        .filter(col("row_num") == 1).drop("row_num", "DATA_MAIS_RECENTE")
+    df_dedup = deduplicate_titulos(df_bronze_titulos, key_columns_titulos)
     
     df_titulos_final = select_titulos(df_dedup).orderBy(col("data_inclusao").desc())
     

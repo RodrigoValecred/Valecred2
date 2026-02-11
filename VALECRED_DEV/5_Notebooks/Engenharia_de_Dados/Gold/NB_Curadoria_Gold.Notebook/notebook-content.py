@@ -48,7 +48,7 @@ from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
     lead, date_add, lag, max, coalesce, broadcast, dayofweek, dayofmonth, date_sub, trim, to_date,
-    datediff, sum, min, count, round, floor, least, current_date, split
+    datediff, sum, min, count, round, floor, least, current_date, split, pow
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, DoubleType, DateType, BooleanType
 from delta.tables import *
@@ -397,20 +397,12 @@ df_u_trava = df_usuarios.alias("u_trava")
 df_motivos = df_motivos_indeferimento.alias("motivos")
 df_estudo = df_estudo_operacoes.dropDuplicates(["CODOPERACAO"]).alias("estudo")
 
-# Debug: Verificar schema de estudo para confirmar colunas de Risco/Limite
-print("Schema df_estudo:")
-df_estudo.printSchema()
-
 # Dynamic Column Resolution: Identificar colunas de Risco e Limite com nomes variáveis
-print(f"Colunas disponíveis em staging_estudo_operacoes: {df_estudo.columns}")
-
 def find_column(df, candidates):
     for candidate in candidates:
         # Check normalized candidates (lowercase) against df columns (which are likely lowercase due to silver prep)
         if candidate.lower() in [c.lower() for c in df.columns]:
-            print(f"Coluna encontrada: '{candidate}'")
             return col(candidate)
-    print(f"Nenhuma coluna encontrada para candidatos: {candidates}. Usando 0.")
     return lit(0)
 
 # Candidatos comuns
@@ -686,7 +678,7 @@ df_titulos_base = df_titulos_limpa.filter(~col("t_doc").isin("BL", "RC")) \
     .withColumn("tipo_documento_sacado", when(length(col("cpf_cnpj_sacado")) == 11, "CPF").when(length(col("cpf_cnpj_sacado")) == 14, "CNPJ").otherwise("Inválido")) \
     .withColumn("raiz_cnpj", when(col("tipo_documento_sacado") == "CNPJ", substring(col("cpf_cnpj_sacado"), 1, 8)).otherwise(col("cpf_cnpj_sacado")))
 
-df_operacoes_small = df_operacoes_enriquecida.select("cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto", "tto").dropDuplicates(["cod_operacao"])
+df_operacoes_small = df_operacoes_enriquecida.select("cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto", "tto", "taxa_comissao").dropDuplicates(["cod_operacao"])
 df_limites_small = df_limites.select("chave_cliente_sacado", "tipo").dropDuplicates(["chave_cliente_sacado"])
 df_produtos_small = df_dim_produto.select(col("chave_produto"), col("produto_informacao_de_mercado").alias("produto_temp")).dropDuplicates(["chave_produto"])
 df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao").alias("cod_operacao_recompra")).dropDuplicates(["cod_titulo"])
@@ -723,7 +715,10 @@ df_com_calcs = df_enriquecido \
     .withColumn("intercompany", when(col("tipo") == "INTERCIA", "SIM").otherwise("NÃO")) \
     .withColumn("status_protesto", coalesce(col("status_protesto"), lit("NÃO PROTESTADO"))) \
     .withColumn("valor_vezes_prazo", col("prazo") * col("valor")) \
-    .withColumn("produto_com_intercia", when((col("intercompany") == "SIM") & (col("chave_produto").isin("NO", "CM")), "INTERCOMPANY").otherwise(col("produto_temp")))
+    .withColumn("produto_com_intercia", when((col("intercompany") == "SIM") & (col("chave_produto").isin("NO", "CM")), "INTERCOMPANY").otherwise(col("produto_temp"))) \
+    .withColumn("custo_financeiro", (col("valor") - col("desagio")) * (pow(lit(1.015), col("prazo") / 30) - 1)) \
+    .withColumn("spread", col("desagio") - col("custo_financeiro")) \
+    .withColumn("comissao_spread", col("spread") * coalesce(col("taxa_comissao"), lit(0.025)))
 
 # Data Vencimento Útil
 try:
@@ -768,6 +763,8 @@ df_fato_titulos_final = df_ordem.select(
     col("liquidacao"), col("valor_devido"), col("motivo"),
     col("status_risco"), col("dias_atraso"), col("status_enviado_juridico"),
     col("custo_financeiro"),
+    col("spread"), 
+    col("comissao_spread"),
     col("cod_cliente")
 )
 output_path_titulos_final = "LH_Gold.fato_titulos"
