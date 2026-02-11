@@ -64,7 +64,7 @@ Status V.A.I.:
 
 ✅ NORMAL: Operação dentro dos padrões estatísticos.
 
-<img width="1202" height="661" alt="image" src="https://github.com/user-attachments/assets/1b844dfe-ec9d-4211-aef8-e8b2c22fb52b" />
+<img width="1202" height="661" alt="Dashboard V.A.I. exibindo lista de operações com indicadores de risco e explicações da IA" src="https://github.com/user-attachments/assets/1b844dfe-ec9d-4211-aef8-e8b2c22fb52b" />
 
 
 ## 🛠️ Stack Tecnológica

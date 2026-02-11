@@ -9,14 +9,16 @@ data = {
     'Limite Plus': [10, 10, 5]
 }
 df = pd.DataFrame(data)
-print("Original:")
-print(df)
+print("🔍 Original Data:")
+print("-" * 40)
+print(df.to_string(index=False))
+print("-" * 40)
 
 # Sanitize columns (mocking the function)
 df.columns = ['nome', 'cnpj', 'limite', 'limite_extra', 'limite_plus']
 
 # Logic to apply
-print("\nApplying deduplication logic...")
+print("\n🔄 Applying deduplication logic...")
 # We want to group by 'nome' and max the limits
 # We drop 'cnpj' because it causes granularity
 df_agg = df.groupby('nome', as_index=False).agg({
@@ -25,5 +27,7 @@ df_agg = df.groupby('nome', as_index=False).agg({
     'limite_plus': 'max'
 })
 
-print("\nResult:")
-print(df_agg)
+print("\n✅ Result:")
+print("-" * 40)
+print(df_agg.to_string(index=False))
+print("-" * 40)
