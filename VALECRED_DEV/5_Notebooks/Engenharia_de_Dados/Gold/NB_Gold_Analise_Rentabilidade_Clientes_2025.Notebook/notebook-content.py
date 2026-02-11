@@ -35,7 +35,8 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.functions import (
-    col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce
+    col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce,
+    datediff, current_date, greatest
 )
 from pyspark.sql.window import Window
 
@@ -63,14 +64,30 @@ df_ops = spark.read.table("LH_Gold.fato_operacoes") \
     .filter(col("status_analise") == "D") \
     .dropDuplicates(["cod_operacao"])
 
-# Títulos (Para cálculo da Taxa Ponderada: Valor * Prazo)
+# Preparar DataFrame de datas de inicio para join com títulos
+df_ops_dates = df_ops.select("cod_operacao", "data_deferimento")
+
+# Títulos (Para cálculo da Taxa Ponderada Original e Real)
 # Agregado por Operação
 df_titulos = spark.read.table("LH_Gold.fato_titulos") \
     .filter(col("aceito") == "S") \
     .filter(col("t_doc") != "BL")
 
-df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
+# Join com Operações para pegar data de deferimento (Inicio do Prazo)
+df_titulos_enrich = df_titulos.join(broadcast(df_ops_dates), "cod_operacao", "inner")
+
+# Calcular Prazo Real:
+# Data Final Real = Liquidacao se pago, senão Maior entre (Hoje, Vencimento Prorrogado)
+# Isso considera atrasos atuais como "ainda emprestado" até hoje.
+df_titulos_calcs = df_titulos_enrich \
+    .withColumn("data_final_real",
+                coalesce(col("liquidacao"), greatest(current_date(), col("venc_prorrogado")))) \
+    .withColumn("dias_real", datediff(col("data_final_real"), col("data_deferimento"))) \
+    .withColumn("valor_vezes_dias_real", col("valor") * col("dias_real"))
+
+df_titulos_agg = df_titulos_calcs.groupBy("cod_operacao").agg(
     sum("valor_vezes_prazo").alias("total_valor_prazo_op"),
+    sum("valor_vezes_dias_real").alias("total_valor_prazo_real_op"),
     sum("valor").alias("valor_face_titulos_op"),
     sum("custo_financeiro").alias("custo_financeiro_op"),
     sum("spread").alias("spread_op")
@@ -140,12 +157,14 @@ w_produto = Window.partitionBy("cod_cliente", "produto_informacao_de_mercado")
 
 df_report = df_base_cliente \
     .withColumn("produto_final", coalesce(col("produto_informacao_de_mercado"), lit("PRODUTO NÃO IDENTIFICADO"))) \
+    .withColumn("receita_real_op",
+                coalesce(col("desagio"), lit(0)) + coalesce(col("total_juros_mora_pago_op"), lit(0))) \
     .withColumn("receita_total_op", 
-                coalesce(col("desagio"), lit(0)) + 
-                coalesce(col("total_de_tarifas"), lit(0)) + 
-                coalesce(col("total_juros_mora_pago_op"), lit(0))) \
+                col("receita_real_op") + coalesce(col("total_de_tarifas"), lit(0))) \
     .withColumn("soma_valor_prazo_cliente", sum("total_valor_prazo_op").over(w_cliente)) \
+    .withColumn("soma_valor_prazo_real_cliente", sum("total_valor_prazo_real_op").over(w_cliente)) \
     .withColumn("receita_desagio_cliente", sum("desagio").over(w_cliente)) \
+    .withColumn("receita_real_cliente", sum("receita_real_op").over(w_cliente)) \
     .withColumn("receita_total_cliente", sum("receita_total_op").over(w_cliente)) \
     .withColumn("custo_financeiro_cliente", sum("custo_financeiro_op").over(w_cliente)) \
     .withColumn("spread_cliente", sum("spread_op").over(w_cliente)) \
@@ -155,6 +174,10 @@ df_report = df_base_cliente \
                 when(col("soma_valor_prazo_cliente") > 0, 
                      (col("receita_desagio_cliente") / col("soma_valor_prazo_cliente")) * 30 * 100
                 ).otherwise(0)) \
+    .withColumn("taxa_real_ponderada_cliente",
+                when(col("soma_valor_prazo_real_cliente") > 0,
+                     (col("receita_real_cliente") / col("soma_valor_prazo_real_cliente")) * 30 * 100
+                ).otherwise(0)) \
     .withColumn("rentabilidade_percentual_cliente", 
                 when(col("volume_operado_cliente") > 0, 
                      (col("receita_total_cliente") / col("volume_operado_cliente")) * 100
@@ -163,13 +186,25 @@ df_report = df_base_cliente \
                 when(col("total_valor_prazo_op") > 0,
                      (col("desagio") / col("total_valor_prazo_op")) * 30 * 100
                 ).otherwise(0)) \
+    .withColumn("taxa_real_mensal_op",
+                when(col("total_valor_prazo_real_op") > 0,
+                     (col("receita_real_op") / col("total_valor_prazo_real_op")) * 30 * 100
+                ).otherwise(0)) \
     .withColumn("prazo_medio_operacao",
                 when(col("valor_de_face") > 0,
                      col("total_valor_prazo_op") / col("valor_de_face")
                 ).otherwise(0)) \
+    .withColumn("prazo_medio_real_op",
+                when(col("valor_de_face") > 0,
+                     col("total_valor_prazo_real_op") / col("valor_de_face")
+                ).otherwise(0)) \
     .withColumn("prazo_medio_ponderado_cliente",
                 when(col("volume_operado_cliente") > 0,
                      col("soma_valor_prazo_cliente") / col("volume_operado_cliente")
+                ).otherwise(0)) \
+    .withColumn("prazo_real_ponderado_cliente",
+                when(col("volume_operado_cliente") > 0,
+                     col("soma_valor_prazo_real_cliente") / col("volume_operado_cliente")
                 ).otherwise(0)) \
     .select(
         # Identificadores da Operação
@@ -188,18 +223,23 @@ df_report = df_base_cliente \
         # Métricas da Operação Individual
         col("valor_de_face").alias("volume_operacao"),
         col("desagio").alias("receita_desagio_op"),
+        col("receita_real_op"),
         col("total_de_tarifas").alias("receita_tarifas_op"),
         col("total_juros_mora_pago_op").alias("receita_juros_mora_op"),
         col("receita_total_op"),
         col("custo_financeiro_op").alias("custo_financeiro"),
         col("spread_op").alias("spread"),
         round(col("taxa_operacao"), 4).alias("taxa_operacao"),
+        round(col("taxa_real_mensal_op"), 4).alias("taxa_real_mensal_op"),
         round(col("prazo_medio_operacao"), 2).alias("prazo_medio_operacao"),
+        round(col("prazo_medio_real_op"), 2).alias("prazo_medio_real_op"),
         # Métricas Agregadas do Cliente (Repetidas nas linhas)
         col("volume_operado_cliente"),
         col("qtd_operacoes_cliente"),
         round(col("taxa_media_ponderada_mensal_cliente"), 4).alias("taxa_media_pond_2025_cliente"),
+        round(col("taxa_real_ponderada_cliente"), 4).alias("taxa_real_pond_2025_cliente"),
         round(col("prazo_medio_ponderado_cliente"), 2).alias("prazo_medio_ponderado_cliente"),
+        round(col("prazo_real_ponderado_cliente"), 2).alias("prazo_real_ponderado_cliente"),
         round(col("rentabilidade_percentual_cliente"), 4).alias("rentabilidade_perc_cliente"),
         round(col("receita_total_cliente"), 2).alias("receita_total_cliente"),
         round(col("custo_financeiro_cliente"), 2).alias("custo_financeiro_cliente"),
@@ -222,7 +262,8 @@ print("Gerando output...")
 df_top_clientes = df_report.select(
     "cod_cliente", "nome_cliente", "grupo_economico", 
     "volume_operado_cliente", "qtd_operacoes_cliente", 
-    "taxa_media_pond_2025_cliente", "rentabilidade_perc_cliente", "receita_total_cliente",
+    "taxa_media_pond_2025_cliente", "taxa_real_pond_2025_cliente",
+    "rentabilidade_perc_cliente", "receita_total_cliente",
     "custo_financeiro_cliente", "spread_cliente"
 ).dropDuplicates(["cod_cliente"])
 
@@ -260,7 +301,8 @@ print("Validando Cliente 15258059 (Conciliação)...")
 df_validacao = df_report.filter(col("cod_cliente") == 15258059) \
     .select(
         "nbordero", "cod_operacao", "data_deferimento", 
-        "volume_operacao", "produto", "status_risco"
+        "volume_operacao", "produto", "status_risco",
+        "taxa_operacao", "taxa_real_mensal_op", "receita_real_op"
     ).orderBy("data_deferimento")
 
 count_ops = df_validacao.count()
