@@ -397,20 +397,12 @@ df_u_trava = df_usuarios.alias("u_trava")
 df_motivos = df_motivos_indeferimento.alias("motivos")
 df_estudo = df_estudo_operacoes.dropDuplicates(["CODOPERACAO"]).alias("estudo")
 
-# Debug: Verificar schema de estudo para confirmar colunas de Risco/Limite
-print("Schema df_estudo:")
-df_estudo.printSchema()
-
 # Dynamic Column Resolution: Identificar colunas de Risco e Limite com nomes variáveis
-print(f"Colunas disponíveis em staging_estudo_operacoes: {df_estudo.columns}")
-
 def find_column(df, candidates):
     for candidate in candidates:
         # Check normalized candidates (lowercase) against df columns (which are likely lowercase due to silver prep)
         if candidate.lower() in [c.lower() for c in df.columns]:
-            print(f"Coluna encontrada: '{candidate}'")
             return col(candidate)
-    print(f"Nenhuma coluna encontrada para candidatos: {candidates}. Usando 0.")
     return lit(0)
 
 # Candidatos comuns
