@@ -205,6 +205,16 @@ w_produto = Window.partitionBy("cod_cliente", "produto_informacao_de_mercado")
 
 df_report = df_base_cliente \
     .withColumn("produto_final", coalesce(col("produto_informacao_de_mercado"), lit("PRODUTO NÃO IDENTIFICADO"))) \
+    .withColumn("prazo_medio_mora_op",
+                when(col("valor_face_titulos_op") > 0,
+                     (col("soma_produto_valor_data_final") / col("valor_face_titulos_op")) - datediff(col("data_deferimento"), lit("1970-01-01"))
+                ).otherwise(0)) \
+    .withColumn("receita_real_op_calc",
+                coalesce(col("desagio"), lit(0)) +
+                coalesce(col("total_juros_mora_pago_op"), lit(0)) +
+                coalesce(col("total_de_tarifas"), lit(0))) \
+    .withColumn("vol_prazo_real_op_calc",
+                col("valor_de_face") * col("prazo_medio_mora_op")) \
     .withColumn("receita_total_op", 
                 coalesce(col("desagio"), lit(0)) + 
                 coalesce(col("total_de_tarifas"), lit(0)) + 
@@ -213,6 +223,8 @@ df_report = df_base_cliente \
     .withColumn("soma_valor_prazo_cliente", sum("total_valor_prazo_op").over(w_cliente)) \
     .withColumn("receita_desagio_cliente", sum("desagio").over(w_cliente)) \
     .withColumn("receita_total_cliente", sum("receita_total_op").over(w_cliente) + coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0))) \
+    .withColumn("soma_receita_real_cliente", sum("receita_real_op_calc").over(w_cliente)) \
+    .withColumn("soma_vol_prazo_real_cliente", sum("vol_prazo_real_op_calc").over(w_cliente)) \
     .withColumn("custo_financeiro_cliente", coalesce(sum("custo_financeiro_op").over(w_cliente), lit(0))) \
     .withColumn("spread_cliente", coalesce(sum("spread_op").over(w_cliente), lit(0))) \
     .withColumn("volume_operado_cliente", sum("valor_de_face").over(w_cliente)) \
@@ -220,6 +232,10 @@ df_report = df_base_cliente \
     .withColumn("taxa_media_ponderada_mensal_cliente", 
                 when(col("soma_valor_prazo_cliente") > 0, 
                      (col("receita_desagio_cliente") / col("soma_valor_prazo_cliente")) * 30 * 100
+                ).otherwise(0)) \
+    .withColumn("taxa_media_real_mensal_cliente",
+                when(col("soma_vol_prazo_real_cliente") > 0,
+                     (col("soma_receita_real_cliente") / col("soma_vol_prazo_real_cliente")) * 30 * 100
                 ).otherwise(0)) \
     .withColumn("rentabilidade_percentual_cliente", 
                 when(col("volume_operado_cliente") > 0, 
@@ -229,6 +245,10 @@ df_report = df_base_cliente \
                 when(col("total_valor_prazo_op") > 0,
                      (col("desagio") / col("total_valor_prazo_op")) * 30 * 100
                 ).otherwise(0)) \
+    .withColumn("taxa_media_real_mensal_op",
+                when(col("vol_prazo_real_op_calc") > 0,
+                     (col("receita_real_op_calc") / col("vol_prazo_real_op_calc")) * 30 * 100
+                ).otherwise(0)) \
     .withColumn("prazo_medio_operacao",
                 when(col("valor_de_face") > 0,
                      col("total_valor_prazo_op") / col("valor_de_face")
@@ -236,10 +256,6 @@ df_report = df_base_cliente \
     .withColumn("prazo_medio_ponderado_cliente",
                 when(col("volume_operado_cliente") > 0,
                      col("soma_valor_prazo_cliente") / col("volume_operado_cliente")
-                ).otherwise(0)) \
-    .withColumn("prazo_medio_mora_op",
-                when(col("valor_face_titulos_op") > 0,
-                     (col("soma_produto_valor_data_final") / col("valor_face_titulos_op")) - datediff(col("data_deferimento"), lit("1970-01-01"))
                 ).otherwise(0)) \
     .select(
         # Identificadores da Operação
@@ -267,10 +283,12 @@ df_report = df_base_cliente \
         round(col("taxa_operacao"), 4).alias("taxa_operacao"),
         round(col("prazo_medio_operacao"), 2).alias("prazo_medio_operacao"),
         round(col("prazo_medio_mora_op"), 2).alias("prazo_medio_ponderado_dias_op"),
+        round(col("taxa_media_real_mensal_op"), 4).alias("taxa_media_real_mensal_op"),
         # Métricas Agregadas do Cliente (Repetidas nas linhas)
         col("volume_operado_cliente"),
         col("qtd_operacoes_cliente"),
         round(col("taxa_media_ponderada_mensal_cliente"), 4).alias("taxa_media_pond_2025_cliente"),
+        round(col("taxa_media_real_mensal_cliente"), 4).alias("taxa_media_real_mensal_cliente"),
         round(col("prazo_medio_ponderado_cliente"), 2).alias("prazo_medio_ponderado_cliente"),
         round(col("rentabilidade_percentual_cliente"), 4).alias("rentabilidade_perc_cliente"),
         coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0)).alias("receita_tarifa_prorrogacao_cliente"),
