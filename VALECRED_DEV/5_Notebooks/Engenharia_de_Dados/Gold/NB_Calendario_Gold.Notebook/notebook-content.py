@@ -45,7 +45,7 @@ spark.conf.set("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
 from pyspark.sql.functions import (
     col, lit, date_format, dayofweek, expr, when,
     date_add, to_date, year, month, dayofmonth, quarter,
-    first, row_number, concat, min, max
+    first, row_number, concat, min, max, sequence, explode
 )
 from pyspark.sql.window import Window
 from pyspark.sql.types import IntegerType
@@ -154,9 +154,14 @@ except Exception as e:
 print(f"Gerando calendário de {start_date} a {end_date}...")
 
 # Gerar sequência de números (dias)
-df_dates = spark.sql(f"""
-    SELECT explode(sequence(to_date('{start_date}'), to_date('{end_date}'), interval 1 day)) as data
-""")
+df_dates = spark.range(1).select(
+    explode(
+        sequence(
+            to_date(lit(start_date)),
+            to_date(lit(end_date))
+        )
+    ).alias("data")
+)
 
 # Adicionar colunas básicas de calendário
 # Spark dayofweek: 1=Sunday, 2=Monday, ..., 7=Saturday
