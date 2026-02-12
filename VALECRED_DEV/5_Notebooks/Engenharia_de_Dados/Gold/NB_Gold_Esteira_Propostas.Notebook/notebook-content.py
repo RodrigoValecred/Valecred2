@@ -36,12 +36,10 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.window import Window
 from pyspark.sql.functions import (
-    row_number, col, when, lit, concat, length, regexp_replace,
-    collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, broadcast, dayofweek, dayofmonth, date_sub, trim, to_date,
-    datediff, sum, min, count, round, floor, least, current_date, split
+    row_number, col, when, lit, concat, greatest, substring, year,
+    lag, max, coalesce, trim
 )
-from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, DoubleType, DateType
+from pyspark.sql.types import LongType
 from delta.tables import *
 import datetime
 
