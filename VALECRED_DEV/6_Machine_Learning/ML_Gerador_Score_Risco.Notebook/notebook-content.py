@@ -111,23 +111,18 @@ print("Tabela mestra criada.")
 
 # CELL ********************
 
-def gerar_score_e_alertas(cpf_cnpj, df_mestra_spark, model_pipeline, model_features):
-    """Calcula o score de risco para os títulos em aberto de um cliente, exibe os resultados e gera alertas.
-
-    A função filtra a tabela mestra para um CPF/CNPJ específico, seleciona apenas os títulos
-    em aberto e aplica o modelo de machine learning treinado para prever a probabilidade de
-    inadimplência (score de risco) de cada título. Ao final, exibe um resumo com o score
-    médio, os principais fatores de risco identificados e uma lista detalhada dos títulos
-    com seus respectivos scores.
+def calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_features):
+    """Calcula o score de risco para os títulos em aberto de um cliente.
 
     Args:
         cpf_cnpj (str): O CPF ou CNPJ do cliente a ser analisado.
-        df_mestra_spark (pyspark.sql.DataFrame): O DataFrame Spark contendo os dados
-                                                 consolidados de títulos, operações e clientes.
-        model_pipeline (sklearn.pipeline.Pipeline): O pipeline do modelo treinado (joblib),
-                                                    pronto para fazer previsões.
-        model_features (list): Uma lista de strings com os nomes das features que o
-                               modelo espera, na ordem correta.
+        df_mestra_spark (pyspark.sql.DataFrame): O DataFrame Spark contendo os dados.
+        model_pipeline (sklearn.pipeline.Pipeline): O pipeline do modelo treinado.
+        model_features (list): Lista de features esperadas pelo modelo.
+
+    Returns:
+        pandas.DataFrame: DataFrame contendo os dados do cliente e a coluna 'SCORE_RISCO'.
+                          Retorna None se nenhum título for encontrado.
     """
     print(f"\nIniciando análise para o cliente: {cpf_cnpj}")
 
@@ -147,8 +142,7 @@ def gerar_score_e_alertas(cpf_cnpj, df_mestra_spark, model_pipeline, model_featu
     df_cliente_pandas = df_cliente_spark.toPandas()
 
     if df_cliente_pandas.empty:
-        print(f"Nenhum título em aberto encontrado para o cliente {cpf_cnpj} com os critérios aplicados.")
-        return
+        return None
 
     # 2. Preparar dados para o modelo
     X_cliente = df_cliente_pandas[model_features].copy()
@@ -160,6 +154,16 @@ def gerar_score_e_alertas(cpf_cnpj, df_mestra_spark, model_pipeline, model_featu
     probabilidades = model_pipeline.predict_proba(X_cliente)[:, 1]
     df_cliente_pandas['SCORE_RISCO'] = probabilidades
 
+    return df_cliente_pandas
+
+
+def exibir_analise_risco(df_cliente_pandas, cpf_cnpj):
+    """Exibe os resultados da análise de risco e gera alertas.
+
+    Args:
+        df_cliente_pandas (pandas.DataFrame): DataFrame com os dados e scores do cliente.
+        cpf_cnpj (str): O CPF ou CNPJ do cliente.
+    """
     score_medio = df_cliente_pandas['SCORE_RISCO'].mean()
 
     print("\n--- RESULTADO DA ANÁLISE DE RISCO ---")
@@ -170,28 +174,19 @@ def gerar_score_e_alertas(cpf_cnpj, df_mestra_spark, model_pipeline, model_featu
     # 4. Gerar Alertas (Análise Simplificada de Contribuição)
     print("\n--- Principais Fatores de Risco ---")
 
-    # Mapeamento de features para nomes amigáveis
-    nomes_amigaveis = {
-        'CODRATING_CEDENTE': 'Rating do Cliente',
-        'PRAZO': 'Prazo do Título',
-        'VALOR': 'Valor do Título',
-        'DESAGIO': 'Deságio da Operação'
-    }
-
     # Análise de features categóricas de alto risco
-    if 'CODRATING_CEDENTE' in X_cliente.columns:
-        rating = X_cliente['CODRATING_CEDENTE'].mode()[0]
+    if 'CODRATING_CEDENTE' in df_cliente_pandas.columns:
+        rating = df_cliente_pandas['CODRATING_CEDENTE'].mode()[0]
         # Supondo que ratings piores são letras maiores (C, D, E...)
         if rating > 'B':
             print(f"- ALERTA: O rating predominante do cliente é '{rating}', considerado de alto risco.")
 
     # Análise de features numéricas
-    # (Em um cenário real, compararíamos com a média/mediana da população de treino)
-    if 'PRAZO' in X_cliente.columns and X_cliente['PRAZO'].mean() > 90:
-        print(f"- ATENÇÃO: O prazo médio dos títulos ({X_cliente['PRAZO'].mean():.0f} dias) é elevado.")
+    if 'PRAZO' in df_cliente_pandas.columns and df_cliente_pandas['PRAZO'].mean() > 90:
+        print(f"- ATENÇÃO: O prazo médio dos títulos ({df_cliente_pandas['PRAZO'].mean():.0f} dias) é elevado.")
 
-    if 'VALOR' in X_cliente.columns and X_cliente['VALOR'].mean() > 10000:
-        print(f"- INFORMATIVO: O valor médio dos títulos é alto (R$ {X_cliente['VALOR'].mean():,.2f}).")
+    if 'VALOR' in df_cliente_pandas.columns and df_cliente_pandas['VALOR'].mean() > 10000:
+        print(f"- INFORMATIVO: O valor médio dos títulos é alto (R$ {df_cliente_pandas['VALOR'].mean():,.2f}).")
 
     if score_medio < 0.15:
         print("\nConclusão: Risco Baixo. O cliente apresenta um perfil de crédito saudável.")
@@ -202,6 +197,32 @@ def gerar_score_e_alertas(cpf_cnpj, df_mestra_spark, model_pipeline, model_featu
 
     print("\n--- Detalhes dos Títulos ---")
     display(df_cliente_pandas[['CODTITULO', 'VALOR', 'VENCIMENTO', 'SCORE_RISCO']])
+
+
+def gerar_score_e_alertas(cpf_cnpj, df_mestra_spark, model_pipeline, model_features):
+    """Calcula o score de risco para os títulos em aberto de um cliente, exibe os resultados e gera alertas.
+
+    A função filtra a tabela mestra para um CPF/CNPJ específico, seleciona apenas os títulos
+    em aberto e aplica o modelo de machine learning treinado para prever a probabilidade de
+    inadimplência (score de risco) de cada título. Ao final, exibe um resumo com o score
+    médio, os principais fatores de risco identificados e uma lista detalhada dos títulos
+    com seus respectivos scores.
+
+    Args:
+        cpf_cnpj (str): O CPF ou CNPJ do cliente a ser analisado.
+        df_mestra_spark (pyspark.sql.DataFrame): O DataFrame Spark contendo os dados
+                                                 consolidados de títulos, operações e clientes.
+        model_pipeline (sklearn.pipeline.Pipeline): O pipeline do modelo treinado (joblib),
+                                                    pronto para fazer previsões.
+        model_features (list): Uma lista de strings com os nomes das features que o
+                               modelo espera, na ordem correta.
+    """
+    df_resultado = calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_features)
+
+    if df_resultado is not None:
+        exibir_analise_risco(df_resultado, cpf_cnpj)
+    else:
+        print(f"Nenhum título em aberto encontrado para o cliente {cpf_cnpj} com os critérios aplicados.")
 
 # METADATA ********************
 
