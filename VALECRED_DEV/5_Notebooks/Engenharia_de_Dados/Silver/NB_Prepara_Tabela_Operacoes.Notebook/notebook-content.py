@@ -83,8 +83,98 @@ target_lakehouse = "LH_Silver"
 
 # CELL ********************
 
+def get_operacoes_schema(df):
+    return df.select(
+        col("CODOPERACAO").alias("cod_operacao"),
+        col("CODCLIENTE").alias("cod_cliente"),
+        col("CODEMPRESA").alias("cod_empresa"),
+        col("DATAINCLUSAO").alias("data_inclusao"),
+        col("DATAALTERACAO").alias("data_alteracao"),
+        col("DATAANALISE").alias("data_analise"),
+        col("STATUSACEITE").alias("status_aceite"),
+        col("STATUSANALISE").alias("status_analise"),
+        col("CODBROKER").alias("cod_broker"),
+        col("NBORDERO").alias("nbordero"),
+        col("NOTASERVICO").alias("nota_servico"),
+        col("TTO").alias("tto"),
+        col("STTO").alias("stto"),
+        col("chave_produto"),
+        col("TOTRETENCAO").alias("valor_retido"),
+        col("TOTDES").alias("valor_desembolsado"),
+        col("TOTFAC").alias("valor_de_face"),
+        col("TOTDCP").alias("desagio"),
+        col("TOTTAR").alias("total_de_tarifas"),
+        col("TOTPENDENCIAS").alias("valor_pendencias"),
+        col("TOTRECOMPRA").alias("valor_recomprado"),
+        col("FATOR").alias("taxa"),
+        col("CODINDEFERIMENTO").alias("cod_indeferimento"),
+        col("USUAINCLUSAO").alias("usua_inclusao"),
+        col("USUASTANALISE").alias("usua_st_analise"),
+        col("USUATRAVA").alias("usua_trava"),
+        col("TAC").alias("tac"),
+        col("TOTTAXAADM").alias("valor_taxa_adm"),
+        col("TOTADVAL").alias("valor_advalorem"),
+        col("NDOCSRECOMPRA").alias("n_docs_recompra"),
+        col("TARIFA").alias("tarifa"),
+        col("NDOCS").alias("n_docs"),
+        col("TARIFARECOMPRA").alias("tarifa_recompra")
+    )
+
+def transform_operacoes(df, key_columns_operacoes):
+    df_corrigido = df.withColumn("TTO_corrigido", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
+
+    windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
+    df_ranked = df_corrigido.withColumn("row_num", row_number().over(windowSpec))
+    df_dedup = df_ranked.filter(col("row_num") == 1).drop("row_num")
+
+    df_com_chave = df_dedup.withColumn("chave_produto", concat(col("TTO"), coalesce(col("STTO"),lit(""))))
+    return get_operacoes_schema(df_com_chave)
+
+def process_incremental_operacoes(source_table, output_path, key_columns_operacoes):
+    print("Modo Incremental: Operações")
+    delta_table_ops = DeltaTable.forPath(spark, output_path)
+
+    # 1. Watermark
+    watermark_row = spark.read.format("delta").load(output_path) \
+        .select(greatest(max("data_inclusao"), max("data_alteracao")).alias("max_date")) \
+        .collect()
+
+    last_watermark = "1900-01-01"
+    if watermark_row and watermark_row[0][0]:
+        last_watermark = watermark_row[0][0]
+
+    print(f"Watermark Operações: {last_watermark}")
+
+    # 2. Read Bronze Filtered
+    df_bronze_ops = spark.read.table(source_table) \
+        .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
+
+    if df_bronze_ops.count() > 0:
+        # 3. Transform & Deduplicate Batch
+        df_final_batch = transform_operacoes(df_bronze_ops, key_columns_operacoes)
+
+        # 4. Merge
+        # Compatibility check for merge condition (handles schema migration if target is still old schema)
+        merge_condition = "t.cod_operacao = s.cod_operacao"
+
+        delta_table_ops.alias("t").merge(
+            df_final_batch.alias("s"),
+            merge_condition
+        ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
+        print("Merge Operações concluído.")
+    else:
+        print("Sem novas operações.")
+
+def process_full_operacoes(source_table, output_path, key_columns_operacoes):
+    print("Modo Full Load: Operações")
+    df_bronze_ops = spark.read.table(source_table)
+
+    df_final = transform_operacoes(df_bronze_ops, key_columns_operacoes)
+
+    df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path)
+
 def process_operacoes():
-    source_table_operacoes = "tab_operacoes"
+    source_table_operacoes = f"{source_lakehouse}.tab_operacoes"
     target_table_operacoes = "staging_operacoes_limpa"
     output_path_operacoes = f"{target_lakehouse}.{target_table_operacoes}"
 
@@ -92,110 +182,20 @@ def process_operacoes():
 
     key_columns_operacoes = ["CODOPERACAO"]
 
-    # Schema de Seleção
-    def select_operacoes(df):
-        return df.select(
-            col("CODOPERACAO").alias("cod_operacao"),
-            col("CODCLIENTE").alias("cod_cliente"),
-            col("CODEMPRESA").alias("cod_empresa"),
-            col("DATAINCLUSAO").alias("data_inclusao"),
-            col("DATAALTERACAO").alias("data_alteracao"),
-            col("DATAANALISE").alias("data_analise"),
-            col("STATUSACEITE").alias("status_aceite"),
-            col("STATUSANALISE").alias("status_analise"),
-            col("CODBROKER").alias("cod_broker"),
-            col("NBORDERO").alias("nbordero"),
-            col("NOTASERVICO").alias("nota_servico"),
-            col("TTO").alias("tto"),
-            col("STTO").alias("stto"),
-            col("chave_produto"),
-            col("TOTRETENCAO").alias("valor_retido"),
-            col("TOTDES").alias("valor_desembolsado"),
-            col("TOTFAC").alias("valor_de_face"),
-            col("TOTDCP").alias("desagio"),
-            col("TOTTAR").alias("total_de_tarifas"),
-            col("TOTPENDENCIAS").alias("valor_pendencias"),
-            col("TOTRECOMPRA").alias("valor_recomprado"),
-            col("FATOR").alias("taxa"),
-            col("CODINDEFERIMENTO").alias("cod_indeferimento"),
-            col("USUAINCLUSAO").alias("usua_inclusao"),
-            col("USUASTANALISE").alias("usua_st_analise"),
-            col("USUATRAVA").alias("usua_trava"),
-            col("TAC").alias("tac"),
-            col("TOTTAXAADM").alias("valor_taxa_adm"),
-            col("TOTADVAL").alias("valor_advalorem"),
-            col("NDOCSRECOMPRA").alias("n_docs_recompra"),
-            col("TARIFA").alias("tarifa"),
-            col("NDOCS").alias("n_docs"),
-            col("TARIFARECOMPRA").alias("tarifa_recompra")
-        )
-
     is_incremental_ops = False
     if DeltaTable.isDeltaTable(spark, output_path_operacoes):
-        if "cod_operacao" in spark.read.format("delta").load(output_path_operacoes).columns:
-            is_incremental_ops = True
-        else:
-            print("Schema mismatch for Operacoes. Forcing Full Load.")
+        try:
+            if "cod_operacao" in spark.read.format("delta").load(output_path_operacoes).columns:
+                is_incremental_ops = True
+            else:
+                print("Schema mismatch for Operacoes. Forcing Full Load.")
+        except Exception:
+             print("Error checking delta table schema. Forcing Full Load.")
 
     if is_incremental_ops:
-        print("Modo Incremental: Operações")
-        delta_table_ops = DeltaTable.forPath(spark, output_path_operacoes)
-        
-        # 1. Watermark
-        watermark_row = spark.read.format("delta").load(output_path_operacoes) \
-            .select(greatest(max("data_inclusao"), max("data_alteracao")).alias("max_date")) \
-            .collect()
-
-        last_watermark = "1900-01-01"
-        if watermark_row and watermark_row[0][0]:
-            last_watermark = watermark_row[0][0]
-
-        print(f"Watermark Operações: {last_watermark}")
-        
-        # 2. Read Bronze Filtered
-        df_bronze_ops = spark.read.table(f"{source_lakehouse}.{source_table_operacoes}") \
-            .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
-
-        if df_bronze_ops.count() > 0:
-            # 3. Transform & Deduplicate Batch
-            df_corrigido = df_bronze_ops.withColumn("TTO_corrigido", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
-
-            windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
-            df_ranked = df_corrigido.withColumn("row_num", row_number().over(windowSpec))
-            df_dedup = df_ranked.filter(col("row_num") == 1).drop("row_num")
-
-            df_com_chave = df_dedup.withColumn("chave_produto", concat(col("TTO"), coalesce(col("STTO"),lit(""))))
-            df_final_batch = select_operacoes(df_com_chave)
-
-            # 4. Merge
-            # Compatibility check for merge condition (handles schema migration if target is still old schema)
-            merge_condition = "t.cod_operacao = s.cod_operacao"
-
-            delta_table_ops.alias("t").merge(
-                df_final_batch.alias("s"),
-                merge_condition
-            ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
-            print("Merge Operações concluído.")
-        else:
-            print("Sem novas operações.")
-
+        process_incremental_operacoes(source_table_operacoes, output_path_operacoes, key_columns_operacoes)
     else:
-        print("Modo Full Load: Operações")
-        df_bronze_ops = spark.read.table(f"{source_lakehouse}.{source_table_operacoes}")
-        
-        # Tratamento TTO específico
-        df_corrigido = df_bronze_ops.withColumn("TTO_corrigido", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
-        
-        # Deduplicação
-        windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
-        df_ranked = df_corrigido.withColumn("row_num", row_number().over(windowSpec))
-        df_dedup = df_ranked.filter(col("row_num") == 1).drop("row_num")
-        
-        df_com_chave = df_dedup.withColumn("chave_produto", concat(col("TTO"), coalesce(col("STTO"), lit(""))))
-        
-        df_final = select_operacoes(df_com_chave)
-
-        df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_operacoes)
+        process_full_operacoes(source_table_operacoes, output_path_operacoes, key_columns_operacoes)
 
 
 # METADATA ********************
