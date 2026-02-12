@@ -309,6 +309,9 @@ def process_devolucoes():
 
 # CELL ********************
 
+def get_tac_variations():
+    return ["TAC  M", "TAC MOP", "TAC M.", "TACM", "TACA M", "TAC M 300,00", "TAC"]
+
 def process_tac_m():
     print("Processando TAC M...")
     df_tac = spark.read.table(f"{source_lakehouse}.tab_operacoes_tarifas_extras")
@@ -318,11 +321,13 @@ def process_tac_m():
             col("CODTARIFAEXTRA").alias("cod_tarifa_extra"), col("CODOPERACAO").alias("cod_operacao"), col("DESCRICAO").alias("descricao"), col("TOTAL").alias("total"), col("DATAINCLUSAO").alias("data_inclusao"), col("USUAINCLUSAO").alias("usua_inclusao")
         )
 
+    tac_variations = get_tac_variations()
+
     df_tac_cleaned = df_tac_renamed \
         .withColumn("descricao", upper(col("descricao"))) \
         .withColumn("descricao", regexp_replace(col("descricao"), "^\\s+|\\s+$", "")) \
         .withColumn("descricao",
-            when(col("descricao") == "TAC  M", lit("TAC M")).when(col("descricao") == "TAC MOP", lit("TAC M")).when(col("descricao") == "TAC M.", lit("TAC M")).when(col("descricao") == "TACM", lit("TAC M")).when(col("descricao") == "TACA M", lit("TAC M")).when(col("descricao") == "TAC M 300,00", lit("TAC M")).when(col("descricao") == "TAC", lit("TAC M")).otherwise(col("descricao"))
+            when(col("descricao").isin(tac_variations), lit("TAC M")).otherwise(col("descricao"))
         ) \
         .filter(col("descricao") == "TAC M") \
         .orderBy(col("data_inclusao").desc())

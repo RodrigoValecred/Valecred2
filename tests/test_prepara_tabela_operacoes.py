@@ -75,5 +75,49 @@ class TestDecodeHtmlEntities(unittest.TestCase):
         val = 3.14
         self.assertEqual(self.decode_html_entities(val), val)
 
+class TestTacVariations(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting get_tac_variations from {NOTEBOOK_PATH}")
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "get_tac_variations")
+
+        if func_source:
+            local_scope = {}
+            exec(func_source, globals(), local_scope)
+            cls.get_tac_variations = staticmethod(local_scope["get_tac_variations"])
+        else:
+            cls.get_tac_variations = None
+            print("WARNING: get_tac_variations function not found in file.")
+
+    def test_function_exists(self):
+        """Test that the function was successfully extracted."""
+        self.assertIsNotNone(self.get_tac_variations, "Function get_tac_variations not found in notebook file.")
+
+    def test_variations_list_content(self):
+        """Test that the variations list contains expected values."""
+        if not self.get_tac_variations:
+            self.skipTest("Function not found")
+
+        variations = self.get_tac_variations()
+        self.assertIsInstance(variations, list)
+
+        expected_items = ["TAC  M", "TAC MOP", "TAC M.", "TACM", "TACA M", "TAC M 300,00", "TAC"]
+        for item in expected_items:
+            self.assertIn(item, variations)
+
+        # Verify no unexpected items if the list is intended to be exact
+        self.assertEqual(len(variations), len(expected_items))
+        self.assertEqual(set(variations), set(expected_items))
+
+    def test_variations_are_strings(self):
+        """Test that all items in the list are strings."""
+        if not self.get_tac_variations:
+            self.skipTest("Function not found")
+
+        variations = self.get_tac_variations()
+        for item in variations:
+            self.assertIsInstance(item, str)
+
 if __name__ == '__main__':
     unittest.main()
