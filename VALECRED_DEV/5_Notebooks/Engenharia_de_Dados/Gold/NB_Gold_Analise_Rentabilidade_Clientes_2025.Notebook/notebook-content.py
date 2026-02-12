@@ -35,7 +35,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.functions import (
-    col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce
+    col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce, year
 )
 from pyspark.sql.window import Window
 
@@ -76,12 +76,24 @@ df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("spread").alias("spread_op")
 )
 
-# Baixas (Para cálculo de Receita de Juros de Mora Pagos)
+# Baixas (Para cálculo de Receita de Juros de Mora Pagos e Recompra)
 # Agregado por Operação
 df_baixas = spark.read.table("LH_Gold.fato_baixas")
 df_baixas_agg = df_baixas.groupBy("cod_operacao").agg(
-    sum("juros").alias("total_juros_mora_pago_op")
+    sum("juros").alias("total_juros_mora_pago_op"),
+    sum("tarifa_recompra").alias("total_tarifa_recompra_pago_op")
 )
+
+# Prorrogações (Para cálculo de Tarifas de Prorrogação)
+# Agregado por Cliente (pois Op PR != Op Origem)
+try:
+    df_prorrogacao = spark.read.table("LH_Gold.fato_operacoes_prorrogacao")
+    # Filtrar para Safra 2025 (pela data de inclusão da prorrogação)
+    df_prorrogacao_agg = df_prorrogacao.filter(year(col("data_inclusao")) == 2025) \
+        .groupBy("cod_cliente").agg(sum("tarifa_prorrogacao").alias("receita_tarifa_prorrogacao_cliente"))
+except:
+    print("Aviso: Tabela fato_operacoes_prorrogacao não encontrada ou sem tarifa. Usando placeholder.")
+    df_prorrogacao_agg = None
 
 # Dimensão Clientes (Para Nome e Risco Atual)
 df_clientes = spark.read.table("LH_Gold.dim_clientes") \
@@ -130,6 +142,11 @@ if df_score:
 else:
     df_base_cliente = df_base_cliente.withColumn("qualidade_cliente", lit(None))
 
+if df_prorrogacao_agg:
+    df_base_cliente = df_base_cliente.join(df_prorrogacao_agg, "cod_cliente", "left")
+else:
+    df_base_cliente = df_base_cliente.withColumn("receita_tarifa_prorrogacao_cliente", lit(0))
+
 # 4. Cálculo de Indicadores Finais (Granularidade: Operação)
 
 # Janela para Cálculos Médios do Cliente (independente do produto/operação)
@@ -143,10 +160,11 @@ df_report = df_base_cliente \
     .withColumn("receita_total_op", 
                 coalesce(col("desagio"), lit(0)) + 
                 coalesce(col("total_de_tarifas"), lit(0)) + 
-                coalesce(col("total_juros_mora_pago_op"), lit(0))) \
+                coalesce(col("total_juros_mora_pago_op"), lit(0)) +
+                coalesce(col("total_tarifa_recompra_pago_op"), lit(0))) \
     .withColumn("soma_valor_prazo_cliente", sum("total_valor_prazo_op").over(w_cliente)) \
     .withColumn("receita_desagio_cliente", sum("desagio").over(w_cliente)) \
-    .withColumn("receita_total_cliente", sum("receita_total_op").over(w_cliente)) \
+    .withColumn("receita_total_cliente", sum("receita_total_op").over(w_cliente) + coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0))) \
     .withColumn("custo_financeiro_cliente", sum("custo_financeiro_op").over(w_cliente)) \
     .withColumn("spread_cliente", sum("spread_op").over(w_cliente)) \
     .withColumn("volume_operado_cliente", sum("valor_de_face").over(w_cliente)) \
@@ -190,6 +208,7 @@ df_report = df_base_cliente \
         col("desagio").alias("receita_desagio_op"),
         col("total_de_tarifas").alias("receita_tarifas_op"),
         col("total_juros_mora_pago_op").alias("receita_juros_mora_op"),
+        coalesce(col("total_tarifa_recompra_pago_op"), lit(0)).alias("receita_recompra_op"),
         col("receita_total_op"),
         col("custo_financeiro_op").alias("custo_financeiro"),
         col("spread_op").alias("spread"),
@@ -201,6 +220,7 @@ df_report = df_base_cliente \
         round(col("taxa_media_ponderada_mensal_cliente"), 4).alias("taxa_media_pond_2025_cliente"),
         round(col("prazo_medio_ponderado_cliente"), 2).alias("prazo_medio_ponderado_cliente"),
         round(col("rentabilidade_percentual_cliente"), 4).alias("rentabilidade_perc_cliente"),
+        coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0)).alias("receita_tarifa_prorrogacao_cliente"),
         round(col("receita_total_cliente"), 2).alias("receita_total_cliente"),
         round(col("custo_financeiro_cliente"), 2).alias("custo_financeiro_cliente"),
         round(col("spread_cliente"), 2).alias("spread_cliente")
