@@ -38,8 +38,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, length, regexp_replace, substring, lit
-from pyspark.sql.types import StringType
+from pyspark.sql.functions import col, length, regexp_replace, substring
 
 # METADATA ********************
 
