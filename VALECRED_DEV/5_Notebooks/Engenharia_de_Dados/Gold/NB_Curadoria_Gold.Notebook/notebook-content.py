@@ -846,12 +846,13 @@ df_ops_pr = df_operacoes_source.filter(col("tto") == "PR")
 # M: DATAACEITE, DATAENVIOEMAIL, STTO, FATOR, TARIFA, TARIFARECOMPRA, TAC, NDOCS, NDOCSRECOMPRA, TOTADVAL, TOTTAXAADM, TOTTAR,
 # APROVACAO1, DATAALTERACAO, CODINDEFERIMENTO, CONTRATOFISICO, TAXACADASTRO, MOTIVO INDEFERIMENTO, GRUPO MOTIVO INDEFERIMENTO
 cols_to_remove_pr = [
-    "stto", "taxa", "tarifa", "tarifa_recompra", "tac", "n_docs", "n_docs_recompra",
+    "stto", "taxa", "tarifa_recompra", "tac", "n_docs", "n_docs_recompra",
     "valor_advalorem", "valor_taxa_adm", "total_de_tarifas", "data_alteracao", "cod_indeferimento",
     "data_aceite", "data_envio_email", "aprovacao1", "contrato_fisico", "taxa_cadastro"
 ]
 # Colunas que podem não existir no DF Silver (Ignorando erro se não existirem)
-df_ops_pr_clean = df_ops_pr.drop(*cols_to_remove_pr)
+df_ops_pr_clean = df_ops_pr.drop(*cols_to_remove_pr) \
+    .withColumnRenamed("tarifa", "tarifa_prorrogacao")
 
 # Join com Boletos (LH_Silver.staging_boletos_titulos)
 # Precisamos carregar a tabela boletos, pois não foi carregada no início explicitamente (apenas df_titulos_limpa)
