@@ -44,7 +44,7 @@ from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
     lead, date_add, lag, max, coalesce, date_sub, array_contains, create_map, split,
-    to_date, trim, udf
+    to_date, trim, udf, pandas_udf
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
@@ -52,6 +52,7 @@ from notebookutils import mssparkutils
 import datetime
 import re
 import unicodedata
+import pandas as pd
 
 def normalize_col(col_name):
     nfkd_form = unicodedata.normalize('NFKD', str(col_name))
@@ -367,16 +368,17 @@ def process_estudo_op():
 
 # CELL ********************
 
-# 1. Função Python para decodificar entidades HTML (&Ccedil; -> Ç, &nbsp; -> espaço)
-# Isso substitui aquele dicionário manual gigante e cobre TODOS os casos possíveis.
-def decode_html_entities(text):
+# 1. Função Pandas UDF para decodificar entidades HTML (&Ccedil; -> Ç, &nbsp; -> espaço)
+# Isso substitui aquele dicionário manual gigante e cobre TODOS os casos possíveis com melhor performance (Arrow).
+@pandas_udf(StringType())
+def unescape_udf(text: pd.Series) -> pd.Series:
     import html
-    if text:
-        return html.unescape(text)
-    return text
+    # Usa Arrow (Pandas UDF) para evitar overhead de serialização Python/JVM linha a linha.
+    # Aplica html.unescape apenas se o valor for string (preserva None/NaN).
+    return text.apply(lambda x: html.unescape(x) if isinstance(x, str) else x)
 
-# Registra a função para o Spark usar
-unescape_udf = udf(decode_html_entities, StringType())
+# Registra a função para o Spark usar (já feito pelo decorator)
+# unescape_udf já é invocável no contexto do Spark
 
 # METADATA ********************
 
