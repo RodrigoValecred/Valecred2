@@ -38,7 +38,7 @@ spark.conf.set("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
 df_titulos = spark.read.table("LH_Silver.staging_titulos")
 df_operacoes = spark.read.table("LH_Silver.staging_operacoes")
 df_cedentes = spark.read.table("LH_Silver.staging_clientes")
-from pyspark.sql.functions import col, when, sum, count, lit
+from pyspark.sql.functions import col, sum, lit
 from functools import reduce
 
 # METADATA ********************
