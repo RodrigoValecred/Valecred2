@@ -67,6 +67,17 @@ def normalize_col(col_name):
     col_name = re.sub(r'_+', '_', col_name)
     return col_name.strip('_')
 
+def check_is_incremental(spark, output_path, required_col):
+    if DeltaTable.isDeltaTable(spark, output_path):
+        try:
+            if required_col in spark.read.format("delta").load(output_path).columns:
+                return True
+            else:
+                print(f"Schema mismatch for {output_path}. Forcing Full Load.")
+        except Exception:
+             print(f"Error checking delta table schema for {output_path}. Forcing Full Load.")
+    return False
+
 source_lakehouse = "LH_Bronze"
 target_lakehouse = "LH_Silver"
 
@@ -182,17 +193,7 @@ def process_operacoes():
 
     key_columns_operacoes = ["CODOPERACAO"]
 
-    is_incremental_ops = False
-    if DeltaTable.isDeltaTable(spark, output_path_operacoes):
-        try:
-            if "cod_operacao" in spark.read.format("delta").load(output_path_operacoes).columns:
-                is_incremental_ops = True
-            else:
-                print("Schema mismatch for Operacoes. Forcing Full Load.")
-        except Exception:
-             print("Error checking delta table schema. Forcing Full Load.")
-
-    if is_incremental_ops:
+    if check_is_incremental(spark, output_path_operacoes, "cod_operacao"):
         process_incremental_operacoes(source_table_operacoes, output_path_operacoes, key_columns_operacoes)
     else:
         process_full_operacoes(source_table_operacoes, output_path_operacoes, key_columns_operacoes)
@@ -211,88 +212,63 @@ def process_operacoes():
 
 # CELL ********************
 
+def transform_devolucoes(df):
+    window_devolucoes = Window.partitionBy("CODTITULO").orderBy(col("DATAALTERACAO").desc())
+    df_dedup = df.withColumn("row_num", row_number().over(window_devolucoes)) \
+        .filter(col("row_num") == 1).drop("row_num") \
+        .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
+        .withColumnRenamed("CODTITULO", "cod_titulo") \
+        .withColumnRenamed("DATAINCLUSAO", "data_inclusao") \
+        .withColumnRenamed("CODOPERACAO", "cod_operacao")
+
+    # Garantir snake_case em todas as colunas
+    return df_dedup.select([col(c).alias(c.lower()) for c in df_dedup.columns])
+
+def process_incremental_devolucoes(source_table, output_path):
+    print("Modo Incremental: Devoluções")
+    delta_table_dev = DeltaTable.forPath(spark, output_path)
+
+    watermark_row = spark.read.format("delta").load(output_path) \
+        .agg(max("data_inclusao").alias("max_date")).collect()
+    last_watermark = watermark_row[0][0] if watermark_row and watermark_row[0][0] else "1900-01-01"
+
+    print(f"Watermark Devoluções: {last_watermark}")
+
+    df_bronze_dev = spark.read.table(source_table) \
+        .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
+
+    if df_bronze_dev.count() > 0:
+        df_final = transform_devolucoes(df_bronze_dev)
+
+        delta_table_dev.alias("t").merge(
+            df_final.alias("s"),
+            "t.cod_titulo = s.cod_titulo"
+        ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
+        print("Merge Devoluções concluído.")
+    else:
+        print("Sem novas devoluções.")
+
+def process_full_devolucoes(source_table, output_path):
+    print("Modo Full Load: Devoluções")
+    df_bronze_devolucoes = spark.read.table(source_table)
+    df_transformed_devolucoes = transform_devolucoes(df_bronze_devolucoes)
+    df_transformed_devolucoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path)
+
 def process_devolucoes():
-    source_table_devolucoes = "tab_operacoes_devolucoes"
+    source_table_devolucoes = f"{source_lakehouse}.tab_operacoes_devolucoes"
     target_table_devolucoes = "staging_operacoes_devolucoes_limpa"
     output_path_devolucoes = f"{target_lakehouse}.{target_table_devolucoes}"
 
     print(f"Iniciando processamento de {target_table_devolucoes}...")
 
-    is_incremental_dev = False
-    if DeltaTable.isDeltaTable(spark, output_path_devolucoes):
-        if "cod_titulo" in spark.read.format("delta").load(output_path_devolucoes).columns:
-            is_incremental_dev = True
-        else:
-            print("Schema mismatch for Devolucoes. Forcing Full Load.")
-
-    if is_incremental_dev:
-        print("Modo Incremental: Devoluções")
-        delta_table_dev = DeltaTable.forPath(spark, output_path_devolucoes)
-        
+    if check_is_incremental(spark, output_path_devolucoes, "cod_titulo"):
         try:
-            watermark_row = spark.read.format("delta").load(output_path_devolucoes) \
-                .agg(max("data_inclusao").alias("max_date")).collect()
-            last_watermark = watermark_row[0][0] if watermark_row and watermark_row[0][0] else "1900-01-01"
-
-            print(f"Watermark Devoluções: {last_watermark}")
-            
-            df_bronze_dev = spark.read.table(f"{source_lakehouse}.{source_table_devolucoes}") \
-                .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
-
-            if df_bronze_dev.count() > 0:
-                window_devolucoes = Window.partitionBy("CODTITULO").orderBy(col("DATAALTERACAO").desc())
-                df_dedup = df_bronze_dev.withColumn("row_num", row_number().over(window_devolucoes)) \
-                    .filter(col("row_num") == 1).drop("row_num") \
-                    .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
-                    .withColumnRenamed("CODTITULO", "cod_titulo") \
-                    .withColumnRenamed("DATAINCLUSAO", "data_inclusao") \
-                    .withColumnRenamed("CODOPERACAO", "cod_operacao")
-
-                # Garantir snake_case em todas as colunas
-                df_dedup = df_dedup.select([col(c).alias(c.lower()) for c in df_dedup.columns])
-
-                delta_table_dev.alias("t").merge(
-                    df_dedup.alias("s"),
-                    "t.cod_titulo = s.cod_titulo"
-                ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
-                print("Merge Devoluções concluído.")
-            else:
-                print("Sem novas devoluções.")
-
+            process_incremental_devolucoes(source_table_devolucoes, output_path_devolucoes)
         except Exception as e:
             print(f"Erro no incremental (provavelmente falta de coluna de data): {e}. Fallback para Full Load.")
-            # Fallback Full
-            df_bronze_devolucoes = spark.read.table(f"{source_lakehouse}.{source_table_devolucoes}")
-            window_devolucoes = Window.partitionBy("CODTITULO").orderBy(col("DATAALTERACAO").desc())
-            df_transformed_devolucoes = df_bronze_devolucoes \
-                .withColumn("row_num", row_number().over(window_devolucoes)) \
-                .filter(col("row_num") == 1).drop("row_num") \
-                .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
-                .withColumnRenamed("CODTITULO", "cod_titulo") \
-                .withColumnRenamed("DATAINCLUSAO", "data_inclusao") \
-                .withColumnRenamed("CODOPERACAO", "cod_operacao")
-
-            # Garantir snake_case em todas as colunas
-            df_transformed_devolucoes = df_transformed_devolucoes.select([col(c).alias(c.lower()) for c in df_transformed_devolucoes.columns])
-
-            df_transformed_devolucoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_devolucoes)
-
+            process_full_devolucoes(source_table_devolucoes, output_path_devolucoes)
     else:
-        print("Modo Full Load: Devoluções")
-        df_bronze_devolucoes = spark.read.table(f"{source_lakehouse}.{source_table_devolucoes}")
-        window_devolucoes = Window.partitionBy("CODTITULO").orderBy(col("DATAALTERACAO").desc())
-        df_transformed_devolucoes = df_bronze_devolucoes \
-            .withColumn("row_num", row_number().over(window_devolucoes)) \
-            .filter(col("row_num") == 1).drop("row_num") \
-            .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
-            .withColumnRenamed("CODTITULO", "cod_titulo") \
-            .withColumnRenamed("DATAINCLUSAO", "data_inclusao") \
-            .withColumnRenamed("CODOPERACAO", "cod_operacao")
-
-        # Garantir snake_case em todas as colunas
-        df_transformed_devolucoes = df_transformed_devolucoes.select([col(c).alias(c.lower()) for c in df_transformed_devolucoes.columns])
-
-        df_transformed_devolucoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_devolucoes)
+        process_full_devolucoes(source_table_devolucoes, output_path_devolucoes)
 
 
 # METADATA ********************
