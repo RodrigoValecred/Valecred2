@@ -247,12 +247,12 @@ print("Cópia de arquivos para o ambiente local concluída.")
 
 print("\n--- Instalando dependências do script ---")
 requirements_path = os.path.join(LOCAL_PROCESSOR_DIR, "requirements.txt")
-install_command = f"pip install -r {requirements_path}"
+install_command = ["pip", "install", "-r", requirements_path]
 
 print(f"Executando comando: {install_command}")
 install_result = subprocess.run(
     install_command,
-    shell=True,
+    shell=False,
     capture_output=True,
     text=True,
     timeout=300  # Timeout de 5 minutos para a instalação
@@ -272,10 +272,8 @@ else:
 print("\n--- Executando o script de extração ---")
 script_path = os.path.join(LOCAL_PROCESSOR_DIR, "extract_dump.py")
 local_zip_files = [os.path.join(LOCAL_INPUT_DIR, os.path.basename(f)) for f in zip_files_source]
-local_zip_files_str = " ".join(local_zip_files)
-
 # O script espera ser executado do diretório que contém a pasta 'data', então mudamos o CWD
-command = f"python {os.path.basename(script_path)} {LOCAL_OUTPUT_DIR} {local_zip_files_str}"
+command = ["python", os.path.basename(script_path), LOCAL_OUTPUT_DIR] + local_zip_files
 
 print(f"Comando a ser executado em '{LOCAL_PROCESSOR_DIR}':")
 print(command)
@@ -284,7 +282,7 @@ try:
     # Executa o script. O timeout é longo para permitir o processamento.
     result = subprocess.run(
         command,
-        shell=True,
+        shell=False,
         capture_output=True,
         text=True,
         timeout=3600,  # Timeout de 1 hora
