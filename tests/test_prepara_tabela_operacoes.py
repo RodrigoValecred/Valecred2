@@ -6,45 +6,12 @@ import os
 # Path to the notebook file
 NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py"
 
-def extract_function_from_file(filepath, function_name):
-    """
-    Extracts the source code of a function from a python file using AST.
-    """
-    if not os.path.exists(filepath):
-        # Allow running from root or tests dir
-        filepath = os.path.join("..", filepath)
-        if not os.path.exists(filepath):
-             # Try absolute path based on current script dir
-             pass
-
-    # Reset to original if not found via relative
-    if not os.path.exists(filepath):
-         # Just use the original path, maybe we are at root
-         filepath = NOTEBOOK_PATH
-
-    if not os.path.exists(filepath):
-        print(f"File not found at: {filepath}")
-        return None
-
-    with open(filepath, 'r', encoding='utf-8') as f:
-        source = f.read()
-
-    try:
-        tree = ast.parse(source)
-    except SyntaxError as e:
-        print(f"Syntax error parsing {filepath}: {e}")
-        return None
-
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == function_name:
-            if hasattr(ast, 'get_source_segment'):
-                return ast.get_source_segment(source, node)
-            else:
-                lines = source.splitlines()
-                start = node.lineno - 1
-                end = node.end_lineno
-                return "\n".join(lines[start:end])
-    return None
+try:
+    from tests.notebook_utils import extract_function_from_file
+except ImportError:
+    # Try importing directly if running from within tests directory
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from notebook_utils import extract_function_from_file
 
 class TestDecodeHtmlEntities(unittest.TestCase):
 
