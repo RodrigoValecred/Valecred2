@@ -31,6 +31,7 @@ def install(package):
 install("fastapi")
 install("uvicorn")
 install("requests")
+install("httpx")
 install("typing_extensions>=4.10.0")
 
 # METADATA ********************
@@ -44,14 +45,12 @@ install("typing_extensions>=4.10.0")
 
 import fastapi
 from fastapi import HTTPException
-import uvicorn
+from fastapi.testclient import TestClient
 import requests
-import multiprocessing
-import time
 import json
 
-def run_server():
-    """Defines and runs the FastAPI application."""
+def create_app():
+    """Defines the FastAPI application."""
     app = fastapi.FastAPI()
 
     @app.get("/consulta_cerc")
@@ -74,29 +73,25 @@ def run_server():
         else:
             return {"cpf_cnpj": cpf_cnpj, "duplicatas": "duplicatas encontradas"}
             
-    uvicorn.run(app, host="127.0.0.1", port=8001, log_level="info")
+    return app
 
 if __name__ == '__main__':
-    print("Iniciando o servidor da API em um processo separado...")
-    server_process = multiprocessing.Process(target=run_server)
-    server_process.start()
+    print("Inicializando a aplicação e o cliente de teste...")
+    app = create_app()
+    client = TestClient(app)
     
-    time.sleep(5) 
-    
-    print("Servidor iniciado. Executando testes...")
-    
-    api_url = "http://127.0.0.1:8001"
+    print("Executando testes com TestClient (sem servidor HTTP exposto)...")
     
     try:
         print("Executando Cenário 1...")
-        response = requests.get(f"{api_url}/consulta_cerc?cpf_cnpj=14630809000101")
+        response = client.get("/consulta_cerc?cpf_cnpj=14630809000101")
         response.raise_for_status()
         data = response.json()
         print(f"Cenário 1: {data}")
         assert data["duplicatas"] == "nenhuma duplicata encontrada"
 
         print("\nExecutando Cenário 2...")
-        response = requests.get(f"{api_url}/consulta_cerc?cpf_cnpj=12345678901234")
+        response = client.get("/consulta_cerc?cpf_cnpj=12345678901234")
         response.raise_for_status()
         data = response.json()
         print(f"Cenário 2: {data}")
@@ -104,25 +99,19 @@ if __name__ == '__main__':
 
         print("\nExecutando Cenário 3 (Validação de Segurança)...")
         # Envia input inválido (não numérico)
-        response = requests.get(f"{api_url}/consulta_cerc?cpf_cnpj=invalid_input")
+        response = client.get("/consulta_cerc?cpf_cnpj=invalid_input")
         print(f"Cenário 3 (Input Inválido): Status Code {response.status_code}")
         assert response.status_code == 400
 
         # Envia input inválido (tamanho errado)
-        response = requests.get(f"{api_url}/consulta_cerc?cpf_cnpj=123")
+        response = client.get("/consulta_cerc?cpf_cnpj=123")
         print(f"Cenário 3 (Tamanho Errado): Status Code {response.status_code}")
         assert response.status_code == 400
 
         print("\nTestes concluídos com sucesso!")
 
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         print(f"\nErro ao executar os testes: {e}")
-    
-    finally:
-        print("Finalizando o servidor da API...")
-        server_process.terminate()
-        server_process.join()
-        print("Servidor finalizado.")
 
 # METADATA ********************
 
