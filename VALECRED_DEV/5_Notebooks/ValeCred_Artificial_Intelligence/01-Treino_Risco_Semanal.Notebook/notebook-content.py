@@ -108,8 +108,12 @@ print("✅ Engenharia concluída!")
 # ==============================================================================
 print("2. Iniciando Treinamento da IA...")
 
-# Converter para Pandas
-df_pandas = df_features_spark.toPandas()
+# Converter para Pandas (Com Amostragem para Performance)
+# Usamos uma amostra representativa para treinar o Isolation Forest,
+# evitando OOM no driver e reduzindo tempo de transferência.
+# Limitamos a 500k linhas ou 50% dos dados, o que for menor.
+print("📉 Gerando amostra para treinamento (Performance)...")
+df_pandas = df_features_spark.sample(fraction=0.5, seed=42).limit(500000).toPandas()
 
 # Definir as Features
 feature_cols = [
@@ -152,33 +156,34 @@ with mlflow.start_run():
 # ==============================================================================
 # CONSOLIDAÇÃO GOLD: TABELA MESTRA DE PERFIL DO SACADO 🏆
 # ==============================================================================
-print("💾 Salvando Perfil Analítico Unificado (Gold)...")
+print("💾 Salvando Perfil Analítico Unificado (Gold) via Spark...")
 
-df_perfil_unificado = df_pandas.groupby("cpf_cnpj_sacado").agg({
-    'exposicao_acumulada': 'max',      # A maior exposição que ele já teve (ou a última)
-    'prazo_medio_titulos': 'mean',     # O prazo médio que ele costuma operar
-    'media_pagamento_mensal': 'max'    # A capacidade de pagamento (é valor fixo por cliente)
-}).reset_index()
+# OTIMIZAÇÃO: Agregação Distribuída (Spark)
+# Substitui o processamento em Pandas (Single Node) por Spark (Distribuído)
+# Isso permite processar o dataset completo para o perfil, não apenas a amostra de treino.
+df_perfil_unificado_spark = df_features_spark.groupBy("cpf_cnpj_sacado").agg(
+    F.max("exposicao_acumulada").alias("exposicao_maxima_historica"),
+    F.mean("prazo_medio_titulos").alias("prazo_medio_historico"),
+    F.max("media_pagamento_mensal").alias("media_pagamento_mensal")
+)
 
-df_perfil_unificado.columns = [
-    'cpf_cnpj_sacado', 
-    'exposicao_maxima_historica', 
-    'prazo_medio_historico', 
-    'media_pagamento_mensal'
-]
+# Tratamento de Nulos e Tipos (Equivalente ao Pandas)
+df_perfil_unificado_spark = df_perfil_unificado_spark.fillna(0)
 
 cols_float = ['exposicao_maxima_historica', 'prazo_medio_historico', 'media_pagamento_mensal']
 for col in cols_float:
-    # fillna(0) garante que não tem NaN
-    # astype(float) força virar número decimal simples (Double), matando o tipo Decimal problemático
-    df_perfil_unificado[col] = df_perfil_unificado[col].fillna(0).astype(float)
+    df_perfil_unificado_spark = df_perfil_unificado_spark.withColumn(col, F.col(col).cast("double"))
 
-df_perfil_unificado['media_pagamento_mensal'] = df_perfil_unificado['media_pagamento_mensal'].replace(0, 1.0)
+# Regra de Negócio: Pagamento Mensal 0 vira 1.0
+df_perfil_unificado_spark = df_perfil_unificado_spark.withColumn(
+    "media_pagamento_mensal",
+    F.when(F.col("media_pagamento_mensal") == 0, 1.0).otherwise(F.col("media_pagamento_mensal"))
+)
 
-df_perfil_unificado = df_perfil_unificado.fillna(0)
+# Garantia Final de Nulos
+df_perfil_unificado_spark = df_perfil_unificado_spark.fillna(0)
 
-spark.createDataFrame(df_perfil_unificado) \
-    .write \
+df_perfil_unificado_spark.write \
     .mode("overwrite") \
     .format("delta") \
     .option("overwriteSchema", "true") \
