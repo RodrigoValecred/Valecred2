@@ -190,43 +190,31 @@ except Exception as e:
 # ==============================================================================
 print("🕵️ Calculando o motivo principal das anomalias...")
 
-# 1. Calcular médias e desvios padrão globais (do lote atual)
-stats = df_pandas.describe().transpose()
+features_para_analisar = [
+    'vlr_total_sacado', 'prazo_medio_titulos', 'taxa',
+    'concentracao_operacao', 'ratio_alavancagem_interna'
+]
 
-def explicar_anomalia(row):
-    # Se for NORMAL (1), não tem motivo
-    if row['anomaly_score'] == 1:
-        return "Normal"
-    
-    # Se for ANOMALIA (-1), vamos caçar o culpado
-    maior_desvio = 0
-    culpado = "Desconhecido"
-    
-    features_para_analisar = [
-        'vlr_total_sacado', 'prazo_medio_titulos', 'taxa', 
-        'concentracao_operacao', 'ratio_alavancagem_interna'
-    ]
-    
-    for col in features_para_analisar:
-        if col in row.index:
-            # Pega valor da linha
-            valor = row[col]
-            # Pega estatísticas da coluna
-            media = stats.loc[col]['mean']
-            std = stats.loc[col]['std']
-            
-            # Z-Score (Quantos desvios padrão longe da média?)
-            if std > 0:
-                z_score = abs((valor - media) / std)
-            else:
-                z_score = 0
-                
-            # Se esse for o maior desvio até agora, ele é o culpado
-            if z_score > maior_desvio:
-                maior_desvio = z_score
-                culpado = col
+# Filtrar apenas colunas presentes
+present_features = [col for col in features_para_analisar if col in df_pandas.columns]
 
-    # Traduzir o nome técnico para português amigável
+if not present_features:
+    # Se não houver features, fallback seguro
+    df_pandas['motivo_principal'] = np.where(df_pandas['anomaly_score'] == 1, "Normal", "Desconhecido")
+else:
+    # 1. Calcular Z-Scores vetorizados
+    df_features = df_pandas[present_features]
+    means = df_features.mean()
+    stds = df_features.std().replace(0, 1) # Evita divisão por zero
+    
+    z_scores = ((df_features - means) / stds).abs()
+    
+    # 2. Identificar coluna com maior desvio
+    # idxmax retorna o nome da coluna com maior valor
+    culpados_cols = z_scores.idxmax(axis=1)
+    max_z_scores = z_scores.max(axis=1)
+    
+    # 3. Mapear para nomes amigáveis
     mapa_nomes = {
         'vlr_total_sacado': 'Valor Muito Alto',
         'prazo_medio_titulos': 'Prazo Fora do Comum',
@@ -235,10 +223,27 @@ def explicar_anomalia(row):
         'ratio_alavancagem_interna': 'Alavancagem (Liquidez)'
     }
     
-    return mapa_nomes.get(culpado, culpado)
+    culpados_friendly = culpados_cols.map(mapa_nomes).fillna(culpados_cols)
 
-# 2. Aplicar a função linha a linha
-df_pandas['motivo_principal'] = df_pandas.apply(explicar_anomalia, axis=1)
+    # 4. Ajustar lógica final
+    # Normal -> "Normal"
+    # Anomalia mas Z-Score 0 -> "Desconhecido"
+    # Anomalia com Z-Score > 0 -> Nome da feature
+
+    # Começa com "Normal"
+    df_pandas['motivo_principal'] = "Normal"
+
+    # Máscara de anomalias
+    mask_anomaly = df_pandas['anomaly_score'] != 1
+
+    if mask_anomaly.any():
+        # Define valores para linhas anômalas
+        # Se max_z_score > 0, usa culpado_friendly, senão "Desconhecido"
+        reasons = np.where(max_z_scores[mask_anomaly] > 0,
+                           culpados_friendly[mask_anomaly],
+                           "Desconhecido")
+
+        df_pandas.loc[mask_anomaly, 'motivo_principal'] = reasons
 # ==============================================================================
 # 3. SALVAR RESULTADO NA TV
 # ==============================================================================
