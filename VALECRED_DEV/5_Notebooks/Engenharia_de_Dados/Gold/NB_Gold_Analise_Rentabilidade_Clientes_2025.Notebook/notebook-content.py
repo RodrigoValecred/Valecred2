@@ -35,7 +35,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.functions import (
-    col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce, year
+    col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce, year, datediff, to_date
 )
 from pyspark.sql.window import Window
 
@@ -106,13 +106,20 @@ except Exception as e:
 # Agregado por Operação
 df_titulos = spark.read.table("LH_Gold.fato_titulos") \
     .filter(col("aceito") == "S") \
-    .filter(col("t_doc") != "BL")
+    .filter(col("t_doc") != "BL") \
+    .withColumn("data_final_real",
+                when(col("liquidacao").isNotNull(), col("liquidacao"))
+                .when(col("venc_prorrogado").isNotNull(), col("venc_prorrogado"))
+                .otherwise(col("vencimento"))) \
+    .withColumn("dias_final_epoch", datediff(col("data_final_real"), lit("1970-01-01"))) \
+    .withColumn("valor_vezes_data_final", col("valor") * col("dias_final_epoch"))
 
 df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_vezes_prazo").alias("total_valor_prazo_op"),
     sum("valor").alias("valor_face_titulos_op"),
     sum("custo_financeiro").alias("custo_financeiro_op"),
-    sum("spread").alias("spread_op")
+    sum("spread").alias("spread_op"),
+    sum("valor_vezes_data_final").alias("soma_produto_valor_data_final")
 )
 
 # Baixas (Para cálculo de Receita de Juros de Mora Pagos)
@@ -230,6 +237,10 @@ df_report = df_base_cliente \
                 when(col("volume_operado_cliente") > 0,
                      col("soma_valor_prazo_cliente") / col("volume_operado_cliente")
                 ).otherwise(0)) \
+    .withColumn("prazo_medio_mora_op",
+                when(col("valor_face_titulos_op") > 0,
+                     (col("soma_produto_valor_data_final") / col("valor_face_titulos_op")) - datediff(col("data_deferimento"), lit("1970-01-01"))
+                ).otherwise(0)) \
     .select(
         # Identificadores da Operação
         col("cod_operacao"),
@@ -255,6 +266,7 @@ df_report = df_base_cliente \
         col("spread_op").alias("spread"),
         round(col("taxa_operacao"), 4).alias("taxa_operacao"),
         round(col("prazo_medio_operacao"), 2).alias("prazo_medio_operacao"),
+        round(col("prazo_medio_mora_op"), 2).alias("prazo_medio_ponderado_dias_op"),
         # Métricas Agregadas do Cliente (Repetidas nas linhas)
         col("volume_operado_cliente"),
         col("qtd_operacoes_cliente"),
