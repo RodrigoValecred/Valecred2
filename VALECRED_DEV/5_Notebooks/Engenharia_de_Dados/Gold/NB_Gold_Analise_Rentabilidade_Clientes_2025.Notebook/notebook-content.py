@@ -56,12 +56,51 @@ print("Carregando tabelas Fato e Dimensão...")
 # Operações (Base da Análise - Safra 2025)
 # Dedup by cod_operacao to be safe
 # Incluindo nbordero e cod_operacao na selecao
-df_ops = spark.read.table("LH_Gold.fato_operacoes") \
+df_ops_normal = spark.read.table("LH_Gold.fato_operacoes") \
     .filter(col("data_deferimento") >= "2025-01-01") \
     .filter(col("data_deferimento") <= "2025-12-31") \
     .filter(col("status_aceite") == "A") \
     .filter(col("status_analise") == "D") \
     .dropDuplicates(["cod_operacao"])
+
+# Operações de Recompra (Para incluir Receita de Recompra)
+# Fonte: LH_Gold.fato_operacoes_recompra (Granularidade: Título expandido)
+# Agregado por Operação
+try:
+    df_ops_rc = spark.read.table("LH_Gold.fato_operacoes_recompra") \
+        .filter(to_date(col("data_analise")) >= "2025-01-01") \
+        .filter(to_date(col("data_analise")) <= "2025-12-31")
+
+    # Deduplicar/Agregar por Operação
+    df_ops_rc_agg = df_ops_rc.groupBy("cod_operacao").agg(
+        max("cod_cliente").alias("cod_cliente"),
+        max("nbordero").alias("nbordero"),
+        to_date(max("data_analise")).alias("data_deferimento"),
+        sum("valor").alias("valor_de_face"), # Volume da recompra (soma dos titulos)
+        max("chave_produto").alias("chave_produto"),
+        (max("tarifa_recompra") * max("n_docs_recompra")).alias("tarifa_de_recompra") # Taxa da operação
+    ).withColumn("desagio", lit(0.0)) \
+     .withColumn("total_de_tarifas", lit(0.0))
+
+    # Definir colunas comuns para o Union
+    common_cols = [
+        "cod_operacao", "cod_cliente", "nbordero", "data_deferimento",
+        "valor_de_face", "desagio", "total_de_tarifas", "tarifa_de_recompra",
+        "chave_produto"
+    ]
+
+    # Garantir que tarifa_de_recompra exista em df_ops_normal antes do select
+    if "tarifa_de_recompra" not in df_ops_normal.columns:
+        print("Aviso: tarifa_de_recompra não encontrada em fato_operacoes. Criando com 0.")
+        df_ops_normal = df_ops_normal.withColumn("tarifa_de_recompra", lit(0.0))
+
+    # Union
+    df_ops = df_ops_normal.select(common_cols).unionByName(df_ops_rc_agg.select(common_cols), allowMissingColumns=True)
+    print(f"Adicionadas operações de recompra. Total combinado: {df_ops.count()}")
+
+except Exception as e:
+    print(f"Aviso: Não foi possível carregar fato_operacoes_recompra ({e}). Usando apenas operações normais.")
+    df_ops = df_ops_normal
 
 # Títulos (Para cálculo da Taxa Ponderada: Valor * Prazo)
 # Agregado por Operação
@@ -131,7 +170,8 @@ print("Dados carregados.")
 print("Realizando joins e cálculos de métricas...")
 
 # Join Operações com Agregados
-df_base = df_ops.join(df_titulos_agg, "cod_operacao", "inner") \
+# Usamos LEFT JOIN com titulos para garantir que operações de Recompra (que não têm títulos na fato_titulos) sejam mantidas.
+df_base = df_ops.join(df_titulos_agg, "cod_operacao", "left") \
     .join(df_baixas_agg, "cod_operacao", "left") \
     .join(broadcast(df_produtos), "chave_produto", "left")
 
@@ -166,8 +206,8 @@ df_report = df_base_cliente \
     .withColumn("soma_valor_prazo_cliente", sum("total_valor_prazo_op").over(w_cliente)) \
     .withColumn("receita_desagio_cliente", sum("desagio").over(w_cliente)) \
     .withColumn("receita_total_cliente", sum("receita_total_op").over(w_cliente) + coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0))) \
-    .withColumn("custo_financeiro_cliente", sum("custo_financeiro_op").over(w_cliente)) \
-    .withColumn("spread_cliente", sum("spread_op").over(w_cliente)) \
+    .withColumn("custo_financeiro_cliente", coalesce(sum("custo_financeiro_op").over(w_cliente), lit(0))) \
+    .withColumn("spread_cliente", coalesce(sum("spread_op").over(w_cliente), lit(0))) \
     .withColumn("volume_operado_cliente", sum("valor_de_face").over(w_cliente)) \
     .withColumn("qtd_operacoes_cliente", count("cod_operacao").over(w_cliente)) \
     .withColumn("taxa_media_ponderada_mensal_cliente", 
