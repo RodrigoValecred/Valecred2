@@ -148,11 +148,12 @@ df_previsao_spark = df_filtrado_spark.filter(
 )
 
 # Convertendo para Pandas para usar com scikit-learn
-print("Convertendo para DataFrame Pandas...")
-df_previsao_pandas = df_previsao_spark.toPandas()
+# Otimização: Mantendo em Spark para inferência distribuída
 
-print(f"Universo de previsão selecionado: {len(df_previsao_pandas)} títulos.")
-print(df_previsao_pandas.head())
+df_previsao_spark.cache()
+count_previsao = df_previsao_spark.count()
+print(f"Universo de previsão selecionado: {count_previsao} títulos.")
+df_previsao_spark.show(5)
 
 # METADATA ********************
 
@@ -179,6 +180,12 @@ features_path = '/lakehouse/default/Files/model_features_v2.joblib'
 try:
     model_pipeline = joblib.load(model_path)
     model_features = joblib.load(features_path)
+
+    # Otimização: Broadcast do modelo e features para os executores
+    sc = spark.sparkContext
+    model_broadcast = sc.broadcast(model_pipeline)
+    features_broadcast = sc.broadcast(model_features)
+
     print("Modelo e features carregados com sucesso.")
     print("\nFeatures esperadas pelo modelo:")
     print(model_features)
@@ -204,37 +211,46 @@ except Exception as e:
 # CELL ********************
 
 # Verificando se o DataFrame tem dados para prever
-if df_previsao_pandas.empty:
+if count_previsao == 0:
     print("Nenhum título encontrado para o ano de 2025 com os critérios especificados. Encerrando o notebook.")
     dbutils.notebook.exit("Nenhum dado para processar.")
 
-print("Preparando os dados para a previsão...")
-# Selecionando apenas as features necessárias para o modelo
-X_previsao = df_previsao_pandas[model_features].copy()
+print("Preparando e executando a previsão de inadimplência (Distribuído)...")
 
-# Tratando colunas categóricas como no treinamento
-for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
-    if col_name in X_previsao.columns:
-        X_previsao[col_name] = X_previsao[col_name].astype('category')
+from pyspark.sql.functions import pandas_udf, col
+from pyspark.sql.types import DoubleType
+import pandas as pd
 
-# Lidando com valores nulos (se houver) antes da previsão
-# O pipeline já lida com isso, mas é uma boa prática verificar
-if X_previsao.isnull().sum().sum() > 0:
-    print("Atenção: Valores nulos encontrados nas features. O pipeline de pré-processamento deve tratá-los.")
-    # Exemplo de preenchimento, se necessário (o OneHotEncoder já lida com isso se handle_unknown='ignore')
-    # X_previsao.fillna({'CIDADE': 'Desconhecida', 'UF': 'XX'}, inplace=True)
+@pandas_udf(DoubleType())
+def predict_proba_udf(*cols):
+    # Reconstruindo o DataFrame Pandas a partir das colunas passadas
+    # Usamos o broadcast das features para nomear corretamente as colunas
+    features = features_broadcast.value
+    X = pd.DataFrame(dict(zip(features, cols)))
 
-print("Executando a previsão de inadimplência...")
-# Usando o pipeline para prever as probabilidades
-# A saída de predict_proba é um array com duas colunas: [prob_classe_0, prob_classe_1]
-# Queremos a probabilidade da classe 1 (inadimplência)
-predicted_probabilities = model_pipeline.predict_proba(X_previsao)[:, 1]
+    # Tratando colunas categóricas como no treinamento
+    for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
+        if col_name in X.columns:
+            X[col_name] = X[col_name].astype('category')
 
-# Adicionando as previsões de volta ao DataFrame original
-df_previsao_pandas['PROBABILIDADE_INADIMPLENCIA'] = predicted_probabilities
+    # O pipeline já lida com valores nulos, mas podemos logar se necessário
+    # Nota: Em UDFs, prints vão para os logs dos executores, não para o driver
+
+    model = model_broadcast.value
+    # A saída de predict_proba é um array com duas colunas: [prob_classe_0, prob_classe_1]
+    # Queremos a probabilidade da classe 1 (inadimplência)
+    probs = model.predict_proba(X)[:, 1]
+
+    return pd.Series(probs)
+
+# Selecionando as colunas de features na ordem correta
+feature_cols = [col(f) for f in model_features]
+
+# Aplicando a UDF
+df_resultado_spark = df_previsao_spark.withColumn("PROBABILIDADE_INADIMPLENCIA", predict_proba_udf(*feature_cols))
 
 print("Previsão concluída.")
-print(df_previsao_pandas[['CODTITULO', 'CPFCNPJ', 'VALOR', 'PROBABILIDADE_INADIMPLENCIA']].head())
+df_resultado_spark.select('CODTITULO', 'CPFCNPJ', 'VALOR', 'PROBABILIDADE_INADIMPLENCIA').show(5)
 
 # METADATA ********************
 
@@ -254,7 +270,7 @@ print(df_previsao_pandas[['CODTITULO', 'CPFCNPJ', 'VALOR', 'PROBABILIDADE_INADIM
 
 print("Salvando os resultados da previsão...")
 # Selecionando colunas relevantes para salvar
-df_resultado = df_previsao_pandas[[
+cols_to_save = [
     'CODTITULO',
     'CODOPERACAO',
     'CPFCNPJ',
@@ -262,14 +278,13 @@ df_resultado = df_previsao_pandas[[
     'VENCIMENTO',
     'DATAANALISE',
     'PROBABILIDADE_INADIMPLENCIA'
-]].copy()
+]
 
-# Convertendo o DataFrame Pandas de volta para um DataFrame Spark
-spark_df_resultado = spark.createDataFrame(df_resultado)
+df_resultado_final = df_resultado_spark.select(cols_to_save)
 
 # Salvando a tabela no Lakehouse
 table_name = "LH_Silver.previsao_inadimplencia_2025"
-spark_df_resultado.write.format("delta").mode("overwrite").saveAsTable(table_name)
+df_resultado_final.write.format("delta").mode("overwrite").saveAsTable(table_name)
 
 print(f"Resultados salvos com sucesso na tabela: {table_name}")
 
