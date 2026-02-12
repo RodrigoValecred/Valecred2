@@ -1,5 +1,6 @@
 import ast
 import os
+import textwrap
 
 def extract_function_from_file(filepath, function_name):
     """
@@ -28,6 +29,17 @@ def extract_function_from_file(filepath, function_name):
     with open(found_path, 'r', encoding='utf-8') as f:
         source = f.read()
 
+    # Pre-process source to remove magic commands that break AST parsing
+    lines = source.splitlines()
+    clean_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('%') or stripped.startswith('!'):
+            clean_lines.append(f"# {line}") # Comment out magic commands
+        else:
+            clean_lines.append(line)
+    source = "\n".join(clean_lines)
+
     try:
         tree = ast.parse(source)
     except SyntaxError as e:
@@ -37,10 +49,12 @@ def extract_function_from_file(filepath, function_name):
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef) and node.name == function_name:
             if hasattr(ast, 'get_source_segment'):
-                return ast.get_source_segment(source, node)
+                raw_source = ast.get_source_segment(source, node)
             else:
                 lines = source.splitlines()
                 start = node.lineno - 1
                 end = node.end_lineno
-                return "\n".join(lines[start:end])
+                raw_source = "\n".join(lines[start:end])
+
+            return textwrap.dedent(raw_source) if raw_source else None
     return None
