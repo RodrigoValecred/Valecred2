@@ -76,23 +76,24 @@ df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("spread").alias("spread_op")
 )
 
-# Baixas (Para cálculo de Receita de Juros de Mora Pagos e Recompra)
+# Baixas (Para cálculo de Receita de Juros de Mora Pagos)
 # Agregado por Operação
 df_baixas = spark.read.table("LH_Gold.fato_baixas")
 df_baixas_agg = df_baixas.groupBy("cod_operacao").agg(
-    sum("juros").alias("total_juros_mora_pago_op"),
-    sum("tarifa_recompra").alias("total_tarifa_recompra_pago_op")
+    sum("juros").alias("total_juros_mora_pago_op")
 )
 
-# Prorrogações (Para cálculo de Tarifas de Prorrogação)
-# Agregado por Cliente (pois Op PR != Op Origem)
+# Prorrogações (Receita de Prorrogação = Juros da tabela de prorrogações)
+# Fonte: LH_Gold.fato_prorrogacoes_de_titulos
+# Agregado por Cliente
 try:
-    df_prorrogacao = spark.read.table("LH_Gold.fato_operacoes_prorrogacao")
-    # Filtrar para Safra 2025 (pela data de inclusão da prorrogação)
+    # A tabela fato_prorrogacoes_de_titulos deve ter cod_cliente (adicionado no NB_Curadoria)
+    df_prorrogacao = spark.read.table("LH_Gold.fato_prorrogacoes_de_titulos")
+    # Filtrar para Safra 2025 (pela data_inclusao/data)
     df_prorrogacao_agg = df_prorrogacao.filter(year(col("data_inclusao")) == 2025) \
-        .groupBy("cod_cliente").agg(sum("tarifa_prorrogacao").alias("receita_tarifa_prorrogacao_cliente"))
+        .groupBy("cod_cliente").agg(sum("juros").alias("receita_tarifa_prorrogacao_cliente"))
 except:
-    print("Aviso: Tabela fato_operacoes_prorrogacao não encontrada ou sem tarifa. Usando placeholder.")
+    print("Aviso: Tabela fato_prorrogacoes_de_titulos não encontrada ou sem colunas esperadas. Usando placeholder.")
     df_prorrogacao_agg = None
 
 # Dimensão Clientes (Para Nome e Risco Atual)
@@ -161,7 +162,7 @@ df_report = df_base_cliente \
                 coalesce(col("desagio"), lit(0)) + 
                 coalesce(col("total_de_tarifas"), lit(0)) + 
                 coalesce(col("total_juros_mora_pago_op"), lit(0)) +
-                coalesce(col("total_tarifa_recompra_pago_op"), lit(0))) \
+                coalesce(col("tarifa_de_recompra"), lit(0))) \
     .withColumn("soma_valor_prazo_cliente", sum("total_valor_prazo_op").over(w_cliente)) \
     .withColumn("receita_desagio_cliente", sum("desagio").over(w_cliente)) \
     .withColumn("receita_total_cliente", sum("receita_total_op").over(w_cliente) + coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0))) \
@@ -208,7 +209,7 @@ df_report = df_base_cliente \
         col("desagio").alias("receita_desagio_op"),
         col("total_de_tarifas").alias("receita_tarifas_op"),
         col("total_juros_mora_pago_op").alias("receita_juros_mora_op"),
-        coalesce(col("total_tarifa_recompra_pago_op"), lit(0)).alias("receita_recompra_op"),
+        coalesce(col("tarifa_de_recompra"), lit(0)).alias("receita_recompra_op"),
         col("receita_total_op"),
         col("custo_financeiro_op").alias("custo_financeiro"),
         col("spread_op").alias("spread"),
