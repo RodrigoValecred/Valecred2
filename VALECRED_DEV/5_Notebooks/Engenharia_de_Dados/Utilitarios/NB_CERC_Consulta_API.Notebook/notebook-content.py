@@ -43,6 +43,7 @@ install("typing_extensions>=4.10.0")
 # CELL ********************
 
 import fastapi
+from fastapi import HTTPException
 import uvicorn
 import requests
 import multiprocessing
@@ -58,6 +59,15 @@ def run_server():
         """
         Consulta a CERC para verificar a existência de duplicatas para um CPF/CNPJ.
         """
+        # Validação básica de segurança (Input Validation)
+        # 1. Deve conter apenas números
+        if not cpf_cnpj.isdigit():
+            raise HTTPException(status_code=400, detail="CPF/CNPJ deve conter apenas números.")
+
+        # 2. Deve ter tamanho válido (11 para CPF, 14 para CNPJ)
+        if len(cpf_cnpj) not in [11, 14]:
+            raise HTTPException(status_code=400, detail="CPF/CNPJ deve ter 11 ou 14 dígitos.")
+
         # Simulação da consulta CERC
         if cpf_cnpj == "14630809000101":
             return {"cpf_cnpj": cpf_cnpj, "duplicatas": "nenhuma duplicata encontrada"}
@@ -91,6 +101,17 @@ if __name__ == '__main__':
         data = response.json()
         print(f"Cenário 2: {data}")
         assert data["duplicatas"] == "duplicatas encontradas"
+
+        print("\nExecutando Cenário 3 (Validação de Segurança)...")
+        # Envia input inválido (não numérico)
+        response = requests.get(f"{api_url}/consulta_cerc?cpf_cnpj=invalid_input")
+        print(f"Cenário 3 (Input Inválido): Status Code {response.status_code}")
+        assert response.status_code == 400
+
+        # Envia input inválido (tamanho errado)
+        response = requests.get(f"{api_url}/consulta_cerc?cpf_cnpj=123")
+        print(f"Cenário 3 (Tamanho Errado): Status Code {response.status_code}")
+        assert response.status_code == 400
 
         print("\nTestes concluídos com sucesso!")
 
