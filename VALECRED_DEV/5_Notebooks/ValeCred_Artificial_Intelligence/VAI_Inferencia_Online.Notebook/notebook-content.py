@@ -258,6 +258,32 @@ df_final.write.mode("overwrite").option("overwriteSchema", "true").format("delta
 print(f"✅ Processo Finalizado! {len(df_pandas)} operações enviadas para a TV.")
 display(df_final.select("id_operacao", "status_ia","motivo_principal"))
 
+# ==============================================================================
+# 4. DASHBOARD RÁPIDO DE SAÍDA (UX)
+# ==============================================================================
+print("\n" + "="*40)
+print("📊 RESUMO DO PROCESSAMENTO")
+print("="*40)
+
+if not df_pandas.empty and 'status_ia' in df_pandas.columns:
+    total_ops = len(df_pandas)
+    risco_alto = len(df_pandas[df_pandas['status_ia'] == 'ALTO RISCO'])
+    percent_risco = (risco_alto / total_ops) * 100 if total_ops > 0 else 0
+
+    print(f"🔢 Total Processado: {total_ops}")
+    print(f"🚨 Alto Risco:      {risco_alto} ({percent_risco:.1f}%)")
+    print(f"✅ Normal:          {total_ops - risco_alto}")
+
+    if risco_alto > 0 and 'motivo_principal' in df_pandas.columns:
+        print("\n🔍 Top 3 Motivos de Risco:")
+        top_motivos = df_pandas[df_pandas['status_ia'] == 'ALTO RISCO']['motivo_principal'].value_counts().head(3)
+        for motivo, count in top_motivos.items():
+            print(f"   - {motivo}: {count}")
+else:
+    print("⚠️ Nenhum dado processado ou colunas de status ausentes.")
+
+print("="*40 + "\n")
+
 # METADATA ********************
 
 # META {
