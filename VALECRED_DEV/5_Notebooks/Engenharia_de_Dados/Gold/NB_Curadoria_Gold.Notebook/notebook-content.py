@@ -48,7 +48,7 @@ from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
     lead, date_add, lag, max, coalesce, broadcast, dayofweek, dayofmonth, date_sub, trim, to_date,
-    datediff, sum, min, count, round, floor, least, current_date, split, pow
+    datediff, sum, min, count, round, floor, least, current_date, split, pow, xxhash64
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, DoubleType, DateType, BooleanType
 from delta.tables import *
@@ -538,7 +538,7 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
     df_operacoes_prep = df_operacoes_enriquecida.withColumn(
         "data_join_calendario",
         to_date(col("data_inclusao"))
-    )
+    ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
 
     # Adicionando a sk_data para join com dim_calendario
     # E sk_produto para join com dim_produtos
@@ -557,6 +557,7 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
 
     # 3. SELEÇÃO FINAL
     return df_fato_operacoes_filtered.select(
+        col("sk_operacao"),
         col("cod_operacao"),
         col("nbordero"),
         col("cod_cliente"),
@@ -697,7 +698,9 @@ df_titulos_base = df_titulos_limpa.filter(~col("t_doc").isin("BL", "RC")) \
     .withColumn("tipo_documento_sacado", when(length(col("cpf_cnpj_sacado")) == 11, "CPF").when(length(col("cpf_cnpj_sacado")) == 14, "CNPJ").otherwise("Inválido")) \
     .withColumn("raiz_cnpj", when(col("tipo_documento_sacado") == "CNPJ", substring(col("cpf_cnpj_sacado"), 1, 8)).otherwise(col("cpf_cnpj_sacado")))
 
-df_operacoes_small = df_operacoes_enriquecida.select("cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto", "tto", "taxa_comissao").dropDuplicates(["cod_operacao"])
+# Adicionando sk_operacao para join eficiente no Power BI
+df_operacoes_enriquecida_sk = df_operacoes_enriquecida.withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
+df_operacoes_small = df_operacoes_enriquecida_sk.select("sk_operacao", "cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto", "tto", "taxa_comissao").dropDuplicates(["cod_operacao"])
 df_limites_small = df_limites.select("chave_cliente_sacado", "tipo").dropDuplicates(["chave_cliente_sacado"])
 df_produtos_small = df_dim_produto.select(col("chave_produto"), col("produto_informacao_de_mercado").alias("produto_temp")).dropDuplicates(["chave_produto"])
 df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao").alias("cod_operacao_recompra")).dropDuplicates(["cod_titulo"])
@@ -774,7 +777,7 @@ df_ordem = df_conf.withColumn("ordem_confirmacao", when(col("confirmacao") == "N
 # 3.3 Seleção Final e Persistência
 # ---------------------------------
 df_fato_titulos_final = df_ordem.select(
-    col("cod_titulo"), col("cod_operacao"), col("t_doc"), col("n_doc"), col("cpf_cnpj_sacado"), col("vencimento"), col("venc_prorrogado"), col("valor"),
+    col("sk_operacao"), col("cod_titulo"), col("cod_operacao"), col("t_doc"), col("n_doc"), col("cpf_cnpj_sacado"), col("vencimento"), col("venc_prorrogado"), col("valor"),
     col("prazo"), col("aceito"), col("data_inclusao"), col("usua_conf").alias("usua_inclusao"), col("data_alteracao"), col("amortizacoes"),
     "chave_produto", "status_protesto", "tipo_documento_sacado", "raiz_cnpj", "valor_vezes_prazo",
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
