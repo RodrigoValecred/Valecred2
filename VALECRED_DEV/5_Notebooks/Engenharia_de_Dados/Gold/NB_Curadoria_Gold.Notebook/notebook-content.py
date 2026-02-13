@@ -188,7 +188,11 @@ try:
     df_dim_produto = spark.read.table("LH_Gold.dim_produtos").cache()
 except Exception as e:
     print(f"AVISO: Tabela LH_Gold.dim_produtos não encontrada ({e}).")
-    schema_prod = StructType([StructField("chave_produto", StringType(), True), StructField("produto_informacao_de_mercado", StringType(), True)])
+    schema_prod = StructType([
+        StructField("sk_produto", LongType(), True),
+        StructField("chave_produto", StringType(), True),
+        StructField("produto_informacao_de_mercado", StringType(), True)
+    ])
     df_dim_produto = spark.createDataFrame([], schema_prod)
 
 # Grupos Economicos (Silver)
@@ -527,40 +531,47 @@ print("DataFrames intermediários criados e cacheados.")
 # ----------------------------------------
 print("\nIniciando construção da fato_operacoes (Otimizada)...")
 
-# 1. PREPARAÇÃO (Engenharia):
-# Criamos a coluna de junção ANTES. Isso permite que o Spark entenda a distribuição dos dados.
-# Se 'data_inclusao' for timestamp, to_date corta a hora. Se for string, ele converte.
-df_operacoes_prep = df_operacoes_enriquecida.withColumn(
-    "data_join_calendario", 
-    to_date(col("data_inclusao"))
-)
+def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto):
+    # 1. PREPARAÇÃO (Engenharia):
+    # Criamos a coluna de junção ANTES. Isso permite que o Spark entenda a distribuição dos dados.
+    # Se 'data_inclusao' for timestamp, to_date corta a hora. Se for string, ele converte.
+    df_operacoes_prep = df_operacoes_enriquecida.withColumn(
+        "data_join_calendario",
+        to_date(col("data_inclusao"))
+    )
 
-# Adicionando a sk_data para join com dim_calendario
-df_fato_operacoes_joined = df_operacoes_prep.join(
-    broadcast(df_dim_calendario.select("data", "sk_data")),
-    col("data_join_calendario") == col("data"),
-    "left"
-)
+    # Adicionando a sk_data para join com dim_calendario
+    # E sk_produto para join com dim_produtos
+    df_fato_operacoes_joined = df_operacoes_prep.join(
+        broadcast(df_dim_calendario.select("data", "sk_data")),
+        col("data_join_calendario") == col("data"),
+        "left"
+    ).join(
+        broadcast(df_dim_produto.select("chave_produto", "sk_produto")),
+        "chave_produto",
+        "left"
+    )
 
-# Filtra TTOs que já possuem tabelas fato dedicadas (Prorrogacao e Recompra) para evitar duplicidade
-df_fato_operacoes_filtered = df_fato_operacoes_joined.filter(~col("tto").isin(["PR", "RC", "RE"]))
+    # Filtra TTOs que já possuem tabelas fato dedicadas (Prorrogacao e Recompra) para evitar duplicidade
+    df_fato_operacoes_filtered = df_fato_operacoes_joined.filter(~col("tto").isin(["PR", "RC", "RE"]))
 
-# 3. SELEÇÃO FINAL
-df_fato_operacoes = df_fato_operacoes_filtered.select(
-    col("cod_operacao"),
-    col("nbordero"),
-    col("cod_cliente"),
-    col("cod_empresa"),
-    col("data_inclusao"),
-    col("data_analise"),
-    col("status_aceite"),
-    col("status_analise"),
-    col("cod_broker"),
-    col("tto"),
-    col("stto"),
-    col("chave_produto"),
-    col("operacao_informal"),
-    col("valor_retido"),
+    # 3. SELEÇÃO FINAL
+    return df_fato_operacoes_filtered.select(
+        col("cod_operacao"),
+        col("nbordero"),
+        col("cod_cliente"),
+        col("cod_empresa"),
+        col("data_inclusao"),
+        col("data_analise"),
+        col("status_aceite"),
+        col("status_analise"),
+        col("cod_broker"),
+        col("tto"),
+        col("stto"),
+        col("chave_produto"),
+        col("sk_produto"),
+        col("operacao_informal"),
+        col("valor_retido"),
     col("valor_desembolsado"),
     col("valor_de_face"),
     col("desagio"),
@@ -609,6 +620,8 @@ df_fato_operacoes = df_fato_operacoes_filtered.select(
     col("nome_plataforma"),
     col("gestor_da_plataforma")
 ).dropDuplicates(["cod_operacao"])
+
+df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto)
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
 print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
