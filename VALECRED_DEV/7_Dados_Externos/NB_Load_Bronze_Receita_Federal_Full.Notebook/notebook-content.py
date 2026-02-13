@@ -58,7 +58,9 @@ helper_files = {
     "headers/socio.csv": "Files/RFB_Processor/headers/socio.csv",
     "headers/trailler.csv": "Files/RFB_Processor/headers/trailler.csv"
 }
-base_repo_url = "https://raw.githubusercontent.com/turicas/socios-brasil/master/"
+# SECURITY: Pinning to specific commit hash (7b56360) to prevent supply chain attacks via mutable 'master' branch.
+# This ensures that malicious code pushed to the remote repository cannot be automatically executed here.
+base_repo_url = "https://raw.githubusercontent.com/turicas/socios-brasil/7b56360e93f35349fe29588dddf7d3c8b07eb22b/"
 local_temp_dir = "/tmp/rfb_helpers"
 
 # --- EXECUÇÃO DO DOWNLOAD DOS ARQUIVOS DE AJUDA ---
