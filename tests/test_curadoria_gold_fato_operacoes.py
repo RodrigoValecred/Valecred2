@@ -49,8 +49,11 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         mock_df_prep = MagicMock()
         mock_df_ops.withColumn.return_value = mock_df_prep
 
+        mock_df_prep_2 = MagicMock()
+        mock_df_prep.withColumn.return_value = mock_df_prep_2
+
         mock_df_joined_1 = MagicMock()
-        mock_df_prep.join.return_value = mock_df_joined_1
+        mock_df_prep_2.join.return_value = mock_df_joined_1
 
         mock_df_joined_2 = MagicMock()
         mock_df_joined_1.join.return_value = mock_df_joined_2
@@ -75,7 +78,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         for func_name in ['when', 'length', 'regexp_replace', 'collect_list', 'concat_ws', 'upper', 'greatest',
                           'substring', 'year', 'lead', 'date_add', 'lag', 'max', 'coalesce', 'dayofweek',
                           'dayofmonth', 'date_sub', 'trim', 'datediff', 'sum', 'min', 'count', 'round',
-                          'floor', 'least', 'current_date', 'split', 'pow']:
+                          'floor', 'least', 'current_date', 'split', 'pow', 'xxhash64']:
              exec_globals[func_name] = MagicMock()
 
         # Execute the function definition
@@ -104,6 +107,10 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         self.assertIn("sk_produto", col_mocks)
         sk_prod_mock = col_mocks["sk_produto"]
         self.assertIn(sk_prod_mock, call_args)
+
+        self.assertIn("sk_operacao", col_mocks)
+        sk_op_mock = col_mocks["sk_operacao"]
+        self.assertIn(sk_op_mock, call_args)
 
 if __name__ == '__main__':
     unittest.main()
