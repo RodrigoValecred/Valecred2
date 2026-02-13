@@ -368,18 +368,24 @@ df_operacoes_com_gerente = df_operacoes_com_fallback.withColumn(
 
 # Identificação de Operações Informais
 df_chave_danfe = df_cad_geral_arquivos.filter(col("DESCRICAO") == 'CHAVEDANFE')
-df_titulos_com_chave = df_titulos_limpa.join(df_chave_danfe, df_titulos_limpa.cod_titulo == df_chave_danfe.CODTITULO, how="inner")
-df_operacoes_com_chave_base = df_operacoes_com_gerente.join(df_titulos_com_chave, on="cod_operacao", how="inner")
 
-df_operacoes_com_chave_filtrado = df_operacoes_com_chave_base.filter(
-    (df_operacoes_com_gerente["nota_servico"] == 'N') &
-    (df_operacoes_com_gerente["status_analise"] == 'D') &
-    (df_operacoes_com_gerente["cod_empresa"] == 14) &
-    (df_operacoes_com_gerente["status_aceite"] == 'A') &
-    (df_operacoes_com_gerente["tto"].isin(['NO','CM','FC']))
+# ⚡ Bolt Optimization: Filter operations first to reduce join volume (Filter -> Join) instead of (Join -> Filter)
+# This avoids joining millions of non-candidate operations/titles with the DANFE table.
+df_operacoes_candidates = df_operacoes_com_gerente.filter(
+    (col("nota_servico") == 'N') &
+    (col("status_analise") == 'D') &
+    (col("cod_empresa") == 14) &
+    (col("status_aceite") == 'A') &
+    (col("tto").isin(['NO','CM','FC']))
 )
 
-df_vcount = df_operacoes_com_chave_filtrado.groupBy(df_operacoes_com_gerente["cod_operacao"]).count()
+# Only join titles for relevant operations
+df_titulos_candidates = df_operacoes_candidates.join(df_titulos_limpa, on="cod_operacao", how="inner")
+
+# Only join DANFE keys for relevant titles
+df_matches = df_titulos_candidates.join(df_chave_danfe, df_titulos_candidates.cod_titulo == df_chave_danfe.CODTITULO, how="inner")
+
+df_vcount = df_matches.groupBy("cod_operacao").count()
 df_com_vcount = df_operacoes_com_gerente.join(df_vcount, on="cod_operacao", how="left")
 
 # Backward Compatibility Check: valor_pendencias
