@@ -38,28 +38,28 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         mock_col = MagicMock(side_effect=col_side_effect)
         mock_lit = MagicMock(return_value=MagicMock(name="lit_mock"))
         mock_to_date = MagicMock(return_value=MagicMock(name="to_date_mock"))
+        mock_date_format = MagicMock(return_value=MagicMock(name="date_format_mock"))
         mock_broadcast = MagicMock(side_effect=lambda x: x)
 
         # DataFrame Mocks
         mock_df_ops = MagicMock()
-        mock_df_cal = MagicMock()
         mock_df_prod = MagicMock()
 
         # Setup method chaining mocks
         mock_df_prep = MagicMock()
-        mock_df_ops.withColumn.return_value = mock_df_prep
+        mock_df_ops.withColumn.return_value = mock_df_prep # data_join_calendario
 
         mock_df_prep_2 = MagicMock()
-        mock_df_prep.withColumn.return_value = mock_df_prep_2
+        mock_df_prep.withColumn.return_value = mock_df_prep_2 # sk_operacao
+
+        mock_df_prep_3 = MagicMock()
+        mock_df_prep_2.withColumn.return_value = mock_df_prep_3 # sk_data (Optimization)
 
         mock_df_joined_1 = MagicMock()
-        mock_df_prep_2.join.return_value = mock_df_joined_1
-
-        mock_df_joined_2 = MagicMock()
-        mock_df_joined_1.join.return_value = mock_df_joined_2
+        mock_df_prep_3.join.return_value = mock_df_joined_1 # join with dim_produto
 
         mock_df_filtered = MagicMock()
-        mock_df_joined_2.filter.return_value = mock_df_filtered
+        mock_df_joined_1.filter.return_value = mock_df_filtered
 
         mock_df_selected = MagicMock()
         mock_df_filtered.select.return_value = mock_df_selected
@@ -72,6 +72,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
             'col': mock_col,
             'lit': mock_lit,
             'to_date': mock_to_date,
+            'date_format': mock_date_format,
             'broadcast': mock_broadcast,
         }
         # Add other potential functions as dummy mocks
@@ -87,7 +88,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         create_fato_operacoes = local_scope['create_fato_operacoes']
 
         # Run the function
-        result = create_fato_operacoes(mock_df_ops, mock_df_cal, mock_df_prod)
+        result = create_fato_operacoes(mock_df_ops, mock_df_prod)
 
         # Assertions
 
@@ -95,12 +96,12 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         mock_df_prod.select.assert_called_with("chave_produto", "sk_produto")
 
         # 2. Verify join
-        mock_df_joined_1.join.assert_called()
-        args, kwargs = mock_df_joined_1.join.call_args
+        mock_df_prep_3.join.assert_called()
+        args, kwargs = mock_df_prep_3.join.call_args
         self.assertEqual(args[1], "chave_produto")
         self.assertEqual(args[2], "left")
 
-        # 3. Verify Select includes sk_produto
+        # 3. Verify Select includes sk_produto and sk_data
         mock_df_filtered.select.assert_called()
         call_args = mock_df_filtered.select.call_args[0]
 
@@ -111,6 +112,13 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         self.assertIn("sk_operacao", col_mocks)
         sk_op_mock = col_mocks["sk_operacao"]
         self.assertIn(sk_op_mock, call_args)
+
+        self.assertIn("sk_data", col_mocks)
+        sk_data_mock = col_mocks["sk_data"]
+        self.assertIn(sk_data_mock, call_args)
+
+        # Verify date_format was called
+        mock_date_format.assert_called()
 
 if __name__ == '__main__':
     unittest.main()

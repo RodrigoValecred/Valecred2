@@ -48,7 +48,7 @@ from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
     lead, date_add, lag, max, coalesce, broadcast, dayofweek, dayofmonth, date_sub, trim, to_date,
-    datediff, sum, min, count, round, floor, least, current_date, split, pow, xxhash64
+    datediff, sum, min, count, round, floor, least, current_date, split, pow, xxhash64, date_format
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, DoubleType, DateType, BooleanType
 from delta.tables import *
@@ -531,22 +531,19 @@ print("DataFrames intermediários criados e cacheados.")
 # ----------------------------------------
 print("\nIniciando construção da fato_operacoes (Otimizada)...")
 
-def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto):
+def create_fato_operacoes(df_operacoes_enriquecida, df_dim_produto):
     # 1. PREPARAÇÃO (Engenharia):
     # Criamos a coluna de junção ANTES. Isso permite que o Spark entenda a distribuição dos dados.
     # Se 'data_inclusao' for timestamp, to_date corta a hora. Se for string, ele converte.
     df_operacoes_prep = df_operacoes_enriquecida.withColumn(
         "data_join_calendario",
         to_date(col("data_inclusao"))
-    ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
+    ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string"))) \
+     .withColumn("sk_data", date_format(col("data_join_calendario"), "yyyyMMdd").cast("int"))
 
-    # Adicionando a sk_data para join com dim_calendario
+    # Adicionando a sk_data (Otimizado: Calculado diretamente)
     # E sk_produto para join com dim_produtos
     df_fato_operacoes_joined = df_operacoes_prep.join(
-        broadcast(df_dim_calendario.select("data", "sk_data")),
-        col("data_join_calendario") == col("data"),
-        "left"
-    ).join(
         broadcast(df_dim_produto.select("chave_produto", "sk_produto")),
         "chave_produto",
         "left"
@@ -622,7 +619,7 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
     col("gestor_da_plataforma")
 ).dropDuplicates(["cod_operacao"])
 
-df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto)
+df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_produto)
 output_path_fato_operacoes = "LH_Gold.fato_operacoes"
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
 print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
