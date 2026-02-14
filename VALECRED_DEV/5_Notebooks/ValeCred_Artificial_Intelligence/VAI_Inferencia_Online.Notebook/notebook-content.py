@@ -261,28 +261,39 @@ display(df_final.select("id_operacao", "status_ia","motivo_principal"))
 # ==============================================================================
 # 4. DASHBOARD RÁPIDO DE SAÍDA (UX)
 # ==============================================================================
-print("\n" + "="*40)
-print("📊 RESUMO DO PROCESSAMENTO")
-print("="*40)
+print("\n" + "╔" + "═"*70 + "╗")
+print("║                   🤖 V.A.I. MONITORAMENTO ONLINE                     ║")
+print("╚" + "═"*70 + "╝")
+print(f"📅 Data: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+print("-" * 72)
 
 if not df_pandas.empty and 'status_ia' in df_pandas.columns:
     total_ops = len(df_pandas)
     risco_alto = len(df_pandas[df_pandas['status_ia'] == 'ALTO RISCO'])
     percent_risco = (risco_alto / total_ops) * 100 if total_ops > 0 else 0
 
-    print(f"🔢 Total Processado: {total_ops}")
-    print(f"🚨 Alto Risco:      {risco_alto} ({percent_risco:.1f}%)")
-    print(f"✅ Normal:          {total_ops - risco_alto}")
+    # Visual Progress Bar for Risk
+    bar_length = 40
+    filled_length = int(bar_length * percent_risco / 100)
+    bar = '█' * filled_length + '░' * (bar_length - filled_length)
+
+    print("📊 RESUMO GERAL")
+    print(f"   🔢 Total Analisado: {total_ops:,.0f} operações")
+    print(f"   ✅ Aprovado (Normal): {total_ops - risco_alto:,.0f}")
+    print(f"   🚨 Risco Detectado: {risco_alto:,.0f} ({percent_risco:.1f}%)")
+    print(f"      [{bar}]")
 
     if risco_alto > 0 and 'motivo_principal' in df_pandas.columns:
-        print("\n🔍 Top 3 Motivos de Risco:")
+        print("\n🔍 TOP 3 FATORES DE RISCO")
         top_motivos = df_pandas[df_pandas['status_ia'] == 'ALTO RISCO']['motivo_principal'].value_counts().head(3)
-        for motivo, count in top_motivos.items():
-            print(f"   - {motivo}: {count}")
+        for i, (motivo, count) in enumerate(top_motivos.items(), 1):
+            print(f"   {i}. {motivo:<30} {count:,.0f}")
 else:
     print("⚠️ Nenhum dado processado ou colunas de status ausentes.")
 
-print("="*40 + "\n")
+print("-" * 72)
+print("✅ Processamento concluído.")
+print("\n")
 
 # METADATA ********************
 
