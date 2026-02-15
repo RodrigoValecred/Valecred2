@@ -43,6 +43,7 @@ install("typing_extensions>=4.10.0")
 
 # CELL ********************
 
+import os
 import fastapi
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -54,10 +55,20 @@ def create_app():
     app = fastapi.FastAPI()
 
     @app.get("/consulta_cerc")
-    async def consulta_cerc(cpf_cnpj: str):
+    async def consulta_cerc(cpf_cnpj: str, x_api_key: str = fastapi.Header(None, alias="X-API-KEY")):
         """
         Consulta a CERC para verificar a existência de duplicatas para um CPF/CNPJ.
+        Requer API Key no header 'X-API-KEY'.
         """
+        # Validação de Segurança: API Key
+        # Em produção, a chave deve vir de variáveis de ambiente ou Key Vault
+        EXPECTED_API_KEY = os.environ.get("CERC_API_KEY", "cerc-secret-2024")
+
+        if x_api_key is None:
+             raise HTTPException(status_code=401, detail="API Key ausente. Use o header 'X-API-KEY'.")
+        if x_api_key != EXPECTED_API_KEY:
+             raise HTTPException(status_code=401, detail="API Key inválida.")
+
         # Validação básica de segurança (Input Validation)
         # 1. Deve conter apenas números
         if not cpf_cnpj.isdigit():
@@ -80,18 +91,21 @@ if __name__ == '__main__':
     app = create_app()
     client = TestClient(app)
     
+    # Define o header com a API Key para os testes internos
+    headers = {"X-API-KEY": "cerc-secret-2024"}
+
     print("Executando testes com TestClient (sem servidor HTTP exposto)...")
     
     try:
         print("Executando Cenário 1...")
-        response = client.get("/consulta_cerc?cpf_cnpj=14630809000101")
+        response = client.get("/consulta_cerc?cpf_cnpj=14630809000101", headers=headers)
         response.raise_for_status()
         data = response.json()
         print(f"Cenário 1: {data}")
         assert data["duplicatas"] == "nenhuma duplicata encontrada"
 
         print("\nExecutando Cenário 2...")
-        response = client.get("/consulta_cerc?cpf_cnpj=12345678901234")
+        response = client.get("/consulta_cerc?cpf_cnpj=12345678901234", headers=headers)
         response.raise_for_status()
         data = response.json()
         print(f"Cenário 2: {data}")
@@ -99,12 +113,12 @@ if __name__ == '__main__':
 
         print("\nExecutando Cenário 3 (Validação de Segurança)...")
         # Envia input inválido (não numérico)
-        response = client.get("/consulta_cerc?cpf_cnpj=invalid_input")
+        response = client.get("/consulta_cerc?cpf_cnpj=invalid_input", headers=headers)
         print(f"Cenário 3 (Input Inválido): Status Code {response.status_code}")
         assert response.status_code == 400
 
         # Envia input inválido (tamanho errado)
-        response = client.get("/consulta_cerc?cpf_cnpj=123")
+        response = client.get("/consulta_cerc?cpf_cnpj=123", headers=headers)
         print(f"Cenário 3 (Tamanho Errado): Status Code {response.status_code}")
         assert response.status_code == 400
 
