@@ -265,22 +265,71 @@ print("\n" + "="*40)
 print("📊 RESUMO DO PROCESSAMENTO")
 print("="*40)
 
-if not df_pandas.empty and 'status_ia' in df_pandas.columns:
-    total_ops = len(df_pandas)
-    risco_alto = len(df_pandas[df_pandas['status_ia'] == 'ALTO RISCO'])
-    percent_risco = (risco_alto / total_ops) * 100 if total_ops > 0 else 0
+def create_progress_bar(percentage, width=20):
+    filled = int(width * percentage / 100)
+    bar = "█" * filled + "░" * (width - filled)
+    return f"[{bar}] {percentage:.1f}%"
 
-    print(f"🔢 Total Processado: {total_ops}")
-    print(f"🚨 Alto Risco:      {risco_alto} ({percent_risco:.1f}%)")
-    print(f"✅ Normal:          {total_ops - risco_alto}")
+def display_terminal_dashboard(df):
+    W = 52
+    cw = 48 # Content width (excluding side padding spaces)
+    # Total line width = 1 (║) + 1 ( ) + 48 + 1 ( ) + 1 (║) = 52
 
-    if risco_alto > 0 and 'motivo_principal' in df_pandas.columns:
-        print("\n🔍 Top 3 Motivos de Risco:")
-        top_motivos = df_pandas[df_pandas['status_ia'] == 'ALTO RISCO']['motivo_principal'].value_counts().head(3)
-        for motivo, count in top_motivos.items():
-            print(f"   - {motivo}: {count}")
-else:
-    print("⚠️ Nenhum dado processado ou colunas de status ausentes.")
+    print("\n")
+    print("╔" + "═"*(W-2) + "╗")
+    print(f"║ {'📊 RESUMO DO PROCESSAMENTO V.A.I.':^{cw}} ║")
+    print("╠" + "═"*(W-2) + "╣")
+
+    if not df.empty and 'status_ia' in df.columns:
+        total_ops = len(df)
+        risco_alto = len(df[df['status_ia'] == 'ALTO RISCO'])
+        normal = total_ops - risco_alto
+        percent_risco = (risco_alto / total_ops) * 100 if total_ops > 0 else 0
+
+        # Status
+        status_icon = "🟢" if percent_risco < 10 else "🔴" if percent_risco < 30 else "🔥"
+        status_text = f"{status_icon} Status: {percent_risco:.1f}% Risco"
+        # Emoji adjustment: 1 char extra visual width per emoji
+        padding = cw - (len(status_text) + 1)
+        print(f"║ {status_text}{' '*padding} ║")
+
+        print(f"║ {' '*cw} ║") # Spacer
+
+        # Metrics
+        # Padding calc: "  🔢 Total:       " (17 chars) + 31 chars value = 48 chars content
+        print(f"║  🔢 Total:       {str(total_ops):<31} ║")
+        print(f"║  🚨 Alto Risco:  {str(risco_alto):<31} ║")
+        print(f"║  ✅ Normal:      {str(normal):<31} ║")
+
+        print(f"║ {' '*cw} ║") # Spacer
+
+        # Progress Bar
+        bar = create_progress_bar(percent_risco, width=25)
+        # "  Risco: " (9 chars) + bar (approx 34 chars) + padding -> 48 chars
+        # 48 - 9 = 39 chars space for bar
+        print(f"║  Risco: {bar:<39} ║")
+
+        print(f"║ {' '*cw} ║") # Spacer
+
+        # Top Reasons
+        if risco_alto > 0 and 'motivo_principal' in df.columns:
+            print("╠" + "─"*(W-2) + "╣")
+            print(f"║ {'🔍 TOP 3 MOTIVOS DE RISCO':^{cw}} ║")
+            print("╠" + "─"*(W-2) + "╣")
+
+            top_motivos = df[df['status_ia'] == 'ALTO RISCO']['motivo_principal'].value_counts().head(3)
+
+            for i, (motivo, count) in enumerate(top_motivos.items(), 1):
+                motivo_disp = (motivo[:35] + '..') if len(motivo) > 35 else motivo
+                line = f"{i}. {motivo_disp}: {count}"
+                print(f"║ {line:<{cw}} ║")
+    else:
+        print(f"║ {'⚠️ NENHUM DADO PROCESSADO':^{cw}} ║")
+
+    print("╚" + "═"*(W-2) + "╝")
+    print("\n")
+
+display_terminal_dashboard(df_pandas)
 
 print("="*40 + "\n")
 
