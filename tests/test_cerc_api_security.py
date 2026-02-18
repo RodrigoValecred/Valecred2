@@ -33,6 +33,9 @@ class TestCERCAPISecurity(unittest.TestCase):
                 "os": os
             }
             try:
+                # Setup dummy API key for test environment
+                os.environ["CERC_API_KEY"] = "test-secret-key"
+
                 # The create_app function references fastapi.Header, etc.
                 exec(func_source, global_scope, local_scope)
                 cls.create_app = local_scope["create_app"]
@@ -68,7 +71,7 @@ class TestCERCAPISecurity(unittest.TestCase):
     def test_valid_api_key(self):
         """Test that request with valid API key returns 200."""
         if not self.client: self.skipTest("Client not initialized")
-        headers = {"X-API-KEY": "cerc-secret-2024"} # This matches the hardcoded key I will add
+        headers = {"X-API-KEY": "test-secret-key"} # This matches the dummy key set in setUpClass
         response = self.client.get("/consulta_cerc?cpf_cnpj=14630809000101", headers=headers)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["cpf_cnpj"], "14630809000101")

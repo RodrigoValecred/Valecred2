@@ -62,7 +62,11 @@ def create_app():
         """
         # Validação de Segurança: API Key
         # Em produção, a chave deve vir de variáveis de ambiente ou Key Vault
-        EXPECTED_API_KEY = os.environ.get("CERC_API_KEY", "cerc-secret-2024")
+        # EXPECTED_API_KEY deve ser configurado no ambiente.
+        EXPECTED_API_KEY = os.environ.get("CERC_API_KEY")
+
+        if EXPECTED_API_KEY is None:
+             raise HTTPException(status_code=500, detail="Erro interno: API Key não configurada no servidor.")
 
         if x_api_key is None:
              raise HTTPException(status_code=401, detail="API Key ausente. Use o header 'X-API-KEY'.")
@@ -88,11 +92,15 @@ def create_app():
 
 if __name__ == '__main__':
     print("Inicializando a aplicação e o cliente de teste...")
+
+    # Configura uma chave dummy para os testes locais
+    os.environ["CERC_API_KEY"] = "test-secret-key"
+
     app = create_app()
     client = TestClient(app)
     
     # Define o header com a API Key para os testes internos
-    headers = {"X-API-KEY": "cerc-secret-2024"}
+    headers = {"X-API-KEY": "test-secret-key"}
 
     print("Executando testes com TestClient (sem servidor HTTP exposto)...")
     
