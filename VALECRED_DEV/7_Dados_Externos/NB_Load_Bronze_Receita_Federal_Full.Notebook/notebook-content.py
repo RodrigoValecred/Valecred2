@@ -108,13 +108,27 @@ for source_path, lakehouse_dest_path in helper_files.items():
 
     print(f"Baixando '{file_name}' de '{file_url}'...")
     try:
-        r = requests.get(file_url, allow_redirects=True)
+        r = requests.get(file_url, allow_redirects=True, timeout=30)
         r.raise_for_status()
+
+        # Write to file
         with open(local_file, 'wb') as f:
             f.write(r.content)
 
-        # SECURITY: Verify hash before moving/using
-        verify_file_hash(local_file, source_path)
+        # SECURITY: Verify Hash
+        if source_path in file_hashes:
+            expected_hash = file_hashes[source_path]
+            sha256_hash = hashlib.sha256()
+            with open(local_file, "rb") as f:
+                for byte_block in iter(lambda: f.read(4096), b""):
+                    sha256_hash.update(byte_block)
+
+            calculated_hash = sha256_hash.hexdigest()
+            if calculated_hash != expected_hash:
+                if os.path.exists(local_file):
+                    os.remove(local_file)
+                raise ValueError(f"SECURITY ALERT: Hash mismatch for {source_path}. Expected {expected_hash}, got {calculated_hash}")
+            print(f"Hash verified for {file_name}")
 
         # Move o arquivo baixado para o Lakehouse
         print(f"Movendo '{file_name}' para '{lakehouse_dest_path}'")
