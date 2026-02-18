@@ -512,9 +512,6 @@ print("DataFrames intermediários criados e cacheados.")
 
 # CELL ********************
 
-# Check de Sanidade# 
-# print("Colunas disponíveis em df_operacoes_enriquecida:")
-# print(df_operacoes_enriquecida.columns)
 
 # METADATA ********************
 
