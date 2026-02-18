@@ -876,8 +876,8 @@ print(f"Tabela '{target_fato_prorrogacao}' criada com sucesso.")
 print("\nIniciando construção da fato_operacoes_prorrogacao (NOVA)...")
 
 # Fonte = stg_operacoes (df_operacoes_limpa)
-# Explicit read for robustness
-df_operacoes_source = spark.read.table("LH_Silver.staging_operacoes_limpa")
+# Optimization: Reuse dataframe loaded in Section 0.2
+df_operacoes_source = df_operacoes_limpa
 
 # Filtrar TTO = 'PR'
 df_ops_pr = df_operacoes_source.filter(col("tto") == "PR")
@@ -931,9 +931,9 @@ print(f"Tabela '{target_nova_fato_prorrogacao}' criada com sucesso.")
 print("\nIniciando construção da fato_operacoes_recompra...")
 
 # Fonte = stg_operacoes
-# Explicit read for robustness
+# Optimization: Reuse dataframe loaded in Section 0.2 or 5.3
 if "df_operacoes_source" not in locals():
-    df_operacoes_source = spark.read.table("LH_Silver.staging_operacoes_limpa")
+    df_operacoes_source = df_operacoes_limpa
 
 # Filter TTO = 'RC' or 'RE' AND status_analise = 'D' AND status_aceite = 'A'
 df_ops_rc = df_operacoes_source.filter(
@@ -1021,7 +1021,8 @@ df_info_gestor = df_bridge_atual \
 # 6.1: Métricas de Operações
 # --------------------------
 # Usamos df_fato_operacoes criada na Seção 2.1
-df_ops_validas = df_fato_operacoes.filter(col("status_analise") == "D")
+# Optimization: Read from Gold Table to break lineage and avoid recomputing joins
+df_ops_validas = spark.read.table("LH_Gold.fato_operacoes").filter(col("status_analise") == "D")
 
 # VOP por Dia da Semana (Top 1)
 df_vop_semana = df_ops_validas.withColumn("dia_semana", dayofweek("data_analise")) \
@@ -1052,7 +1053,8 @@ df_metrics_ops_final = df_metrics_ops.join(df_dia_semana_top, "cod_cliente", "le
 # Usamos df_fato_titulos_final criada na Seção 3.3
 # Join com Operações para pegar cod_cliente
 # OTIMIZAÇÃO: cod_cliente foi adicionado à fato_titulos na Seção 3.3, evitando este join.
-df_titulos_cliente = df_fato_titulos_final
+# Optimization: Read from Gold Table to break lineage
+df_titulos_cliente = spark.read.table("LH_Gold.fato_titulos")
 
 today_date = current_date()
 
@@ -1543,6 +1545,10 @@ df_final = df_funnel \
             )
         )
     )
+
+# Optimization: Cache df_final before splitting to avoid recomputing the massive join DAG multiple times
+df_final.cache()
+print(f"Total de registros na dim_clientes (Intermediário): {df_final.count()}")
 
 # -------------------------------------------------------------
 # Refatoração: Separação da Tabela de Score de Clientes
