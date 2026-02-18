@@ -97,6 +97,21 @@ COLS_TO_REMOVE_PRORROGACAO = [
     "tarifa", "usuainclusao", "dataalteracao", "usuaalteracao", "valordevido", "valorpror", "valorboleto"
 ]
 
+def get_status_risco_expr(col_tto="tto", col_vencimento="data_vencimento_util", current_date_col=None):
+    """
+    Retorna a expressão Column para cálculo de status_risco.
+    Lógica:
+      - CRÍTICO: TTO='RN' e Vencimento < Hoje
+      - ATENÇÃO: Vencimento < Hoje (e não CRÍTICO)
+      - NO PRAZO: Caso contrário
+    """
+    if current_date_col is None:
+        current_date_col = current_date()
+
+    return when((col(col_tto) == "RN") & (col(col_vencimento) < current_date_col), "CRÍTICO") \
+           .when(col(col_vencimento) < current_date_col, "ATENÇÃO") \
+           .otherwise("NO PRAZO")
+
 # METADATA ********************
 
 # META {
@@ -771,11 +786,7 @@ except Exception as e:
 
 # Classificação de Risco e Atraso
 df_classificacao = df_dates_final.withColumn("dias_atraso", datediff(current_date(), col("data_vencimento_util"))) \
-    .withColumn("status_risco",
-        when((col("tto") == "RN") & (col("data_vencimento_util") < current_date()), "CRÍTICO")
-        .when(col("data_vencimento_util") < current_date(), "ATENÇÃO")
-        .otherwise("NO PRAZO")
-    )
+    .withColumn("status_risco", get_status_risco_expr())
 
 df_status_1 = df_classificacao.withColumn("status_deferimento", when((col("aceito") == "S") & (col("status_aceite") == "A") & (col("status_analise") == "D"), "Sim").otherwise("Não"))
 df_status_2 = df_status_1.withColumn("status_clean", when(col("produto_com_intercia") == "DESCONTO", "NORMAL").otherwise("CLEAN"))
