@@ -157,6 +157,15 @@ COLS_TO_REMOVE_PRORROGACAO = [
     "tarifa", "usuainclusao", "dataalteracao", "usuaalteracao", "valordevido", "valorpror", "valorboleto"
 ]
 
+# Mapeamento de Status da Esteira para nomes limpos (usado na Seção 6.3)
+STATUS_ESTEIRA_MAPPING = {
+    "CHECKLIST": "checklist", "ASSINATURA": "assinatura", "COMITE": "comite",
+    "CONCLUIDO": "concluido", "BIZAGI": "bizagi", "RENOVAÇÃO": "renovacao",
+    "RESERVA": "reserva", "START": "start", "CREDITO": "credito",
+    "PROPOSTA": "proposta", "REVISÃO COMERCIAL": "revisao_comercial",
+    "DIR COMERCIAL": "dir_comercial"
+}
+
 def get_status_risco_expr(col_tto="tto", col_vencimento="data_vencimento_util", current_date_col=None):
     """
     Retorna a expressão Column para cálculo de status_risco.
@@ -1192,11 +1201,8 @@ if "DATALOG" in df_esteira.columns:
     df_esteira = df_esteira.withColumnRenamed("DATALOG", "datalog")
 
 # Status esperados para o Pivot (para evitar erros de coluna inexistente)
-expected_status = [
-    "CHECKLIST", "ASSINATURA", "COMITE", "CONCLUIDO", "BIZAGI",
-    "RENOVAÇÃO", "RESERVA", "START", "CREDITO",
-    "PROPOSTA", "REVISÃO COMERCIAL", "DIR COMERCIAL"
-]
+# Refatorado para usar constante global
+expected_status = list(STATUS_ESTEIRA_MAPPING.keys())
 
 # Pivot Simples das Datas Maximas por Status
 # Atualizado para usar colunas snake_case da esteira Gold
@@ -1206,15 +1212,7 @@ df_esteira_pivot = df_esteira \
     .agg(max("datalog"))
 
 # Renomeando colunas do pivot para evitar ambiguidade com outras tabelas e padronizar
-status_mapping = {
-    "CHECKLIST": "checklist", "ASSINATURA": "assinatura", "COMITE": "comite",
-    "CONCLUIDO": "concluido", "BIZAGI": "bizagi", "RENOVAÇÃO": "renovacao",
-    "RESERVA": "reserva", "START": "start", "CREDITO": "credito",
-    "PROPOSTA": "proposta", "REVISÃO COMERCIAL": "revisao_comercial",
-    "DIR COMERCIAL": "dir_comercial"
-}
-
-for status, clean_name in status_mapping.items():
+for status, clean_name in STATUS_ESTEIRA_MAPPING.items():
     if status in df_esteira_pivot.columns:
         df_esteira_pivot = df_esteira_pivot.withColumnRenamed(status, f"pivot_{clean_name}")
 
