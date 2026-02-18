@@ -535,9 +535,12 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
         to_date(col("data_inclusao"))
     ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
 
+    # ⚡ Bolt Optimization: Filter TTOs (PR, RC, RE) BEFORE joins to reduce data volume
+    df_operacoes_filtered = df_operacoes_prep.filter(~col("tto").isin(["PR", "RC", "RE"]))
+
     # Adicionando a sk_data para join com dim_calendario
     # E sk_produto para join com dim_produtos
-    df_fato_operacoes_joined = df_operacoes_prep.join(
+    df_fato_operacoes_joined = df_operacoes_filtered.join(
         broadcast(df_dim_calendario.select("data", "sk_data")),
         col("data_join_calendario") == col("data"),
         "left"
@@ -547,11 +550,8 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
         "left"
     )
 
-    # Filtra TTOs que já possuem tabelas fato dedicadas (Prorrogacao e Recompra) para evitar duplicidade
-    df_fato_operacoes_filtered = df_fato_operacoes_joined.filter(~col("tto").isin(["PR", "RC", "RE"]))
-
     # 3. SELEÇÃO FINAL
-    return df_fato_operacoes_filtered.select(
+    return df_fato_operacoes_joined.select(
         col("sk_operacao"),
         col("cod_operacao"),
         col("nbordero"),
