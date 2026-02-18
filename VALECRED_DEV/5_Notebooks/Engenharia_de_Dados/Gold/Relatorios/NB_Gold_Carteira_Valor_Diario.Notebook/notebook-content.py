@@ -73,7 +73,8 @@ df_ops = spark.read.table("LH_Gold.fato_operacoes").select(
     "status_analise",
     "status_aceite",
     "nome_plataforma",
-    "sk_produto"
+    "sk_produto",
+    "taxa_operacao"
 )
 
 # Títulos: Base do valor e liquidação
@@ -172,7 +173,12 @@ df_daily_agg = df_exploded.groupBy(
     ) \
     .agg(
         sum("valor").alias("valor_carteira_total"),
+        sum(col("valor") * col("taxa_operacao")).alias("soma_ponderada_risco"),
         count("cod_titulo").alias("qtd_titulos_ativos")
+    ) \
+    .withColumn(
+        "taxa_media_ponderada",
+        col("soma_ponderada_risco") / col("valor_carteira_total")
     )
 
 print("Agregação diária concluída.")
