@@ -34,9 +34,15 @@
 
 # CELL ********************
 
+import os
 import joblib
 from pyspark.sql.functions import year, col
 import pandas as pd
+
+# Configuração
+class ModelConfig:
+    MODEL_PATH = os.environ.get('CREDIT_RISK_MODEL_PATH', '/lakehouse/default/Files/credit_risk_model_v2.joblib')
+    FEATURES_PATH = os.environ.get('CREDIT_RISK_FEATURES_PATH', '/lakehouse/default/Files/model_features_v2.joblib')
 
 # Configurações do Spark
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED")
@@ -173,8 +179,8 @@ df_previsao_spark.show(5)
 
 print("Carregando o modelo e a lista de features...")
 # Caminhos dos artefatos do modelo
-model_path = '/lakehouse/default/Files/credit_risk_model_v2.joblib'
-features_path = '/lakehouse/default/Files/model_features_v2.joblib'
+model_path = ModelConfig.MODEL_PATH
+features_path = ModelConfig.FEATURES_PATH
 
 # Carregando os artefatos
 try:
