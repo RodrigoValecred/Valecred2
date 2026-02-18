@@ -82,6 +82,30 @@ def safe_read_table(spark, table_name, schema=None, fallback_df=None):
 
 # CELL ********************
 
+# Célula 0.0: Configurações e Constantes Gerais
+# -------------------------------------------
+
+# Colunas a serem removidas na construção da fato_operacoes_prorrogacao (TTO='PR')
+COLS_TO_REMOVE_PR = [
+    "stto", "taxa", "tarifa", "tarifa_recompra", "tac", "n_docs", "n_docs_recompra",
+    "valor_advalorem", "valor_taxa_adm", "total_de_tarifas", "data_alteracao", "cod_indeferimento",
+    "data_aceite", "data_envio_email", "aprovacao1", "contrato_fisico", "taxa_cadastro"
+]
+
+# Colunas a serem removidas na construção da fato_prorrogacoes_de_titulos
+COLS_TO_REMOVE_PRORROGACAO = [
+    "tarifa", "usuainclusao", "dataalteracao", "usuaalteracao", "valordevido", "valorpror", "valorboleto"
+]
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 # Célula 5.2: Construção da Fato Tarifas Esporádicas
 # ---------------------------------------------------
 print("\nIniciando construção da fato_tarifas_esporadicas...")
@@ -817,11 +841,10 @@ df_joined_titulos = df_prorrogacao_silver.join(df_titulos_join, "cod_titulo", "l
 df_joined_full = df_joined_titulos.join(df_operacoes_join, "cod_operacao", "left_outer")
 
 # Etapa 6: Remover colunas desnecessárias
-cols_to_remove = ["tarifa", "usuainclusao", "dataalteracao", "usuaalteracao", "valordevido", "valorpror", "valorboleto"]
 # Nota: As colunas originais do bronze foram convertidas para lower case no Silver (staging_operacoes_prorrogacao_limpa)
 # Portanto, removemos as versões lower case.
 
-df_cleaned = df_joined_full.drop(*cols_to_remove)
+df_cleaned = df_joined_full.drop(*COLS_TO_REMOVE_PRORROGACAO)
 
 # Tratamento do campo VALOR (Prioridade para o valor vindo de Títulos, se expandido)
 # Se existir 'valor' na tabela original, ele pode conflitar ou ser substituído.
@@ -862,13 +885,8 @@ df_ops_pr = df_operacoes_source.filter(col("tto") == "PR")
 # Remover colunas (Mapeamento M Script -> Snake Case)
 # M: DATAACEITE, DATAENVIOEMAIL, STTO, FATOR, TARIFA, TARIFARECOMPRA, TAC, NDOCS, NDOCSRECOMPRA, TOTADVAL, TOTTAXAADM, TOTTAR,
 # APROVACAO1, DATAALTERACAO, CODINDEFERIMENTO, CONTRATOFISICO, TAXACADASTRO, MOTIVO INDEFERIMENTO, GRUPO MOTIVO INDEFERIMENTO
-cols_to_remove_pr = [
-    "stto", "taxa", "tarifa", "tarifa_recompra", "tac", "n_docs", "n_docs_recompra",
-    "valor_advalorem", "valor_taxa_adm", "total_de_tarifas", "data_alteracao", "cod_indeferimento",
-    "data_aceite", "data_envio_email", "aprovacao1", "contrato_fisico", "taxa_cadastro"
-]
 # Colunas que podem não existir no DF Silver (Ignorando erro se não existirem)
-df_ops_pr_clean = df_ops_pr.drop(*cols_to_remove_pr)
+df_ops_pr_clean = df_ops_pr.drop(*COLS_TO_REMOVE_PR)
 
 # Join com Boletos (LH_Silver.staging_boletos_titulos)
 # Precisamos carregar a tabela boletos, pois não foi carregada no início explicitamente (apenas df_titulos_limpa)
