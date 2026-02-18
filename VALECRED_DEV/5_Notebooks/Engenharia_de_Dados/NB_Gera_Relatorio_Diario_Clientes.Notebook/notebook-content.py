@@ -18,6 +18,7 @@
 # CELL ********************
 
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 
 # Exemplo de dados simulando a leitura da Camada Bronze/Silver
@@ -54,8 +55,47 @@ df_consolidado['excesso_valor'] = df_consolidado['excesso_valor'].apply(lambda x
 
 df_consolidado['utilizacao_pct'] = (df_consolidado['valor_risco'] / df_consolidado['limite_global']) * 100
 
+# ==============================================================================
+# DASHBOARD RÁPIDO DE RISCO (UX)
+# ==============================================================================
+def display_risk_dashboard(df):
+    print("\n" + "="*60)
+    print("📊 PAINEL DE RISCO - RELATÓRIO DIÁRIO")
+    print("="*60)
+
+    for _, row in df.iterrows():
+        grupo = row['grupo']
+        utilizacao = row['utilizacao_pct']
+        risco = row['valor_risco']
+        limite = row['limite_global']
+
+        # Progress Bar Logic
+        bar_length = 20
+
+        if pd.isna(utilizacao) or np.isinf(utilizacao):
+            bar = '░' * bar_length
+            status_icon = "⚠️"
+            util_str = "N/A"
+        else:
+            filled_length = int(bar_length * min(utilizacao, 100) / 100)
+            bar = '█' * filled_length + '░' * (bar_length - filled_length)
+            status_icon = "✅" if utilizacao <= 100 else "🚨"
+            util_str = f"{utilizacao:.1f}%"
+
+        print(f"\n🏢 GRUPO: {grupo}")
+        print(f"   Utilização: [{bar}] {util_str} {status_icon}")
+        print(f"   Risco Atual:   R$ {risco:,.2f}")
+        print(f"   Limite Global: R$ {limite:,.2f}")
+
+        if not (pd.isna(utilizacao) or np.isinf(utilizacao)) and utilizacao > 100:
+             excesso = row['excesso_valor']
+             print(f"   ⚠️  EXCESSO:      R$ {excesso:,.2f}")
+
+    print("\n" + "="*60 + "\n")
+
 # Exibição do resultado para o relatório
 display(df_consolidado)
+display_risk_dashboard(df_consolidado)
 
 # Lógica para "Call to Action":
 # Se utilizacao_pct > 100 ou validade_limite < hoje -> Gatilho de Alerta
