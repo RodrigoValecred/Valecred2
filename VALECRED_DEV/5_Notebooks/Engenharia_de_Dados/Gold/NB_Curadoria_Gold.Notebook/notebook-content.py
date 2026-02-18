@@ -691,6 +691,7 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
     col("motivo_indeferimento"),
     col("grupo_motivo_indeferimento"),
     col("taxa_cadastro"),
+    col("taxa").alias("taxa_operacao"),
     col("era"),
     col("data_deferimento"),
     col("chave_base_cliente"),
