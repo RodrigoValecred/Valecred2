@@ -200,13 +200,11 @@ else:
 
 # 4. Cálculo de Indicadores Finais (Granularidade: Operação)
 
-# Janela para Cálculos Médios do Cliente (independente do produto/operação)
-w_cliente = Window.partitionBy("cod_cliente")
+# Optimization (Bolt ⚡): Replace Window functions with GroupBy + Join for client aggregations
+# This avoids expensive window shuffling across all operations of a client (O(N*W) -> O(N)).
 
-# Janela para Cálculos Médios do Produto (opcional, mantendo compatibilidade)
-w_produto = Window.partitionBy("cod_cliente", "produto_informacao_de_mercado")
-
-df_report = df_base_cliente \
+# 4.1 Pre-aggregation calculations (Row-level)
+df_calcs = df_base_cliente \
     .withColumn("produto_final", coalesce(col("produto_informacao_de_mercado"), lit("PRODUTO NÃO IDENTIFICADO"))) \
     .withColumn("prazo_medio_mora_op",
                 when(col("valor_face_titulos_op") > 0,
@@ -222,16 +220,26 @@ df_report = df_base_cliente \
                 coalesce(col("desagio"), lit(0)) + 
                 coalesce(col("total_de_tarifas"), lit(0)) + 
                 coalesce(col("total_juros_mora_pago_op"), lit(0)) +
-                coalesce(col("tarifa_de_recompra"), lit(0))) \
-    .withColumn("soma_valor_prazo_cliente", sum("total_valor_prazo_op").over(w_cliente)) \
-    .withColumn("receita_desagio_cliente", sum("desagio").over(w_cliente)) \
-    .withColumn("receita_total_cliente", sum("receita_total_op").over(w_cliente) + coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0))) \
-    .withColumn("soma_receita_real_cliente", sum("receita_real_op_calc").over(w_cliente)) \
-    .withColumn("soma_vol_prazo_real_cliente", sum("vol_prazo_real_op_calc").over(w_cliente)) \
-    .withColumn("custo_financeiro_cliente", coalesce(sum("custo_financeiro_op").over(w_cliente), lit(0))) \
-    .withColumn("spread_cliente", coalesce(sum("spread_op").over(w_cliente), lit(0))) \
-    .withColumn("volume_operado_cliente", sum("valor_de_face").over(w_cliente)) \
-    .withColumn("qtd_operacoes_cliente", count("cod_operacao").over(w_cliente)) \
+                coalesce(col("tarifa_de_recompra"), lit(0)))
+
+# 4.2 Aggregation by Client
+df_cliente_agg = df_calcs.groupBy("cod_cliente").agg(
+    sum("total_valor_prazo_op").alias("soma_valor_prazo_cliente"),
+    sum("desagio").alias("receita_desagio_cliente"),
+    sum("receita_total_op").alias("soma_receita_total_op"), # Intermediate sum
+    sum("receita_real_op_calc").alias("soma_receita_real_cliente"),
+    sum("vol_prazo_real_op_calc").alias("soma_vol_prazo_real_cliente"),
+    sum("custo_financeiro_op").alias("custo_financeiro_cliente_sum"),
+    sum("spread_op").alias("spread_cliente_sum"),
+    sum("valor_de_face").alias("volume_operado_cliente"),
+    count("cod_operacao").alias("qtd_operacoes_cliente")
+)
+
+# 4.3 Join and Final Calculations
+df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
+    .withColumn("receita_total_cliente", col("soma_receita_total_op") + coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0))) \
+    .withColumn("custo_financeiro_cliente", coalesce(col("custo_financeiro_cliente_sum"), lit(0))) \
+    .withColumn("spread_cliente", coalesce(col("spread_cliente_sum"), lit(0))) \
     .withColumn("taxa_media_ponderada_mensal_cliente", 
                 when(col("soma_valor_prazo_cliente") > 0, 
                      (col("receita_desagio_cliente") / col("soma_valor_prazo_cliente")) * 30 * 100
