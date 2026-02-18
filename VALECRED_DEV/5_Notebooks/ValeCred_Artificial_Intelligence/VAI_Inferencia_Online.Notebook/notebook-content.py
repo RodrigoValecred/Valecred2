@@ -182,8 +182,8 @@ try:
 except Exception as e:
     print(f"❌ Erro/Aviso na IA: {e}")
     print("⚠️ ATENÇÃO: Usando regra manual de contingência.")
-    df_pandas['anomaly_score'] = df_pandas.apply(
-        lambda x: -1 if (x['taxa'] < 1.5 or x['prazo_medio_titulos'] > 60) else 1, axis=1
+    df_pandas['anomaly_score'] = np.where(
+        (df_pandas['taxa'] < 1.5) | (df_pandas['prazo_medio_titulos'] > 60), -1, 1
     )
 # ==============================================================================
 # 🆕 XAI: EXPLICAR O MOTIVO DA ANOMALIA (DIAGNÓSTICO)
@@ -248,7 +248,7 @@ else:
 # 3. SALVAR RESULTADO NA TV
 # ==============================================================================
 
-df_pandas['status_ia'] = df_pandas['anomaly_score'].apply(lambda x: "ALTO RISCO" if x == -1 else "NORMAL")
+df_pandas['status_ia'] = np.where(df_pandas['anomaly_score'] == -1, "ALTO RISCO", "NORMAL")
 df_pandas['data_processamento'] = pd.Timestamp.now()
 
 print("4. Salvando resultados na tabela Gold...")
