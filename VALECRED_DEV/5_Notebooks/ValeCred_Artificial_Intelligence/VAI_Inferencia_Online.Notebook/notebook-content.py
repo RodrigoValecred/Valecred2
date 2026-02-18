@@ -261,70 +261,75 @@ display(df_final.select("id_operacao", "status_ia","motivo_principal"))
 # ==============================================================================
 # 4. DASHBOARD RÁPIDO DE SAÍDA (UX)
 # ==============================================================================
-import datetime
+print("\n" + "="*40)
+print("📊 RESUMO DO PROCESSAMENTO")
+print("="*40)
 
-def create_progress_bar(percentage, length=20):
-    """Creates a textual progress bar."""
-    fill_count = int((percentage / 100) * length)
-    empty_count = length - fill_count
-    return "█" * fill_count + "░" * empty_count
+def create_progress_bar(percentage, width=20):
+    filled = int(width * percentage / 100)
+    bar = "█" * filled + "░" * (width - filled)
+    return f"[{bar}] {percentage:.1f}%"
 
 def display_terminal_dashboard(df):
-    """Exibe um dashboard textual formatado com métricas de risco."""
+    W = 52
+    cw = 48 # Content width (excluding side padding spaces)
+    # Total line width = 1 (║) + 1 ( ) + 48 + 1 ( ) + 1 (║) = 52
+
     print("\n")
-    print("┌" + "─"*50 + "┐")
-    print("│          📊 DASHBOARD DE RISCO V.A.I.            │")
-    print("└" + "─"*50 + "┘")
-    print(f"📅 Executado em: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("")
+    print("╔" + "═"*(W-2) + "╗")
+    print(f"║ {'📊 RESUMO DO PROCESSAMENTO V.A.I.':^{cw}} ║")
+    print("╠" + "═"*(W-2) + "╣")
 
     if not df.empty and 'status_ia' in df.columns:
         total_ops = len(df)
         risco_alto = len(df[df['status_ia'] == 'ALTO RISCO'])
-        risco_normal = total_ops - risco_alto
+        normal = total_ops - risco_alto
         percent_risco = (risco_alto / total_ops) * 100 if total_ops > 0 else 0
-        percent_normal = (risco_normal / total_ops) * 100 if total_ops > 0 else 0
 
-        # Metrics Section
-        print(f"🔢 Total de Operações: {total_ops}")
-        print("-" * 52)
+        # Status
+        status_icon = "🟢" if percent_risco < 10 else "🔴" if percent_risco < 30 else "🔥"
+        status_text = f"{status_icon} Status: {percent_risco:.1f}% Risco"
+        # Emoji adjustment: 1 char extra visual width per emoji
+        padding = cw - (len(status_text) + 1)
+        print(f"║ {status_text}{' '*padding} ║")
 
-        # High Risk Bar
-        bar_risco = create_progress_bar(percent_risco)
-        print(f"🚨 RISCO ALTO:   {risco_alto} ({percent_risco:.1f}%)")
-        print(f"   [{bar_risco}]")
-        print("")
+        print(f"║ {' '*cw} ║") # Spacer
 
-        # Normal Bar
-        bar_normal = create_progress_bar(percent_normal)
-        print(f"✅ NORMAL:       {risco_normal} ({percent_normal:.1f}%)")
-        print(f"   [{bar_normal}]")
-        print("-" * 52)
+        # Metrics
+        # Padding calc: "  🔢 Total:       " (17 chars) + 31 chars value = 48 chars content
+        print(f"║  🔢 Total:       {str(total_ops):<31} ║")
+        print(f"║  🚨 Alto Risco:  {str(risco_alto):<31} ║")
+        print(f"║  ✅ Normal:      {str(normal):<31} ║")
 
-        # Top Reasons Section
+        print(f"║ {' '*cw} ║") # Spacer
+
+        # Progress Bar
+        bar = create_progress_bar(percent_risco, width=25)
+        # "  Risco: " (9 chars) + bar (approx 34 chars) + padding -> 48 chars
+        # 48 - 9 = 39 chars space for bar
+        print(f"║  Risco: {bar:<39} ║")
+
+        print(f"║ {' '*cw} ║") # Spacer
+
+        # Top Reasons
         if risco_alto > 0 and 'motivo_principal' in df.columns:
-            print("🔍 TOP MOTIVOS DE ALERTA:")
+            print("╠" + "─"*(W-2) + "╣")
+            print(f"║ {'🔍 TOP 3 MOTIVOS DE RISCO':^{cw}} ║")
+            print("╠" + "─"*(W-2) + "╣")
+
             top_motivos = df[df['status_ia'] == 'ALTO RISCO']['motivo_principal'].value_counts().head(3)
+
             for i, (motivo, count) in enumerate(top_motivos.items(), 1):
-                padding = "." * (40 - len(str(motivo))) if len(str(motivo)) < 40 else " "
-                print(f"   {i}. {motivo} {padding} {count}")
-        else:
-            print("✅ Nenhuma anomalia detectada.")
-
-        print("-" * 52)
-
-        # Actionable Insight
-        if percent_risco > 20:
-            print("⚠️  AÇÃO: Volume de risco elevado. Verificar regras.")
-        elif risco_alto > 0:
-            print("ℹ️  AÇÃO: Monitorar operações pontuais.")
-        else:
-            print("✨  Tudo tranquilo. Operação dentro do padrão.")
-
+                motivo_disp = (motivo[:35] + '..') if len(motivo) > 35 else motivo
+                line = f"{i}. {motivo_disp}: {count}"
+                print(f"║ {line:<{cw}} ║")
     else:
-        print("⚠️  AVISO: Nenhum dado processado ou colunas ausentes.")
+        print(f"║ {'⚠️ NENHUM DADO PROCESSADO':^{cw}} ║")
 
-    print("="*52 + "\n")
+    print("╚" + "═"*(W-2) + "╝")
+    print("\n")
+
+display_terminal_dashboard(df_pandas)
 
 # Executa o dashboard
 display_terminal_dashboard(df_pandas)
