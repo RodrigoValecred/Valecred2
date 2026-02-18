@@ -85,6 +85,66 @@ def safe_read_table(spark, table_name, schema=None, fallback_df=None):
 # Célula 0.0: Configurações e Constantes Gerais
 # -------------------------------------------
 
+class TableNames:
+    # Bronze
+    BRONZE_CAD_CLIENTES = "LH_Bronze.cad_clientes"
+    BRONZE_CAD_GERAL_ARQUIVOS = "LH_Bronze.cad_geral_arquivos"
+    BRONZE_TAB_FERIADOS = "LH_Bronze.tab_feriados"
+    BRONZE_TAB_SUBTIPOOPERACAO = "LH_Bronze.tab_subtipooperacao"
+    BRONZE_TAB_TIPOOPERACAO = "LH_Bronze.tab_tipooperacao"
+
+    # Silver
+    SILVER_BRIDGE_CLIENTE_GERENTE = "LH_Silver.bridge_cliente_gerente"
+    SILVER_FACT_ULTIMA_CONFIRMACAO = "LH_Silver.fact_ultima_confirmacao"
+    SILVER_RELATORIO_TITULOS_JURIDICO = "LH_Silver.relatorio_titulos_juridico"
+    SILVER_STAGING_BAIXAS_LIMPA = "LH_Silver.staging_baixas_limpa"
+    SILVER_STAGING_BOLETOS_TITULOS = "LH_Silver.staging_boletos_titulos"
+    SILVER_STAGING_CAD_GERAL_PF_PJ_LIMPA = "LH_Silver.staging_cad_geral_pf_pj_limpa"
+    SILVER_STAGING_CLIENTES_LIMPA = "LH_Silver.staging_clientes_limpa"
+    SILVER_STAGING_CONTRATOS_CLIENTES_LIMPA = "LH_Silver.staging_contratos_clientes_limpa"
+    SILVER_STAGING_EMAILS_AGG = "LH_Silver.staging_emails_agg"
+    SILVER_STAGING_ENDERECOS_LIMPA = "LH_Silver.staging_enderecos_limpa"
+    SILVER_STAGING_ESTUDO_OPERACOES = "LH_Silver.staging_estudo_operacoes"
+    SILVER_STAGING_GERENTES = "LH_Silver.staging_gerentes"
+    SILVER_STAGING_OPERACOES_DEVOLUCOES_LIMPA = "LH_Silver.staging_operacoes_devolucoes_limpa"
+    SILVER_STAGING_OPERACOES_ESCROW = "LH_Silver.staging_operacoes_escrow"
+    SILVER_STAGING_OPERACOES_LIMPA = "LH_Silver.staging_operacoes_limpa"
+    SILVER_STAGING_OPERACOES_PRORROGACAO_LIMPA = "LH_Silver.staging_operacoes_prorrogacao_limpa"
+    SILVER_STAGING_PLATAFORMAS = "LH_Silver.staging_plataformas"
+    SILVER_STAGING_PROTESTOS = "LH_Silver.staging_protestos"
+    SILVER_STAGING_RLC_CLIENTES_SACADOS_LIMITES = "LH_Silver.staging_rlc_clientes_sacados_limites"
+    SILVER_STAGING_TARIFAS_ESPORADICAS = "LH_Silver.staging_tarifas_esporadicas"
+    SILVER_STAGING_TELEFONES_AGG = "LH_Silver.staging_telefones_agg"
+    SILVER_STAGING_TITULOS_LIMPA = "LH_Silver.staging_titulos_limpa"
+    SILVER_STAGING_USUARIOS = "LH_Silver.staging_usuarios"
+    SILVER_STG_LIMITES_CONTRATOS_SILVER = "LH_Silver.stg_limites_contratos_silver"
+    SILVER_SUP_FORMA_DE_PAGAMENTO = "LH_Silver.sup_forma_de_pagamento"
+    SILVER_SUP_GRUPOS_ECONOMICOS = "LH_Silver.sup_grupos_economicos"
+    SILVER_SUP_LIMITES_EXTRA_PLUS = "LH_Silver.sup_limites_extra_plus"
+    SILVER_SUP_MOTIVO_BAIXA = "LH_Silver.sup_motivo_baixa"
+    SILVER_SUP_MOTIVOS_DE_INDEFERIMENTO = "LH_Silver.sup_motivos_de_indeferimento"
+    SILVER_SUP_PAGO_PELO = "LH_Silver.sup_pago_pelo"
+    SILVER_SUP_STATUS_DE_CLIENTES_DA_ESTEIRA = "LH_Silver.sup_status_de_clientes_da_esteira"
+    SILVER_SUP_TIPO_DE_BAIXA = "LH_Silver.sup_tipo_de_baixa"
+
+    # Gold
+    GOLD_ANALISE_PRAZOS_ESTEIRA = "LH_Gold.analise_prazos_esteira"
+    GOLD_ANALISE_SCORE_CLIENTES = "LH_Gold.analise_score_clientes"
+    GOLD_DIM_CALENDARIO = "LH_Gold.dim_calendario"
+    GOLD_DIM_CLIENTES = "LH_Gold.dim_clientes"
+    GOLD_DIM_PRODUTOS = "LH_Gold.dim_produtos"
+    GOLD_ESTEIRA_DE_PROPOSTAS = "LH_Gold.esteira_de_propostas"
+    GOLD_FATO_BAIXAS = "LH_Gold.fato_baixas"
+    GOLD_FATO_LIMITES_CREDITO = "LH_Gold.fato_limites_credito"
+    GOLD_FATO_OPERACOES = "LH_Gold.fato_operacoes"
+    GOLD_FATO_OPERACOES_PRORROGACAO = "LH_Gold.fato_operacoes_prorrogacao"
+    GOLD_FATO_OPERACOES_RECOMPRA = "LH_Gold.fato_operacoes_recompra"
+    GOLD_FATO_PRORROGACOES_DE_TITULOS = "LH_Gold.fato_prorrogacoes_de_titulos"
+    GOLD_FATO_TARIFAS_ESPORADICAS = "LH_Gold.fato_tarifas_esporadicas"
+    GOLD_FATO_TITULOS = "LH_Gold.fato_titulos"
+    GOLD_METRICAS_CARTEIRA_HHI = "LH_Gold.metricas_carteira_hhi"
+
+
 # Colunas a serem removidas na construção da fato_operacoes_prorrogacao (TTO='PR')
 COLS_TO_REMOVE_PR = [
     "stto", "taxa", "tarifa", "tarifa_recompra", "tac", "n_docs", "n_docs_recompra",
@@ -110,10 +170,10 @@ COLS_TO_REMOVE_PRORROGACAO = [
 # ---------------------------------------------------
 print("\nIniciando construção da fato_tarifas_esporadicas...")
 
-df_tarifas_silver = spark.read.table("LH_Silver.staging_tarifas_esporadicas")
+df_tarifas_silver = spark.read.table(TableNames.SILVER_STAGING_TARIFAS_ESPORADICAS)
 
 # Salvar
-target_fato_tarifas = "LH_Gold.fato_tarifas_esporadicas"
+target_fato_tarifas = TableNames.GOLD_FATO_TARIFAS_ESPORADICAS
 df_tarifas_silver.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_tarifas)
 print(f"Tabela '{target_fato_tarifas}' criada com sucesso.")
 
@@ -132,83 +192,83 @@ print("Iniciando leitura da Silver...")
 
 # --- 1. Titulos (Origem: LH_Silver.staging_titulos_limpa) ---
 print("Carregando Titulos (Silver)...")
-df_titulos_limpa = spark.read.table("LH_Silver.staging_titulos_limpa").cache()
+df_titulos_limpa = spark.read.table(TableNames.SILVER_STAGING_TITULOS_LIMPA).cache()
 # A tabela já está limpa, desduplicada e com colunas renomeadas para snake_case.
 
 # --- 2. Operacoes (Origem: LH_Silver.staging_operacoes_limpa) ---
 print("Carregando Operacoes (Silver)...")
-df_operacoes_limpa = spark.read.table("LH_Silver.staging_operacoes_limpa")
+df_operacoes_limpa = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_LIMPA)
 
 # --- 3. Baixas (Origem: LH_Silver.staging_baixas_limpa) ---
 print("Carregando Baixas (Silver)...")
-df_baixas_staging = spark.read.table("LH_Silver.staging_baixas_limpa")
+df_baixas_staging = spark.read.table(TableNames.SILVER_STAGING_BAIXAS_LIMPA)
 
 # --- 4. Cadastros (Origem: LH_Silver...) ---
 print("Carregando Cadastros (Silver)...")
 # Clientes
-df_clientes_staging = spark.read.table("LH_Silver.staging_clientes_limpa") # cod_cliente, cpf_cnpj
+df_clientes_staging = spark.read.table(TableNames.SILVER_STAGING_CLIENTES_LIMPA) # cod_cliente, cpf_cnpj
 
 # Geral PF/PJ
-df_geral_pf_pj_limpa = spark.read.table("LH_Silver.staging_cad_geral_pf_pj_limpa") # cpf_cnpj, nome, razao_social, nome_fantasia
+df_geral_pf_pj_limpa = spark.read.table(TableNames.SILVER_STAGING_CAD_GERAL_PF_PJ_LIMPA) # cpf_cnpj, nome, razao_social, nome_fantasia
 
 # Endereços
-df_enderecos_limpa = spark.read.table("LH_Silver.staging_enderecos_limpa").select(
+df_enderecos_limpa = spark.read.table(TableNames.SILVER_STAGING_ENDERECOS_LIMPA).select(
     col("cpf_cnpj"), col("cidade"), col("uf"), col("cep")
 )
 
 # Bridge Gerente
-df_bridge_gerente = spark.read.table("LH_Silver.bridge_cliente_gerente")
+df_bridge_gerente = spark.read.table(TableNames.SILVER_BRIDGE_CLIENTE_GERENTE)
 
 # Gerentes e Plataformas
 print("Carregando Gerentes e Plataformas (Silver)...")
-df_gerentes = spark.read.table("LH_Silver.staging_gerentes")
-df_plataformas = spark.read.table("LH_Silver.staging_plataformas")
+df_gerentes = spark.read.table(TableNames.SILVER_STAGING_GERENTES)
+df_plataformas = spark.read.table(TableNames.SILVER_STAGING_PLATAFORMAS)
 
 # Emails & Telefones Agg
 print("Carregando Emails e Telefones (Silver)...")
-df_emails_agg = spark.read.table("LH_Silver.staging_emails_agg")
-df_telefones_agg = spark.read.table("LH_Silver.staging_telefones_agg")
+df_emails_agg = spark.read.table(TableNames.SILVER_STAGING_EMAILS_AGG)
+df_telefones_agg = spark.read.table(TableNames.SILVER_STAGING_TELEFONES_AGG)
 
 # --- 5. Support Tables ---
 print("Carregando Tabelas de Suporte (Silver)...")
-df_dim_pago_por = spark.read.table("LH_Silver.sup_pago_pelo")
-df_dim_forma_pagamento = spark.read.table("LH_Silver.sup_forma_de_pagamento")
-df_dim_tipo_taxa = spark.read.table("LH_Silver.sup_tipo_de_baixa")
-df_dim_motivo_baixa = spark.read.table("LH_Silver.sup_motivo_baixa")
+df_dim_pago_por = spark.read.table(TableNames.SILVER_SUP_PAGO_PELO)
+df_dim_forma_pagamento = spark.read.table(TableNames.SILVER_SUP_FORMA_DE_PAGAMENTO)
+df_dim_tipo_taxa = spark.read.table(TableNames.SILVER_SUP_TIPO_DE_BAIXA)
+df_dim_motivo_baixa = spark.read.table(TableNames.SILVER_SUP_MOTIVO_BAIXA)
 
 # --- 6. Other Lookups ---
 print("Carregando Lookups (Bronze)...")
-df_cad_geral_arquivos = spark.read.table("LH_Bronze.cad_geral_arquivos")
-df_tipo_op_bronze = spark.read.table("LH_Bronze.tab_tipooperacao")
-df_subtipo_op_bronze = spark.read.table("LH_Bronze.tab_subtipooperacao")
-df_feriados = spark.read.table("LH_Bronze.tab_feriados")
+df_cad_geral_arquivos = spark.read.table(TableNames.BRONZE_CAD_GERAL_ARQUIVOS)
+df_tipo_op_bronze = spark.read.table(TableNames.BRONZE_TAB_TIPOOPERACAO)
+df_subtipo_op_bronze = spark.read.table(TableNames.BRONZE_TAB_SUBTIPOOPERACAO)
+df_feriados = spark.read.table(TableNames.BRONZE_TAB_FERIADOS)
 
 # Limites (Silver)
 print("Carregando Limites (Silver)...")
-df_limites = spark.read.table("LH_Silver.staging_rlc_clientes_sacados_limites")
+df_limites = spark.read.table(TableNames.SILVER_STAGING_RLC_CLIENTES_SACADOS_LIMITES)
 
 # Devolucoes (Silver)
 print("Carregando Devolucoes (Silver)...")
-df_devolucoes = spark.read.table("LH_Silver.staging_operacoes_devolucoes_limpa")
+df_devolucoes = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_DEVOLUCOES_LIMPA)
 
 # Protestos (Silver)
 print("Carregando Protestos (Silver)...")
-df_protestos = spark.read.table("LH_Silver.staging_protestos")
+df_protestos = spark.read.table(TableNames.SILVER_STAGING_PROTESTOS)
 
 print("Carregando Ultima Confirmacao (Silver)...")
-df_ultima_conf = spark.read.table("LH_Silver.fact_ultima_confirmacao")
+df_ultima_conf = spark.read.table(TableNames.SILVER_FACT_ULTIMA_CONFIRMACAO)
 
 # Calendario (Gold)
 print("Carregando Calendario (Gold)...")
-df_dim_calendario = spark.read.table("LH_Gold.dim_calendario").cache()
+df_dim_calendario = spark.read.table(TableNames.GOLD_DIM_CALENDARIO).cache()
 
 # Contratos (Silver) - Para Limites
 print("Carregando Contratos (Silver)...")
-df_contratos = spark.read.table("LH_Silver.staging_contratos_clientes_limpa")
+df_contratos = spark.read.table(TableNames.SILVER_STAGING_CONTRATOS_CLIENTES_LIMPA)
 
 # Limites Contratos Silver (Regex) - Para colunas faltantes
 print("Carregando Limites Contratos Silver (Regex)...")
-df_limites_obs_silver = safe_read_table(spark, "LH_Silver.stg_limites_contratos_silver", schema=StructType([
+df_limites_obs_silver = safe_read_table(spark, TableNames.SILVER_STG_LIMITES_CONTRATOS_SILVER, schema=StructType([
     StructField("codcliente", LongType(), True),
     StructField("limite_geral", DoubleType(), True),
     StructField("limite_intercompany", DoubleType(), True),
@@ -218,11 +278,11 @@ df_limites_obs_silver = safe_read_table(spark, "LH_Silver.stg_limites_contratos_
 
 # Cad Clientes (Bronze) - Para Status
 print("Carregando Cad Clientes (Bronze)...")
-df_cad_clientes_bronze = spark.read.table("LH_Bronze.cad_clientes")
+df_cad_clientes_bronze = spark.read.table(TableNames.BRONZE_CAD_CLIENTES)
 
 # Dimensao Produtos (Gold) - Refatorado
 print("Carregando Dimensao Produtos (Gold)...")
-df_dim_produto = safe_read_table(spark, "LH_Gold.dim_produtos", schema=StructType([
+df_dim_produto = safe_read_table(spark, TableNames.GOLD_DIM_PRODUTOS, schema=StructType([
     StructField("sk_produto", LongType(), True),
     StructField("chave_produto", StringType(), True),
     StructField("produto_informacao_de_mercado", StringType(), True)
@@ -230,11 +290,11 @@ df_dim_produto = safe_read_table(spark, "LH_Gold.dim_produtos", schema=StructTyp
 
 # Grupos Economicos (Silver)
 print("Carregando Grupos Economicos (Silver)...")
-df_grupos_economicos = spark.read.table("LH_Silver.sup_grupos_economicos")
+df_grupos_economicos = spark.read.table(TableNames.SILVER_SUP_GRUPOS_ECONOMICOS)
 
 # Limites Extra Plus (Silver)
 print("Carregando Limites Extra Plus (Silver)...")
-df_limites_extra_plus = safe_read_table(spark, "LH_Silver.sup_limites_extra_plus", schema=StructType([
+df_limites_extra_plus = safe_read_table(spark, TableNames.SILVER_SUP_LIMITES_EXTRA_PLUS, schema=StructType([
     StructField("nome", StringType(), True),
     StructField("cnpj", StringType(), True),
     StructField("limite", DoubleType(), True),
@@ -244,17 +304,17 @@ df_limites_extra_plus = safe_read_table(spark, "LH_Silver.sup_limites_extra_plus
 
 # Relatorio Juridico (Silver) - Para flag status_enviado_juridico
 print("Carregando Relatorio Juridico (Silver)...")
-df_relatorio_juridico = safe_read_table(spark, "LH_Silver.relatorio_titulos_juridico", schema=StructType([
+df_relatorio_juridico = safe_read_table(spark, TableNames.SILVER_RELATORIO_TITULOS_JURIDICO, schema=StructType([
     StructField("cod_titulo", LongType(), True)
 ]))
 
 # Usuarios (Silver)
 print("Carregando Usuarios (Silver)...")
-df_usuarios = spark.read.table("LH_Silver.staging_usuarios")
+df_usuarios = spark.read.table(TableNames.SILVER_STAGING_USUARIOS)
 
 # Motivos Indeferimento (Silver)
 print("Carregando Motivos Indeferimento (Silver)...")
-df_motivos_indeferimento = safe_read_table(spark, "LH_Silver.sup_motivos_de_indeferimento", schema=StructType([
+df_motivos_indeferimento = safe_read_table(spark, TableNames.SILVER_SUP_MOTIVOS_DE_INDEFERIMENTO, schema=StructType([
     StructField("cod_indeferimento", LongType(), True),
     StructField("motivo_indeferimento", StringType(), True),
     StructField("grupo_motivo_indeferimento", StringType(), True)
@@ -262,14 +322,14 @@ df_motivos_indeferimento = safe_read_table(spark, "LH_Silver.sup_motivos_de_inde
 
 # Estudo Operacoes (Silver)
 print("Carregando Estudo Operacoes (Silver)...")
-df_estudo_operacoes = spark.read.table("LH_Silver.staging_estudo_operacoes")
+df_estudo_operacoes = spark.read.table(TableNames.SILVER_STAGING_ESTUDO_OPERACOES)
 
 # Escrow (Silver)
 print("Carregando Escrow (Silver)...")
 try:
-    df_escrow = spark.read.table("LH_Silver.staging_operacoes_escrow").groupBy("cod_operacao").agg(max("ESCROW").alias("ESCROW"))
+    df_escrow = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_ESCROW).groupBy("cod_operacao").agg(max("ESCROW").alias("ESCROW"))
 except Exception as e:
-    print(f"AVISO: Tabela LH_Silver.staging_operacoes_escrow não encontrada ({e}). Criando dataframe vazio.")
+    print(f"AVISO: Tabela {TableNames.SILVER_STAGING_OPERACOES_ESCROW} não encontrada ({e}). Criando dataframe vazio.")
     df_escrow = spark.createDataFrame([], schema=StructType([StructField("cod_operacao", LongType(), True), StructField("ESCROW", BooleanType(), True)]))
 
 print("Leitura da Silver concluída.")
@@ -642,7 +702,7 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
 ).dropDuplicates(["cod_operacao"])
 
 df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto)
-output_path_fato_operacoes = "LH_Gold.fato_operacoes"
+output_path_fato_operacoes = TableNames.GOLD_FATO_OPERACOES
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
 print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
 
@@ -678,7 +738,7 @@ df_fato_baixas = df_enriquecido_baixas.select(
     df_dim_pago_por["descricao"].alias("pago_por"), df_dim_forma_pagamento["descricao"].alias("forma"),
     df_dim_tipo_taxa["descricao"].alias("tipo_baixa"), df_dim_motivo_baixa["descricao"].alias("motivo")
 )
-output_path_fato_baixas = "LH_Gold.fato_baixas"
+output_path_fato_baixas = TableNames.GOLD_FATO_BAIXAS
 df_fato_baixas.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_baixas)
 print(f"Tabela 'fato_baixas' salva em: {output_path_fato_baixas}")
 
@@ -808,7 +868,7 @@ df_fato_titulos_final = df_ordem.select(
     col("comissao_spread"),
     col("cod_cliente")
 )
-output_path_titulos_final = "LH_Gold.fato_titulos"
+output_path_titulos_final = TableNames.GOLD_FATO_TITULOS
 df_fato_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
 print(f"Tabela 'fato_titulos' salva em: {output_path_titulos_final}")
 
@@ -826,7 +886,7 @@ print(f"Tabela 'fato_titulos' salva em: {output_path_titulos_final}")
 print("\nIniciando construção da fato_prorrogacoes_de_titulos...")
 
 # Leitura da Staging Limpa (Silver)
-df_prorrogacao_silver = spark.read.table("LH_Silver.staging_operacoes_prorrogacao_limpa")
+df_prorrogacao_silver = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_PRORROGACAO_LIMPA)
 
 # Leitura das tabelas auxiliares (Silver/Gold) já carregadas no início (df_titulos_limpa, df_operacoes_limpa)
 # Mas garantindo a seleção correta
@@ -858,7 +918,7 @@ df_final_prorrogacao = df_cleaned \
     .withColumn("data", to_date(col("data_inclusao"))) \
     .withColumn("dias_prorrogados", datediff(col("vencimentonov"), col("vencimentoant")))
 
-target_fato_prorrogacao = "LH_Gold.fato_prorrogacoes_de_titulos"
+target_fato_prorrogacao = TableNames.GOLD_FATO_PRORROGACOES_DE_TITULOS
 df_final_prorrogacao.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_prorrogacao)
 print(f"Tabela '{target_fato_prorrogacao}' criada com sucesso.")
 
@@ -877,7 +937,7 @@ print("\nIniciando construção da fato_operacoes_prorrogacao (NOVA)...")
 
 # Fonte = stg_operacoes (df_operacoes_limpa)
 # Explicit read for robustness
-df_operacoes_source = spark.read.table("LH_Silver.staging_operacoes_limpa")
+df_operacoes_source = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_LIMPA)
 
 # Filtrar TTO = 'PR'
 df_ops_pr = df_operacoes_source.filter(col("tto") == "PR")
@@ -891,7 +951,7 @@ df_ops_pr_clean = df_ops_pr.drop(*COLS_TO_REMOVE_PR)
 # Join com Boletos (LH_Silver.staging_boletos_titulos)
 # Precisamos carregar a tabela boletos, pois não foi carregada no início explicitamente (apenas df_titulos_limpa)
 print("Carregando Boletos (Silver)...")
-df_boletos_titulos = safe_read_table(spark, "LH_Silver.staging_boletos_titulos", fallback_df=df_titulos_limpa.filter(col("t_doc") == "BL"))
+df_boletos_titulos = safe_read_table(spark, TableNames.SILVER_STAGING_BOLETOS_TITULOS, fallback_df=df_titulos_limpa.filter(col("t_doc") == "BL"))
 
 # Selecionar colunas de interesse do boleto antes do join para evitar duplicação/ambiguidade
 # M: {"CODTITULO", "NDOC", "CPFCNPJSACADO", "CPFCNPJCEDENTE", "VALOR",  "AMORTIZACOES", "LIQUIDACAO"}
@@ -913,7 +973,7 @@ df_joined_pr = df_ops_pr_clean.join(df_boletos_select, "cod_operacao", "left")
 # Remover colunas finais: STATUSANALISE, STATUSACEITE, TTO
 df_final_pr = df_joined_pr.drop("status_analise", "status_aceite", "tto")
 
-target_nova_fato_prorrogacao = "LH_Gold.fato_operacoes_prorrogacao"
+target_nova_fato_prorrogacao = TableNames.GOLD_FATO_OPERACOES_PRORROGACAO
 df_final_pr.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_nova_fato_prorrogacao)
 print(f"Tabela '{target_nova_fato_prorrogacao}' criada com sucesso.")
 
@@ -933,7 +993,7 @@ print("\nIniciando construção da fato_operacoes_recompra...")
 # Fonte = stg_operacoes
 # Explicit read for robustness
 if "df_operacoes_source" not in locals():
-    df_operacoes_source = spark.read.table("LH_Silver.staging_operacoes_limpa")
+    df_operacoes_source = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_LIMPA)
 
 # Filter TTO = 'RC' or 'RE' AND status_analise = 'D' AND status_aceite = 'A'
 df_ops_rc = df_operacoes_source.filter(
@@ -961,7 +1021,7 @@ if "chave_base_operacao" in df_joined_rc_clean.columns:
 else:
     df_final_rc = df_joined_rc_clean.withColumn("chave_base_operacao_recompra", concat(lit("40-"), col("cod_operacao")))
 
-target_fato_recompra = "LH_Gold.fato_operacoes_recompra"
+target_fato_recompra = TableNames.GOLD_FATO_OPERACOES_RECOMPRA
 df_final_rc.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_recompra)
 print(f"Tabela '{target_fato_recompra}' criada com sucesso.")
 
@@ -985,7 +1045,7 @@ from pyspark.sql.functions import sum, min, count, current_date, round, floor, d
 # 6.0: Preparação de Dados Auxiliares
 # -----------------------------------
 # Sup Status Clientes (Silver)
-df_sup_status = spark.read.table("LH_Silver.sup_status_de_clientes_da_esteira")
+df_sup_status = spark.read.table(TableNames.SILVER_SUP_STATUS_DE_CLIENTES_DA_ESTEIRA)
 
 # Prepare Cad Clientes Status
 # Bronze: CODSTATUSCLIENTE
@@ -1108,7 +1168,7 @@ df_risco_grupo_agg = df_risco_ind.join(df_grupos_prep, "cod_cliente", "inner") \
 
 # 6.3: Esteira Dates e Funnel
 # ---------------------------
-df_esteira = spark.read.table("LH_Gold.esteira_de_propostas")
+df_esteira = spark.read.table(TableNames.GOLD_ESTEIRA_DE_PROPOSTAS)
 
 # Normalização de colunas (Compatibilidade com Legado/Schema antigo)
 # Se a tabela não foi regerada (incremental = 0), ela pode estar com colunas em UpperCase.
@@ -1316,7 +1376,7 @@ df_fato_limites = df_grupo_final.unionByName(df_cliente_final, allowMissingColum
     )
 
 # 7. Salvar
-output_path_fato_limites = "LH_Gold.fato_limites_credito"
+output_path_fato_limites = TableNames.GOLD_FATO_LIMITES_CREDITO
 df_fato_limites.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_limites)
 print(f"Tabela 'fato_limites_credito' criada em: {output_path_fato_limites}")
 
@@ -1559,8 +1619,8 @@ cols_score = [
 print("Criando tabela 'analise_score_clientes' e removendo colunas da dim_clientes...")
 # Selecionar apenas colunas de score + chave
 df_score_clientes = df_final.select("cod_cliente", *cols_score)
-df_score_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Gold.analise_score_clientes")
-print("Tabela 'LH_Gold.analise_score_clientes' criada com sucesso.")
+df_score_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(TableNames.GOLD_ANALISE_SCORE_CLIENTES)
+print(f"Tabela '{TableNames.GOLD_ANALISE_SCORE_CLIENTES}' criada com sucesso.")
 
 # Remover colunas de score do DataFrame principal (dim_clientes)
 df_final = df_final.drop(*cols_score)
@@ -1592,14 +1652,14 @@ if missing_cols:
     print(f"AVISO: As seguintes colunas de esteira não foram encontradas em df_final e serão ignoradas: {missing_cols}")
 
 df_analise_prazos = df_final.select("cod_cliente", *existing_cols)
-df_analise_prazos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("LH_Gold.analise_prazos_esteira")
-print("Tabela 'LH_Gold.analise_prazos_esteira' criada com sucesso.")
+df_analise_prazos.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(TableNames.GOLD_ANALISE_PRAZOS_ESTEIRA)
+print(f"Tabela '{TableNames.GOLD_ANALISE_PRAZOS_ESTEIRA}' criada com sucesso.")
 
 # Remover colunas de esteira do DataFrame principal (dim_clientes)
 df_final = df_final.drop(*existing_cols)
 
 # Salvar
-output_path_dim_clientes = "LH_Gold.dim_clientes"
+output_path_dim_clientes = TableNames.GOLD_DIM_CLIENTES
 
 # Apply Power BI Adjustments (New Columns Only)
 df_final_adjusted = df_final \
@@ -1641,9 +1701,9 @@ print("\nIniciando cálculo do HHI da Carteira...")
 
 # Garantindo acesso aos DataFrames base (caso a execução não seja sequencial na sessão interativa)
 if "df_fato_titulos_final" not in locals():
-    df_fato_titulos_final = spark.read.table("LH_Gold.fato_titulos")
+    df_fato_titulos_final = spark.read.table(TableNames.GOLD_FATO_TITULOS)
 if "df_fato_operacoes" not in locals():
-    df_fato_operacoes = spark.read.table("LH_Gold.fato_operacoes")
+    df_fato_operacoes = spark.read.table(TableNames.GOLD_FATO_OPERACOES)
 
 # Join para obter cod_cliente para cada título
 # OTIMIZAÇÃO: cod_cliente foi adicionado à fato_titulos na Seção 3.3, evitando este join.
@@ -1700,7 +1760,7 @@ df_hhi_final = df_hhi.withColumn("interpretacao",
 )
 
 # Salvar
-output_path_hhi = "LH_Gold.metricas_carteira_hhi"
+output_path_hhi = TableNames.GOLD_METRICAS_CARTEIRA_HHI
 df_hhi_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_hhi)
 print(f"Métricas HHI calculadas e salvas em: {output_path_hhi}")
 print(f"HHI Cedente: {hhi_cedente}")
