@@ -61,8 +61,8 @@ helper_files = {
     "headers/trailler.csv": "Files/RFB_Processor/headers/trailler.csv"
 }
 
-# SECURITY: Enforcing integrity check via SHA256 hashes for executable code.
-file_hashes = {
+# SECURITY: SHA256 hashes for executable/critical files to ensure integrity.
+FILE_HASHES = {
     "extract_dump.py": "c53801ddd2e4c04fd69c5d7179b48e365b50048bd6840d27f0d4be7ab0b8e4f4",
     "requirements.txt": "ef9f18112ebaf55988be6cdc869e3382ed224d0ca9cefe382f001f1659431f3f"
 }
@@ -71,6 +71,26 @@ file_hashes = {
 # This ensures that malicious code pushed to the remote repository cannot be automatically executed here.
 base_repo_url = "https://raw.githubusercontent.com/turicas/socios-brasil/7b56360e93f35349fe29588dddf7d3c8b07eb22b/"
 local_temp_dir = "/tmp/rfb_helpers"
+
+def verify_file_hash(filepath, filename):
+    """
+    Verifies that the file at filepath matches the expected SHA256 hash if one exists for filename.
+    Raises an exception if the hash does not match.
+    """
+    if filename in FILE_HASHES:
+        expected_hash = FILE_HASHES[filename]
+        print(f"Verifying integrity of '{filename}'...")
+
+        sha256_hash = hashlib.sha256()
+        with open(filepath, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+
+        calculated_hash = sha256_hash.hexdigest()
+
+        if calculated_hash != expected_hash:
+            raise ValueError(f"SECURITY ALERT: Hash mismatch for {filename}!\nExpected: {expected_hash}\nCalculated: {calculated_hash}")
+        print(f"✅ Integrity confirmed for '{filename}'.")
 
 # --- EXECUÇÃO DO DOWNLOAD DOS ARQUIVOS DE AJUDA ---
 
@@ -114,10 +134,10 @@ for source_path, lakehouse_dest_path in helper_files.items():
         print(f"Movendo '{file_name}' para '{lakehouse_dest_path}'")
         mssparkutils.fs.mv(f"file://{local_file}", lakehouse_dest_path, overwrite=True)
 
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         print(f"ERRO: Falha ao baixar {file_url}: {e}")
         # Considerar parar a execução se um arquivo essencial falhar
-        # raise e
+        raise e
 
 print("\nAmbiente de processamento preparado com sucesso!")
 
