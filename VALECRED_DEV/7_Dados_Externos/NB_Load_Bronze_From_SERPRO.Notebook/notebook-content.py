@@ -49,6 +49,27 @@ import zipfile
 from pyspark.sql.functions import col
 from unidecode import unidecode
 
+def safe_extract(zip_ref, path):
+    """
+    Extracts a zip file to the specified path, preventing Zip Slip vulnerability.
+    """
+    # Normalize the target path to an absolute path
+    target_path = os.path.abspath(path)
+
+    for member in zip_ref.namelist():
+        # Resolve the full path of the member
+        # Note: os.path.join will discard 'target_path' if 'member' is absolute
+        member_path = os.path.join(target_path, member)
+        # Normalize the member path to resolve '..' and '.'
+        abs_member_path = os.path.abspath(member_path)
+
+        # Check if the member path starts with the target path
+        # We append os.sep to ensure we match directory boundaries (e.g. /tmp/foo vs /tmp/foobar)
+        if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
+             raise Exception(f"Zip Slip vulnerability detected: {member}")
+
+    zip_ref.extractall(path)
+
 # --- ETAPA 1: DEFINIR OS CAMINHOS E URLS ---
 # Parâmetro para o ano e mês dos dados
 ANO_MES = "202401"
@@ -74,7 +95,7 @@ os.makedirs(local_unzip_path, exist_ok=True)
 
 # --- ETAPA 2: DOWNLOAD DO ARQUIVO ---
 print(f"Baixando {url} para {local_download_path}...")
-response = requests.get(url, stream=True)
+response = requests.get(url, stream=True, timeout=60) # Added timeout for security
 response.raise_for_status()
 
 with open(local_download_path, "wb") as f:
@@ -86,7 +107,7 @@ print(f"Download de {zip_filename} concluído.")
 # --- ETAPA 3: DESCOMPACTAR LOCALMENTE E MOVER PARA O LAKEHOUSE ---
 print(f"Descompactando '{local_download_path}' em '{local_unzip_path}'...")
 with zipfile.ZipFile(local_download_path, 'r') as zip_ref:
-    zip_ref.extractall(local_unzip_path)
+    safe_extract(zip_ref, local_unzip_path) # Safe extraction
 print("Descompressão local concluída.")
 
 print(f"Movendo arquivos descompactados de '{local_unzip_path}' para '{lakehouse_unzip_path}'...")
@@ -129,7 +150,7 @@ os.makedirs(contratos_local_unzip_path, exist_ok=True)
 
 # --- ETAPA 2: DOWNLOAD DO ARQUIVO DE CONTRATOS ---
 print(f"Baixando {contratos_url} para {contratos_local_download_path}...")
-response = requests.get(contratos_url, stream=True)
+response = requests.get(contratos_url, stream=True, timeout=60) # Added timeout for security
 response.raise_for_status()
 
 with open(contratos_local_download_path, "wb") as f:
@@ -141,7 +162,7 @@ print(f"Download de {contratos_zip_filename} concluído.")
 # --- ETAPA 3: DESCOMPACTAR LOCALMENTE E MOVER PARA O LAKEHOUSE (CONTRATOS) ---
 print(f"Descompactando '{contratos_local_download_path}' em '{contratos_local_unzip_path}'...")
 with zipfile.ZipFile(contratos_local_download_path, 'r') as zip_ref:
-    zip_ref.extractall(contratos_local_unzip_path)
+    safe_extract(zip_ref, contratos_local_unzip_path) # Safe extraction
 print("Descompressão local concluída.")
 
 print(f"Movendo arquivos descompactados de '{contratos_local_unzip_path}' para '{contratos_lakehouse_unzip_path}'...")
