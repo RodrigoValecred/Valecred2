@@ -41,6 +41,7 @@
 
 import os
 import requests
+import hashlib
 from notebookutils import mssparkutils
 
 # --- CONFIGURAÇÃO DOS ARQUIVOS DE AJUDA ---
@@ -56,8 +57,16 @@ helper_files = {
     "headers/empresa.csv": "Files/RFB_Processor/headers/empresa.csv",
     "headers/header.csv": "Files/RFB_Processor/headers/header.csv",
     "headers/socio.csv": "Files/RFB_Processor/headers/socio.csv",
-    "headers/trailler.csv": "Files/RFB_Processor/headers/trailler.csv"
+    "headers/trailler.csv": "Files/RFB_Processor/headers/trailler.csv",
+    "requirements.txt": "Files/RFB_Processor/requirements.txt"
 }
+
+# SECURITY: SHA256 hashes of critical files to prevent tampering
+expected_hashes = {
+    "extract_dump.py": "c53801ddd2e4c04fd69c5d7179b48e365b50048bd6840d27f0d4be7ab0b8e4f4",
+    "requirements.txt": "ef9f18112ebaf55988be6cdc869e3382ed224d0ca9cefe382f001f1659431f3f"
+}
+
 # SECURITY: Pinning to specific commit hash (7b56360) to prevent supply chain attacks via mutable 'master' branch.
 # This ensures that malicious code pushed to the remote repository cannot be automatically executed here.
 base_repo_url = "https://raw.githubusercontent.com/turicas/socios-brasil/7b56360e93f35349fe29588dddf7d3c8b07eb22b/"
@@ -79,8 +88,17 @@ for source_path, lakehouse_dest_path in helper_files.items():
 
     print(f"Baixando '{file_name}' de '{file_url}'...")
     try:
-        r = requests.get(file_url, allow_redirects=True)
+        # SECURITY: Added timeout=60 to prevent indefinite hanging (DoS risk)
+        r = requests.get(file_url, allow_redirects=True, timeout=60)
         r.raise_for_status()
+
+        # SECURITY: Verify SHA256 hash if the file is critical
+        if file_name in expected_hashes:
+            file_hash = hashlib.sha256(r.content).hexdigest()
+            if file_hash != expected_hashes[file_name]:
+                raise ValueError(f"SECURITY ALERT: Hash mismatch for {file_name}. Expected {expected_hashes[file_name]}, got {file_hash}")
+            print(f"Verified SHA256 hash for {file_name}")
+
         with open(local_file, 'wb') as f:
             f.write(r.content)
 
