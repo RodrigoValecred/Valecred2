@@ -261,28 +261,48 @@ display(df_final.select("id_operacao", "status_ia","motivo_principal"))
 # ==============================================================================
 # 4. DASHBOARD RÁPIDO DE SAÍDA (UX)
 # ==============================================================================
-print("\n" + "="*40)
-print("📊 RESUMO DO PROCESSAMENTO")
-print("="*40)
 
-if not df_pandas.empty and 'status_ia' in df_pandas.columns:
-    total_ops = len(df_pandas)
-    risco_alto = len(df_pandas[df_pandas['status_ia'] == 'ALTO RISCO'])
-    percent_risco = (risco_alto / total_ops) * 100 if total_ops > 0 else 0
+def create_progress_bar(value, total, length=20):
+    percent = (value / total) * 100 if total > 0 else 0
+    filled_length = int(length * (value / total)) if total > 0 else 0
+    bar = '█' * filled_length + '░' * (length - filled_length)
+    return f"{bar} {percent:.1f}%"
 
-    print(f"🔢 Total Processado: {total_ops}")
-    print(f"🚨 Alto Risco:      {risco_alto} ({percent_risco:.1f}%)")
-    print(f"✅ Normal:          {total_ops - risco_alto}")
+def display_terminal_dashboard(df):
+    print("\n" + "="*50)
+    print("   🛡️  SISTEMA V.A.I. - MONITORAMENTO ONLINE  🛡️")
+    print("="*50)
 
-    if risco_alto > 0 and 'motivo_principal' in df_pandas.columns:
-        print("\n🔍 Top 3 Motivos de Risco:")
-        top_motivos = df_pandas[df_pandas['status_ia'] == 'ALTO RISCO']['motivo_principal'].value_counts().head(3)
-        for motivo, count in top_motivos.items():
-            print(f"   - {motivo}: {count}")
-else:
-    print("⚠️ Nenhum dado processado ou colunas de status ausentes.")
+    if df.empty or 'status_ia' not in df.columns:
+        print("⚠️  Nenhum dado processado.")
+        print("="*50 + "\n")
+        return
 
-print("="*40 + "\n")
+    total_ops = len(df)
+    risco_alto = len(df[df['status_ia'] == 'ALTO RISCO'])
+    normal = total_ops - risco_alto
+
+    # ASCII Metrics
+    print(f"\n🔢 VOLUME PROCESSADO: {total_ops}")
+
+    print(f"\n🚨 ALTO RISCO: {risco_alto}")
+    print(create_progress_bar(risco_alto, total_ops))
+
+    print(f"\n✅ NORMAL:     {normal}")
+    print(create_progress_bar(normal, total_ops))
+
+    if risco_alto > 0 and 'motivo_principal' in df.columns:
+        print("\n" + "-"*30)
+        print("🔍 TOP 3 FATORES DE RISCO")
+        print("-"*30)
+        top_motivos = df[df['status_ia'] == 'ALTO RISCO']['motivo_principal'].value_counts().head(3)
+        for i, (motivo, count) in enumerate(top_motivos.items(), 1):
+            print(f" {i}. {motivo:<25} : {count} ops")
+
+    print("\n" + "="*50 + "\n")
+
+# Executa o Dashboard
+display_terminal_dashboard(df_pandas)
 
 # METADATA ********************
 
