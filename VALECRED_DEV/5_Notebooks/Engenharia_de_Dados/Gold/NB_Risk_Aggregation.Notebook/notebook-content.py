@@ -32,22 +32,27 @@
 
 # CELL ********************
 
-spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED")
-spark.conf.set("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
-df_titulos = spark.read.table("LH_Silver.staging_titulos_limpa")
-df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa")
-df_cedentes = spark.read.table("LH_Silver.dim_cliente")
-df_cad_geral = spark.read.table("LH_Silver.staging_cad_geral_limpa")
 from pyspark.sql.functions import col, when, sum, count, lit
 
-# CELL ********************
+spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED")
+spark.conf.set("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
 
-# MARKDOWN ********************
+# --- OTIMIZACAO (BOLT): Predicate Pushdown ---
+# Filtramos as tabelas ANTES dos joins para reduzir o volume de dados trafegado (Shuffle).
 
-# Renomeando colunas duplicadas para evitar conflitos nos joins.
+# 1. Leitura e Filtro de Titulos
+df_titulos = spark.read.table("LH_Silver.staging_titulos_limpa")
 
-# CELL ********************
+# Aplicando filtros de titulos imediatamente
+tdoc_excluir = ['BL']
+df_titulos = df_titulos.filter(~col('TDOC').isin(tdoc_excluir))
+df_titulos = df_titulos.filter(col('LIQUIDACAO').isNotNull())
 
+# 2. Leitura e Filtro de Operacoes
+df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa")
+
+# Renomeando colunas (necessário antes do filtro se usar nome novo, mas aqui usamos colunas originais se possivel ou novas)
+# O codigo original renomeava TTO -> TTO_OPERACAO e depois filtrava TTO_OPERACAO. Vamos manter o padrao.
 df_operacoes = df_operacoes.withColumnRenamed("EXIGECANHOTO", "EXIGECANHOTO_OPERACAO")
 df_operacoes = df_operacoes.withColumnRenamed("EXIGECONFIRMACAO", "EXIGECONFIRMACAO_OPERACAO")
 df_operacoes = df_operacoes.withColumnRenamed("TTO", "TTO_OPERACAO")
@@ -60,6 +65,29 @@ df_operacoes = df_operacoes.withColumnRenamed("PREIMPRESSO", "PREIMPRESSO_OPERAC
 df_operacoes = df_operacoes.withColumnRenamed("BOLETOESPECIAL", "BOLETOESPECIAL_OPERACAO")
 df_operacoes = df_operacoes.withColumnRenamed("TARIFARECOMPRA", "TARIFARECOMPRA_OPERACAO")
 df_operacoes = df_operacoes.withColumnRenamed("RECEBEBOLETO", "RECEBEBOLETO_OPERACAO")
+
+# Aplicando filtros de operacoes imediatamente
+df_operacoes = df_operacoes.filter(
+    (col('STATUSANALISE') == 'D') &
+    (col('STATUSACEITE') == 'A') &
+    (col('ACEITO') == 'S')
+)
+tipos_excluir = ['RN','RE','RC','PR','AB','AM','LB','PB']
+df_operacoes = df_operacoes.filter(~col('TTO_OPERACAO').isin(tipos_excluir))
+
+
+df_cedentes = spark.read.table("LH_Silver.dim_cliente")
+df_cad_geral = spark.read.table("LH_Silver.staging_cad_geral_limpa")
+
+# CELL ********************
+
+# MARKDOWN ********************
+
+# Renomeando colunas duplicadas para evitar conflitos nos joins.
+
+# CELL ********************
+
+# (Operacoes ja foi renomeada acima para permitir o filtro antecipado)
 
 df_cedentes = df_cedentes.withColumnRenamed("DATAINCLUSAO", "DATAINCLUSAO_CEDENTE")
 df_cedentes = df_cedentes.withColumnRenamed("USUAINCLUSAO", "USUAINCLUSAO_CEDENTE")

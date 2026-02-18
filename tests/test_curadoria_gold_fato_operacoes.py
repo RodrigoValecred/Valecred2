@@ -52,17 +52,18 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         mock_df_prep_2 = MagicMock()
         mock_df_prep.withColumn.return_value = mock_df_prep_2
 
+        # Filter should be applied before joins (Optimization)
+        mock_df_filtered = MagicMock()
+        mock_df_prep_2.filter.return_value = mock_df_filtered
+
         mock_df_joined_1 = MagicMock()
-        mock_df_prep_2.join.return_value = mock_df_joined_1
+        mock_df_filtered.join.return_value = mock_df_joined_1
 
         mock_df_joined_2 = MagicMock()
         mock_df_joined_1.join.return_value = mock_df_joined_2
 
-        mock_df_filtered = MagicMock()
-        mock_df_joined_2.filter.return_value = mock_df_filtered
-
         mock_df_selected = MagicMock()
-        mock_df_filtered.select.return_value = mock_df_selected
+        mock_df_joined_2.select.return_value = mock_df_selected
 
         mock_df_final = MagicMock()
         mock_df_selected.dropDuplicates.return_value = mock_df_final
@@ -101,8 +102,8 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         self.assertEqual(args[2], "left")
 
         # 3. Verify Select includes sk_produto
-        mock_df_filtered.select.assert_called()
-        call_args = mock_df_filtered.select.call_args[0]
+        mock_df_joined_2.select.assert_called()
+        call_args = mock_df_joined_2.select.call_args[0]
 
         self.assertIn("sk_produto", col_mocks)
         sk_prod_mock = col_mocks["sk_produto"]

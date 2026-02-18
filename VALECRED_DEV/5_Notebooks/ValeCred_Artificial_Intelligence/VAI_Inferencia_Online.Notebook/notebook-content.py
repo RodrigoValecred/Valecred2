@@ -331,7 +331,8 @@ def display_terminal_dashboard(df):
 
 display_terminal_dashboard(df_pandas)
 
-print("="*40 + "\n")
+# Executa o dashboard
+display_terminal_dashboard(df_pandas)
 
 # METADATA ********************
 
