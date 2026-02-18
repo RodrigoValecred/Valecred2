@@ -65,7 +65,18 @@ print("Configuração concluída.")
 print("Carregando tabelas Gold...")
 
 # Operações: Necessário para obter data_deferimento
-df_ops = spark.read.table("LH_Gold.fato_operacoes").select(
+df_ops_source = spark.read.table("LH_Gold.fato_operacoes")
+
+# Robust Column Selection: Handle schema evolution (taxa_operacao introduced in recent update)
+# Fallback to taxa_cadastro if taxa_operacao is missing (prevent crash in stale envs)
+if "taxa_operacao" in df_ops_source.columns:
+    print("Using 'taxa_operacao' for risk calculation.")
+    col_taxa = col("taxa_operacao")
+else:
+    print("WARNING: 'taxa_operacao' not found. Falling back to 'taxa_cadastro'. Please update LH_Gold.fato_operacoes.")
+    col_taxa = col("taxa_cadastro").alias("taxa_operacao")
+
+df_ops = df_ops_source.select(
     "cod_operacao", 
     "data_deferimento", 
     "cod_empresa", 
@@ -74,7 +85,7 @@ df_ops = spark.read.table("LH_Gold.fato_operacoes").select(
     "status_aceite",
     "nome_plataforma",
     "sk_produto",
-    "taxa_operacao"
+    col_taxa
 )
 
 # Títulos: Base do valor e liquidação
