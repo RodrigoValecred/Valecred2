@@ -69,7 +69,11 @@ df_ops = spark.read.table("LH_Gold.fato_operacoes").select(
     "cod_operacao", 
     "data_deferimento", 
     "cod_empresa", 
-    "cod_cliente"
+    "cod_cliente",
+    "status_analise",
+    "status_aceite",
+    "nome_plataforma",
+    "sk_produto"
 )
 
 # Títulos: Base do valor e liquidação
@@ -78,7 +82,13 @@ df_titulos = spark.read.table("LH_Gold.fato_titulos").select(
     "cod_operacao", 
     "valor", 
     "liquidacao", 
-    "status_deferimento"
+    "aceito"
+)
+
+# Dimensão Produto: Para obter nome do produto
+df_prod = spark.read.table("LH_Gold.dim_produtos").select(
+    "sk_produto",
+    "produto_informacao_de_mercado"
 )
 
 print(f"Operações carregadas: {df_ops.count()}")
@@ -101,12 +111,21 @@ print(f"Títulos carregados: {df_titulos.count()}")
 # ------------------------------------------
 print("Aplicando lógica de negócio...")
 
+# Filtro 1: Operações Deferidas e Aceitas
+df_ops_filtered = df_ops.filter(
+    (col("status_analise") == "D") &
+    (col("status_aceite") == "A")
+)
+
+# Filtro 2: Títulos Aceitos
+df_titulos_filtered = df_titulos.filter(col("aceito") == "S")
+
+# Enriquecimento com Produto
+df_ops_enriched = df_ops_filtered.join(df_prod, "sk_produto", "left")
+
 # Join para enriquecer Títulos com Data de Deferimento da Operação
 # Inner Join: Títulos sem operação correspondente na fato_operacoes são descartados (consistência)
-df_joined = df_titulos.join(df_ops, "cod_operacao", "inner")
-
-# Filtro 1: Apenas Títulos Deferidos ("Sim")
-df_active = df_joined.filter(col("status_deferimento") == "Sim")
+df_joined = df_titulos_filtered.join(df_ops_enriched, "cod_operacao", "inner")
 
 # Definição de Datas (Start/End)
 # Start Date: Data de Deferimento da Operação
@@ -114,7 +133,7 @@ df_active = df_joined.filter(col("status_deferimento") == "Sim")
 # Regra DAX: titulos[LIQUIDACAO] >= DataContexto || ISBLANK ( titulos[LIQUIDACAO] )
 # Isso significa que o título existe até o dia da liquidação (inclusive) ou hoje.
 df_dates = (
-    df_active
+    df_joined
     .withColumn("start_date", to_date(col("data_deferimento")))
     .withColumn("end_date", coalesce(to_date(col("liquidacao")), current_date()))
     # Filtro de Sanidade: Data Final deve ser maior ou igual a Data Inicial
@@ -142,9 +161,15 @@ df_exploded = df_dates.withColumn(
     explode(sequence(col("start_date"), col("end_date")))
 )
 
-# Agregação Diária por Empresa e Cliente
+# Agregação Diária por Empresa e Cliente + Plataforma e Produto
 # Soma do Valor Nominal dos títulos ativos naquele dia
-df_daily_agg = df_exploded.groupBy("data_referencia", "cod_empresa", "cod_cliente") \
+df_daily_agg = df_exploded.groupBy(
+        "data_referencia",
+        "cod_empresa",
+        "cod_cliente",
+        "nome_plataforma",
+        "produto_informacao_de_mercado"
+    ) \
     .agg(
         sum("valor").alias("valor_carteira_total"),
         count("cod_titulo").alias("qtd_titulos_ativos")
