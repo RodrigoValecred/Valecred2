@@ -2,6 +2,8 @@ import unittest
 import ast
 import sys
 import os
+import re
+import unicodedata
 
 # Path to the notebook file
 NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py"
@@ -118,6 +120,97 @@ class TestTacVariations(unittest.TestCase):
         variations = self.get_tac_variations()
         for item in variations:
             self.assertIsInstance(item, str)
+
+class TestNormalizeCol(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting normalize_col from {NOTEBOOK_PATH}")
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "normalize_col")
+
+        if func_source:
+            local_scope = {}
+            # The function uses 're' and 'unicodedata', so we must provide them in globals
+            global_scope = {
+                "re": re,
+                "unicodedata": unicodedata
+            }
+            try:
+                exec(func_source, global_scope, local_scope)
+                cls.normalize_col = staticmethod(local_scope["normalize_col"])
+            except Exception as e:
+                print(f"Error executing extracted function: {e}")
+                cls.normalize_col = None
+        else:
+            cls.normalize_col = None
+            print("WARNING: normalize_col function not found in file.")
+
+    def test_function_exists(self):
+        """Test that the function was successfully extracted."""
+        self.assertIsNotNone(self.normalize_col, "Function normalize_col not found or failed to load.")
+
+    def test_standard_snake_case(self):
+        """Test simple snake_case strings (should remain unchanged)."""
+        if not self.normalize_col: self.skipTest("Function not found")
+        self.assertEqual(self.normalize_col("simple_column"), "simple_column")
+        self.assertEqual(self.normalize_col("id"), "id")
+
+    def test_accents_removal(self):
+        """Test unicode normalization (accents removal)."""
+        if not self.normalize_col: self.skipTest("Function not found")
+        # 'Ação' -> 'acao'
+        self.assertEqual(self.normalize_col("Ação"), "acao")
+        # 'éíóú' -> 'eiou'
+        self.assertEqual(self.normalize_col("test_éíóú"), "test_eiou")
+
+    def test_camel_case_conversion(self):
+        """Test CamelCase to snake_case conversion."""
+        if not self.normalize_col: self.skipTest("Function not found")
+        self.assertEqual(self.normalize_col("NomeCliente"), "nome_cliente")
+        self.assertEqual(self.normalize_col("DataDeNascimento"), "data_de_nascimento")
+        # lowerCamelCase
+        self.assertEqual(self.normalize_col("nomeCliente"), "nome_cliente")
+
+    def test_special_characters(self):
+        """Test replacement of special characters with underscores."""
+        if not self.normalize_col: self.skipTest("Function not found")
+        self.assertEqual(self.normalize_col("Endereço/Rua"), "endereco_rua")
+        self.assertEqual(self.normalize_col("Renda ($)"), "renda")
+        self.assertEqual(self.normalize_col("user@domain.com"), "user_domain_com")
+
+    def test_multiple_underscores(self):
+        """Test collapsing of consecutive underscores."""
+        if not self.normalize_col: self.skipTest("Function not found")
+        self.assertEqual(self.normalize_col("id__cliente"), "id_cliente")
+        self.assertEqual(self.normalize_col("a___b"), "a_b")
+
+    def test_stripping_underscores(self):
+        """Test stripping of leading and trailing underscores."""
+        if not self.normalize_col: self.skipTest("Function not found")
+        self.assertEqual(self.normalize_col("_id_"), "id")
+        self.assertEqual(self.normalize_col("__name__"), "name")
+
+    def test_mixed_cases_upper(self):
+        """Test handling of uppercase inputs (should bypass CamelCase logic and just lower)."""
+        if not self.normalize_col: self.skipTest("Function not found")
+        # 'ID_CLIENTE' -> isupper() is True -> lower() -> 'id_cliente'
+        self.assertEqual(self.normalize_col("ID_CLIENTE"), "id_cliente")
+        # 'CODIGO' -> 'codigo'
+        self.assertEqual(self.normalize_col("CODIGO"), "codigo")
+
+    def test_mixed_cases_complex(self):
+        """Test complex mixed cases."""
+        if not self.normalize_col: self.skipTest("Function not found")
+        # 'Some_Mixed_Case' -> 'some_mixed_case'
+        self.assertEqual(self.normalize_col("Some_Mixed_Case"), "some_mixed_case")
+
+        # 'XMLHttpRequest' -> 'xml_http_request'
+        self.assertEqual(self.normalize_col("XMLHttpRequest"), "xml_http_request")
+
+    def test_numbers(self):
+        """Test that numbers are preserved."""
+        if not self.normalize_col: self.skipTest("Function not found")
+        self.assertEqual(self.normalize_col("Address1"), "address1")
+        self.assertEqual(self.normalize_col("v2_0"), "v2_0")
 
 if __name__ == '__main__':
     unittest.main()
