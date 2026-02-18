@@ -55,6 +55,24 @@ from delta.tables import *
 from functools import reduce
 import datetime
 
+def safe_read_table(spark, table_name, schema=None, fallback_df=None):
+    """
+    Tenta ler uma tabela. Se falhar, retorna um DataFrame vazio com o schema fornecido
+    ou um DataFrame de fallback.
+    """
+    try:
+        return spark.read.table(table_name)
+    except Exception as e:
+        print(f"AVISO: Tabela {table_name} não encontrada ({e}).")
+        if fallback_df is not None:
+             print("Usando dataframe de fallback.")
+             return fallback_df
+        elif schema is not None:
+             print("Criando dataframe vazio com schema fornecido.")
+             return spark.createDataFrame([], schema=schema)
+        else:
+             raise e
+
 # METADATA ********************
 
 # META {
@@ -166,17 +184,13 @@ df_contratos = spark.read.table("LH_Silver.staging_contratos_clientes_limpa")
 
 # Limites Contratos Silver (Regex) - Para colunas faltantes
 print("Carregando Limites Contratos Silver (Regex)...")
-try:
-    df_limites_obs_silver = spark.read.table("LH_Silver.stg_limites_contratos_silver")
-except Exception as e:
-    print(f"AVISO: Tabela LH_Silver.stg_limites_contratos_silver não encontrada ({e}). Criando dataframe vazio.")
-    df_limites_obs_silver = spark.createDataFrame([], schema=StructType([
-        StructField("codcliente", LongType(), True),
-        StructField("limite_geral", DoubleType(), True),
-        StructField("limite_intercompany", DoubleType(), True),
-        StructField("limite_extra_desconto_formal", DoubleType(), True),
-        StructField("limite_extra_desconto_informal", DoubleType(), True)
-    ]))
+df_limites_obs_silver = safe_read_table(spark, "LH_Silver.stg_limites_contratos_silver", schema=StructType([
+    StructField("codcliente", LongType(), True),
+    StructField("limite_geral", DoubleType(), True),
+    StructField("limite_intercompany", DoubleType(), True),
+    StructField("limite_extra_desconto_formal", DoubleType(), True),
+    StructField("limite_extra_desconto_informal", DoubleType(), True)
+]))
 
 # Cad Clientes (Bronze) - Para Status
 print("Carregando Cad Clientes (Bronze)...")
@@ -184,16 +198,11 @@ df_cad_clientes_bronze = spark.read.table("LH_Bronze.cad_clientes")
 
 # Dimensao Produtos (Gold) - Refatorado
 print("Carregando Dimensao Produtos (Gold)...")
-try:
-    df_dim_produto = spark.read.table("LH_Gold.dim_produtos").cache()
-except Exception as e:
-    print(f"AVISO: Tabela LH_Gold.dim_produtos não encontrada ({e}).")
-    schema_prod = StructType([
-        StructField("sk_produto", LongType(), True),
-        StructField("chave_produto", StringType(), True),
-        StructField("produto_informacao_de_mercado", StringType(), True)
-    ])
-    df_dim_produto = spark.createDataFrame([], schema_prod)
+df_dim_produto = safe_read_table(spark, "LH_Gold.dim_produtos", schema=StructType([
+    StructField("sk_produto", LongType(), True),
+    StructField("chave_produto", StringType(), True),
+    StructField("produto_informacao_de_mercado", StringType(), True)
+])).cache()
 
 # Grupos Economicos (Silver)
 print("Carregando Grupos Economicos (Silver)...")
@@ -201,26 +210,19 @@ df_grupos_economicos = spark.read.table("LH_Silver.sup_grupos_economicos")
 
 # Limites Extra Plus (Silver)
 print("Carregando Limites Extra Plus (Silver)...")
-try:
-    df_limites_extra_plus = spark.read.table("LH_Silver.sup_limites_extra_plus")
-except Exception as e:
-    print(f"AVISO: Tabela LH_Silver.sup_limites_extra_plus não encontrada ({e}). Criando dataframe vazio.")
-    df_limites_extra_plus = spark.createDataFrame([], schema=StructType([
-        StructField("nome", StringType(), True),
-        StructField("cnpj", StringType(), True),
-        StructField("limite", DoubleType(), True),
-        StructField("limite_extra", DoubleType(), True),
-        StructField("limite_plus", DoubleType(), True)
-    ]))
+df_limites_extra_plus = safe_read_table(spark, "LH_Silver.sup_limites_extra_plus", schema=StructType([
+    StructField("nome", StringType(), True),
+    StructField("cnpj", StringType(), True),
+    StructField("limite", DoubleType(), True),
+    StructField("limite_extra", DoubleType(), True),
+    StructField("limite_plus", DoubleType(), True)
+]))
 
 # Relatorio Juridico (Silver) - Para flag status_enviado_juridico
 print("Carregando Relatorio Juridico (Silver)...")
-try:
-    df_relatorio_juridico = spark.read.table("LH_Silver.relatorio_titulos_juridico")
-except Exception as e:
-    print(f"AVISO: Tabela LH_Silver.relatorio_titulos_juridico não encontrada ({e}). Criando dataframe vazio.")
-    schema_jur = StructType([StructField("cod_titulo", LongType(), True)])
-    df_relatorio_juridico = spark.createDataFrame([], schema_jur)
+df_relatorio_juridico = safe_read_table(spark, "LH_Silver.relatorio_titulos_juridico", schema=StructType([
+    StructField("cod_titulo", LongType(), True)
+]))
 
 # Usuarios (Silver)
 print("Carregando Usuarios (Silver)...")
@@ -228,15 +230,11 @@ df_usuarios = spark.read.table("LH_Silver.staging_usuarios")
 
 # Motivos Indeferimento (Silver)
 print("Carregando Motivos Indeferimento (Silver)...")
-try:
-    df_motivos_indeferimento = spark.read.table("LH_Silver.sup_motivos_de_indeferimento")
-except Exception as e:
-    print(f"AVISO: Tabela LH_Silver.sup_motivos_de_indeferimento não encontrada ({e}). Criando dataframe vazio.")
-    df_motivos_indeferimento = spark.createDataFrame([], schema=StructType([
-        StructField("cod_indeferimento", LongType(), True),
-        StructField("motivo_indeferimento", StringType(), True),
-        StructField("grupo_motivo_indeferimento", StringType(), True)
-    ]))
+df_motivos_indeferimento = safe_read_table(spark, "LH_Silver.sup_motivos_de_indeferimento", schema=StructType([
+    StructField("cod_indeferimento", LongType(), True),
+    StructField("motivo_indeferimento", StringType(), True),
+    StructField("grupo_motivo_indeferimento", StringType(), True)
+]))
 
 # Estudo Operacoes (Silver)
 print("Carregando Estudo Operacoes (Silver)...")
@@ -878,11 +876,7 @@ df_ops_pr_clean = df_ops_pr.drop(*cols_to_remove_pr)
 # Join com Boletos (LH_Silver.staging_boletos_titulos)
 # Precisamos carregar a tabela boletos, pois não foi carregada no início explicitamente (apenas df_titulos_limpa)
 print("Carregando Boletos (Silver)...")
-try:
-    df_boletos_titulos = spark.read.table("LH_Silver.staging_boletos_titulos")
-except:
-    print("AVISO: staging_boletos_titulos não encontrada. Usando df_titulos_limpa filtrada.")
-    df_boletos_titulos = df_titulos_limpa.filter(col("t_doc") == "BL")
+df_boletos_titulos = safe_read_table(spark, "LH_Silver.staging_boletos_titulos", fallback_df=df_titulos_limpa.filter(col("t_doc") == "BL"))
 
 # Selecionar colunas de interesse do boleto antes do join para evitar duplicação/ambiguidade
 # M: {"CODTITULO", "NDOC", "CPFCNPJSACADO", "CPFCNPJCEDENTE", "VALOR",  "AMORTIZACOES", "LIQUIDACAO"}
