@@ -73,6 +73,43 @@ def safe_read_table(spark, table_name, schema=None, fallback_df=None):
         else:
              raise e
 
+def transform_esteira_dates(df_esteira, status_mapping):
+    """
+    Optimized transformation to get Max and Min dates per status in a single pass.
+    Returns (df_pivot_max, df_pivot_min).
+    """
+    expected_status = list(status_mapping.keys())
+
+    # Combined Pivot (Max and Min)
+    df_combined = df_esteira \
+        .groupBy("cod_cliente") \
+        .pivot("status_do_cliente", expected_status) \
+        .agg(
+            max("datalog").alias("max"),
+            min("datalog").alias("min")
+        )
+
+    # Separate and Rename
+    # 1. Max Dates (df_esteira_pivot)
+    # Expected cols: cod_cliente, pivot_checklist, pivot_assinatura...
+    select_max = [col("cod_cliente")]
+    for status, clean_name in status_mapping.items():
+        col_name = f"{status}_max"
+        select_max.append(col(col_name).alias(f"pivot_{clean_name}"))
+
+    df_max = df_combined.select(select_max)
+
+    # 2. Min Dates (df_esteira_min)
+    # Expected cols: cod_cliente, CHECKLIST, ASSINATURA...
+    select_min = [col("cod_cliente")]
+    for status in expected_status:
+        col_name = f"{status}_min"
+        select_min.append(col(col_name).alias(status))
+
+    df_min = df_combined.select(select_min)
+
+    return df_max, df_min
+
 # METADATA ********************
 
 # META {
@@ -1207,23 +1244,9 @@ if "DATALOG" in df_esteira.columns:
 # Refatorado para usar constante global
 expected_status = list(STATUS_ESTEIRA_MAPPING.keys())
 
-# Pivot Simples das Datas Maximas por Status
-# Atualizado para usar colunas snake_case da esteira Gold
-df_esteira_pivot = df_esteira \
-    .groupBy("cod_cliente") \
-    .pivot("status_do_cliente", expected_status) \
-    .agg(max("datalog"))
-
-# Renomeando colunas do pivot para evitar ambiguidade com outras tabelas e padronizar
-for status, clean_name in STATUS_ESTEIRA_MAPPING.items():
-    if status in df_esteira_pivot.columns:
-        df_esteira_pivot = df_esteira_pivot.withColumnRenamed(status, f"pivot_{clean_name}")
-
-# Funnel: Data Primeira Proposta (Lógica Sequencial por Cliente)
-# Precisamos calcular as MIN datas para cada status, mas respeitando a sequencia de eventos (funnel)
-# Como PySpark SQL é limitado para isso, vamos usar Window Functions e Self-Joins Simplificados.
-# Passo 1: Min Datas puras
-df_esteira_min = df_esteira.groupBy("cod_cliente").pivot("status_do_cliente", expected_status).agg(min("datalog"))
+# Pivot Simples das Datas Maximas e Minimas por Status (Otimizado - Single Pass)
+# ⚡ Bolt Optimization: Use single pass pivot for both Max and Min dates
+df_esteira_pivot, df_esteira_min = transform_esteira_dates(df_esteira, STATUS_ESTEIRA_MAPPING)
 
 
 # 6.3.1: Latest Status Esteira (Power BI Requirement)
