@@ -1,8 +1,10 @@
 [StagingDefinition = [Kind = "FastCopy"]]
 section Section1;
+shared ServerAddress = "56.125.147.185" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true];
+
 shared replica_tab_titulos = let
     // Conecta-se ao banco de dados MySQL 'factvale40bi'.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODTITULO, CODOPERACAO, NDOC,TDOC,VENCIMENTO,VENCPRORROGADO,PRAZO,CPFCNPJSACADO,CPFCNPJCEDENTE,VALOR,DESAGIO,LIQUIDO,AMORTIZACOES,VALORDEVIDO,LIQUIDACAO,#(lf)ACEITO,CODBANCOCOBR,DATACONF,USUACONF,DATAINCLUSAO,DOCCONFIRMADO,MOTIVO,PRACA,CHAVEDANFE,NOSSONUMERO FROM tab_titulos WHERE YEAR(DATAINCLUSAO) >= 2021", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODTITULO, CODOPERACAO, NDOC,TDOC,VENCIMENTO,VENCPRORROGADO,PRAZO,CPFCNPJSACADO,CPFCNPJCEDENTE,VALOR,DESAGIO,LIQUIDO,AMORTIZACOES,VALORDEVIDO,LIQUIDACAO,#(lf)ACEITO,CODBANCOCOBR,DATACONF,USUACONF,DATAINCLUSAO,DOCCONFIRMADO,MOTIVO,PRACA,CHAVEDANFE,NOSSONUMERO FROM tab_titulos WHERE YEAR(DATAINCLUSAO) >= 2021", ReturnSingleDatabase=true]),
 
     // Altera o tipo das colunas para os tipos de dados corretos.
     tipoAlterado = Table.TransformColumnTypes(origem,{{"CODTITULO", Int64.Type}, {"CODOPERACAO", Int64.Type}, {"NDOC", type text}, {"TDOC", type text}, {"VENCIMENTO", type date}, {"VENCPRORROGADO", type date}, {"PRAZO", Int64.Type},
@@ -50,7 +52,7 @@ in
     chaveClienteSacadoInserida;
 shared replica_tab_operacoes = let
     // Conecta-se ao banco de dados MySQL 'factvale40bi'.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT NBORDERO, CODBROKER, CODOPERACAO, CODEMPRESA, DATAINCLUSAO, CODCLIENTE, CPFCNPJCLIENTE, STATUSANALISE, DATAANALISE, STATUSACEITE, DATAACEITE, DATAENVIOEMAIL, STTO, TTO, FATOR, TARIFA, TARIFARECOMPRA, TAC, NDOCS, NDOCSRECOMPRA, TOTFAC, TOTADVAL, TOTTAXAADM, TOTTAR, TOTPENDENCIAS, TOTRETENCAO, TOTRECOMPRA, TOTDES,TOTDCP, APROVACAO1, DATAALTERACAO, CODINDEFERIMENTO, CONTRATOFISICO, USUAINCLUSAO, USUATRAVA, USUASTANALISE, NOTASERVICO FROM tab_operacoes", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT NBORDERO, CODBROKER, CODOPERACAO, CODEMPRESA, DATAINCLUSAO, CODCLIENTE, CPFCNPJCLIENTE, STATUSANALISE, DATAANALISE, STATUSACEITE, DATAACEITE, DATAENVIOEMAIL, STTO, TTO, FATOR, TARIFA, TARIFARECOMPRA, TAC, NDOCS, NDOCSRECOMPRA, TOTFAC, TOTADVAL, TOTTAXAADM, TOTTAR, TOTPENDENCIAS, TOTRETENCAO, TOTRECOMPRA, TOTDES,TOTDCP, APROVACAO1, DATAALTERACAO, CODINDEFERIMENTO, CONTRATOFISICO, USUAINCLUSAO, USUATRAVA, USUASTANALISE, NOTASERVICO FROM tab_operacoes", ReturnSingleDatabase=true]),
     // Filtra linhas com DATAANALISE posterior a 31/12/2020.
     linhasDataAnaliseFiltradas = Table.SelectRows(origem, each [DATAANALISE] > #datetime(2020, 12, 31, 0, 0, 0)),
 
@@ -70,7 +72,7 @@ in
     ttoColunaRenomeada;
 shared replica_rlc_titulos_ocorrencias_cobranca = let
     // Conecta-se a um banco de dados MySQL.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM rlc_titulos_ocorrencias_cobranca", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT * FROM rlc_titulos_ocorrencias_cobranca", ReturnSingleDatabase=true]),
     #"Tipo Alterado" = Table.TransformColumnTypes(origem,{{"DATAOCORRENCIA", type date}, {"DATAVENCIMENTO", type date}, {"DATACREDITO", type date}}),
     // Classifica as linhas pela 'DATAOCORRENCIA' em ordem decrescente.
     linhasClassificadas = Table.Sort(#"Tipo Alterado",{{"DATAOCORRENCIA", Order.Descending}}),
@@ -93,7 +95,7 @@ in
     tipoCobrancaExpandido;
 shared replica_cad_conta_cobranca_ocorrencia = let
     // Conecta-se ao banco de dados MySQL 'factvale40bi'.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [ReturnSingleDatabase=true]),
     
     // Obtém dados da tabela 'cad_conta_cobranca_ocorrencia'.
     navegacao = origem{[Schema = "lbfactor", Item = "cad_conta_cobranca_ocorrencia"]}[Data],
@@ -244,7 +246,7 @@ in
     converterBaseParaTexto;
 shared replica_rlc_clientes_sacados_limites = let
     // Conecta-se a um banco de dados MySQL para obter limites de clientes sacados.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODCLIENTE, CPFCNPJ, TIPO FROM rlc_clientes_sacados_limites #(lf)WHERE TIPO = 'I'", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODCLIENTE, CPFCNPJ, TIPO FROM rlc_clientes_sacados_limites #(lf)WHERE TIPO = 'I'", ReturnSingleDatabase=true]),
 
     // Substitui o valor "I" por "INTERCIA" na coluna "TIPO".
     valorSubstituido = Table.ReplaceValue(origem,"I","INTERCIA",Replacer.ReplaceText,{"TIPO"}),
@@ -333,12 +335,12 @@ in
     nulosNumericosSubstituidos;
 shared replica_tab_estudo_op = let
     // Conecta-se ao banco de dados MySQL 'factvale40bi'.
-    conexaoMySQL = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_estudo_op", ReturnSingleDatabase=true])
+    conexaoMySQL = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT * FROM tab_estudo_op", ReturnSingleDatabase=true])
 in
     conexaoMySQL;
 shared replica_cad_usuarios = let
   // Origem dos dados: Conecta-se ao banco de dados MySQL na AWS
-  origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM cad_usuarios", ReturnSingleDatabase=true]),
+  origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT * FROM cad_usuarios", ReturnSingleDatabase=true]),
 
   // Remove colunas desnecessárias da tabela de usuários.
     colunasRemovidas = Table.RemoveColumns(
@@ -425,7 +427,7 @@ in
     #"Colunas Renomeadas";
 shared replica_cad_agencias = let
     // Conectar ao banco de dados MySQL.
-    ConexaoMySQL = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODAGENCIA, NOME FROM cad_agencias", ReturnSingleDatabase=true]),
+    ConexaoMySQL = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODAGENCIA, NOME FROM cad_agencias", ReturnSingleDatabase=true]),
 
     // Adicionar a coluna 'plataforma' (nome reduzido).
     AdicionarNomeReduzido = Table.AddColumn(
@@ -491,7 +493,7 @@ in
     Fonte;
 shared replica_cad_brokers = let
     // Conecta-se a um banco de dados MySQL para buscar dados de brokers.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODBROKER, CPFCNPJ, CODAGENCIA, STATUS FROM cad_brokers", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODBROKER, CPFCNPJ, CODAGENCIA, STATUS FROM cad_brokers", ReturnSingleDatabase=true]),
 
     // Define tipos de dados para as colunas.
 tiposDefinidos = Table.TransformColumnTypes(
@@ -535,7 +537,7 @@ in
     baseAdicionada;
 shared replica_cad_geral_pf_pj = let
     // Conecta-se ao banco de dados MySQL.
-    conexaoMySQL = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CPFCNPJ, NOME, DATAFUNDACAO, RJ   FROM cad_geral_pf_pj", ReturnSingleDatabase=true]),
+    conexaoMySQL = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CPFCNPJ, NOME, DATAFUNDACAO, RJ   FROM cad_geral_pf_pj", ReturnSingleDatabase=true]),
 
     // Adiciona a coluna 'BASE' com o valor constante 40.
     baseAdicionada = Table.AddColumn(conexaoMySQL, "BASE", each 40), // Note: Assumed previous step 'conexaoMySQL' is the correct input here, as 'Colunas Removidas' was not provided.
@@ -634,7 +636,7 @@ in
 ;
 shared replica_tab_tipooperacao = let
     // Conecta-se ao banco de dados MySQL 'factvale40bi' e executa a query.
-    mysqlOrigem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_tipooperacao", ReturnSingleDatabase=true]),
+    mysqlOrigem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT * FROM tab_tipooperacao", ReturnSingleDatabase=true]),
     
     // Cria a tabela de produtos ausentes a partir de dados locais.
     produtosAusentesLocal = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45Wcg5W0lFydg0OPtzsD2QpG4ABkGWgFBsLAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [CODTTO = _t, DESCRICAO = _t, COR = _t, CUSTO = _t]),
@@ -652,7 +654,7 @@ in
     colunasRemovidas;
 shared replica_tab_subtipooperacao = let
     // Conecta-se ao banco de dados MySQL.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_subtipooperacao", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT * FROM tab_subtipooperacao", ReturnSingleDatabase=true]),
 
     // Remove as colunas COD TTO e COR.
     // Nota: Assumimos que o input para esta etapa deve ser 'origem', pois 'dbo_factvale40bi_tab_subtipooperacao' não está definido.
@@ -661,7 +663,7 @@ in
     colunasRemovidas;
 shared replica_tab_feriados = let
     // Conecta-se a um banco de dados MySQL para buscar dados de feriados.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_feriados", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT * FROM tab_feriados", ReturnSingleDatabase=true]),
 
     // Remove as colunas de metadados e ID de feriados.
     // Nota: Assumimos que o input para esta etapa deve ser 'origem', pois 'dbo_factvale40bi_tab_feriados' não está definido.
@@ -674,7 +676,7 @@ in
     #"Linhas Classificadas";
 shared replica_tab_operacoes_devolucoes = let
     // Conecta-se a um banco de dados MySQL para obter dados de devoluções de operações.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_operacoes_devolucoes", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT * FROM tab_operacoes_devolucoes", ReturnSingleDatabase=true]),
     
     // Remove colunas desnecessárias.
     // Nota: Assumimos que o input para esta etapa deve ser 'origem', pois 'dbo_factvale40bi_tab_operacoes_devolucoes' não está definido.
@@ -703,7 +705,7 @@ in
     #"Duplicatas Removidas";
 shared replica_tab_titulos_confirmacao = let
     // Conecta-se a um banco de dados MySQL para buscar dados de confirmação de títulos.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT#(lf)#(tab)CODOPERACAO ,#(lf)#(tab)CODTITULO ,#(lf)#(tab)CONFAO,#(lf)#(tab)CAST(OBSERVACAO AS CHAR) AS OBS,#(lf)#(tab)CODOCORCONFIRMACAO ,#(lf)#(tab)cast(DATAINCLUSAO as date) as DATAINCLUSAO,#(lf)#(tab)""40"" AS BASE,#(lf)#(tab)CONCAT(""40-"", CODTITULO)AS chave_base_titulo#(lf)FROM#(lf)#(tab)tab_titulos_confirmacao ttc#(lf)order by#(lf)#(tab)DATAINCLUSAO DESC", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT#(lf)#(tab)CODOPERACAO ,#(lf)#(tab)CODTITULO ,#(lf)#(tab)CONFAO,#(lf)#(tab)CAST(OBSERVACAO AS CHAR) AS OBS,#(lf)#(tab)CODOCORCONFIRMACAO ,#(lf)#(tab)cast(DATAINCLUSAO as date) as DATAINCLUSAO,#(lf)#(tab)""40"" AS BASE,#(lf)#(tab)CONCAT(""40-"", CODTITULO)AS chave_base_titulo#(lf)FROM#(lf)#(tab)tab_titulos_confirmacao ttc#(lf)order by#(lf)#(tab)DATAINCLUSAO DESC", ReturnSingleDatabase=true]),
     
     // Insere uma nova coluna 'Data' extraindo apenas a data de 'DATAINCLUSAO'.
     // Nota: Assumimos que o input para esta etapa deve ser 'origem', pois 'dbo_factvale40bi_tab_titulos_confirmacao' não está definido.
@@ -724,7 +726,7 @@ in
     #"Duplicatas Removidas";
 shared notificacoes = let
     // Conecta-se a um banco de dados MySQL para obter dados de títulos de cobrança.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODOPERACAO, CODTITULO, COBRADOAO, CODOCORCOBRANCA/*,OBSERVACAO*/, DATAINCLUSAO ,USUAINCLUSAO #(lf)FROM tab_titulos_cobranca#(lf)WHERE YEAR(DATAINCLUSAO) >= 2024", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODOPERACAO, CODTITULO, COBRADOAO, CODOCORCOBRANCA/*,OBSERVACAO*/, DATAINCLUSAO ,USUAINCLUSAO #(lf)FROM tab_titulos_cobranca#(lf)WHERE YEAR(DATAINCLUSAO) >= 2024", ReturnSingleDatabase=true]),
 
     // Filtra linhas onde CODOCORCOBRANCA é 12.
     linhasFiltradasCobranca = Table.SelectRows(origem, each ([CODOCORCOBRANCA] = 12)),
@@ -735,7 +737,7 @@ in
     chaveBaseTituloInserida;
 shared lb_pareceres_de_operacoes = let
     // Conecta-se ao banco de dados MySQL para buscar pareceres de operações.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT#(lf)#(tab)#(tab)cgp.CODOPERACAO,#(lf)#(tab)#(tab)cgp.DATAINCLUSAO,#(lf)#(tab)#(tab)cu.APELIDO,#(lf)#(tab)#(tab)cgp.obs,#(lf)#(tab)#(tab)case#(lf)#(tab)#(tab)#(tab)when cgp.OBS LIKE '%#ESCROW%' THEN 1#(lf)#(tab)#(tab)ELSE 0#(lf)#(tab)END AS ESCROW,#(lf)#(tab)case#(lf)#(tab)#(tab)when cgp.OBS LIKE '%SPENCER%' THEN ""sim""#(lf)#(tab)#(tab)ELSE ""não""#(lf)#(tab)END AS ALCADA_SPENCER,#(lf)#(tab)case#(lf)#(tab)#(tab)when cgp.OBS LIKE '%CAIO%' THEN ""sim""#(lf)#(tab)#(tab)ELSE ""não""#(lf)#(tab)END AS ALCADA_CAIO,#(lf)#(tab)case#(lf)#(tab)#(tab)when cgp.OBS LIKE '%DAIANE%' THEN ""sim""#(lf)#(tab)#(tab)ELSE ""não""#(lf)#(tab)END AS ALCADA_DAIANE#(lf)FROM#(lf)#(tab)#(tab)cad_geral_pareceres cgp#(lf)join cad_usuarios cu on#(lf)#(tab)#(tab)cu.CODUSUARIO = cgp.USUAINCLUSAO#(lf)join tab_operacoes to2 on#(lf)#(tab)#(tab)to2.CODOPERACAO = cgp.CODOPERACAO#(lf)WHERE#(lf)#(tab)cgp.OBS IS NOT NULL#(lf)#(tab)and cgp.CODOPERACAO IS NOT NULL#(lf)#(tab)and cgp.CODTIPOPARECER = 10#(lf)#(tab)and YEAR (cgp.DATAINCLUSAO) >= 2024#(lf)#(tab)and cgp.OBS NOT LIKE '%<img alt=%'#(lf)order by#(lf)#(tab)#(tab)cgp.DATAINCLUSAO desc", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT#(lf)#(tab)#(tab)cgp.CODOPERACAO,#(lf)#(tab)#(tab)cgp.DATAINCLUSAO,#(lf)#(tab)#(tab)cu.APELIDO,#(lf)#(tab)#(tab)cgp.obs,#(lf)#(tab)#(tab)case#(lf)#(tab)#(tab)#(tab)when cgp.OBS LIKE '%#ESCROW%' THEN 1#(lf)#(tab)#(tab)ELSE 0#(lf)#(tab)END AS ESCROW,#(lf)#(tab)case#(lf)#(tab)#(tab)when cgp.OBS LIKE '%SPENCER%' THEN ""sim""#(lf)#(tab)#(tab)ELSE ""não""#(lf)#(tab)END AS ALCADA_SPENCER,#(lf)#(tab)case#(lf)#(tab)#(tab)when cgp.OBS LIKE '%CAIO%' THEN ""sim""#(lf)#(tab)#(tab)ELSE ""não""#(lf)#(tab)END AS ALCADA_CAIO,#(lf)#(tab)case#(lf)#(tab)#(tab)when cgp.OBS LIKE '%DAIANE%' THEN ""sim""#(lf)#(tab)#(tab)ELSE ""não""#(lf)#(tab)END AS ALCADA_DAIANE#(lf)FROM#(lf)#(tab)#(tab)cad_geral_pareceres cgp#(lf)join cad_usuarios cu on#(lf)#(tab)#(tab)cu.CODUSUARIO = cgp.USUAINCLUSAO#(lf)join tab_operacoes to2 on#(lf)#(tab)#(tab)to2.CODOPERACAO = cgp.CODOPERACAO#(lf)WHERE#(lf)#(tab)cgp.OBS IS NOT NULL#(lf)#(tab)and cgp.CODOPERACAO IS NOT NULL#(lf)#(tab)and cgp.CODTIPOPARECER = 10#(lf)#(tab)and YEAR (cgp.DATAINCLUSAO) >= 2024#(lf)#(tab)and cgp.OBS NOT LIKE '%<img alt=%'#(lf)order by#(lf)#(tab)#(tab)cgp.DATAINCLUSAO desc", ReturnSingleDatabase=true]),
     
     // Extrai o texto da coluna 'obs' (que é um BLOB) e cria 'TextoHTML'.
     textoHtmlExtraido = Table.AddColumn(origem, "TextoHTML", each Text.FromBinary([obs], 1252)),
@@ -849,7 +851,7 @@ in
     #"Colunas Removidas";
 shared replica_tab_geral_pendencias = let
     // Conecta-se a um banco de dados MySQL para obter dados de pendências gerais.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT#(lf)#(tab)tgp.CODPENDENCIA ,#(lf)#(tab)tgp.CODCLIENTE ,#(lf)#(tab)tgp.CODEMPRESA ,#(lf)#(tab)tgp.STATUS ,#(lf)#(tab)tgp.TIPO ,#(lf)#(tab)tgp.LIQUIDACAO ,#(lf)#(tab)tgp.VALOR ,#(lf)#(tab)tgp.AMORTIZACOES ,#(lf)#(tab)tgp.SALDODEVEDOR ,#(lf)#(tab)cast( tgp.OBSERVACAO as char) as OBSERVACAO ,#(lf)#(tab)tgp.CODOPERACAO ,#(lf)#(tab)tgp.CODTITULO ,#(lf)#(tab)tgp.CODTITULOPROR ,#(lf)#(tab)tgp.CODPAGAMENTOPARCIAL ,#(lf)#(tab)tgp.DATAINCLUSAO ,#(lf)#(tab)tgp.USUAINCLUSAO ,#(lf)#(tab)tgp.TOTISS ,#(lf)#(tab)tgp.OP#(lf)FROM#(lf)#(tab)tab_geral_pendencias tgp", ReturnSingleDatabase=true])
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT#(lf)#(tab)tgp.CODPENDENCIA ,#(lf)#(tab)tgp.CODCLIENTE ,#(lf)#(tab)tgp.CODEMPRESA ,#(lf)#(tab)tgp.STATUS ,#(lf)#(tab)tgp.TIPO ,#(lf)#(tab)tgp.LIQUIDACAO ,#(lf)#(tab)tgp.VALOR ,#(lf)#(tab)tgp.AMORTIZACOES ,#(lf)#(tab)tgp.SALDODEVEDOR ,#(lf)#(tab)cast( tgp.OBSERVACAO as char) as OBSERVACAO ,#(lf)#(tab)tgp.CODOPERACAO ,#(lf)#(tab)tgp.CODTITULO ,#(lf)#(tab)tgp.CODTITULOPROR ,#(lf)#(tab)tgp.CODPAGAMENTOPARCIAL ,#(lf)#(tab)tgp.DATAINCLUSAO ,#(lf)#(tab)tgp.USUAINCLUSAO ,#(lf)#(tab)tgp.TOTISS ,#(lf)#(tab)tgp.OP#(lf)FROM#(lf)#(tab)tab_geral_pendencias tgp", ReturnSingleDatabase=true])
 in
     // Retorna a tabela de pendências.
     // Nota: Assumimos que o output final deve ser 'origem', pois 'dbo_factvale40bi_pendencias' não está definido.
@@ -861,7 +863,7 @@ in
     #"Linhas Filtradas";
 shared replica_tab_titulos_abatimento = let
     // Conecta-se a um banco de dados MySQL para obter dados de abatimentos de títulos.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODTITULOABAT, CODOPERACAO, CODTITULO, VALORDEVIDO, ABATIMENTO, DATAINCLUSAO FROM tab_titulos_abatimento", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODTITULOABAT, CODOPERACAO, CODTITULO, VALORDEVIDO, ABATIMENTO, DATAINCLUSAO FROM tab_titulos_abatimento", ReturnSingleDatabase=true]),
     
     // Extrai a parte da data da coluna 'DATAINCLUSAO'.
     // Nota: Assumimos que o input para esta etapa deve ser 'origem', pois 'Colunas Removidas' não está definido.
@@ -883,7 +885,7 @@ in
     Fonte;
 shared replica_tab_titulos_baixas = let
     // Conecta-se ao segundo banco de dados MySQL para buscar baixas históricas (a partir de 2023).
-    origemDataHistorica = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODTITULO,DATABAIXA    , DATABAIXASIST, VLPAGO, DESCONTO, JUROS, TARIFARECOMPRA, DATAVENCIMENTO, CODOPERACAO, MOTIVO, PAGOPELO, FORMA, TIPOBAIXA#(lf)     FROM tab_titulos_baixas WHERE YEAR(DATABAIXASIST) >= 2023", ReturnSingleDatabase=true]),
+    origemDataHistorica = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODTITULO,DATABAIXA    , DATABAIXASIST, VLPAGO, DESCONTO, JUROS, TARIFARECOMPRA, DATAVENCIMENTO, CODOPERACAO, MOTIVO, PAGOPELO, FORMA, TIPOBAIXA#(lf)     FROM tab_titulos_baixas WHERE YEAR(DATABAIXASIST) >= 2023", ReturnSingleDatabase=true]),
     // Remove colunas de tipos complexos da tabela de baixas históricas.
     dataHistoricaColunasLimpas = Table.RemoveColumns(
         origemDataHistorica,
@@ -1004,7 +1006,7 @@ in
     #"Colunas Removidas1";
 shared replica_cad_clientes = let
     // Conecta-se ao banco de dados MySQL.
-    conexaoMySQL = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODCLIENTE, CPFCNPJ, CODATIVIDADE,DATASTATUS,CODSTATUSCLIENTE, CAPITALSOCIAL ,CODRATINGSUG FROM cad_clientes", ReturnSingleDatabase=true]),
+    conexaoMySQL = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODCLIENTE, CPFCNPJ, CODATIVIDADE,DATASTATUS,CODSTATUSCLIENTE, CAPITALSOCIAL ,CODRATINGSUG FROM cad_clientes", ReturnSingleDatabase=true]),
 
     // Adiciona a coluna 'BASE' com o valor constante 40.
     // NOTE: Assumed 'conexaoMySQL' as input instead of 'Outras Colunas Removidas' which is not defined.
@@ -1034,7 +1036,7 @@ in
     #"Linhas Classificadas";
 shared replica_cad_contratos_clientes = let
     // Conecta-se ao banco de dados MySQL.
-    conexaoMySQL = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT#(lf)#(tab)CODCONTRATO ,#(lf)#(tab)CODCLIENTE ,#(lf)#(tab)DTINICONTRATO ,#(lf)#(tab)VALIDADELIMITE ,#(lf)#(tab)FATOR,#(lf)#(tab)LIMITEFOMENTO ,#(lf)#(tab)LIMITECOMISSARIA ,#(lf)#(tab)STATUS,#(lf)#(tab)PERCCONFIRMACAO/100 as PERCCONFIRMACAO ,#(lf)#(tab)TRANCHE,#(lf)--#(tab)OBSERVACOES, #(lf)#(tab)CASE WHEN OBSERVACOES LIKE '%#STATUSDIRETORIA%' THEN 1 ELSE 0 END AS STATUSDIRETORIA#(lf)FROM#(lf)#(tab)cad_contratos_clientes ccc#(lf)ORDER BY#(lf)#(tab)CODCONTRATO DESC", ReturnSingleDatabase=true])
+    conexaoMySQL = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT#(lf)#(tab)CODCONTRATO ,#(lf)#(tab)CODCLIENTE ,#(lf)#(tab)DTINICONTRATO ,#(lf)#(tab)VALIDADELIMITE ,#(lf)#(tab)FATOR,#(lf)#(tab)LIMITEFOMENTO ,#(lf)#(tab)LIMITECOMISSARIA ,#(lf)#(tab)STATUS,#(lf)#(tab)PERCCONFIRMACAO/100 as PERCCONFIRMACAO ,#(lf)#(tab)TRANCHE,#(lf)--#(tab)OBSERVACOES, #(lf)#(tab)CASE WHEN OBSERVACOES LIKE '%#STATUSDIRETORIA%' THEN 1 ELSE 0 END AS STATUSDIRETORIA#(lf)FROM#(lf)#(tab)cad_contratos_clientes ccc#(lf)ORDER BY#(lf)#(tab)CODCONTRATO DESC", ReturnSingleDatabase=true])
 in
     conexaoMySQL;
 shared clientes = let
@@ -1098,7 +1100,7 @@ in
     clienteDuplicatasRemovidasPosDiretoria;
 shared replica_rlc_brokers_clientes = let
     // Conecta-se a um banco de dados MySQL para buscar dados de relacionamento broker-cliente.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODBROKER, CODCLIENTE, DATAINICIO, DATAINCLUSAO FROM rlc_brokers_clientes", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODBROKER, CODCLIENTE, DATAINICIO, DATAINCLUSAO FROM rlc_brokers_clientes", ReturnSingleDatabase=true]),
     
     // Remove linhas duplicadas com base na coluna 'CODCLIENTE'.
     // Nota: Assumimos que o input para esta etapa deve ser 'navegacao', pois 'Colunas Removidas' não está definido.
@@ -1110,7 +1112,7 @@ in
     personalizacaoAdicionada;
 shared replica_cad_email = let
     // Conecta-se a um banco de dados MySQL para buscar dados de e-mail.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CPFCNPJ, EMAIL FROM cad_email", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CPFCNPJ, EMAIL FROM cad_email", ReturnSingleDatabase=true]),
     // Remove linhas duplicadas da tabela.
     duplicatasRemovidas = Table.Distinct(origem)
 in
@@ -1129,7 +1131,7 @@ in
     #"Valores Extraídos";
 shared replica_cad_telefones = let
     // Conecta-se a um banco de dados MySQL para buscar dados de telefones.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CPFCNPJ, DDD, FONE, CONTATO, TIPO FROM cad_telefones", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CPFCNPJ, DDD, FONE, CONTATO, TIPO FROM cad_telefones", ReturnSingleDatabase=true]),
     
     // Remove hífens da coluna 'FONE'.
     foneHifenRemovido = Table.ReplaceValue(origem,"-","",Replacer.ReplaceText,{"FONE"}),
@@ -1186,7 +1188,7 @@ in
     #"Valores Extraídos";
 shared replica_cad_enderecos = let
     // Conecta-se ao banco de dados MySQL.
-    conexaoMySQL = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM cad_enderecos", ReturnSingleDatabase=true]),
+    conexaoMySQL = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT * FROM cad_enderecos", ReturnSingleDatabase=true]),
     
     // Remove colunas desnecessárias.
     // Nota: Assumimos que o input para esta etapa deve ser 'conexaoMySQL', pois 'dbo_factvale40bi_cad_enderecos' não está definido.
@@ -1300,7 +1302,7 @@ in
     Fonte;
 shared empresas = let
     // Conecta-se a um banco de dados MySQL para selecionar dados de empresas.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODEMPRESA, CNPJ, ATIVA  FROM cad_empresas ", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODEMPRESA, CNPJ, ATIVA  FROM cad_empresas ", ReturnSingleDatabase=true]),
 
     // Adiciona a coluna "BASE" com o valor constante 40.
     colunaBaseAdicionada = Table.AddColumn(origem, "BASE", each 40),
@@ -1356,7 +1358,7 @@ in
     colunasRenomeadasFinal;
 shared replica_cad_geral_pareceres = let
     // Conecta-se ao banco de dados MySQL 'factvale40bi'.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODPARECER, CPFCNPJ, CODTIPOPARECER, CODOPERACAO, DATAINCLUSAO, USUAINCLUSAO, TIPO, CAST(LEFT(OBS,255) AS CHAR(255)) AS OBS, DATAALTERACAO, USUAALTERACAO, ENCAMINHAR, CODTITULO, ALERTA, CODPASTA, CODTAREFA FROM cad_geral_pareceres WHERE YEAR(DATAINCLUSAO) >= 2024", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODPARECER, CPFCNPJ, CODTIPOPARECER, CODOPERACAO, DATAINCLUSAO, USUAINCLUSAO, TIPO, CAST(LEFT(OBS,255) AS CHAR(255)) AS OBS, DATAALTERACAO, USUAALTERACAO, ENCAMINHAR, CODTITULO, ALERTA, CODPASTA, CODTAREFA FROM cad_geral_pareceres WHERE YEAR(DATAINCLUSAO) >= 2024", ReturnSingleDatabase=true]),
   
     // Remove colunas desnecessárias como ENCAMINHAR, CODTITULO, ALERTA, CODPASTA, CODTAREFA.
     colunasIniciaisRemovidas = Table.RemoveColumns(origem, {"ENCAMINHAR", "CODTITULO", "ALERTA", "CODPASTA", "CODTAREFA"}),
@@ -1497,7 +1499,7 @@ in
     Fonte;
 shared replica_tab_operacoes_prorrogacao = let
     // Conecta-se ao banco de dados MySQL 'factvale40bi'.
-    conexaoMySQL = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT * FROM tab_operacoes_prorrogacao", ReturnSingleDatabase=true])
+    conexaoMySQL = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT * FROM tab_operacoes_prorrogacao", ReturnSingleDatabase=true])
 in
     conexaoMySQL;
 shared prorrogacoes = let
@@ -1534,7 +1536,7 @@ in
     // Retornar a tabela resultante da última etapa
     ExtrairDataInclusao;
 shared sacados = let
-  fonteSQLDatabases = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT DISTINCT CPFCNPJSACADO FROM tab_titulos WHERE YEAR(DATAINCLUSAO) >= 2021", ReturnSingleDatabase=true]),
+  fonteSQLDatabases = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT DISTINCT CPFCNPJSACADO FROM tab_titulos WHERE YEAR(DATAINCLUSAO) >= 2021", ReturnSingleDatabase=true]),
     #"Consultas Mescladas" = Table.NestedJoin(fonteSQLDatabases, {"CPFCNPJSACADO"}, #"replica_cad_geral_pf_pj", {"CPFCNPJ"}, "replica_cad_geral_pf_pj", JoinKind.LeftOuter),
     #"replica_cad_geral_pf_pj Expandido" = Table.ExpandTableColumn(#"Consultas Mescladas", "replica_cad_geral_pf_pj", {"NOME"}, {"NOME"}),
     #"Consultas Mescladas1" = Table.NestedJoin(#"replica_cad_geral_pf_pj Expandido", {"CPFCNPJSACADO"}, enderecos, {"CPFCNPJ"}, "enderecos", JoinKind.LeftOuter),
@@ -1550,7 +1552,7 @@ in
 ;
 shared replica_tab_statusoperacao = let
     // Conecta-se a um banco de dados MySQL para obter dados de status de operações.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODSTATUSOPERACAO, DESCRICAO FROM tab_statusoperacao", ReturnSingleDatabase=true])
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODSTATUSOPERACAO, DESCRICAO FROM tab_statusoperacao", ReturnSingleDatabase=true])
 in
     origem;
 shared status_operacoes = let
@@ -1559,7 +1561,7 @@ in
     Fonte;
 shared tarifas_esporadicas = let
     // Conecta-se a um banco de dados MySQL para obter dados de tarifas extras de operações.
-    origem = MySQL.Database("56.125.147.185", "lbfactor", [Query="SELECT CODOPERACAO, DESCRICAO, TOTAL, DATAINCLUSAO, USUAINCLUSAO AS CODUSUARIO#(lf)FROM tab_operacoes_tarifas_extras#(lf)WHERE YEAR(DATAINCLUSAO) >= 2024", ReturnSingleDatabase=true]),
+    origem = MySQL.Database(ServerAddress, "lbfactor", [Query="SELECT CODOPERACAO, DESCRICAO, TOTAL, DATAINCLUSAO, USUAINCLUSAO AS CODUSUARIO#(lf)FROM tab_operacoes_tarifas_extras#(lf)WHERE YEAR(DATAINCLUSAO) >= 2024", ReturnSingleDatabase=true]),
     
     // Mescla com a tabela 'usuarios' usando 'CODUSUARIO'.
     consultasMescladas = Table.NestedJoin(origem, {"CODUSUARIO"}, usuarios, {"CODUSUARIO"}, "usuarios", JoinKind.LeftOuter),
