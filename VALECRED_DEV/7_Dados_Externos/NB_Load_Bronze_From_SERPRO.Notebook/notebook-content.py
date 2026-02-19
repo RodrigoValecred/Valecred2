@@ -55,6 +55,7 @@ def safe_extract(zip_ref, path):
     """
     # Normalize the target path to an absolute path
     target_path = os.path.abspath(path)
+    safe_members = []
 
     # Collect validated members
     members_to_extract = []
