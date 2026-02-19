@@ -157,21 +157,32 @@ try:
     # A tabela fato_prorrogacoes_de_titulos deve ter cod_cliente (adicionado no NB_Curadoria)
     df_prorrogacao = spark.read.table("LH_Gold.fato_prorrogacoes_de_titulos")
 
-    # Filtrar para Safra 2025 (pela data_inclusao/data)
-    df_prorrogacao_filtered = df_prorrogacao.filter(year(col("data_inclusao")) == 2025)
+    # 1. Filtro Básico: Apenas Prorrogações Reais (data vencimento novo != data vencimento antigo)
+    # Não filtramos ano aqui para garantir que pegamos todo o histórico da operação (Lifetime)
+    df_prorrogacao_clean = df_prorrogacao.filter(col("vencimentonov") != col("vencimentoant"))
 
-    # Agregado por Cliente (Existente)
-    df_prorrogacao_agg = df_prorrogacao_filtered \
+    # 2. Agregado por Cliente (Existente - Calendário 2025)
+    # Mantém filtro de ano 2025 para compatibilidade com a métrica "Receita Cliente 2025"
+    df_prorrogacao_agg = df_prorrogacao_clean \
+        .filter(year(col("data_inclusao")) == 2025) \
         .groupBy("cod_cliente").agg(sum("juros").alias("receita_tarifa_prorrogacao_cliente"))
 
-    # Agregado por Operação (Novo) - Receita de Prorrogação relacionada aos títulos da operação
-    df_prorrogacao_agg_op = df_prorrogacao_filtered \
+    # 3. Agregado por Operação (Lifetime - Safra 2025)
+    # Sem filtro de ano, para capturar todas as receitas de prorrogação das operações da safra
+    df_prorrogacao_agg_op = df_prorrogacao_clean \
         .groupBy("cod_operacao").agg(sum("juros").alias("receita_prorrogacao_op"))
+
+    # 4. Agregado por Operação (Calendário 2025 - Para Deduplicação)
+    # Necessário para subtrair corretamente da "Receita Cliente 2025"
+    df_prorrogacao_agg_op_2025 = df_prorrogacao_clean \
+        .filter(year(col("data_inclusao")) == 2025) \
+        .groupBy("cod_operacao").agg(sum("juros").alias("receita_prorrogacao_op_2025"))
 
 except Exception as e:
     print(f"Aviso: Tabela fato_prorrogacoes_de_titulos não encontrada ou erro ({e}). Usando placeholder.")
     df_prorrogacao_agg = None
     df_prorrogacao_agg_op = None
+    df_prorrogacao_agg_op_2025 = None
 
 # Dimensão Clientes (Para Nome e Risco Atual)
 df_clientes = spark.read.table("LH_Gold.dim_clientes") \
@@ -219,6 +230,12 @@ if df_prorrogacao_agg_op:
 else:
     df_base = df_base.withColumn("receita_prorrogacao_op", lit(0))
 
+if df_prorrogacao_agg_op_2025:
+    df_base = df_base.join(df_prorrogacao_agg_op_2025, "cod_operacao", "left") \
+        .withColumn("receita_prorrogacao_op_2025", coalesce(col("receita_prorrogacao_op_2025"), lit(0)))
+else:
+    df_base = df_base.withColumn("receita_prorrogacao_op_2025", lit(0))
+
 # Join com Dados do Cliente (Risco e Nome)
 df_base_cliente = df_base.join(df_clientes, "cod_cliente", "left")
 
@@ -262,7 +279,8 @@ df_cliente_agg = df_calcs.groupBy("cod_cliente").agg(
     sum("total_valor_prazo_op").alias("soma_valor_prazo_cliente"),
     sum("desagio").alias("receita_desagio_cliente"),
     sum("receita_total_op").alias("soma_receita_total_op"), # Intermediate sum
-    sum("receita_prorrogacao_op").alias("soma_prorrogacao_op_cliente"), # Soma da receita de prorrogação das operações (para deduzir e evitar contagem dupla)
+    sum("receita_prorrogacao_op").alias("soma_prorrogacao_op_cliente"),
+    sum("receita_prorrogacao_op_2025").alias("soma_prorrogacao_op_2025_cliente"), # Soma da receita de prorrogação (Safra 2025) das operações (para deduzir da receita cliente 2025 e evitar contagem dupla)
     sum("receita_real_op_calc").alias("soma_receita_real_cliente"),
     sum("vol_prazo_real_op_calc").alias("soma_vol_prazo_real_cliente"),
     sum("custo_financeiro_op").alias("custo_financeiro_cliente_sum"),
@@ -273,7 +291,7 @@ df_cliente_agg = df_calcs.groupBy("cod_cliente").agg(
 
 # 4.3 Join and Final Calculations
 df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
-    .withColumn("receita_total_cliente", col("soma_receita_total_op") + (coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0)) - coalesce(col("soma_prorrogacao_op_cliente"), lit(0)))) \
+    .withColumn("receita_total_cliente", col("soma_receita_total_op") + (coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0)) - coalesce(col("soma_prorrogacao_op_2025_cliente"), lit(0)))) \
     .withColumn("custo_financeiro_cliente", coalesce(col("custo_financeiro_cliente_sum"), lit(0))) \
     .withColumn("spread_cliente", coalesce(col("spread_cliente_sum"), lit(0))) \
     .withColumn("taxa_media_ponderada_mensal_cliente", 
