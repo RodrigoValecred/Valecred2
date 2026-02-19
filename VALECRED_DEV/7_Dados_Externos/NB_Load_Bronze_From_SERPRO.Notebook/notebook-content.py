@@ -193,8 +193,8 @@ serpro_biddings_df = licitacao_df.filter(col("Nome Órgão") == "SERVICO FEDERAL
 print("Dados de licitações do SERPRO filtrados.")
 serpro_biddings_df.show(5)
 
-# Coletar os números de licitação do SERPRO
-serpro_bidding_numbers = [row['Número Licitação'] for row in serpro_biddings_df.select('Número Licitação').distinct().collect()]
+# Create a DataFrame with unique IDs (optimization: use join instead of collect+isin)
+serpro_bidding_numbers_df = serpro_biddings_df.select('Número Licitação').distinct()
 
 # Salvar a tabela de licitações do SERPRO
 target_table_name = "bronze_serpro_licitacoes"
@@ -234,8 +234,8 @@ print(f"Salvando DataFrame como tabela Delta '{target_table_name}'...")
 serpro_contracts_df.write.mode("overwrite").format("delta").saveAsTable(target_table_name)
 print("Tabela de contratos salva com sucesso.")
 
-# Coletar os números de contrato do SERPRO
-serpro_contract_numbers = [row['Número Contrato'] for row in serpro_contracts_df.select('Número Contrato').distinct().collect()]
+# Create a DataFrame with unique IDs (optimization: use join instead of collect+isin)
+serpro_contract_numbers_df = serpro_contracts_df.select('Número Contrato').distinct()
 
 # --- ETAPA 2: PROCESSAR E FILTRAR ARQUIVOS DE CONTRATOS RELACIONADOS ---
 related_contract_files = {
@@ -253,7 +253,7 @@ for name, filename in related_contract_files.items():
 
     # Filtrar o DataFrame
     if 'Número Contrato' in df.columns:
-        filtered_df = df.filter(col("Número Contrato").isin(serpro_contract_numbers))
+        filtered_df = df.join(serpro_contract_numbers_df, on="Número Contrato", how="left_semi")
     else:
         filtered_df = df # Manter o DataFrame como está se a coluna de contrato não existir
 
@@ -276,7 +276,7 @@ for name, filename in related_files.items():
 
     # Filtrar o DataFrame
     if 'Número Licitação' in df.columns:
-        filtered_df = df.filter(col("Número Licitação").isin(serpro_bidding_numbers))
+        filtered_df = df.join(serpro_bidding_numbers_df, on="Número Licitação", how="left_semi")
     else:
         filtered_df = df # Manter o DataFrame como está se a coluna de licitação não existir
 
