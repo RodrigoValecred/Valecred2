@@ -5,3 +5,7 @@
 ## 2025-06-25 - ASCII Dashboard Alignment
 **Learning:** Terminal ASCII dashboards require precise character counting, especially when emojis are involved (display width vs string length). Fixed-width layouts with generous padding are more robust than tight `printf` alignment.
 **Action:** Use a helper function or careful manual calculation (W=52, inner=48) for box layouts, and test with actual output.
+
+## 2025-07-02 - Robust ASCII Reporting
+**Learning:** Emojis break ASCII box alignment because their visual width (usually 2) often differs from their string length (usually 1), causing misaligned vertical borders.
+**Action:** Use a "Horizontal Lines Only" design for content rows in text reports (top/bottom borders are fine, side borders are omitted) to maintain professional alignment without fragility.
