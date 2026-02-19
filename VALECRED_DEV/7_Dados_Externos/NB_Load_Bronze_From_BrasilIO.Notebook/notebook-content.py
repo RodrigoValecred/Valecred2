@@ -64,7 +64,14 @@ for name, url in urls.items():
     local_file_path = os.path.join(local_download_path, file_name)
 
     print(f"Baixando {url} para {local_file_path}...")
-    response = requests.get(url, stream=True)
+
+    # SECURITY: Added User-Agent to be a good net citizen
+    headers = {
+        "User-Agent": "ValeCred-Data-Pipeline/1.0 (contact: admin@valecred.com.br)"
+    }
+
+    # SECURITY: Added timeout to prevent hanging indefinitely (DoS risk)
+    response = requests.get(url, stream=True, timeout=60, headers=headers)
     response.raise_for_status()  # Lança um erro se o download falhar
 
     with open(local_file_path, "wb") as f:
