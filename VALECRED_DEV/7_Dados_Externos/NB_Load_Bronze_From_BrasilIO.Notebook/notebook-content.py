@@ -41,6 +41,7 @@
 
 import os
 import requests
+import concurrent.futures
 from notebookutils import mssparkutils
 
 # URLs dos datasets
@@ -58,8 +59,15 @@ os.makedirs(local_download_path, exist_ok=True)
 # Dicionário para armazenar os caminhos finais dos arquivos no Lakehouse
 lakehouse_files = {}
 
-# Loop para baixar cada arquivo
-for name, url in urls.items():
+# Define o diretório de destino no seu Lakehouse (dentro da pasta 'Files')
+# Este caminho é relativo ao Lakehouse padrão associado ao seu notebook.
+lakehouse_dir = "Files/brasil_io_data"
+
+# Cria o diretório no Lakehouse se ele ainda não existir (uma única vez antes do loop paralelo)
+mssparkutils.fs.mkdirs(lakehouse_dir)
+
+def download_and_move(item):
+    name, url = item
     file_name = f"{name}.csv.gz"
     local_file_path = os.path.join(local_download_path, file_name)
 
@@ -79,14 +87,7 @@ for name, url in urls.items():
             f.write(chunk)
     print(f"Download de {name} concluído.")
 
-# --- ETAPA 2: MOVER O ARQUIVO LOCAL PARA O LAKEHOUSE ---
-    # Define o diretório de destino no seu Lakehouse (dentro da pasta 'Files')
-    # Este caminho é relativo ao Lakehouse padrão associado ao seu notebook.
-    lakehouse_dir = "Files/brasil_io_data"
-    
-    # Cria o diretório no Lakehouse se ele ainda não existir
-    mssparkutils.fs.mkdirs(lakehouse_dir)
-
+    # --- ETAPA 2: MOVER O ARQUIVO LOCAL PARA O LAKEHOUSE ---
     # Monta o caminho de destino final no Lakehouse
     lakehouse_file_path = os.path.join(lakehouse_dir, file_name)
     
@@ -97,7 +98,22 @@ for name, url in urls.items():
     mssparkutils.fs.mv(f"file:{local_file_path}", lakehouse_file_path)
     
     print(f"Arquivo movido para o Lakehouse com sucesso.")
-    lakehouse_files[name] = lakehouse_file_path
+    return name, lakehouse_file_path
+
+# Loop para baixar cada arquivo em paralelo
+print("Iniciando downloads paralelos...")
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    # Mapeia a função para cada item no dicionário de URLs
+    future_to_url = {executor.submit(download_and_move, item): item for item in urls.items()}
+
+    for future in concurrent.futures.as_completed(future_to_url):
+        try:
+            name, path = future.result()
+            lakehouse_files[name] = path
+        except Exception as exc:
+            name_failed = future_to_url[future][0]
+            print(f"O download de {name_failed} gerou uma exceção: {exc}")
+            raise exc
 
 
 # --- ETAPA 3: LER OS DADOS DO LAKEHOUSE COM O SPARK ---
