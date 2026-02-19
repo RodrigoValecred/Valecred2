@@ -203,6 +203,20 @@ STATUS_ESTEIRA_MAPPING = {
     "DIR COMERCIAL": "dir_comercial"
 }
 
+def calculate_funnel_dates(df):
+    """
+    Calculates derived dates for the funnel (Approval, Conclusion, Comite, Reserva, Entrada).
+    """
+    return df \
+        .withColumn("data_aprovacao", greatest(col("pivot_checklist"), col("pivot_assinatura"))) \
+        .withColumn("data_conclusao", coalesce(col("pivot_bizagi"), col("pivot_concluido"))) \
+        .withColumn("data_comite", col("pivot_comite")) \
+        .withColumn("data_reserva", greatest(col("pivot_renovacao"), col("pivot_reserva"))) \
+        .withColumn("data_entrada", coalesce(
+            greatest(col("pivot_dir_comercial"), col("pivot_proposta"), col("pivot_revisao_comercial")),
+            col("data_comite")
+        ))
+
 def get_status_risco_expr(col_tto="tto", col_vencimento="data_vencimento_util", current_date_col=None):
     """
     Retorna a expressão Column para cálculo de status_risco.
@@ -1538,15 +1552,7 @@ df_funnel = df_join_1 \
     )
 
 # Colunas Calculadas
-df_final = df_funnel \
-    .withColumn("data_aprovacao", greatest(col("pivot_checklist"), col("pivot_assinatura"))) \
-    .withColumn("data_conclusao", coalesce(col("pivot_bizagi"), col("pivot_concluido"))) \
-    .withColumn("data_comite", col("pivot_comite")) \
-    .withColumn("data_reserva", greatest(col("pivot_renovacao"), col("pivot_reserva"))) \
-    .withColumn("data_entrada", coalesce(
-        greatest(col("pivot_dir_comercial"), col("pivot_proposta"), col("pivot_revisao_comercial")),
-        col("data_comite")
-    )) \
+df_final = calculate_funnel_dates(df_funnel) \
     .withColumn("risco", coalesce(col("risco"), lit(0))) \
     .withColumn("risco_grupo", coalesce(col("risco_grupo"), lit(0))) \
     .withColumn("risco_comissaria_grupo", coalesce(col("risco_comissaria_grupo"), lit(0))) \
