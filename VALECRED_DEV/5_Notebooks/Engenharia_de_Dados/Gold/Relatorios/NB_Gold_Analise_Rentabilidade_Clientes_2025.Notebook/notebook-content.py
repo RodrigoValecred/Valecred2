@@ -38,6 +38,7 @@ from pyspark.sql.functions import (
     col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce, year, datediff, to_date
 )
 from pyspark.sql.window import Window
+from notebookutils import mssparkutils
 
 # METADATA ********************
 
@@ -66,6 +67,12 @@ df_ops_normal = spark.read.table("LH_Gold.fato_operacoes") \
 # Operações de Recompra (Para incluir Receita de Recompra)
 # Fonte: LH_Gold.fato_operacoes_recompra (Granularidade: Título expandido)
 # Agregado por Operação
+
+# Garantir que tarifa_de_recompra exista em df_ops_normal antes do union/fallback
+if "tarifa_de_recompra" not in df_ops_normal.columns:
+    print("Aviso: tarifa_de_recompra não encontrada em fato_operacoes. Criando com 0.")
+    df_ops_normal = df_ops_normal.withColumn("tarifa_de_recompra", lit(0.0))
+
 try:
     df_ops_rc = spark.read.table("LH_Gold.fato_operacoes_recompra") \
         .filter(to_date(col("data_analise")) >= "2025-01-01") \
@@ -88,11 +95,6 @@ try:
         "valor_de_face", "desagio", "total_de_tarifas", "tarifa_de_recompra",
         "chave_produto"
     ]
-
-    # Garantir que tarifa_de_recompra exista em df_ops_normal antes do select
-    if "tarifa_de_recompra" not in df_ops_normal.columns:
-        print("Aviso: tarifa_de_recompra não encontrada em fato_operacoes. Criando com 0.")
-        df_ops_normal = df_ops_normal.withColumn("tarifa_de_recompra", lit(0.0))
 
     # Union
     df_ops = df_ops_normal.select(common_cols).unionByName(df_ops_rc_agg.select(common_cols), allowMissingColumns=True)
@@ -380,6 +382,17 @@ print(f"Total de Operações Encontradas: {count_ops}")
 print(f"Volume Total Encontrado: {sum_volume}")
 print("\nDetalhe das Operações:")
 df_validacao.show(200, truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+mssparkutils.notebook.exit("Success")
 
 # METADATA ********************
 
