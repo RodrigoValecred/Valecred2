@@ -625,6 +625,34 @@ def process_tarifas_esporadicas():
     df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.{target_table}")
     print(f"Tabela {target_table} criada com sucesso.")
 
+def process_titulos_base_40():
+    print("Processando Tabela Base 40...")
+    # Load Staging Titulos (Silver) - created in NB_Prepara_Tabela_Titulos
+    df_titulos = spark.read.table(f"{target_lakehouse}.staging_titulos_limpa")
+
+    # Load Staging Operacoes (Silver) - created in this notebook
+    df_operacoes = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa")
+
+    # Join
+    # Select only required columns from Operacoes
+    df_operacoes_selected = df_operacoes.select("cod_operacao", "status_analise", "status_aceite")
+
+    df_joined = df_titulos.join(df_operacoes_selected, "cod_operacao", "left")
+
+    # Transform
+    # Drop columns as requested (RemoveColunas)
+    df_final = df_joined.drop("valor_devido", "data_alteracao")
+
+    # Add calculated columns
+    df_final = df_final \
+        .withColumn("BASE", lit(40)) \
+        .withColumn("chave_base_titulo", concat(lit("40-"), col("cod_titulo").cast("string"))) \
+        .withColumn("Data", col("data_inclusao").cast("date"))
+
+    target_table = "staging_titulos_base_40"
+    df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.{target_table}")
+    print(f"Tabela {target_table} criada.")
+
 # Execução
 process_operacoes()
 process_devolucoes()
@@ -636,6 +664,7 @@ process_prorrogacoes()
 process_recompras()
 process_tab_operacoes_prorrogacao()
 process_tarifas_esporadicas()
+process_titulos_base_40()
 
 print("Limpeza Silver - Operações finalizada.")
 mssparkutils.notebook.exit("Success")
