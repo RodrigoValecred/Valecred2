@@ -15,6 +15,25 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     from notebook_utils import extract_function_from_file
 
+class MockDataFrame:
+    def __init__(self, columns):
+        self.columns = columns
+
+    def withColumnRenamed(self, existing, new):
+        if existing in self.columns:
+            new_cols = [new if c == existing else c for c in self.columns]
+            return MockDataFrame(new_cols)
+        return self
+
+    def withColumn(self, name, col_expr):
+        # Simulates adding a column
+        if name not in self.columns:
+            return MockDataFrame(self.columns + [name])
+        return self
+
+def mock_lit(val):
+    return f"LIT({val})"
+
 class TestDecodeHtmlEntities(unittest.TestCase):
 
     @classmethod
@@ -211,6 +230,76 @@ class TestNormalizeCol(unittest.TestCase):
         if not self.normalize_col: self.skipTest("Function not found")
         self.assertEqual(self.normalize_col("Address1"), "address1")
         self.assertEqual(self.normalize_col("v2_0"), "v2_0")
+
+class TestStandardizeEstudoColumns(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting standardize_estudo_columns from {NOTEBOOK_PATH}")
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "standardize_estudo_columns")
+
+        if func_source:
+            local_scope = {}
+            global_scope = {"lit": mock_lit}
+            try:
+                exec(func_source, global_scope, local_scope)
+                cls.standardize_estudo_columns = staticmethod(local_scope["standardize_estudo_columns"])
+            except Exception as e:
+                print(f"Error executing extracted function: {e}")
+                cls.standardize_estudo_columns = None
+        else:
+            cls.standardize_estudo_columns = None
+            print("WARNING: standardize_estudo_columns function not found in file.")
+
+    def test_standardize_columns_rename(self):
+        if not self.standardize_estudo_columns: self.skipTest("Function not found")
+
+        # Scenario: Columns "valoremabertort" and "limitefomento" exist
+        df = MockDataFrame(["cod_operacao", "valoremabertort", "limitefomento"])
+        new_df = self.standardize_estudo_columns(df)
+
+        self.assertIn("valor_risco_estudo", new_df.columns)
+        self.assertIn("valor_limite_estudo", new_df.columns)
+        self.assertNotIn("valoremabertort", new_df.columns)
+        self.assertNotIn("limitefomento", new_df.columns)
+
+    def test_standardize_columns_priority(self):
+        if not self.standardize_estudo_columns: self.skipTest("Function not found")
+
+        # Scenario: "valoremabertort" and "risco" both exist (should pick first match: valoremabertort)
+        # Note: function iterates candidates. First match in candidates list wins if both exist?
+        # Function logic:
+        # for cand in candidates: if cand in existing: rename and return.
+        # So priority depends on candidates list order.
+        # Candidates: ["valoremabertort", "risco", ...]
+
+        df = MockDataFrame(["risco", "valoremabertort"])
+        new_df = self.standardize_estudo_columns(df)
+
+        self.assertIn("valor_risco_estudo", new_df.columns)
+        # Assuming `valoremabertort` is checked before `risco` (or after?)
+        # Check source: risk_candidates = ["valoremabertort", "risco", ...]
+        # So "valoremabertort" is found first. It gets renamed to "valor_risco_estudo".
+        # "risco" should remain as is (because return happens after rename).
+        self.assertIn("risco", new_df.columns)
+
+    def test_standardize_columns_missing(self):
+        if not self.standardize_estudo_columns: self.skipTest("Function not found")
+
+        # Scenario: No risk/limit columns
+        df = MockDataFrame(["cod_operacao"])
+        new_df = self.standardize_estudo_columns(df)
+
+        self.assertIn("valor_risco_estudo", new_df.columns)
+        self.assertIn("valor_limite_estudo", new_df.columns)
+
+    def test_standardize_columns_already_exists(self):
+        if not self.standardize_estudo_columns: self.skipTest("Function not found")
+
+        # Scenario: Target columns already exist (e.g. rerun)
+        df = MockDataFrame(["valor_risco_estudo", "valor_limite_estudo"])
+        new_df = self.standardize_estudo_columns(df)
+
+        self.assertEqual(new_df.columns, ["valor_risco_estudo", "valor_limite_estudo"])
 
 if __name__ == '__main__':
     unittest.main()
