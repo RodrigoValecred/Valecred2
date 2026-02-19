@@ -21,3 +21,25 @@ Data: 2/18/2026
 | **Cobranca** | Bem-sucedido | 2:21:26 PM | 5m 55s |
 | **Operacoes** | Bem-sucedido | 2:21:26 PM | 4m 41s |
 | **Carrega dados brutos** | Bem-sucedido | 2:13:19 PM | 8m 2s |
+
+Data: 2/19/2026
+
+| Atividade | Status | Término | Duração |
+| :--- | :--- | :--- | :--- |
+| **RelatorioLimitesVencendo** | Bem-sucedido | 11:06:26 AM | 1m 26s |
+| **Processamento_Clientes_Gold** | Bem-sucedido | 11:06:26 AM | 1m 53s |
+| **NB_Curadoria_Gold** | Bem-sucedido | 10:55:14 AM | 11m 10s |
+| **Observacoes_Contratos** | Bem-sucedido | 10:53:51 AM | 1m 21s |
+| **Verifica Titulos Enviados ao Juridico** | Bem-sucedido | 10:50:29 AM | 1m 51s |
+| **LancamentosContabeis** | Bem-sucedido | 10:49:11 AM | 4m 37s |
+| **Sacados** | Bem-sucedido | 10:48:36 AM | 4m 22s |
+| **Dim Danfe** | Bem-sucedido | 10:48:36 AM | 1m 52s |
+| **Esteira de Propostas** | Bem-sucedido | 10:47:04 AM | 2m 6s |
+| **Gerentes** | Bem-sucedido | 10:45:27 AM | 1m 36s |
+| **Empresas** | Bem-sucedido | 10:44:05 AM | 1m 21s |
+| **Titulos** | Bem-sucedido | 10:43:41 AM | 4m 54s |
+| **Dim Produtos** | Bem-sucedido | 10:42:02 AM | 1m 37s |
+| **Operacoes** | Bem-sucedido | 10:37:24 AM | 4m 37s |
+| **Cadastros** | Bem-sucedido | 10:37:24 AM | 6m 39s |
+| **Cobranca** | Bem-sucedido | 10:37:24 AM | 4m 57s |
+| **Carrega dados brutos** | Bem-sucedido | 10:30:05 AM | 7m 18s |
