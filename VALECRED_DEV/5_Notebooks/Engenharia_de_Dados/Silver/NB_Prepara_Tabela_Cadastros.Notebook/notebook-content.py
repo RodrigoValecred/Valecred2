@@ -82,6 +82,28 @@ def process_clientes():
         )
     df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_clientes_limpa")
 
+def get_sigla_expr(col_name="nome_base"):
+    # 1. Definir "Stopwords" (termos que não devem compor a sigla)
+    stopwords = ["DA", "DE", "DO", "DAS", "DOS", "E", "LTDA", "S.A", "SA", "ME", "EPP", "S/A"]
+
+    # 2. Aplicar lógica vetorial (Alta Performance)
+    # Passo A: Limpa caracteres especiais, deixa maiúsculo e quebra em array
+    cleaned_words = split(regexp_replace(upper(col(col_name)), "[^A-Z0-9 ]", ""), " ")
+
+    # Passo B: Remove stopwords e espaços vazios
+    filtered_words = array_filter(
+        cleaned_words,
+        lambda x: (length(x) > 0) & (~x.isin(stopwords))
+    )
+
+    # Passo C: Pega a primeira letra de cada palavra restante
+    initials = transform(
+        filtered_words,
+        lambda x: substring(x, 1, 1)
+    )
+
+    return array_join(initials, "") # Junta tudo sem espaço (Ex: "Fundo Investimento" -> "FI")
+
 def process_cadastro_geral():
     print("Processando Cadastro Geral...")
     df_geral_bronze = spark.read.table(f"{source_lakehouse}.cad_geral_pf_pj")
@@ -90,28 +112,11 @@ def process_cadastro_geral():
         .filter(col("row_num") == 1).drop("row_num") \
         .select(col("CPFCNPJ").alias("cpf_cnpj"), col("NOME").alias("nome"), col("NOME").alias("razao_social"), col("FANTASIA").alias("nome_fantasia"))
 
-    # 1. Definir "Stopwords" (termos que não devem compor a sigla)
-    stopwords = ["DA", "DE", "DO", "DAS", "DOS", "E", "LTDA", "S.A", "SA", "ME", "EPP", "S/A"]
-
     # 2. Aplicar lógica vetorial (Alta Performance)
     df_geral_deduplicated = df_geral_deduplicated \
         .withColumn("nome_base", col("nome")) \
-        .withColumn(
-            "sigla",
-            array_join(
-                transform(
-                    # Passo A: Limpa caracteres especiais, deixa maiúsculo e quebra em array
-                    array_filter(
-                        split(regexp_replace(upper(col("nome_base")), "[^A-Z0-9 ]", ""), " "),
-                        # Passo B: Remove stopwords e espaços vazios
-                        lambda x: (length(x) > 0) & (~x.isin(stopwords))
-                    ),
-                    # Passo C: Pega a primeira letra de cada palavra restante
-                    lambda x: substring(x, 1, 1)
-                ),
-                "" # Junta tudo sem espaço (Ex: "Fundo Investimento" -> "FI")
-            )
-        ).drop("nome_base")
+        .withColumn("sigla", get_sigla_expr("nome_base")) \
+        .drop("nome_base")
 
     df_cadastros_clean = df_geral_deduplicated \
         .filter(col("cpf_cnpj").rlike("^[0-9]+$")) \
