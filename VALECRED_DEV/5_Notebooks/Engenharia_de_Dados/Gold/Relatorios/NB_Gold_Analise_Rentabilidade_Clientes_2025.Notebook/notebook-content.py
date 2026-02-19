@@ -369,6 +369,7 @@ output_table = "LH_Gold.relatorio_rentabilidade_clientes_2025"
 df_report.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
 print(f"Relatório detalhado salvo em: {output_table}")
 
+spark.stop()
 mssparkutils.notebook.exit("Success")
 
 # METADATA ********************
