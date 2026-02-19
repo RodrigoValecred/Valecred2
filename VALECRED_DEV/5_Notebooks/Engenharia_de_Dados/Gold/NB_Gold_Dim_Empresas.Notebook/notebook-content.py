@@ -53,62 +53,81 @@ from pyspark.sql.types import StringType
 # Lógica baseada em script Power Query legado
 
 def derive_empresa_name(nome):
+    """
+    Derives a short company name code based on specific string patterns.
+    Logic ported from legacy Power Query.
+    """
     if not nome:
         return None
+
     try:
-        # 1. Split by " SECURITIZADORA "
-        split1 = nome.split(" SECURITIZADORA ")
-        split1_rev = split1[::-1]
-        part1 = split1_rev[1] if len(split1_rev) > 1 else None
-        char1 = part1[:1] if part1 else ""
+        # 1. Extract from " SECURITIZADORA " prefix
+        # Split by " SECURITIZADORA ", take the first character of the part BEFORE it (last part before split if multiple).
+        # Original logic: split1_rev[1] corresponds to split1[-2].
+        split_sec = nome.split(" SECURITIZADORA ")
+        char1 = ""
+        if len(split_sec) > 1:
+            part1 = split_sec[-2]
+            if part1:
+                char1 = part1[:1]
 
-        # 2. Split by " "
-        split2 = nome.split(" ")
-        split2_rev = split2[::-1]
-        part2 = split2_rev[3] if len(split2_rev) > 3 else None
-        char2 = part2[9:10] if part2 and len(part2) > 9 else ""
+        # 2. Extract from 4th-to-last word
+        # Split by space, take the 4th word from the end, then its 10th character (index 9).
+        split_space = nome.split(" ")
+        char2 = ""
+        if len(split_space) >= 4:
+            part2 = split_space[-4]
+            if len(part2) > 9:
+                char2 = part2[9]
 
-        # 3. Split by "VALECRED "
-        split3 = nome.split("VALECRED ")
-        if len(split3) > 1:
-            part3 = split3[1]
-            split3_1 = part3.split(".")
-            split3_1_rev = split3_1[::-1]
-            char3 = "".join([s[:1] for s in split3_1_rev])
-        else:
-            char3 = ""
+        # 3. Extract from "VALECRED " suffix parts
+        # Split by "VALECRED ", take the part AFTER it (index 1).
+        # Then split that by ".", reverse the parts, and take the 1st char of each.
+        split_valecred = nome.split("VALECRED ")
+        char3 = ""
+        if len(split_valecred) > 1:
+            part3 = split_valecred[1]
+            split_dots = part3.split(".")
+            char3 = "".join(s[:1] for s in reversed(split_dots) if s)
 
-        # 4. Split by " " (again)
-        # Use split2 which is already split by " ", but we need original order logic
-        # PQ: splitNomedaEmpresa4{4}? -> 5th item
-        part4 = split2[4] if len(split2) > 4 else None
-        char4 = part4[4:5] if part4 and len(part4) > 4 else ""
+        # 4. Extract from 5th word
+        # Split by space (original order), take the 5th word (index 4), then its 5th character (index 4).
+        char4 = ""
+        if len(split_space) > 4:
+            part4 = split_space[4]
+            if len(part4) > 4:
+                char4 = part4[4]
 
-        # 5. Reverse Middle Reverse (char at index 32 from end)
-        rev_nome = nome[::-1]
-        char5 = rev_nome[32:33] if len(rev_nome) > 32 else ""
+        # 5. Extract 33rd character from the end
+        # Original logic: rev_nome[32:33] corresponds to nome[-33].
+        char5 = ""
+        if len(nome) > 32:
+            char5 = nome[-33]
 
-        # 6. Split by " " (again), 6th item
-        part4_5 = split2[5] if len(split2) > 5 else None
-        if part4_5:
-            rev_part = part4_5[::-1]
-            mid = rev_part[7:]
-            char6 = mid[::-1]
-        else:
-            char6 = ""
-        
-        # 7. Split by "."
-        split5 = nome.split(".")
-        split5_rev = split5[::-1]
-        part5 = split5_rev[0] if len(split5_rev) > 0 else None
-        char7 = part5[4:5] if part5 and len(part5) > 4 else ""
+        # 6. Extract from 6th word (trimmed)
+        # Split by space, take 6th word (index 5). Remove last 7 characters.
+        char6 = ""
+        if len(split_space) > 5:
+            part6 = split_space[5]
+            if len(part6) > 7:
+                char6 = part6[:-7]
+
+        # 7. Extract from last part after splitting by "."
+        # Split by ".", take the last part, then its 5th character (index 4).
+        split_dot = nome.split(".")
+        char7 = ""
+        if split_dot:
+            part7 = split_dot[-1]
+            if len(part7) > 4:
+                char7 = part7[4]
 
         result = char1 + char2 + char3 + char4 + char5 + char6 + char7
-        
-        # Replacement Rule
+
+        # Hardcoded replacement rule
         if result == "ITCREDO":
             return "TATUHY"
         return result
+
     except Exception:
         return None
 
