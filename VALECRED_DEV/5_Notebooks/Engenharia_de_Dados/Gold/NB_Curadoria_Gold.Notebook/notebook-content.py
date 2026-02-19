@@ -218,6 +218,7 @@ def get_status_risco_expr(col_tto="tto", col_vencimento="data_vencimento_util", 
            .when(col(col_vencimento) < current_date_col, "ATENÇÃO") \
            .otherwise("NO PRAZO")
 
+
 # METADATA ********************
 
 # META {
@@ -784,12 +785,8 @@ print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
 # -------------------------------------
 print("\nIniciando construção da fato_baixas...")
 # Apply manual fixes (Mantido para correções de negócio específicas)
-df_baixas_corrigido = df_baixas_staging.withColumn("juros",
-    when(col("juros") == -858005.8, 3912.5).when(col("juros") == -4948525.71, -56747.24)
-    .when(col("juros") == -4140.75, 0).when(col("juros") == -1447.5, 52.5)
-    .when(col("juros") == -1825.72, 66.28).when(col("juros") == -965, 35)
-    .when(col("juros") == -26000, 0).otherwise(col("juros"))
-)
+# A correção de juros agora é feita na camada Silver (NB_Preparacao_Silver).
+df_baixas_corrigido = df_baixas_staging
 df_enriquecido_baixas = df_baixas_corrigido \
     .join(df_titulos_limpa.select("cod_titulo", "cod_operacao"), on="cod_titulo", how="left") \
     .join(broadcast(df_dim_pago_por), df_baixas_corrigido.pago_pelo == df_dim_pago_por.id, how="left") \
