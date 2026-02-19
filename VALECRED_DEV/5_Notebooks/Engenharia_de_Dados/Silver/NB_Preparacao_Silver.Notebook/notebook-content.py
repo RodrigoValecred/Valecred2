@@ -413,8 +413,55 @@ order_by_col_baixa = "DATAINCLUSAO"
 window_baixa = Window.partitionBy([col(c) for c in key_cols_baixa]).orderBy(col(order_by_col_baixa).desc())
 df_baixas_desduplicada = df_baixas.withColumn("row_num", row_number().over(window_baixa)) \
                                     .filter(col("row_num") == 1).drop("row_num")
+
+# Correções manuais de juros (Valor Incorreto -> Valor Correto)
+JUROS_CORRECTIONS = {
+    -858005.8: 3912.5,
+    -4948525.71: -56747.24,
+    -4140.75: 0,
+    -1447.5: 52.5,
+    -1825.72: 66.28,
+    -965: 35,
+    -26000: 0
+}
+
+def apply_juros_corrections(df, corrections=None):
+    """
+    Aplica correções pontuais na coluna 'JUROS' baseada em um dicionário de mapeamento.
+    Nota: A coluna original no Bronze é 'JUROS' (upper case).
+    """
+    if corrections is None:
+        corrections = JUROS_CORRECTIONS
+
+    if not corrections:
+        return df
+
+    keys = list(corrections.keys())
+    if not keys:
+        return df
+
+    # Verifica se a coluna existe (case insensitive check)
+    col_name = "JUROS"
+    if "JUROS" not in df.columns and "juros" in df.columns:
+         col_name = "juros"
+    elif "JUROS" not in df.columns:
+         print("AVISO: Coluna de juros não encontrada para aplicação de correções.")
+         return df
+
+    # Inicia a cadeia de condições
+    expr = when(col(col_name) == keys[0], corrections[keys[0]])
+    for k in keys[1:]:
+        expr = expr.when(col(col_name) == k, corrections[k])
+
+    expr = expr.otherwise(col(col_name))
+
+    return df.withColumn(col_name, expr)
+
+# Aplica as correções na tabela desduplicada
+df_baixas_corrigida = apply_juros_corrections(df_baixas_desduplicada)
+
 output_path_baixas_staging = "LH_Silver.staging_baixas_limpa"
-df_baixas_desduplicada.write.mode("overwrite").option("overwriteSchema","true").saveAsTable(output_path_baixas_staging)
+df_baixas_corrigida.write.mode("overwrite").option("overwriteSchema","true").saveAsTable(output_path_baixas_staging)
 print(f"Tabela de baixas limpa e salva em: {output_path_baixas_staging}")
 
 # METADATA ********************
