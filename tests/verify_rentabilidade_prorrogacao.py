@@ -6,23 +6,32 @@ class TestRentabilidadeProrrogacao(unittest.TestCase):
     def test_prorrogacao_logic(self):
         # Scenario:
         # Client A has:
-        # - Operation 1 (2025): Desagio=100. Prorogation P1 (2025, Value=10).
-        # - Operation 2 (2024): Not in df_ops (filtered for 2025). Prorogation P2 (2025, Value=20).
+        # - Operation 1 (2025): Desagio=100.
+        # - Prorogation P1 (2025, Value=10, Dates Diff).
+        # - Prorogation P2 (2025, Value=20, Dates Diff).
+        # - Prorogation P3 (2025, Value=5, Dates Equal - Should be Filtered).
 
         # 1. df_prorrogacao (All prorogations in 2025)
         df_prorrogacao = pd.DataFrame([
-            {'cod_operacao': 1, 'cod_cliente': 'A', 'juros': 10, 'year': 2025},
-            {'cod_operacao': 2, 'cod_cliente': 'A', 'juros': 20, 'year': 2025}
+            {'cod_operacao': 1, 'cod_cliente': 'A', 'juros': 10, 'year': 2025, 'diff_dates': True},
+            {'cod_operacao': 2, 'cod_cliente': 'A', 'juros': 20, 'year': 2025, 'diff_dates': True},
+            {'cod_operacao': 1, 'cod_cliente': 'A', 'juros': 5,  'year': 2025, 'diff_dates': False} # Should be ignored
         ])
+
+        # Filter Logic (Simulating Spark Filter)
+        df_prorrogacao_filtered = df_prorrogacao[
+            (df_prorrogacao['year'] == 2025) &
+            (df_prorrogacao['diff_dates'] == True)
+        ]
 
         # 2. Aggregations
         # Client Level (Existing Logic)
-        df_prorrogacao_agg_cliente = df_prorrogacao[df_prorrogacao['year'] == 2025] \
+        df_prorrogacao_agg_cliente = df_prorrogacao_filtered \
             .groupby('cod_cliente')['juros'].sum().reset_index() \
             .rename(columns={'juros': 'receita_tarifa_prorrogacao_cliente'})
 
         # Operation Level (New Logic)
-        df_prorrogacao_agg_op = df_prorrogacao[df_prorrogacao['year'] == 2025] \
+        df_prorrogacao_agg_op = df_prorrogacao_filtered \
             .groupby('cod_operacao')['juros'].sum().reset_index() \
             .rename(columns={'juros': 'receita_prorrogacao_op'})
 
@@ -40,7 +49,8 @@ class TestRentabilidadeProrrogacao(unittest.TestCase):
 
         # Verify Op Level
         row_op1 = df_base[df_base['cod_operacao'] == 1].iloc[0]
-        self.assertEqual(row_op1['receita_total_op'], 110, "Op 1 Revenue should be 100 + 10 = 110")
+        # P1 (10) included. P3 (5) excluded.
+        self.assertEqual(row_op1['receita_total_op'], 110, "Op 1 Revenue should include only valid prorogations (100 + 10)")
 
         # 6. Aggregation by Client (df_cliente_agg)
         df_cliente_agg = df_base.groupby('cod_cliente').agg({

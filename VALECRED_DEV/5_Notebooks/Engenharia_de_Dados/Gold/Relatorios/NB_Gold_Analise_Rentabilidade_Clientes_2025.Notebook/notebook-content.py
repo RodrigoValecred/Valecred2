@@ -157,8 +157,9 @@ try:
     # A tabela fato_prorrogacoes_de_titulos deve ter cod_cliente (adicionado no NB_Curadoria)
     df_prorrogacao = spark.read.table("LH_Gold.fato_prorrogacoes_de_titulos")
 
-    # Filtrar para Safra 2025 (pela data_inclusao/data)
-    df_prorrogacao_filtered = df_prorrogacao.filter(year(col("data_inclusao")) == 2025)
+    # Filtrar para Safra 2025 (pela data_inclusao/data) e apenas Prorrogações Reais (data vencimento novo != data vencimento antigo)
+    df_prorrogacao_filtered = df_prorrogacao.filter(year(col("data_inclusao")) == 2025) \
+        .filter(col("vencimentonov") != col("vencimentoant"))
 
     # Agregado por Cliente (Existente)
     df_prorrogacao_agg = df_prorrogacao_filtered \
