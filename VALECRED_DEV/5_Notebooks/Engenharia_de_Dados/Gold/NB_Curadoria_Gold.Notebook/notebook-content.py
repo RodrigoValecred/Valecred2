@@ -671,8 +671,12 @@ print("DataFrames intermediários criados e cacheados.")
 # ----------------------------------------
 print("\nIniciando construção da fato_operacoes (Otimizada)...")
 
-def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto):
-    # 1. PREPARAÇÃO (Engenharia):
+def prepare_operacoes_dataframe(df_operacoes_enriquecida):
+    """
+    Prepara o dataframe de operações enriquecidas para o join.
+    - Cria sk_operacao e data_join_calendario.
+    - Filtra TTOs desnecessários.
+    """
     # Criamos a coluna de junção ANTES. Isso permite que o Spark entenda a distribuição dos dados.
     # Se 'data_inclusao' for timestamp, to_date corta a hora. Se for string, ele converte.
     df_operacoes_prep = df_operacoes_enriquecida.withColumn(
@@ -681,11 +685,15 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
     ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
 
     # ⚡ Bolt Optimization: Filter TTOs (PR, RC, RE) BEFORE joins to reduce data volume
-    df_operacoes_filtered = df_operacoes_prep.filter(~col("tto").isin(["PR", "RC", "RE"]))
+    return df_operacoes_prep.filter(~col("tto").isin(["PR", "RC", "RE"]))
 
+def join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_produto):
+    """
+    Realiza os joins do fato operações com as dimensões de calendário e produto.
+    """
     # Adicionando a sk_data para join com dim_calendario
     # E sk_produto para join com dim_produtos
-    df_fato_operacoes_joined = df_operacoes_filtered.join(
+    return df_operacoes_filtered.join(
         broadcast(df_dim_calendario.select("data", "sk_data")),
         col("data_join_calendario") == col("data"),
         "left"
@@ -694,6 +702,13 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
         "chave_produto",
         "left"
     )
+
+def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto):
+    # 1. PREPARAÇÃO (Engenharia):
+    df_operacoes_filtered = prepare_operacoes_dataframe(df_operacoes_enriquecida)
+
+    # 2. JOINS
+    df_fato_operacoes_joined = join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_produto)
 
     # 3. SELEÇÃO FINAL
     return df_fato_operacoes_joined.select(
