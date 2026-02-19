@@ -55,6 +55,7 @@ def safe_extract(zip_ref, path):
     """
     # Normalize the target path to an absolute path
     target_path = os.path.abspath(path)
+    safe_members = []
 
     for member in zip_ref.namelist():
         # Resolve the full path of the member
@@ -68,7 +69,9 @@ def safe_extract(zip_ref, path):
         if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
              raise Exception(f"Zip Slip vulnerability detected: {member}")
 
-    zip_ref.extractall(path)
+        safe_members.append(member)
+
+    zip_ref.extractall(path, members=safe_members)
 
 # --- ETAPA 1: DEFINIR OS CAMINHOS E URLS ---
 # Parâmetro para o ano e mês dos dados

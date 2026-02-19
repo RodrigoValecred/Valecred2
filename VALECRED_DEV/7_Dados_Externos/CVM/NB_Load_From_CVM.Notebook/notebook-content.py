@@ -53,6 +53,30 @@ from pyspark.sql.functions import col, lit, max, concat
 from pyspark.sql.types import StringType
 from pyspark.sql.utils import AnalysisException
 
+def safe_extract(zip_ref, path):
+    """
+    Extracts a zip file to the specified path, preventing Zip Slip vulnerability.
+    """
+    # Normalize the target path to an absolute path
+    target_path = os.path.abspath(path)
+    safe_members = []
+
+    for member in zip_ref.namelist():
+        # Resolve the full path of the member
+        # Note: os.path.join will discard 'target_path' if 'member' is absolute
+        member_path = os.path.join(target_path, member)
+        # Normalize the member path to resolve '..' and '.'
+        abs_member_path = os.path.abspath(member_path)
+
+        # Check if the member path starts with the target path
+        # We append os.sep to ensure we match directory boundaries (e.g. /tmp/foo vs /tmp/foobar)
+        if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
+             raise Exception(f"Zip Slip vulnerability detected: {member}")
+
+        safe_members.append(member)
+
+    zip_ref.extractall(path, members=safe_members)
+
 # METADATA ********************
 
 # META {
@@ -203,7 +227,7 @@ else:
             # --- 2. Descompactação ---
             print(f"Descompactando arquivo em {unzip_path}...")
             with zipfile.ZipFile(download_path, "r") as zip_ref:
-                zip_ref.extractall(unzip_path)
+                safe_extract(zip_ref, unzip_path)
 
             # --- 3. Leitura ---
             csv_files = [f for f in os.listdir(unzip_path) if f.endswith('.csv')]
