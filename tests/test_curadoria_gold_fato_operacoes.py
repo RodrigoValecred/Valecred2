@@ -18,10 +18,18 @@ class TestCreateFatoOperacoes(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        print(f"Extracting create_fato_operacoes from {NOTEBOOK_PATH}")
+        print(f"Extracting functions from {NOTEBOOK_PATH}")
         cls.func_source = extract_function_from_file(NOTEBOOK_PATH, "create_fato_operacoes")
         if not cls.func_source:
              raise ValueError("Function create_fato_operacoes not found in notebook.")
+
+        cls.helper1_source = extract_function_from_file(NOTEBOOK_PATH, "prepare_operacoes_dataframe")
+        if not cls.helper1_source:
+             raise ValueError("Function prepare_operacoes_dataframe not found in notebook.")
+
+        cls.helper2_source = extract_function_from_file(NOTEBOOK_PATH, "join_operacoes_dimensions")
+        if not cls.helper2_source:
+             raise ValueError("Function join_operacoes_dimensions not found in notebook.")
 
     def test_sk_produto_join(self):
         # Dictionary to store mocks created by col()
@@ -84,6 +92,10 @@ class TestCreateFatoOperacoes(unittest.TestCase):
 
         # Execute the function definition
         local_scope = {}
+        # Helpers must be in exec_globals so create_fato_operacoes can see them
+        exec(self.helper1_source, exec_globals)
+        exec(self.helper2_source, exec_globals)
+
         exec(self.func_source, exec_globals, local_scope)
         create_fato_operacoes = local_scope['create_fato_operacoes']
 
