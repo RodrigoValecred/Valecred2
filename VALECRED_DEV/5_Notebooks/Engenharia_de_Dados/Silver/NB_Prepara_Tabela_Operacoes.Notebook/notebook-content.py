@@ -645,8 +645,6 @@ def process_titulos_base_40():
 
     # Add calculated columns
     df_final = df_final \
-        .withColumn("BASE", lit(40)) \
-        .withColumn("chave_base_titulo", concat(lit("40-"), col("cod_titulo").cast("string"))) \
         .withColumn("Data", col("data_inclusao").cast("date"))
 
     target_table = "staging_titulos_base_40"
