@@ -325,6 +325,33 @@ def process_tac_m():
 
 # CELL ********************
 
+def standardize_estudo_columns(df):
+    """
+    Padroniza as colunas de Risco e Limite da tabela de estudo de operações.
+    Procura por candidatos conhecidos e renomeia para um padrão único.
+    """
+    # Candidates must be in snake_case (normalized)
+    risk_candidates = ["valoremabertort", "risco", "vl_risco", "valor_risco", "total_risco", "risco_total", "saldo_devedor", "tot_risco"]
+    limit_candidates = ["limitefomento", "limite", "vl_limite", "valor_limite", "total_limite", "limite_total", "limite_global", "tot_limite", "limite_credito"]
+
+    def rename_first_match(df, candidates, target_name):
+        existing_cols = df.columns
+        # Check if target already exists (e.g. if source already has 'valor_risco_estudo')
+        if target_name in existing_cols:
+             return df
+
+        for cand in candidates:
+            if cand in existing_cols:
+                return df.withColumnRenamed(cand, target_name)
+
+        # If not found, create with 0
+        print(f"AVISO: Coluna padrão '{target_name}' não encontrada nos candidatos {candidates}. Criando com 0.")
+        return df.withColumn(target_name, lit(0))
+
+    df = rename_first_match(df, risk_candidates, "valor_risco_estudo")
+    df = rename_first_match(df, limit_candidates, "valor_limite_estudo")
+    return df
+
 def process_estudo_op():
     print("Processando Estudo Op...")
     df_estudo = spark.read.table(f"{source_lakehouse}.tab_estudo_op")
@@ -333,7 +360,10 @@ def process_estudo_op():
     new_cols = [col(c).alias(normalize_col(c)) for c in df_estudo.columns]
     df_estudo_clean = df_estudo.select(new_cols)
 
-    df_estudo_clean.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_estudo_operacoes")
+    # Standardize columns (Risco & Limite)
+    df_estudo_standard = standardize_estudo_columns(df_estudo_clean)
+
+    df_estudo_standard.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_estudo_operacoes")
 
 # METADATA ********************
 
