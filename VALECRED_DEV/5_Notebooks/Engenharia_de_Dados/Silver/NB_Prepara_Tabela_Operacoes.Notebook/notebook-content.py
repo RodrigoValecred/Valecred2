@@ -627,24 +627,45 @@ def process_tarifas_esporadicas():
 
 def process_titulos_base_40():
     print("Processando Tabela Base 40...")
-    # Load Staging Titulos (Silver) - created in NB_Prepara_Tabela_Titulos
+    # Load Source: Prorrogações (Silver - Raw connection table)
+    df_prorrogacoes = spark.read.table(f"{target_lakehouse}.staging_operacoes_prorrogacao_limpa")
+
+    # Load Staging Titulos (Silver)
     df_titulos = spark.read.table(f"{target_lakehouse}.staging_titulos_limpa")
+    # Select only necessary columns from Titulos to join and enrich (VALOR is requested)
+    # The M code says: ExpandirTitulos -> VALOR. But usually we keep the main ID.
+    df_titulos_selected = df_titulos.select("cod_titulo", "valor")
 
-    # Load Staging Operacoes (Silver) - created in this notebook
+    # Load Staging Operacoes (Silver)
     df_operacoes = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa")
-
-    # Join
-    # Select only required columns from Operacoes
+    # Select only necessary columns from Operacoes (STATUSANALISE, STATUSACEITE)
     df_operacoes_selected = df_operacoes.select("cod_operacao", "status_analise", "status_aceite")
 
-    df_joined = df_titulos.join(df_operacoes_selected, "cod_operacao", "left")
+    # Join 1: Prorrogacoes (Left) + Titulos (Right) on CODTITULO
+    # M code: Table.NestedJoin(Fonte, {"CODTITULO"}, replica_tab_titulos, ...)
+    df_join1 = df_prorrogacoes.join(df_titulos_selected, "cod_titulo", "left")
+
+    # Join 2: Result (Left) + Operacoes (Right) on CODOPERACAO
+    # M code: Table.NestedJoin(ExpandirTitulos, {"CODOPERACAO"}, replica_tab_operacoes, ...)
+    df_join2 = df_join1.join(df_operacoes_selected, "cod_operacao", "left")
 
     # Transform
     # Drop columns as requested (RemoveColunas)
-    df_final = df_joined.drop("valor_devido", "data_alteracao")
+    # List: TARIFA, USUAINCLUSAO, DATAALTERACAO, USUAALTERACAO, VALORDEVIDO, VALORPROR, VALORBOLETO
+    cols_to_drop = ["tarifa", "usuainclusao", "data_alteracao", "usuaalteracao", "valor_devido", "valorpror", "valorboleto", "usua_inclusao"]
+    # Using drop(*cols) is safe in PySpark (it ignores missing columns if using strict logic? No, it throws error if missing. Better use select or safe drop).
+    # However, standard drop throws AnalysisException if col doesn't exist.
+    # Let's check which columns actually exist in df_prorrogacoes (staging_operacoes_prorrogacao_limpa).
+    # It has all columns from source lowercased.
+
+    # Safe drop
+    existing_cols = df_join2.columns
+    final_cols_to_drop = [c for c in cols_to_drop if c in existing_cols]
+    df_cleaned = df_join2.drop(*final_cols_to_drop)
 
     # Add calculated columns
-    df_final = df_final \
+    # Data = DateTime.Date([DATAINCLUSAO])
+    df_final = df_cleaned \
         .withColumn("Data", col("data_inclusao").cast("date"))
 
     target_table = "staging_titulos_base_40"
