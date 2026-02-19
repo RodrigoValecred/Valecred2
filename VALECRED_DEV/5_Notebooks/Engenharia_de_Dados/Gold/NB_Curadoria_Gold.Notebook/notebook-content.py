@@ -1458,17 +1458,69 @@ df_esteira_min_prep = df_esteira_min_renamed.withColumnRenamed("cod_cliente", "c
 # Taxa Cadastro (Power BI Requirement)
 df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
 
-df_join_1 = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
-    .join(df_metrics_ops_final, "cod_cliente", "left") \
-    .join(df_metrics_titulos_final, "cod_cliente", "left") \
-    .join(df_esteira_pivot_prep, df_base.cod_cliente == df_esteira_pivot_prep.cod_cliente_pivot, "left").drop("cod_cliente_pivot") \
-    .join(df_esteira_min_prep, df_base.cod_cliente == df_esteira_min_prep.cod_cliente_min, "left").drop("cod_cliente_min") \
-    .join(df_limites_agg, "cod_cliente", "left") \
-    .join(df_grupos_prep, "cod_cliente", "left") \
-    .join(df_limites_grupo_dedup, "grupo_economico", "left") \
-    .join(df_risco_grupo_agg, "grupo_economico", "left") \
-    .join(df_info_gestor, "cod_cliente", "left").join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest").join(df_client_rate_gold, df_base.cod_cliente == df_client_rate_gold.cod_cliente_rate, "left").drop("cod_cliente_rate") \
-    .join(df_status_cad_prep, df_base.cod_cliente == df_status_cad_prep.cod_cliente_status, "left").drop("cod_cliente_status")
+def join_cliente_dimensions(
+    df_base,
+    df_cad_geral_enriquecido,
+    df_metrics_ops_final,
+    df_metrics_titulos_final,
+    df_esteira_pivot_prep,
+    df_esteira_min_prep,
+    df_esteira_latest,
+    df_limites_agg,
+    df_grupos_prep,
+    df_limites_grupo_dedup,
+    df_risco_grupo_agg,
+    df_info_gestor,
+    df_client_rate_gold,
+    df_status_cad_prep
+):
+    """
+    Realiza o join de todas as dimensões e métricas para compor a tabela final de clientes.
+    Dividido em etapas para clareza e manutenibilidade.
+    """
+    # 1. Enriquecimento Básico e Métricas
+    df_metrics = df_base.join(df_cad_geral_enriquecido, "cpf_cnpj", "left") \
+        .join(df_metrics_ops_final, "cod_cliente", "left") \
+        .join(df_metrics_titulos_final, "cod_cliente", "left")
+
+    # 2. Informações de Esteira (Pivoted, Min Dates, Latest Status)
+    df_esteira = df_metrics \
+        .join(df_esteira_pivot_prep, df_base.cod_cliente == df_esteira_pivot_prep.cod_cliente_pivot, "left").drop("cod_cliente_pivot") \
+        .join(df_esteira_min_prep, df_base.cod_cliente == df_esteira_min_prep.cod_cliente_min, "left").drop("cod_cliente_min") \
+        .join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest")
+
+    # 3. Limites e Grupos Econômicos
+    # Nota: df_grupos_prep introduz 'grupo_economico' usado nos joins seguintes
+    df_groups = df_esteira \
+        .join(df_limites_agg, "cod_cliente", "left") \
+        .join(df_grupos_prep, "cod_cliente", "left") \
+        .join(df_limites_grupo_dedup, "grupo_economico", "left") \
+        .join(df_risco_grupo_agg, "grupo_economico", "left")
+
+    # 4. Informações Adicionais (Gestor, Taxas, Status Cadastro)
+    df_final_join = df_groups \
+        .join(df_info_gestor, "cod_cliente", "left") \
+        .join(df_client_rate_gold, df_base.cod_cliente == df_client_rate_gold.cod_cliente_rate, "left").drop("cod_cliente_rate") \
+        .join(df_status_cad_prep, df_base.cod_cliente == df_status_cad_prep.cod_cliente_status, "left").drop("cod_cliente_status")
+
+    return df_final_join
+
+df_join_1 = join_cliente_dimensions(
+    df_base,
+    df_cad_geral_enriquecido,
+    df_metrics_ops_final,
+    df_metrics_titulos_final,
+    df_esteira_pivot_prep,
+    df_esteira_min_prep,
+    df_esteira_latest,
+    df_limites_agg,
+    df_grupos_prep,
+    df_limites_grupo_dedup,
+    df_risco_grupo_agg,
+    df_info_gestor,
+    df_client_rate_gold,
+    df_status_cad_prep
+)
 
 # Implementando Lógica Funnel Sequencial (Aproximação)
 # Data 1: Primeira Proposta Comercial = MIN(Proposta, Revisao, Diretoria)
