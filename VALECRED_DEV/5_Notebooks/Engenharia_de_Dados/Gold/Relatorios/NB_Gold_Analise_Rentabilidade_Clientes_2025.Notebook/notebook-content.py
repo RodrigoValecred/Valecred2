@@ -35,10 +35,9 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.functions import (
-    col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce, year, datediff, to_date
+    col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce, year, datediff, to_date, current_date
 )
 from pyspark.sql.window import Window
-from notebookutils import mssparkutils
 
 # METADATA ********************
 
@@ -67,12 +66,6 @@ df_ops_normal = spark.read.table("LH_Gold.fato_operacoes") \
 # Operações de Recompra (Para incluir Receita de Recompra)
 # Fonte: LH_Gold.fato_operacoes_recompra (Granularidade: Título expandido)
 # Agregado por Operação
-
-# Garantir que tarifa_de_recompra exista em df_ops_normal antes do union/fallback
-if "tarifa_de_recompra" not in df_ops_normal.columns:
-    print("Aviso: tarifa_de_recompra não encontrada em fato_operacoes. Criando com 0.")
-    df_ops_normal = df_ops_normal.withColumn("tarifa_de_recompra", lit(0.0))
-
 try:
     df_ops_rc = spark.read.table("LH_Gold.fato_operacoes_recompra") \
         .filter(to_date(col("data_analise")) >= "2025-01-01") \
@@ -96,6 +89,11 @@ try:
         "chave_produto"
     ]
 
+    # Garantir que tarifa_de_recompra exista em df_ops_normal antes do select
+    if "tarifa_de_recompra" not in df_ops_normal.columns:
+        print("Aviso: tarifa_de_recompra não encontrada em fato_operacoes. Criando com 0.")
+        df_ops_normal = df_ops_normal.withColumn("tarifa_de_recompra", lit(0.0))
+
     # Union
     df_ops = df_ops_normal.select(common_cols).unionByName(df_ops_rc_agg.select(common_cols), allowMissingColumns=True)
     print(f"Adicionadas operações de recompra. Total combinado: {df_ops.count()}")
@@ -116,7 +114,14 @@ df_titulos = spark.read.table("LH_Gold.fato_titulos") \
     .withColumn("dias_final_epoch", datediff(col("data_final_real"), lit("1970-01-01"))) \
     .withColumn("valor_vezes_data_final", col("valor") * col("dias_final_epoch")) \
     .withColumn("dias_prorrogacao", datediff(coalesce(col("venc_prorrogado"), col("vencimento")), col("vencimento"))) \
-    .withColumn("valor_vezes_prorrogacao", col("valor") * col("dias_prorrogacao"))
+    .withColumn("valor_vezes_prorrogacao", col("valor") * col("dias_prorrogacao")) \
+    .withColumn("data_vencimento_ajustado", coalesce(col("venc_prorrogado"), col("vencimento"))) \
+    .withColumn("dias_atraso_real",
+                when(col("liquidacao").isNotNull(), datediff(col("liquidacao"), col("data_vencimento_ajustado")))
+                .otherwise(datediff(current_date(), col("data_vencimento_ajustado")))) \
+    .withColumn("em_mora", col("dias_atraso_real") > 0) \
+    .withColumn("valor_vezes_atraso", when(col("em_mora"), col("valor") * col("dias_atraso_real")).otherwise(0)) \
+    .withColumn("valor_em_mora", when(col("em_mora"), col("valor")).otherwise(0))
 
 df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_vezes_prazo").alias("total_valor_prazo_op"),
@@ -124,7 +129,9 @@ df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("custo_financeiro").alias("custo_financeiro_op"),
     sum("spread").alias("spread_op"),
     sum("valor_vezes_data_final").alias("soma_produto_valor_data_final"),
-    sum("valor_vezes_prorrogacao").alias("total_valor_prorrogacao_op")
+    sum("valor_vezes_prorrogacao").alias("total_valor_prorrogacao_op"),
+    sum("valor_vezes_atraso").alias("total_valor_atraso_op"),
+    sum("valor_em_mora").alias("total_valor_mora_op")
 )
 
 # Baixas (Para cálculo de Receita de Juros de Mora Pagos)
@@ -272,6 +279,10 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
                 ).otherwise(0)) \
     .withColumn("prazo_verdadeiro_real_medio_ponderado_op",
                 coalesce(col("prazo_medio_operacao"), lit(0)) + coalesce(col("prazo_medio_prorrogado_op"), lit(0))) \
+    .withColumn("prazo_medio_atraso_titulos_mora",
+                when(col("total_valor_mora_op") > 0,
+                     col("total_valor_atraso_op") / col("total_valor_mora_op")
+                ).otherwise(0)) \
     .withColumn("prazo_medio_ponderado_cliente",
                 when(col("volume_operado_cliente") > 0,
                      col("soma_valor_prazo_cliente") / col("volume_operado_cliente")
@@ -311,6 +322,7 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
         round(col("taxa_media_ponderada_mensal_cliente"), 4).alias("taxa_media_pond_2025_cliente"),
         round(col("taxa_media_real_mensal_cliente"), 4).alias("taxa_media_real_mensal_cliente"),
         round(col("prazo_medio_ponderado_cliente"), 2).alias("prazo_medio_ponderado_cliente"),
+        round(col("prazo_medio_atraso_titulos_mora"), 2).alias("prazo_medio_atraso_titulos_mora"),
         round(col("rentabilidade_percentual_cliente"), 4).alias("rentabilidade_perc_cliente"),
         coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0)).alias("receita_tarifa_prorrogacao_cliente"),
         round(col("receita_total_cliente"), 2).alias("receita_total_cliente"),
@@ -342,57 +354,10 @@ df_top_clientes = df_report.select(
 df_menores_taxas = df_top_clientes.filter(col("volume_operado_cliente") > 10000) \
     .orderBy(col("taxa_media_pond_2025_cliente").asc())
 
-print("Top 20 Clientes com Menores Taxas Médias em 2025 (Volume > 10k):")
-df_menores_taxas.show(20, truncate=False)
-
-# Ordenar por Rentabilidade Total (Maiores Receitas)
-print("Top 20 Clientes Mais Rentáveis (Receita Total):")
-df_top_clientes.orderBy(col("receita_total_cliente").desc()).show(20, truncate=False)
-
 # Salvar Tabela Gold (Granularidade: Operação)
 output_table = "LH_Gold.relatorio_rentabilidade_clientes_2025"
 df_report.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
 print(f"Relatório detalhado salvo em: {output_table}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# 6. Validação de Dados (Conciliação)
-# -----------------------------------
-print("\n--- Seção de Validação de Dados (Conciliação) ---")
-
-# Validacao para o cliente especifico reportado (cod_cliente 15258059)
-print("Validando Cliente 15258059 (Conciliação)...")
-df_validacao = df_report.filter(col("cod_cliente") == 15258059) \
-    .select(
-        "nbordero", "cod_operacao", "data_deferimento", 
-        "volume_operacao", "produto", "status_risco"
-    ).orderBy("data_deferimento")
-
-count_ops = df_validacao.count()
-sum_volume = df_validacao.agg(sum("volume_operacao")).collect()[0][0]
-
-print(f"Total de Operações Encontradas: {count_ops}")
-print(f"Volume Total Encontrado: {sum_volume}")
-print("\nDetalhe das Operações:")
-df_validacao.show(200, truncate=False)
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-mssparkutils.notebook.exit("Success")
 
 # METADATA ********************
 
