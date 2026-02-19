@@ -49,90 +49,8 @@ from pyspark.sql.types import StringType
 
 # CELL ********************
 
-# Definição da UDF para derivação de nome de empresa
-# Lógica baseada em script Power Query legado
-
-def derive_empresa_name(nome):
-    """
-    Derives a short company name code based on specific string patterns.
-    Logic ported from legacy Power Query.
-    """
-    if not nome:
-        return None
-
-    try:
-        # 1. Extract from " SECURITIZADORA " prefix
-        # Split by " SECURITIZADORA ", take the first character of the part BEFORE it (last part before split if multiple).
-        # Original logic: split1_rev[1] corresponds to split1[-2].
-        split_sec = nome.split(" SECURITIZADORA ")
-        char1 = ""
-        if len(split_sec) > 1:
-            part1 = split_sec[-2]
-            if part1:
-                char1 = part1[:1]
-
-        # 2. Extract from 4th-to-last word
-        # Split by space, take the 4th word from the end, then its 10th character (index 9).
-        split_space = nome.split(" ")
-        char2 = ""
-        if len(split_space) >= 4:
-            part2 = split_space[-4]
-            if len(part2) > 9:
-                char2 = part2[9]
-
-        # 3. Extract from "VALECRED " suffix parts
-        # Split by "VALECRED ", take the part AFTER it (index 1).
-        # Then split that by ".", reverse the parts, and take the 1st char of each.
-        split_valecred = nome.split("VALECRED ")
-        char3 = ""
-        if len(split_valecred) > 1:
-            part3 = split_valecred[1]
-            split_dots = part3.split(".")
-            char3 = "".join(s[:1] for s in reversed(split_dots) if s)
-
-        # 4. Extract from 5th word
-        # Split by space (original order), take the 5th word (index 4), then its 5th character (index 4).
-        char4 = ""
-        if len(split_space) > 4:
-            part4 = split_space[4]
-            if len(part4) > 4:
-                char4 = part4[4]
-
-        # 5. Extract 33rd character from the end
-        # Original logic: rev_nome[32:33] corresponds to nome[-33].
-        char5 = ""
-        if len(nome) > 32:
-            char5 = nome[-33]
-
-        # 6. Extract from 6th word (trimmed)
-        # Split by space, take 6th word (index 5). Remove last 7 characters.
-        char6 = ""
-        if len(split_space) > 5:
-            part6 = split_space[5]
-            if len(part6) > 7:
-                char6 = part6[:-7]
-
-        # 7. Extract from last part after splitting by "."
-        # Split by ".", take the last part, then its 5th character (index 4).
-        split_dot = nome.split(".")
-        char7 = ""
-        if split_dot:
-            part7 = split_dot[-1]
-            if len(part7) > 4:
-                char7 = part7[4]
-
-        result = char1 + char2 + char3 + char4 + char5 + char6 + char7
-
-        # Hardcoded replacement rule
-        if result == "ITCREDO":
-            return "TATUHY"
-        return result
-
-    except Exception:
-        return None
-
-# Registro da UDF
-derive_empresa_name_udf = udf(derive_empresa_name, StringType())
+# A lógica antiga de derivação de nomes foi substituída por um join com a tabela `LH_Silver.sup_apelido_empresas`.
+# Consulte o histórico para ver a lógica legada se necessário.
 
 # METADATA ********************
 
@@ -152,6 +70,7 @@ df_empresas = spark.read.table("LH_Silver.staging_empresas")
 df_empresas = df_empresas.filter(col("cod_empresa").isin([6, 14, 24, 25]))
 
 df_cadastros = spark.read.table("LH_Silver.staging_cad_geral_pf_pj_limpa")
+df_apelidos = spark.read.table("LH_Silver.sup_apelido_empresas")
 
 # 2. Preparação e Join
 # Limpar CNPJ da tabela de empresas para garantir match numérico
@@ -164,12 +83,18 @@ df_joined = df_empresas_clean.alias("e").join(
     "left"
 )
 
+# Join com tabela de apelidos para substituir a lógica complexa de derivação
+df_joined_final = df_joined.join(
+    df_apelidos.alias("a"),
+    col("c.nome") == col("a.nome"),
+    "left"
+)
+
 # 3. Transformações
-df_final = df_joined \
+df_final = df_joined_final \
     .withColumn("base", lit(40)) \
     .withColumn("chave_base_empresa", concat(col("base").cast("string"), lit("-"), col("e.cod_empresa").cast("string"))) \
     .withColumn("chave_base_cadastro", concat(col("base").cast("string"), lit("-"), col("e.cnpj_clean"))) \
-    .withColumn("empresa_calculada", derive_empresa_name_udf(col("c.nome"))) \
     .withColumn("TIPO", when(col("chave_base_empresa") == "40-14", "SECURITIZADORA").otherwise("FIDC")) \
     .select(
         col("base"),
@@ -178,7 +103,7 @@ df_final = df_joined \
         col("e.cnpj"),
         col("e.cod_empresa"),
         col("c.nome").alias("nome_original"),
-        col("empresa_calculada").alias("empresa"),
+        col("a.apelido").alias("empresa"),
         col("TIPO")
     )
 
