@@ -74,9 +74,15 @@ if "tarifa_de_recompra" not in df_ops_normal.columns:
     df_ops_normal = df_ops_normal.withColumn("tarifa_de_recompra", lit(0.0))
 
 try:
+    # Load Dim Gerentes for Platform Info
+    df_gerentes = spark.read.table("LH_Gold.dim_gerentes").select("cod_broker", "nome_plataforma")
+
     df_ops_rc = spark.read.table("LH_Gold.fato_operacoes_recompra") \
         .filter(to_date(col("data_analise")) >= "2025-01-01") \
         .filter(to_date(col("data_analise")) <= "2025-12-31")
+
+    # Join with Dim Gerentes
+    df_ops_rc = df_ops_rc.join(df_gerentes, "cod_broker", "left")
 
     # Deduplicar/Agregar por Operação
     df_ops_rc_agg = df_ops_rc.groupBy("cod_operacao").agg(
@@ -85,7 +91,8 @@ try:
         to_date(max("data_analise")).alias("data_deferimento"),
         sum("valor").alias("valor_de_face"), # Volume da recompra (soma dos titulos)
         max("chave_produto").alias("chave_produto"),
-        (max("tarifa_recompra") * max("n_docs_recompra")).alias("tarifa_de_recompra") # Taxa da operação
+        (max("tarifa_recompra") * max("n_docs_recompra")).alias("tarifa_de_recompra"), # Taxa da operação
+        max("nome_plataforma").alias("nome_plataforma")
     ).withColumn("desagio", lit(0.0)) \
      .withColumn("total_de_tarifas", lit(0.0))
 
@@ -93,7 +100,7 @@ try:
     common_cols = [
         "cod_operacao", "cod_cliente", "nbordero", "data_deferimento",
         "valor_de_face", "desagio", "total_de_tarifas", "tarifa_de_recompra",
-        "chave_produto"
+        "chave_produto", "nome_plataforma"
     ]
 
     # Union
@@ -296,6 +303,7 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
         col("data_deferimento"),
         col("cod_cliente"),
         col("nome").alias("nome_cliente"),
+        col("nome_plataforma"),
         col("grupo_economico"),
         col("produto_final").alias("produto"),
         # Perfil Cliente
