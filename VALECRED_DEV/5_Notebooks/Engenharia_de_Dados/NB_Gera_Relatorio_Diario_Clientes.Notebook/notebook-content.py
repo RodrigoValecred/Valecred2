@@ -59,39 +59,63 @@ df_consolidado['utilizacao_pct'] = (df_consolidado['valor_risco'] / df_consolida
 # DASHBOARD RÁPIDO DE RISCO (UX)
 # ==============================================================================
 def display_risk_dashboard(df):
-    print("\n" + "="*60)
-    print("📊 PAINEL DE RISCO - RELATÓRIO DIÁRIO")
-    print("="*60)
+    W = 60
 
-    for _, row in df.iterrows():
-        grupo = row['grupo']
+    print("\n")
+    print("═"*W)
+    print(f"{' 📊 PAINEL DE RISCO - RELATÓRIO DIÁRIO':^{W}}")
+    print("═"*W)
+
+    total_rows = len(df)
+    for i, (_, row) in enumerate(df.iterrows()):
+        grupo = str(row['grupo'])
+        if len(grupo) > 50:
+             grupo = grupo[:47] + "..."
+
         utilizacao = row['utilizacao_pct']
         risco = row['valor_risco']
         limite = row['limite_global']
+        excesso = row.get('excesso_valor', 0)
 
-        # Progress Bar Logic
-        bar_length = 20
+        # Progress Bar Logic (V3)
+        bar_length = 25
 
         if pd.isna(utilizacao) or np.isinf(utilizacao):
             bar = '░' * bar_length
             status_icon = "⚠️"
             util_str = "N/A"
         else:
-            filled_length = int(bar_length * min(utilizacao, 100) / 100)
+            pct_clamped = min(max(utilizacao, 0), 100)
+            filled_length = int(bar_length * pct_clamped / 100)
             bar = '█' * filled_length + '░' * (bar_length - filled_length)
-            status_icon = "✅" if utilizacao <= 100 else "🚨"
+
+            if utilizacao <= 80:
+                status_icon = "✅"
+            elif utilizacao <= 100:
+                status_icon = "⚠️"
+            else:
+                status_icon = "🚨"
+
             util_str = f"{utilizacao:.1f}%"
 
-        print(f"\n🏢 GRUPO: {grupo}")
-        print(f"   Utilização: [{bar}] {util_str} {status_icon}")
-        print(f"   Risco Atual:   R$ {risco:,.2f}")
-        print(f"   Limite Global: R$ {limite:,.2f}")
+        print(f" 🏢 {grupo}")
+
+        # Metrics
+        # Indent 4 spaces
+        bar_display = f"[{bar}] {util_str:>6} {status_icon}"
+        print(f"    Utilização: {bar_display}")
+        print(f"    Risco:      R$ {risco:>15,.2f}")
+        print(f"    Limite:     R$ {limite:>15,.2f}")
 
         if not (pd.isna(utilizacao) or np.isinf(utilizacao)) and utilizacao > 100:
-             excesso = row['excesso_valor']
-             print(f"   ⚠️  EXCESSO:      R$ {excesso:,.2f}")
+             print(f"    🔥 EXCESSO: R$ {excesso:>15,.2f}")
 
-    print("\n" + "="*60 + "\n")
+        # Separator
+        if i < total_rows - 1:
+            print(" " + "─"*(W-2))
+
+    print("═"*W)
+    print("\n")
 
 # Exibição do resultado para o relatório
 display(df_consolidado)
