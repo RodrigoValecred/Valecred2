@@ -47,10 +47,18 @@ from pyspark.sql.functions import col, count, lit
 from delta.tables import DeltaTable
 
 class SilverIngestor:
-    def __init__(self, spark, bronze_db, silver_db, table_name, keys, watermark_col=None):
+    def __init__(self, spark, bronze_db, silver_db, table_name, keys, watermark_col=None, allowed_tables=None):
         self.spark = spark
         self.bronze_db = bronze_db
         self.silver_db = silver_db
+
+        # Security: Validate table name against allowlist
+        if allowed_tables is None:
+            raise ValueError("allowed_tables must be provided for security.")
+
+        if table_name not in allowed_tables:
+            raise ValueError(f"Table '{table_name}' is not in the allowed list.")
+
         self.table_name = table_name
         self.keys = [k.strip() for k in keys.split(',')] 
         self.watermark_col = watermark_col
@@ -178,7 +186,10 @@ class SilverIngestor:
 if not table_input or not keys_input:
     raise ValueError("Parâmetros obrigatórios ausentes.")
 
-ingestor = SilverIngestor(spark, bronze_lh, silver_lh, table_input, keys_input)
+# Security: Define allowed tables for this ingestor
+ALLOWED_TABLES = ["cad_empresas"]
+
+ingestor = SilverIngestor(spark, bronze_lh, silver_lh, table_input, keys_input, allowed_tables=ALLOWED_TABLES)
 ingestor.read_bronze().standardize_columns().quality_gate().execute_upsert()
 
 # METADATA ********************
