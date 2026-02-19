@@ -38,6 +38,7 @@ from pyspark.sql.functions import (
     col, sum, avg, count, max, min, lit, when, round, desc, asc, broadcast, coalesce, year, datediff, to_date, current_date
 )
 from pyspark.sql.window import Window
+from notebookutils import mssparkutils
 
 # METADATA ********************
 
@@ -66,6 +67,12 @@ df_ops_normal = spark.read.table("LH_Gold.fato_operacoes") \
 # Operações de Recompra (Para incluir Receita de Recompra)
 # Fonte: LH_Gold.fato_operacoes_recompra (Granularidade: Título expandido)
 # Agregado por Operação
+
+# Garantir que tarifa_de_recompra exista em df_ops_normal antes do select
+if "tarifa_de_recompra" not in df_ops_normal.columns:
+    print("Aviso: tarifa_de_recompra não encontrada em fato_operacoes. Criando com 0.")
+    df_ops_normal = df_ops_normal.withColumn("tarifa_de_recompra", lit(0.0))
+
 try:
     df_ops_rc = spark.read.table("LH_Gold.fato_operacoes_recompra") \
         .filter(to_date(col("data_analise")) >= "2025-01-01") \
@@ -88,11 +95,6 @@ try:
         "valor_de_face", "desagio", "total_de_tarifas", "tarifa_de_recompra",
         "chave_produto"
     ]
-
-    # Garantir que tarifa_de_recompra exista em df_ops_normal antes do select
-    if "tarifa_de_recompra" not in df_ops_normal.columns:
-        print("Aviso: tarifa_de_recompra não encontrada em fato_operacoes. Criando com 0.")
-        df_ops_normal = df_ops_normal.withColumn("tarifa_de_recompra", lit(0.0))
 
     # Union
     df_ops = df_ops_normal.select(common_cols).unionByName(df_ops_rc_agg.select(common_cols), allowMissingColumns=True)
@@ -358,6 +360,8 @@ df_menores_taxas = df_top_clientes.filter(col("volume_operado_cliente") > 10000)
 output_table = "LH_Gold.relatorio_rentabilidade_clientes_2025"
 df_report.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
 print(f"Relatório detalhado salvo em: {output_table}")
+
+mssparkutils.notebook.exit("Success")
 
 # METADATA ********************
 
