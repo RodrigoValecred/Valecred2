@@ -42,6 +42,7 @@
 
 from pyspark.sql.functions import col
 import pandas as pd
+import numpy as np
 
 # Configurações do Spark
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED")
@@ -121,23 +122,27 @@ df_filtrado = df_filtrado[df_filtrado['LIQUIDACAO'].notna()].copy()
 print(f"Universo de análise contém {len(df_filtrado)} títulos liquidados.")
 
 # Criando a variável Target
-def classificar_inadimplencia(row):
+def create_target_variable(df):
     """
-    Classifica um título como adimplente (0) ou inadimplente (1) com base no motivo da baixa e no tipo de operação.
+    Cria a variável TARGET usando lógica vetorizada.
 
     Args:
-        row (pd.Series): Uma linha de um DataFrame do Pandas, contendo as colunas 'MOTIVO' e 'TTO_OPERACAO'.
+        df (pd.DataFrame): DataFrame contendo as colunas 'MOTIVO' e 'TTO_OPERACAO'.
 
     Returns:
-        int: Retorna 0 se o título for considerado adimplente e 1 se for inadimplente.
+        pd.Series: Série com valores 0 (Adimplente) ou 1 (Inadimplente).
     """
-    motivo = row['MOTIVO']
-    tto_operacao = row['TTO_OPERACAO']
-    if motivo == 'PG': return 0
-    if motivo == 'RC' and tto_operacao in ['FC', 'CM']: return 0
-    return 1
+    # Classifica um título como adimplente (0) ou inadimplente (1) com base no motivo da baixa e no tipo de operação.
+    # Regra: Se MOTIVO for 'PG' -> 0 (Adimplente)
+    #        Se MOTIVO for 'RC' e TTO_OPERACAO for 'FC' ou 'CM' -> 0 (Adimplente)
+    #        Caso contrário -> 1 (Inadimplente)
+    mask_adimplente = (
+        (df['MOTIVO'] == 'PG') |
+        ((df['MOTIVO'] == 'RC') & (df['TTO_OPERACAO'].isin(['FC', 'CM'])))
+    )
+    return np.where(mask_adimplente, 0, 1)
 
-df_filtrado['TARGET'] = df_filtrado.apply(classificar_inadimplencia, axis=1)
+df_filtrado['TARGET'] = create_target_variable(df_filtrado)
 print("Variável TARGET criada.")
 
 # METADATA ********************
