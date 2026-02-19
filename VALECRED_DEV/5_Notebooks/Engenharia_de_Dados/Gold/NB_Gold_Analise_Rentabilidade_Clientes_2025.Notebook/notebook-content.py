@@ -114,7 +114,14 @@ df_titulos = spark.read.table("LH_Gold.fato_titulos") \
     .withColumn("dias_final_epoch", datediff(col("data_final_real"), lit("1970-01-01"))) \
     .withColumn("valor_vezes_data_final", col("valor") * col("dias_final_epoch")) \
     .withColumn("dias_prorrogacao", datediff(coalesce(col("venc_prorrogado"), col("vencimento")), col("vencimento"))) \
-    .withColumn("valor_vezes_prorrogacao", col("valor") * col("dias_prorrogacao"))
+    .withColumn("valor_vezes_prorrogacao", col("valor") * col("dias_prorrogacao")) \
+    .withColumn("data_vencimento_ajustado", coalesce(col("venc_prorrogado"), col("vencimento"))) \
+    .withColumn("dias_atraso_real",
+                when(col("liquidacao").isNotNull(), datediff(col("liquidacao"), col("data_vencimento_ajustado")))
+                .otherwise(datediff(current_date(), col("data_vencimento_ajustado")))) \
+    .withColumn("em_mora", col("dias_atraso_real") > 0) \
+    .withColumn("valor_vezes_atraso", when(col("em_mora"), col("valor") * col("dias_atraso_real")).otherwise(0)) \
+    .withColumn("valor_em_mora", when(col("em_mora"), col("valor")).otherwise(0))
 
 df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_vezes_prazo").alias("total_valor_prazo_op"),
@@ -122,7 +129,9 @@ df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("custo_financeiro").alias("custo_financeiro_op"),
     sum("spread").alias("spread_op"),
     sum("valor_vezes_data_final").alias("soma_produto_valor_data_final"),
-    sum("valor_vezes_prorrogacao").alias("total_valor_prorrogacao_op")
+    sum("valor_vezes_prorrogacao").alias("total_valor_prorrogacao_op"),
+    sum("valor_vezes_atraso").alias("total_valor_atraso_op"),
+    sum("valor_em_mora").alias("total_valor_mora_op")
 )
 
 # Baixas (Para cálculo de Receita de Juros de Mora Pagos)
@@ -270,6 +279,10 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
                 ).otherwise(0)) \
     .withColumn("prazo_verdadeiro_real_medio_ponderado_op",
                 coalesce(col("prazo_medio_operacao"), lit(0)) + coalesce(col("prazo_medio_prorrogado_op"), lit(0))) \
+    .withColumn("prazo_medio_atraso_titulos_mora",
+                when(col("total_valor_mora_op") > 0,
+                     col("total_valor_atraso_op") / col("total_valor_mora_op")
+                ).otherwise(0)) \
     .withColumn("prazo_medio_ponderado_cliente",
                 when(col("volume_operado_cliente") > 0,
                      col("soma_valor_prazo_cliente") / col("volume_operado_cliente")
@@ -301,6 +314,7 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
         round(col("prazo_medio_operacao"), 2).alias("prazo_medio_operacao"),
         round(col("prazo_medio_prorrogado_op"), 2).alias("prazo_medio_prorrogado_op"),
         round(col("prazo_verdadeiro_real_medio_ponderado_op"), 2).alias("prazo_verdadeiro_real_medio_ponderado_op"),
+        round(col("prazo_medio_atraso_titulos_mora"), 2).alias("prazo_medio_atraso_titulos_mora"),
         round(col("prazo_medio_mora_op"), 2).alias("prazo_medio_ponderado_dias_op"),
         round(col("taxa_media_real_mensal_op"), 4).alias("taxa_media_real_mensal_op"),
         # Métricas Agregadas do Cliente (Repetidas nas linhas)
