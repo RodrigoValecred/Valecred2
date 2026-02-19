@@ -74,30 +74,40 @@ print("Tabelas carregadas com sucesso.")
 # CELL ********************
 
 # Renomeando colunas duplicadas para evitar conflitos nos joins.
-df_operacoes = df_operacoes.withColumnRenamed("EXIGECANHOTO", "EXIGECANHOTO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("EXIGECONFIRMACAO", "EXIGECONFIRMACAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("TTO", "TTO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("DATAINCLUSAO", "DATAINCLUSAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("USUAINCLUSAO", "USUAINCLUSAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("DATAALTERACAO", "DATAALTERACAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("USUAALTERACAO", "USUAALTERACAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("CODRATING", "CODRATING_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("PREIMPRESSO", "PREIMPRESSO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("BOLETOESPECIAL", "BOLETOESPECIAL_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("TARIFARECOMPRA", "TARIFARECOMPRA_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("RECEBEBOLETO", "RECEBEBOLETO_OPERACAO")
+cols_operacoes = {
+    "EXIGECANHOTO": "EXIGECANHOTO_OPERACAO",
+    "EXIGECONFIRMACAO": "EXIGECONFIRMACAO_OPERACAO",
+    "TTO": "TTO_OPERACAO",
+    "DATAINCLUSAO": "DATAINCLUSAO_OPERACAO",
+    "USUAINCLUSAO": "USUAINCLUSAO_OPERACAO",
+    "DATAALTERACAO": "DATAALTERACAO_OPERACAO",
+    "USUAALTERACAO": "USUAALTERACAO_OPERACAO",
+    "CODRATING": "CODRATING_OPERACAO",
+    "PREIMPRESSO": "PREIMPRESSO_OPERACAO",
+    "BOLETOESPECIAL": "BOLETOESPECIAL_OPERACAO",
+    "TARIFARECOMPRA": "TARIFARECOMPRA_OPERACAO",
+    "RECEBEBOLETO": "RECEBEBOLETO_OPERACAO"
+}
 
-df_cedentes = df_cedentes.withColumnRenamed("DATAINCLUSAO", "DATAINCLUSAO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("USUAINCLUSAO", "USUAINCLUSAO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("DATAALTERACAO", "DATAALTERACAO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("USUAALTERACAO", "USUAALTERACAO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("CODRATING", "CODRATING_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("PEFIN", "PEFIN_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("BAIXADOPEFIN", "BAIXADOPEFIN_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("PREIMPRESSO", "PREIMPRESSO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("BOLETOESPECIAL", "BOLETOESPECIAL_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("TARIFARECOMPRA", "TARIFARECOMPRA_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("RECEBEBOLETO", "RECEBEBOLETO_CEDENTE")
+for old, new in cols_operacoes.items():
+    df_operacoes = df_operacoes.withColumnRenamed(old, new)
+
+cols_cedentes = {
+    "DATAINCLUSAO": "DATAINCLUSAO_CEDENTE",
+    "USUAINCLUSAO": "USUAINCLUSAO_CEDENTE",
+    "DATAALTERACAO": "DATAALTERACAO_CEDENTE",
+    "USUAALTERACAO": "USUAALTERACAO_CEDENTE",
+    "CODRATING": "CODRATING_CEDENTE",
+    "PEFIN": "PEFIN_CEDENTE",
+    "BAIXADOPEFIN": "BAIXADOPEFIN_CEDENTE",
+    "PREIMPRESSO": "PREIMPRESSO_CEDENTE",
+    "BOLETOESPECIAL": "BOLETOESPECIAL_CEDENTE",
+    "TARIFARECOMPRA": "TARIFARECOMPRA_CEDENTE",
+    "RECEBEBOLETO": "RECEBEBOLETO_CEDENTE"
+}
+
+for old, new in cols_cedentes.items():
+    df_cedentes = df_cedentes.withColumnRenamed(old, new)
 
 # Realizando os joins
 print("Criando tabela mestra com os joins...")
