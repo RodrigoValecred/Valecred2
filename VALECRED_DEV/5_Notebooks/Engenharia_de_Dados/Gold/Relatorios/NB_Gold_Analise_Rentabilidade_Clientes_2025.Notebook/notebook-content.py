@@ -104,7 +104,8 @@ try:
     ]
 
     # Union
-    df_ops = df_ops_normal.select(common_cols).unionByName(df_ops_rc_agg.select(common_cols), allowMissingColumns=True)
+    df_ops = df_ops_normal.select(common_cols).unionByName(df_ops_rc_agg.select(common_cols), allowMissingColumns=True) \
+        .dropDuplicates(["cod_operacao"])
     print(f"Adicionadas operações de recompra. Total combinado: {df_ops.count()}")
 
 except Exception as e:
@@ -137,6 +138,7 @@ except Exception as e:
 df_titulos = spark.read.table("LH_Gold.fato_titulos") \
     .filter(col("aceito") == "S") \
     .filter(col("t_doc") != "BL") \
+    .dropDuplicates(["cod_titulo"]) \
     .withColumn("data_final_real",
                 when(col("liquidacao").isNotNull(), col("liquidacao"))
                 .when(col("venc_prorrogado").isNotNull(), col("venc_prorrogado"))
