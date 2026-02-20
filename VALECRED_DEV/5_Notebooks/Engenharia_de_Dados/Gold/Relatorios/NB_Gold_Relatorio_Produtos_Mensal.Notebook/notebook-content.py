@@ -91,13 +91,14 @@ print("Dados carregados.")
 # Precisamos de detalhes da operação original (nbordero, plataforma, etc.) para eventos downstream.
 # OBS: Renomeamos colunas com sufixo '_op' para evitar Ambiguidade no join, pois tabelas Fato downstream podem conter
 # colunas com mesmo nome (ex: nbordero, chave_produto, cod_cliente).
-# Excluimos explicitamente cod_cliente para forçar uso do cod_cliente da fato original (Prorrog/Baixas).
+# Incluimos cod_cliente_op para casos onde a tabela Fato de origem não tem cod_cliente (ex: fato_baixas).
 df_map_ops = df_ops.select(
     col("cod_operacao"),
     col("nbordero").alias("nbordero_op"),
     col("nome_plataforma").alias("nome_plataforma_op"),
     col("chave_produto").alias("chave_produto_op"),
-    col("data_deferimento").alias("data_deferimento_op")
+    col("data_deferimento").alias("data_deferimento_op"),
+    col("cod_cliente").alias("cod_cliente_op")
 ).dropDuplicates(["cod_operacao"])
 
 # Helper Function para Resolver Ambiguidade Dinamicamente
@@ -119,7 +120,8 @@ def resolve_columns(df, target_cols):
             df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
     return df_resolved
 
-granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento"]
+# Lista de colunas para resolver (incluindo cod_cliente para Streams que não o tenham)
+granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente"]
 
 # -------------------------------------------------------------------------
 # STREAM 1: OPERAÇÕES (Novas Operações no Mês)
@@ -211,7 +213,7 @@ df_mora_filtered = df_baixas \
 # Join com Mapeamento de Operações para obter detalhes
 df_mora_joined = df_mora_filtered.join(df_map_ops, "cod_operacao", "left")
 
-# Resolver Ambiguidade
+# Resolver Ambiguidade e Colunas Faltantes (cod_cliente pode vir do map)
 df_mora_enrich = resolve_columns(df_mora_joined, granular_cols)
 
 # Calcular Atraso (Data Baixa - Data Vencimento)

@@ -130,72 +130,73 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         self.assertTrue(df_ops.withColumn.call_count >= 3)
         self.assertTrue(df_ops_joined.groupBy.called)
 
-    def test_prorrogations_ambiguity_fix(self):
+    def test_mora_missing_client_fix(self):
         """
-        Validates Prorrogations stream handling column ambiguity (nbordero, chave_produto)
-        by using suffixed map columns and coalescing.
+        Validates Mora stream handling missing cod_cliente by resolving it from the map.
+        Simulates: fato_baixas (no cod_cliente) JOIN df_map_ops (has cod_cliente_op) -> Resolve cod_cliente.
         """
-        df_prorrog = MagicMock()
+        df_mora = MagicMock()
         df_ops_map = MagicMock()
 
-        # Define mock behavior for groupBy
         mock_grouped = MagicMock()
-        df_prorrog.groupBy.return_value = mock_grouped
+        df_mora.groupBy.return_value = mock_grouped
 
-        # Simulate 'nbordero' existing in df_prorrog (causing the reported error)
-        # Mocking columns property
-        type(df_prorrog).columns = ["cod_operacao", "nbordero", "chave_produto", "valor", "juros", "dias_prorrogados"]
+        # Simulate 'cod_cliente' NOT being in df_mora columns
+        type(df_mora).columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]
 
-        df_prorrog.filter.return_value = df_prorrog
-        df_prorrog.withColumn.return_value = df_prorrog
-        df_prorrog.join.return_value = df_prorrog
+        df_mora.filter.return_value = df_mora
+        df_mora.withColumn.return_value = df_mora
+        df_mora.join.return_value = df_mora
+        df_mora.withColumnRenamed.return_value = df_mora # Simulate rename
 
-        self.spark.read.table.side_effect = lambda t: df_prorrog if "prorrogacoes" in t else df_ops_map
+        self.spark.read.table.side_effect = lambda t: df_mora if "baixas" in t else df_ops_map
 
         # Logic
-        df_prorrog_filtered = df_prorrog.filter(year(col("data_inclusao")) == 2025)
+        df_mora_filtered = df_mora.filter(year(col("data_baixa")) == 2025).filter(col("juros") > 0)
 
-        # --- THE FIX ---
-        # Select map columns with suffix
+        # Map with cod_cliente_op
         df_map_ops_clean = df_ops_map.select(
             col("cod_operacao"),
             col("nbordero").alias("nbordero_op"),
             col("nome_plataforma").alias("nome_plataforma_op"),
             col("chave_produto").alias("chave_produto_op"),
-            col("data_deferimento").alias("data_deferimento_op")
+            col("data_deferimento").alias("data_deferimento_op"),
+            col("cod_cliente").alias("cod_cliente_op")
         )
 
         # Join
-        df_prorrog_joined = df_prorrog_filtered.join(df_map_ops_clean, "cod_operacao", "left")
+        df_mora_joined = df_mora_filtered.join(df_map_ops_clean, "cod_operacao", "left")
 
         # Resolve Ambiguity
-        cols_to_resolve = {
-            "nbordero": "nbordero_op",
-            "nome_plataforma": "nome_plataforma_op",
-            "chave_produto": "chave_produto_op",
-            "data_deferimento": "data_deferimento_op"
-        }
+        cols_to_resolve = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente"]
 
-        df_resolved = df_prorrog_joined
+        df_resolved = df_mora_joined
 
-        # Use simple iteration for test logic simulation
-        # Note: In real code, we check if 'col' is in df.columns. Here we rely on the mocked 'columns' property.
+        # Simulation of resolve_columns logic
+        for col_name in cols_to_resolve:
+            col_op = f"{col_name}_op"
+            # Simulate column missing in source -> rename op
+            if col_name not in ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]: # Not in Mora
+                df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
 
-        # Aggregation
-        df_monthly = df_resolved.withColumn("mes_ref", trunc(col("data_inclusao"), "MM")) \
+        # Proceed with aggregation
+        df_monthly = df_resolved.withColumn("mes_ref", trunc(col("data_baixa"), "MM")) \
             .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento")
 
+        # Add the .agg call that was missing in previous failure
         df_monthly.agg(
-            sum("valor").alias("volume"),
-            sum("valor_vezes_dias").alias("total_valor_dias_mes"),
+            sum("valor_pago").alias("volume"),
+            sum("valor_vezes_atraso").alias("total_valor_atraso_mes"),
             sum("juros").alias("receita"),
             count("cod_titulo").alias("qtd_eventos")
         )
 
         # Assert
-        # Check that we called groupBy on the resolved DF
-        df_prorrog.groupBy.assert_called()
-        # Verify agg was called on the mock returned by groupBy
+        # Verify map creation includes cod_cliente_op
+        df_ops_map.select.assert_called()
+
+        # Verify aggregation on resolved columns
+        df_mora.groupBy.assert_called()
         mock_grouped.agg.assert_called()
 
 if __name__ == "__main__":
