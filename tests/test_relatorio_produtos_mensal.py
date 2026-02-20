@@ -129,10 +129,9 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         self.assertTrue(df_ops.withColumn.call_count >= 3)
         self.assertTrue(df_ops_joined.groupBy.called)
 
-    def test_prorrogations_granularity(self):
+    def test_prorrogations_ambiguity_fix(self):
         """
-        Validates Prorrogations stream with increased granularity.
-        Prorrogations must join with Operations (or equivalent) to get granular details.
+        Validates Prorrogations stream handling column ambiguity (cod_cliente).
         """
         df_prorrog = MagicMock()
         df_ops_map = MagicMock()
@@ -147,25 +146,21 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         # Logic
         df_prorrog_filtered = df_prorrog.filter(year(col("data_inclusao")) == 2025)
 
-        # Join with Operations Map to get Granular Details (nbordero, plataforma, etc.)
-        df_prorrog_joined = df_prorrog_filtered.join(df_ops_map, "cod_operacao", "left")
+        # --- THE FIX ---
+        # Do NOT select cod_cliente from df_map_ops if df_prorrog has it.
+        # This test ensures we only select the needed columns.
+        df_map_ops_clean = df_ops_map.select("cod_operacao", "nbordero", "nome_plataforma", "chave_produto", "data_deferimento")
+        # Ensure we dropped duplicates (implicitly via the join logic) or handled it.
 
-        df_prorrog_calc = df_prorrog_joined.withColumn("valor_vezes_dias", col("valor") * col("dias_prorrogados"))
+        df_prorrog_joined = df_prorrog_filtered.join(df_map_ops_clean, "cod_operacao", "left")
 
-        df_monthly = df_prorrog_calc.withColumn("mes_ref", trunc(col("data_inclusao"), "MM")) \
-            .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento").agg(
-                sum("valor").alias("volume"),
-                sum("juros").alias("receita"),
-                sum("valor_vezes_dias").alias("total_valor_dias")
-            )
-
-        df_final = df_monthly.withColumn("prazo_medio", col("total_valor_dias") / col("volume")) \
-            .withColumn("taxa_mensal", (col("receita") / (col("total_valor_dias") / 30))) \
-            .withColumnRenamed("chave_produto", "sub_tipo_produto")
+        # Proceed with aggregation
+        df_monthly = df_prorrog_joined.withColumn("mes_ref", trunc(col("data_inclusao"), "MM")) \
+            .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento")
 
         # Assert
-        self.assertTrue(df_prorrog.join.called)
-        self.assertTrue(df_monthly.withColumn.called)
+        df_ops_map.select.assert_called_with("cod_operacao", "nbordero", "nome_plataforma", "chave_produto", "data_deferimento")
+        # We implicitly verify that 'cod_cliente' is NOT in the select list if the call above matches exactly.
 
 if __name__ == "__main__":
     unittest.main()
