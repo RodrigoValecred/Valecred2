@@ -111,6 +111,27 @@ except Exception as e:
     print(f"Aviso: Não foi possível carregar fato_operacoes_recompra ({e}). Usando apenas operações normais.")
     df_ops = df_ops_normal
 
+# Prorrogações (Silver - Source of Truth for Revenue per Title)
+# Join by cod_titulo requested by user
+try:
+    df_prorrogacao_silver = spark.read.table("LH_Silver.staging_operacoes_prorrogacao_limpa")
+
+    # Check column name (codtitulo vs cod_titulo) - Standardizing to cod_titulo
+    if "codtitulo" in df_prorrogacao_silver.columns:
+        df_prorrogacao_silver = df_prorrogacao_silver.withColumnRenamed("codtitulo", "cod_titulo")
+
+    # Aggregate by Title (to avoid exploding rows in Title join)
+    # 1. Total Revenue per Title
+    # 2. 2025 Revenue per Title (for Client Deduction Logic)
+    df_prorrogacao_silver_agg = df_prorrogacao_silver.groupBy("cod_titulo").agg(
+        sum("juros").alias("receita_prorrogacao_titulo"),
+        sum(when(year(col("data_inclusao")) == 2025, col("juros")).otherwise(0)).alias("receita_prorrogacao_titulo_2025")
+    )
+    print("Tabela Silver de Prorrogações carregada e agregada.")
+except Exception as e:
+    print(f"Erro ao carregar LH_Silver.staging_operacoes_prorrogacao_limpa: {e}. Usando placeholder (0).")
+    df_prorrogacao_silver_agg = None
+
 # Títulos (Para cálculo da Taxa Ponderada: Valor * Prazo)
 # Agregado por Operação
 df_titulos = spark.read.table("LH_Gold.fato_titulos") \
@@ -132,6 +153,14 @@ df_titulos = spark.read.table("LH_Gold.fato_titulos") \
     .withColumn("valor_vezes_atraso", when(col("em_mora"), col("valor") * col("dias_atraso_real")).otherwise(0)) \
     .withColumn("valor_em_mora", when(col("em_mora"), col("valor")).otherwise(0))
 
+if df_prorrogacao_silver_agg:
+    df_titulos = df_titulos.join(df_prorrogacao_silver_agg, "cod_titulo", "left") \
+        .withColumn("receita_prorrogacao_titulo", coalesce(col("receita_prorrogacao_titulo"), lit(0))) \
+        .withColumn("receita_prorrogacao_titulo_2025", coalesce(col("receita_prorrogacao_titulo_2025"), lit(0)))
+else:
+    df_titulos = df_titulos.withColumn("receita_prorrogacao_titulo", lit(0)) \
+        .withColumn("receita_prorrogacao_titulo_2025", lit(0))
+
 df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_vezes_prazo").alias("total_valor_prazo_op"),
     sum("valor").alias("valor_face_titulos_op"),
@@ -140,7 +169,9 @@ df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_vezes_data_final").alias("soma_produto_valor_data_final"),
     sum("valor_vezes_prorrogacao").alias("total_valor_prorrogacao_op"),
     sum("valor_vezes_atraso").alias("total_valor_atraso_op"),
-    sum("valor_em_mora").alias("total_valor_mora_op")
+    sum("valor_em_mora").alias("total_valor_mora_op"),
+    sum("receita_prorrogacao_titulo").alias("receita_prorrogacao_op"),
+    sum("receita_prorrogacao_titulo_2025").alias("receita_prorrogacao_op_2025")
 )
 
 # Baixas (Para cálculo de Receita de Juros de Mora Pagos)
@@ -168,15 +199,12 @@ try:
         .groupBy("cod_cliente").agg(sum("juros").alias("receita_tarifa_prorrogacao_cliente"))
 
     # 3. Agregado por Operação (Lifetime - Safra 2025)
-    # Sem filtro de ano, para capturar todas as receitas de prorrogação das operações da safra
-    df_prorrogacao_agg_op = df_prorrogacao_clean \
-        .groupBy("cod_operacao").agg(sum("juros").alias("receita_prorrogacao_op"))
+    # SUBSTITUÍDO: Agora calculado via Join com Titles (Silver Source) para maior precisão (join by cod_titulo)
+    df_prorrogacao_agg_op = None
 
     # 4. Agregado por Operação (Calendário 2025 - Para Deduplicação)
-    # Necessário para subtrair corretamente da "Receita Cliente 2025"
-    df_prorrogacao_agg_op_2025 = df_prorrogacao_clean \
-        .filter(year(col("data_inclusao")) == 2025) \
-        .groupBy("cod_operacao").agg(sum("juros").alias("receita_prorrogacao_op_2025"))
+    # SUBSTITUÍDO: Agora calculado via Join com Titles (Silver Source)
+    df_prorrogacao_agg_op_2025 = None
 
 except Exception as e:
     print(f"Aviso: Tabela fato_prorrogacoes_de_titulos não encontrada ou erro ({e}). Usando placeholder.")
@@ -224,16 +252,12 @@ df_base = df_ops.join(df_titulos_agg, "cod_operacao", "left") \
     .join(df_baixas_agg, "cod_operacao", "left") \
     .join(broadcast(df_produtos), "chave_produto", "left")
 
-if df_prorrogacao_agg_op:
-    df_base = df_base.join(df_prorrogacao_agg_op, "cod_operacao", "left") \
-        .withColumn("receita_prorrogacao_op", coalesce(col("receita_prorrogacao_op"), lit(0)))
-else:
+# Prorrogação (Operação): Já incluído via df_titulos_agg (Silver Source)
+# Garantir que colunas existam (caso df_titulos esteja vazio ou erro no silver)
+if "receita_prorrogacao_op" not in df_base.columns:
     df_base = df_base.withColumn("receita_prorrogacao_op", lit(0))
 
-if df_prorrogacao_agg_op_2025:
-    df_base = df_base.join(df_prorrogacao_agg_op_2025, "cod_operacao", "left") \
-        .withColumn("receita_prorrogacao_op_2025", coalesce(col("receita_prorrogacao_op_2025"), lit(0)))
-else:
+if "receita_prorrogacao_op_2025" not in df_base.columns:
     df_base = df_base.withColumn("receita_prorrogacao_op_2025", lit(0))
 
 # Join com Dados do Cliente (Risco e Nome)
