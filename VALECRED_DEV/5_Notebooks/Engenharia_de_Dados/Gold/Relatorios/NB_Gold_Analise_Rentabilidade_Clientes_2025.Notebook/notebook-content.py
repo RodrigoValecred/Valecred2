@@ -121,6 +121,9 @@ try:
     if "codtitulo" in df_prorrogacao_silver.columns:
         df_prorrogacao_silver = df_prorrogacao_silver.withColumnRenamed("codtitulo", "cod_titulo")
 
+    # Deduplicate rows (exact full row duplication from Source)
+    df_prorrogacao_silver = df_prorrogacao_silver.dropDuplicates()
+
     # Aggregate by Title (to avoid exploding rows in Title join)
     # 1. Total Revenue per Title
     # 2. 2025 Revenue per Title (for Client Deduction Logic)
