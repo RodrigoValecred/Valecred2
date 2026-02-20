@@ -124,6 +124,13 @@ try:
     # Deduplicate rows (exact full row duplication from Source)
     df_prorrogacao_silver = df_prorrogacao_silver.dropDuplicates()
 
+    # Filter Valid Prorogations (Only 'D' - Deferido)
+    # Removing 'I' (Indeferido) which causes inflated revenue
+    if "status_analise" in df_prorrogacao_silver.columns:
+        df_prorrogacao_silver = df_prorrogacao_silver.filter(col("status_analise") == "D")
+    else:
+        print("Aviso: status_analise não encontrada em staging_operacoes_prorrogacao_limpa. Filtro não aplicado.")
+
     # Aggregate by Title (to avoid exploding rows in Title join)
     # 1. Total Revenue per Title
     # 2. 2025 Revenue per Title (for Client Deduction Logic)
