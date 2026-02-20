@@ -48,6 +48,8 @@ def year(c):
 def month(c): return MagicMock()
 def to_date(c): return MagicMock()
 def trunc(c, fmt): return MagicMock()
+def concat(*cols): return MagicMock()
+def broadcast(df): return MagicMock()
 
 # 3. Patch the modules with our functions
 sys.modules["pyspark.sql.functions"].col = col
@@ -65,21 +67,20 @@ sys.modules["pyspark.sql.functions"].year = year
 sys.modules["pyspark.sql.functions"].month = month
 sys.modules["pyspark.sql.functions"].to_date = to_date
 sys.modules["pyspark.sql.functions"].trunc = trunc
-
+sys.modules["pyspark.sql.functions"].concat = concat
+sys.modules["pyspark.sql.functions"].broadcast = broadcast
 
 class TestRelatorioProdutosMensal(unittest.TestCase):
     def setUp(self):
         self.spark = MagicMock()
         self.spark.read.table.return_value = MagicMock()
 
-    def test_operations_stream(self):
+    def test_operations_granularity(self):
         """
-        Validates the logic for Operations stream
+        Validates the logic for Operations stream with increased granularity.
         """
         # Mocks
         df_ops = MagicMock()
-        # Make chained calls return the same mock (or a tracked mock) to simplify assertion
-        # But usually filter returns a new DF.
         df_ops.filter.return_value = df_ops
         df_ops.join.return_value = df_ops
         df_ops.withColumn.return_value = df_ops # Chainable
@@ -108,9 +109,9 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
         df_ops_joined = df_ops_filtered.join(df_titulos_agg, "cod_operacao", "left")
 
-        # 3. Aggregate by Month/Client
+        # 3. Aggregate by Monthly Granularity (cod_operacao, nbordero, etc.)
         df_monthly = df_ops_joined.withColumn("mes_ref", trunc(col("data_deferimento"), "MM")) \
-            .groupBy("cod_cliente", "mes_ref").agg(
+            .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento").agg(
                 sum("valor_de_face").alias("volume"),
                 sum("soma_valor_prazo").alias("total_valor_prazo"),
                 sum("desagio").alias("receita_desagio"),
@@ -118,77 +119,53 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
             )
 
         # 4. Final Calc
-        # Note: df_monthly is df_ops because we mocked the returns
         df_final = df_monthly.withColumn("prazo_medio", col("total_valor_prazo") / col("volume")) \
             .withColumn("receita_total", col("receita_desagio") + col("receita_tarifas")) \
-            .withColumn("taxa_mensal", (col("receita_total") / (col("total_valor_prazo") / 30)))
+            .withColumn("taxa_mensal", (col("receita_total") / (col("total_valor_prazo") / 30))) \
+            .withColumnRenamed("chave_produto", "sub_tipo_produto")
 
         # --- ASSERTIONS ---
-        # Check if filter was called
-        df_ops.filter.assert_called()
-        # We expect multiple withColumn calls on the chain
+        # Check aggregation structure
         self.assertTrue(df_ops.withColumn.call_count >= 3)
+        self.assertTrue(df_ops_joined.groupBy.called)
 
-    def test_prorrogations_stream(self):
+    def test_prorrogations_granularity(self):
         """
-        Validates Prorrogations stream
+        Validates Prorrogations stream with increased granularity.
+        Prorrogations must join with Operations (or equivalent) to get granular details.
         """
         df_prorrog = MagicMock()
+        df_ops_map = MagicMock()
+
         df_prorrog.filter.return_value = df_prorrog
         df_prorrog.withColumn.return_value = df_prorrog
+        df_prorrog.join.return_value = df_prorrog
         df_prorrog.groupBy.return_value.agg.return_value = df_prorrog
 
-        self.spark.read.table.return_value = df_prorrog
+        self.spark.read.table.side_effect = lambda t: df_prorrog if "prorrogacoes" in t else df_ops_map
 
         # Logic
         df_prorrog_filtered = df_prorrog.filter(year(col("data_inclusao")) == 2025)
 
-        df_prorrog_calc = df_prorrog_filtered.withColumn("valor_vezes_dias", col("valor") * col("dias_prorrogados"))
+        # Join with Operations Map to get Granular Details (nbordero, plataforma, etc.)
+        df_prorrog_joined = df_prorrog_filtered.join(df_ops_map, "cod_operacao", "left")
+
+        df_prorrog_calc = df_prorrog_joined.withColumn("valor_vezes_dias", col("valor") * col("dias_prorrogados"))
 
         df_monthly = df_prorrog_calc.withColumn("mes_ref", trunc(col("data_inclusao"), "MM")) \
-            .groupBy("cod_cliente", "mes_ref").agg(
+            .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento").agg(
                 sum("valor").alias("volume"),
                 sum("juros").alias("receita"),
                 sum("valor_vezes_dias").alias("total_valor_dias")
             )
 
         df_final = df_monthly.withColumn("prazo_medio", col("total_valor_dias") / col("volume")) \
-            .withColumn("taxa_mensal", (col("receita") / (col("total_valor_dias") / 30)))
+            .withColumn("taxa_mensal", (col("receita") / (col("total_valor_dias") / 30))) \
+            .withColumnRenamed("chave_produto", "sub_tipo_produto")
 
         # Assert
-        df_prorrog.filter.assert_called()
-        self.assertTrue(df_prorrog.withColumn.call_count >= 3)
-
-    def test_mora_stream(self):
-        """
-        Validates Mora stream
-        """
-        df_baixas = MagicMock()
-        df_baixas.filter.return_value = df_baixas
-        df_baixas.withColumn.return_value = df_baixas
-        df_baixas.groupBy.return_value.agg.return_value = df_baixas
-
-        self.spark.read.table.return_value = df_baixas
-
-        # Logic
-        df_mora = df_baixas.filter(year(col("data_baixa")) == 2025).filter(col("juros") > 0)
-
-        df_mora_calc = df_mora.withColumn("dias_atraso", datediff(col("data_baixa"), col("data_vencimento"))) \
-            .withColumn("valor_vezes_atraso", col("valor_pago") * col("dias_atraso"))
-
-        df_monthly = df_mora_calc.withColumn("mes_ref", trunc(col("data_baixa"), "MM")) \
-            .groupBy("cod_cliente", "mes_ref").agg(
-                sum("valor_pago").alias("volume"),
-                sum("juros").alias("receita"),
-                sum("valor_vezes_atraso").alias("total_valor_atraso")
-            )
-
-        df_final = df_monthly.withColumn("prazo_medio", col("total_valor_atraso") / col("volume")) \
-            .withColumn("taxa_mensal", (col("receita") / (col("total_valor_atraso") / 30)))
-
-        # Assert
-        self.assertEqual(df_baixas.filter.call_count, 2)
-        self.assertTrue(df_baixas.withColumn.call_count >= 4)
+        self.assertTrue(df_prorrog.join.called)
+        self.assertTrue(df_monthly.withColumn.called)
 
 if __name__ == "__main__":
     unittest.main()

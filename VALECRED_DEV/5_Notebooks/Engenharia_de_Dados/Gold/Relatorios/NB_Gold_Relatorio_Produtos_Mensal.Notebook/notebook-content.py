@@ -25,6 +25,7 @@
 # # Relatório Mensal de Produtos por Cliente
 # **Objetivo:** Analisar a performance mensal de cada cliente segmentada por produto (Operações, Prorrogações, Mora).
 # **Métricas:** Volume, Prazo Médio, Taxa Média, Receita.
+# **Granularidade:** Detalhado por Operação/Bordero.
 
 # CELL ********************
 
@@ -57,6 +58,7 @@ df_clientes = spark.read.table("LH_Gold.dim_clientes") \
     .dropDuplicates(["cod_cliente"])
 
 # Fato Operações
+# Incluindo colunas de detalhamento: nbordero, nome_plataforma, chave_produto, data_deferimento
 df_ops = spark.read.table("LH_Gold.fato_operacoes") \
     .filter(col("status_aceite") == "A") \
     .filter(col("status_analise") == "D") \
@@ -85,6 +87,12 @@ print("Dados carregados.")
 
 # 2. Processamento por Produto
 
+# Tabela de Mapeamento para Enriquecer Prorrogações e Mora
+# Precisamos de detalhes da operação original (nbordero, plataforma, etc.) para eventos downstream
+df_map_ops = df_ops.select(
+    "cod_operacao", "cod_cliente", "nbordero", "nome_plataforma", "chave_produto", "data_deferimento"
+).dropDuplicates(["cod_operacao"])
+
 # -------------------------------------------------------------------------
 # STREAM 1: OPERAÇÕES (Novas Operações no Mês)
 # -------------------------------------------------------------------------
@@ -105,10 +113,10 @@ df_ops_enrich = df_ops_enrich.withColumn("receita_total_op",
     coalesce(col("desagio"), lit(0)) + coalesce(col("total_de_tarifas"), lit(0))
 )
 
-# Agregar por Mês e Cliente
+# Agregar por Mês e Cliente e DETALHES
 df_stream_ops = df_ops_enrich \
     .withColumn("mes_ref", trunc(col("data_deferimento"), "MM")) \
-    .groupBy("cod_cliente", "mes_ref") \
+    .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento") \
     .agg(
         sum("valor_de_face").alias("volume"),
         sum("soma_valor_prazo_op").alias("total_valor_prazo_mes"),
@@ -122,6 +130,7 @@ df_stream_ops = df_ops_enrich \
                 when(col("total_valor_prazo_mes") > 0,
                      (col("receita") / (col("total_valor_prazo_mes") / 30)) * 100
                 ).otherwise(0)) \
+    .withColumnRenamed("chave_produto", "sub_tipo_produto") \
     .drop("total_valor_prazo_mes")
 
 # -------------------------------------------------------------------------
@@ -132,22 +141,16 @@ print("Processando Prorrogações...")
 # Filtrar ano relevante (2025+)
 df_prorrog_filtered = df_prorrog.filter(year(col("data_inclusao")) >= 2025)
 
-# Fato Prorrogações de Títulos (Gold) já deve ter 'valor' (do título) e 'juros' (receita) e 'dias_prorrogados'
-# Se não tiver cod_cliente, precisamos join com titulos ou operacoes.
-# Afato_prorrogacoes_de_titulos criada no NB_Curadoria não tem cod_cliente explícito, tem cod_titulo e cod_operacao.
-# Precisamos garantir cod_cliente.
-
-if "cod_cliente" not in df_prorrog_filtered.columns:
-    # Join com Títulos (que tem cod_cliente) ou Operações
-    df_map_cliente = df_ops.select("cod_operacao", "cod_cliente").dropDuplicates(["cod_operacao"])
-    df_prorrog_filtered = df_prorrog_filtered.join(df_map_cliente, "cod_operacao", "left")
+# Join com Mapeamento de Operações para obter detalhes (Granularidade)
+# Fato Prorrogacoes tem cod_operacao
+df_prorrog_enrich = df_prorrog_filtered.join(df_map_ops, "cod_operacao", "left")
 
 # Calcular Peso do Prazo (Valor * Dias Prorrogados)
-df_prorrog_calc = df_prorrog_filtered.withColumn("valor_vezes_dias", col("valor") * col("dias_prorrogados"))
+df_prorrog_calc = df_prorrog_enrich.withColumn("valor_vezes_dias", col("valor") * col("dias_prorrogados"))
 
 df_stream_prorrog = df_prorrog_calc \
     .withColumn("mes_ref", trunc(col("data_inclusao"), "MM")) \
-    .groupBy("cod_cliente", "mes_ref") \
+    .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento") \
     .agg(
         sum("valor").alias("volume"),
         sum("valor_vezes_dias").alias("total_valor_dias_mes"),
@@ -161,6 +164,7 @@ df_stream_prorrog = df_prorrog_calc \
                 when(col("total_valor_dias_mes") > 0,
                      (col("receita") / (col("total_valor_dias_mes") / 30)) * 100
                 ).otherwise(0)) \
+    .withColumnRenamed("chave_produto", "sub_tipo_produto") \
     .drop("total_valor_dias_mes")
 
 # -------------------------------------------------------------------------
@@ -173,21 +177,18 @@ df_mora_filtered = df_baixas \
     .filter(year(col("data_baixa")) >= 2025) \
     .filter(col("juros") > 0)
 
-# Fato Baixas tem cod_titulo e cod_operacao. Precisa de cod_cliente.
-# Tentar pegar via Join com Operações se não existir
-if "cod_cliente" not in df_mora_filtered.columns:
-    df_map_cliente_op = df_ops.select("cod_operacao", "cod_cliente").dropDuplicates(["cod_operacao"])
-    df_mora_filtered = df_mora_filtered.join(df_map_cliente_op, "cod_operacao", "left")
+# Join com Mapeamento de Operações para obter detalhes
+df_mora_enrich = df_mora_filtered.join(df_map_ops, "cod_operacao", "left")
 
 # Calcular Atraso (Data Baixa - Data Vencimento)
 # Baixas tem data_baixa e data_vencimento
-df_mora_calc = df_mora_filtered \
+df_mora_calc = df_mora_enrich \
     .withColumn("dias_atraso", datediff(col("data_baixa"), col("data_vencimento"))) \
     .withColumn("valor_vezes_atraso", col("valor_pago") * col("dias_atraso"))
 
 df_stream_mora = df_mora_calc \
     .withColumn("mes_ref", trunc(col("data_baixa"), "MM")) \
-    .groupBy("cod_cliente", "mes_ref") \
+    .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento") \
     .agg(
         sum("valor_pago").alias("volume"),
         sum("valor_vezes_atraso").alias("total_valor_atraso_mes"),
@@ -201,6 +202,7 @@ df_stream_mora = df_mora_calc \
                 when(col("total_valor_atraso_mes") > 0,
                      (col("receita") / (col("total_valor_atraso_mes") / 30)) * 100
                 ).otherwise(0)) \
+    .withColumnRenamed("chave_produto", "sub_tipo_produto") \
     .drop("total_valor_atraso_mes")
 
 print("Streams processados.")
@@ -227,6 +229,11 @@ df_final = df_union.join(df_clientes, "cod_cliente", "left") \
         col("cod_cliente"),
         coalesce(col("nome"), concat(lit("CLIENTE "), col("cod_cliente"))).alias("nome_cliente"),
         col("grupo_economico"),
+        col("cod_operacao"),
+        col("nbordero"),
+        col("sub_tipo_produto"),
+        col("nome_plataforma"),
+        col("data_deferimento"),
         col("tipo_produto"),
         round(col("volume"), 2).alias("volume"),
         round(col("prazo_medio"), 2).alias("prazo_medio_dias"),
