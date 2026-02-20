@@ -564,21 +564,51 @@ def process_prorrogacoes():
 def process_tab_operacoes_prorrogacao():
     print("Processando Tab Operações Prorrogação...")
 
-    # Simplesmente limpa e padroniza a tabela raw para staging limpa (sem joins)
+    # 1. Source Data
     df_prorrogacao = spark.read.table(f"{source_lakehouse}.tab_operacoes_prorrogacao")
 
-    # Padronização e Renomeação Explícita
-    # O M script original usa CODTITULO e CODOPERACAO.
-    # No Silver, devemos padronizar para cod_titulo e cod_operacao para facilitar joins no Gold.
-    df_final = df_prorrogacao.select(
+    # 2. Dependencies (Silver)
+    # Using Silver tables for enrichment as they are cleaner
+    # Get VALOR from titulos
+    df_titulos = spark.read.table(f"{target_lakehouse}.staging_titulos_limpa") \
+        .select(col("cod_titulo"), col("valor"))
+
+    # Get STATUS from operacoes
+    df_operacoes = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa") \
+        .select(col("cod_operacao"), col("status_analise"), col("status_aceite"))
+
+    # 3. Standardize Source to match Silver keys
+    # Normalize source columns to snake_case first for consistency
+    # (Assuming the source has CamelCase or UPPERCASE columns as per usual Bronze)
+    df_prorrogacao_norm = df_prorrogacao.select(
         [col(c).alias(c.lower()) for c in df_prorrogacao.columns]
     ).withColumnRenamed("codtitulo", "cod_titulo") \
      .withColumnRenamed("codoperacao", "cod_operacao") \
      .withColumnRenamed("datainclusao", "data_inclusao")
 
+    # 4. Joins
+    # Left Join with Titulos
+    df_joined_1 = df_prorrogacao_norm.join(df_titulos, "cod_titulo", "left_outer")
+
+    # Left Join with Operacoes
+    df_joined_2 = df_joined_1.join(df_operacoes, "cod_operacao", "left_outer")
+
+    # 5. Transformations
+    # Extract Data (Date part of data_inclusao)
+    df_transformed = df_joined_2.withColumn("data", to_date(col("data_inclusao")))
+
+    # 6. Select and Drop Columns
+    # User requested to remove: TARIFA, USUAINCLUSAO, DATAALTERACAO, USUAALTERACAO, VALORDEVIDO, VALORPROR, VALORBOLETO
+    # Columns are lowercased (but not snake_cased with underscores) by step 3: tarifa, usuainclusao, dataalteracao, usuaalteracao, valordevido, valorpror, valorboleto
+    columns_to_drop = [
+        "tarifa", "usuainclusao", "dataalteracao", "usuaalteracao",
+        "valordevido", "valorpror", "valorboleto"
+    ]
+    df_final = df_transformed.drop(*columns_to_drop)
+
     target_table = "staging_operacoes_prorrogacao_limpa"
     df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.{target_table}")
-    print(f"Tabela {target_table} criada com sucesso (limpeza simples).")
+    print(f"Tabela {target_table} criada com sucesso (enriched).")
 
 
 def process_recompras():
