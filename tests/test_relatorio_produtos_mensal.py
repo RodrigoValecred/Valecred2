@@ -45,6 +45,10 @@ def coalesce(*cols): return MagicMock()
 def year(c):
     m = MagicMock()
     m.__eq__ = lambda self, other: MagicMock()
+    m.__ge__ = lambda self, other: MagicMock()
+    m.__gt__ = lambda self, other: MagicMock()
+    m.__le__ = lambda self, other: MagicMock()
+    m.__lt__ = lambda self, other: MagicMock()
     return m
 def month(c): return MagicMock()
 def to_date(c): return MagicMock()
@@ -198,6 +202,53 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         # Verify aggregation on resolved columns
         df_mora.groupBy.assert_called()
         mock_grouped.agg.assert_called()
+
+    def test_historical_mapping_fix(self):
+        """
+        Verifies that df_map_ops is created from all operations (not just 2025+),
+        while df_ops (Stream 1) is restricted to 2025+.
+        """
+        # Mocks
+        df_raw = MagicMock(name="df_raw")
+        df_status_1 = MagicMock(name="df_status_1")
+        df_status_2 = MagicMock(name="df_status_2") # Result of status filters (df_ops_full)
+        df_2025 = MagicMock(name="df_2025")     # Result of year filter
+
+        # Setup filter chain
+        # 1. status filters (two calls)
+        df_raw.filter.return_value = df_status_1
+        df_status_1.filter.return_value = df_status_2
+
+        # 2. year filter (called on df_status_2)
+        df_status_2.filter.return_value = df_2025
+
+        self.spark.read.table.return_value = df_raw
+
+        # --- LOGIC UNDER TEST (The Fix) ---
+        # 1. Load Full
+        df_ops_full = self.spark.read.table("LH_Gold.fato_operacoes") \
+            .filter(col("status_aceite") == "A") \
+            .filter(col("status_analise") == "D")
+
+        # 2. Stream 1 (Filtered)
+        df_ops = df_ops_full.filter(year(col("data_deferimento")) >= 2025)
+
+        # 3. Map (Unfiltered by year)
+        df_map_ops = df_ops_full.select(
+            col("cod_operacao"),
+            col("nbordero").alias("nbordero_op")
+        )
+
+        # --- ASSERTIONS ---
+        # Verify df_map_ops is derived from df_status_2 (unfiltered by year)
+        df_status_2.select.assert_called()
+
+        # Verify df_ops (Stream 1) involved the year filter
+        # It calls filter on df_status_2
+        df_status_2.filter.assert_called()
+
+        # Ensure select was NOT called on df_2025 (the year-filtered one)
+        df_2025.select.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()

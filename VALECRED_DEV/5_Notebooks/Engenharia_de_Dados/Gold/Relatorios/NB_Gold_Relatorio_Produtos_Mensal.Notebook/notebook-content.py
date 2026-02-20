@@ -59,10 +59,12 @@ df_clientes = spark.read.table("LH_Gold.dim_clientes") \
 
 # Fato Operações
 # Incluindo colunas de detalhamento: nbordero, nome_plataforma, chave_produto, data_deferimento
-df_ops = spark.read.table("LH_Gold.fato_operacoes") \
+df_ops_full = spark.read.table("LH_Gold.fato_operacoes") \
     .filter(col("status_aceite") == "A") \
-    .filter(col("status_analise") == "D") \
-    .filter(year(col("data_deferimento")) >= 2025)
+    .filter(col("status_analise") == "D")
+
+# Para Stream de Operações (Novas), filtramos apenas 2025+
+df_ops = df_ops_full.filter(year(col("data_deferimento")) >= 2025)
 
 # Fato Títulos (para prazo das operações e mora em aberto se necessário, mas mora aqui será via Baixas)
 df_titulos = spark.read.table("LH_Gold.fato_titulos") \
@@ -92,7 +94,8 @@ print("Dados carregados.")
 # OBS: Renomeamos colunas com sufixo '_op' para evitar Ambiguidade no join, pois tabelas Fato downstream podem conter
 # colunas com mesmo nome (ex: nbordero, chave_produto, cod_cliente).
 # Incluimos cod_cliente_op para casos onde a tabela Fato de origem não tem cod_cliente (ex: fato_baixas).
-df_map_ops = df_ops.select(
+# FIX: Usamos df_ops_full (sem filtro de ano) para garantir que Prorrogacoes/Mora de ops antigas sejam mapeadas.
+df_map_ops = df_ops_full.select(
     col("cod_operacao"),
     col("nbordero").alias("nbordero_op"),
     col("nome_plataforma").alias("nome_plataforma_op"),
