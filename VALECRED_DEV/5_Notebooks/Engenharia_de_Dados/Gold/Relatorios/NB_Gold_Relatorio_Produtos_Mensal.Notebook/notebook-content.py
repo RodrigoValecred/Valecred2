@@ -88,11 +88,38 @@ print("Dados carregados.")
 # 2. Processamento por Produto
 
 # Tabela de Mapeamento para Enriquecer Prorrogações e Mora
-# Precisamos de detalhes da operação original (nbordero, plataforma, etc.) para eventos downstream
-# OBS: Excluindo cod_cliente daqui pois fato_prorrogacoes e fato_baixas (via join op) já possuem, evitando ambiguidade.
+# Precisamos de detalhes da operação original (nbordero, plataforma, etc.) para eventos downstream.
+# OBS: Renomeamos colunas com sufixo '_op' para evitar Ambiguidade no join, pois tabelas Fato downstream podem conter
+# colunas com mesmo nome (ex: nbordero, chave_produto, cod_cliente).
+# Excluimos explicitamente cod_cliente para forçar uso do cod_cliente da fato original (Prorrog/Baixas).
 df_map_ops = df_ops.select(
-    "cod_operacao", "nbordero", "nome_plataforma", "chave_produto", "data_deferimento"
+    col("cod_operacao"),
+    col("nbordero").alias("nbordero_op"),
+    col("nome_plataforma").alias("nome_plataforma_op"),
+    col("chave_produto").alias("chave_produto_op"),
+    col("data_deferimento").alias("data_deferimento_op")
 ).dropDuplicates(["cod_operacao"])
+
+# Helper Function para Resolver Ambiguidade Dinamicamente
+def resolve_columns(df, target_cols):
+    """
+    Para cada coluna alvo, verifica se existe no DF.
+    Se existir, faz coalesce com a versão '_op' (priorizando a do evento).
+    Se não existir, renomeia a '_op' para o nome alvo.
+    """
+    df_resolved = df
+    for col_name in target_cols:
+        col_op = f"{col_name}_op"
+        if col_name in df.columns:
+            # Se existe (ex: nbordero na fato prorrogacao), usamos coalesce para garantir preenchimento caso nulo,
+            # mas priorizando o valor do evento.
+            df_resolved = df_resolved.withColumn(col_name, coalesce(col(col_name), col(col_op)))
+        elif col_op in df.columns:
+            # Se não existe na fato, pegamos do map (op)
+            df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
+    return df_resolved
+
+granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento"]
 
 # -------------------------------------------------------------------------
 # STREAM 1: OPERAÇÕES (Novas Operações no Mês)
@@ -144,7 +171,10 @@ df_prorrog_filtered = df_prorrog.filter(year(col("data_inclusao")) >= 2025)
 
 # Join com Mapeamento de Operações para obter detalhes (Granularidade)
 # Fato Prorrogacoes tem cod_operacao
-df_prorrog_enrich = df_prorrog_filtered.join(df_map_ops, "cod_operacao", "left")
+df_prorrog_joined = df_prorrog_filtered.join(df_map_ops, "cod_operacao", "left")
+
+# Resolver Ambiguidade de Colunas (nbordero, plataforma, etc.)
+df_prorrog_enrich = resolve_columns(df_prorrog_joined, granular_cols)
 
 # Calcular Peso do Prazo (Valor * Dias Prorrogados)
 df_prorrog_calc = df_prorrog_enrich.withColumn("valor_vezes_dias", col("valor") * col("dias_prorrogados"))
@@ -179,7 +209,10 @@ df_mora_filtered = df_baixas \
     .filter(col("juros") > 0)
 
 # Join com Mapeamento de Operações para obter detalhes
-df_mora_enrich = df_mora_filtered.join(df_map_ops, "cod_operacao", "left")
+df_mora_joined = df_mora_filtered.join(df_map_ops, "cod_operacao", "left")
+
+# Resolver Ambiguidade
+df_mora_enrich = resolve_columns(df_mora_joined, granular_cols)
 
 # Calcular Atraso (Data Baixa - Data Vencimento)
 # Baixas tem data_baixa e data_vencimento
