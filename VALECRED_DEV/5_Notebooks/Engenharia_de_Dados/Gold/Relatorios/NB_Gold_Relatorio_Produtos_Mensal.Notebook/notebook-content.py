@@ -89,8 +89,9 @@ print("Dados carregados.")
 
 # Tabela de Mapeamento para Enriquecer Prorrogações e Mora
 # Precisamos de detalhes da operação original (nbordero, plataforma, etc.) para eventos downstream
+# OBS: Excluindo cod_cliente daqui pois fato_prorrogacoes e fato_baixas (via join op) já possuem, evitando ambiguidade.
 df_map_ops = df_ops.select(
-    "cod_operacao", "cod_cliente", "nbordero", "nome_plataforma", "chave_produto", "data_deferimento"
+    "cod_operacao", "nbordero", "nome_plataforma", "chave_produto", "data_deferimento"
 ).dropDuplicates(["cod_operacao"])
 
 # -------------------------------------------------------------------------
