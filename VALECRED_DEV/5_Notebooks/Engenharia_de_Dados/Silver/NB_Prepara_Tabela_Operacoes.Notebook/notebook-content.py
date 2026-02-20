@@ -288,6 +288,15 @@ def process_devolucoes():
 def get_tac_variations():
     return ["TAC  M", "TAC MOP", "TAC M.", "TACM", "TACA M", "TAC M 300,00", "TAC"]
 
+def transform_tac_m(df, tac_variations):
+    # Optimization: Use native trim() instead of regexp_replace for performance
+    # Optimization: Use filter with IN clause instead of when/otherwise + filter
+    return df \
+        .withColumn("descricao", trim(upper(col("descricao")))) \
+        .filter(col("descricao").isin(tac_variations + ["TAC M"])) \
+        .withColumn("descricao", lit("TAC M")) \
+        .orderBy(col("data_inclusao").desc())
+
 def process_tac_m():
     print("Processando TAC M...")
     df_tac = spark.read.table(f"{source_lakehouse}.tab_operacoes_tarifas_extras")
@@ -299,14 +308,7 @@ def process_tac_m():
 
     tac_variations = get_tac_variations()
 
-    df_tac_cleaned = df_tac_renamed \
-        .withColumn("descricao", upper(col("descricao"))) \
-        .withColumn("descricao", regexp_replace(col("descricao"), "^\\s+|\\s+$", "")) \
-        .withColumn("descricao",
-            when(col("descricao").isin(tac_variations), lit("TAC M")).otherwise(col("descricao"))
-        ) \
-        .filter(col("descricao") == "TAC M") \
-        .orderBy(col("data_inclusao").desc())
+    df_tac_cleaned = transform_tac_m(df_tac_renamed, tac_variations)
 
     df_tac_cleaned.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_tac_m")
 
