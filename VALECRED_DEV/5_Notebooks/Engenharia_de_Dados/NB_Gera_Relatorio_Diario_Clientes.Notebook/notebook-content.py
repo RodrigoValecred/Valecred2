@@ -58,13 +58,36 @@ df_consolidado['utilizacao_pct'] = (df_consolidado['valor_risco'] / df_consolida
 # ==============================================================================
 # DASHBOARD RÁPIDO DE RISCO (UX)
 # ==============================================================================
+
+# Color constants for ANSI terminal output
+class Colors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+
+def format_currency_br(value):
+    """Formats float to Brazilian currency string (R$ 1.234,56)."""
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 def display_risk_dashboard(df):
     W = 60
 
     print("\n")
-    print("═"*W)
-    print(f"{' 📊 PAINEL DE RISCO - RELATÓRIO DIÁRIO':^{W}}")
-    print("═"*W)
+    print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
+    print(Colors.BOLD + Colors.CYAN + f"{' 📊 PAINEL DE RISCO - RELATÓRIO DIÁRIO':^{W}}" + Colors.RESET)
+    print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
+
+    # Summary
+    n_groups = len(df)
+    n_alerts = len(df[df['utilizacao_pct'] > 100])
+    summary_color = Colors.RED if n_alerts > 0 else Colors.GREEN
+    print(f" Resumo: {n_groups} Grupos analisados. {summary_color}{n_alerts} Alertas.{Colors.RESET}")
+    print(Colors.CYAN + "─"*W + Colors.RESET)
 
     total_rows = len(df)
     for i, (_, row) in enumerate(df.iterrows()):
@@ -79,42 +102,47 @@ def display_risk_dashboard(df):
 
         # Progress Bar Logic (V3)
         bar_length = 25
+        color = Colors.RESET
 
         if pd.isna(utilizacao) or np.isinf(utilizacao):
             bar = '░' * bar_length
             status_icon = "⚠️"
             util_str = "N/A"
+            color = Colors.YELLOW
         else:
             pct_clamped = min(max(utilizacao, 0), 100)
             filled_length = int(bar_length * pct_clamped / 100)
-            bar = '█' * filled_length + '░' * (bar_length - filled_length)
 
             if utilizacao <= 80:
                 status_icon = "✅"
+                color = Colors.GREEN
             elif utilizacao <= 100:
                 status_icon = "⚠️"
+                color = Colors.YELLOW
             else:
                 status_icon = "🚨"
+                color = Colors.RED
 
+            bar = color + '█' * filled_length + Colors.RESET + '░' * (bar_length - filled_length)
             util_str = f"{utilizacao:.1f}%"
 
-        print(f" 🏢 {grupo}")
+        print(f" {Colors.BOLD}🏢 {grupo}{Colors.RESET}")
 
         # Metrics
         # Indent 4 spaces
-        bar_display = f"[{bar}] {util_str:>6} {status_icon}"
+        bar_display = f"[{bar}] {color}{util_str:>6}{Colors.RESET} {status_icon}"
         print(f"    Utilização: {bar_display}")
-        print(f"    Risco:      R$ {risco:>15,.2f}")
-        print(f"    Limite:     R$ {limite:>15,.2f}")
+        print(f"    Risco:      {format_currency_br(risco):>15}")
+        print(f"    Limite:     {format_currency_br(limite):>15}")
 
         if not (pd.isna(utilizacao) or np.isinf(utilizacao)) and utilizacao > 100:
-             print(f"    🔥 EXCESSO: R$ {excesso:>15,.2f}")
+             print(f"    {Colors.BOLD}{Colors.RED}🔥 EXCESSO: {format_currency_br(excesso):>15}{Colors.RESET}")
 
         # Separator
         if i < total_rows - 1:
-            print(" " + "─"*(W-2))
+            print(" " + Colors.CYAN + "─"*(W-2) + Colors.RESET)
 
-    print("═"*W)
+    print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
     print("\n")
 
 # Exibição do resultado para o relatório
