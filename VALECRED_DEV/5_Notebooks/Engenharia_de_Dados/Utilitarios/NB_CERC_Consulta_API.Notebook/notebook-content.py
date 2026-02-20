@@ -103,8 +103,10 @@ def create_app():
     return app
 
 if __name__ == '__main__':
-    # Configura a variável de ambiente para os testes locais
-    os.environ["CERC_API_KEY"] = "test-secret-key"
+    # Configura a variável de ambiente para os testes locais, se não existir
+    if "CERC_API_KEY" not in os.environ:
+        print("Aviso: Configurando CERC_API_KEY para ambiente de teste/desenvolvimento.")
+        os.environ["CERC_API_KEY"] = "test-secret-key"
 
     print("Inicializando a aplicação e o cliente de teste...")
     app = create_app()
