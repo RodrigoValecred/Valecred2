@@ -74,6 +74,58 @@ def format_currency_br(value):
     """Formats float to Brazilian currency string (R$ 1.234,56)."""
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
+def style_risk_dataframe(df):
+    """
+    Applies visual styling to the risk dataframe for better readability.
+    """
+    if df.empty:
+        return df
+
+    styled = df.style
+
+    # 1. Format Currency Columns
+    currency_cols = ['valor_risco', 'limite_global', 'excesso_valor']
+    existing_currency = [c for c in currency_cols if c in df.columns]
+    styled = styled.format({c: format_currency_br for c in existing_currency})
+
+    # 2. Format Percentage and Apply Risk Colors
+    if 'utilizacao_pct' in df.columns:
+        styled = styled.format({'utilizacao_pct': '{:.1f}%'})
+
+        def color_risk(val):
+            if pd.isna(val):
+                return ''
+            if val > 100:
+                return 'background-color: #ffcccc; color: #990000; font-weight: bold' # Light Red / Dark Red
+            elif val > 80:
+                return 'background-color: #fff4e5; color: #663c00' # Light Orange / Dark Orange
+            else:
+                return 'background-color: #e6f4ea; color: #1e4620' # Light Green / Dark Green
+
+        # map() is used for element-wise styling (formerly applymap)
+        styled = styled.map(color_risk, subset=['utilizacao_pct'])
+
+    # 3. Caption and Header Styles
+    styled = styled.set_caption("Painel de Risco Diário - Visualização Tabela")
+
+    cell_hover = {
+        'selector': 'td:hover',
+        'props': [('background-color', '#ffffb3')]
+    }
+    headers = {
+        'selector': 'th',
+        'props': [('background-color', '#f0f0f0'), ('color', '#333'), ('text-align', 'center'), ('font-weight', 'bold'), ('border-bottom', '2px solid #ccc')]
+    }
+    caption = {
+        'selector': 'caption',
+        'props': [('caption-side', 'top'), ('font-size', '16px'), ('font-weight', 'bold'), ('color', '#555'), ('padding', '10px')]
+    }
+
+    styled = styled.set_table_styles([headers, caption, cell_hover])
+    styled = styled.set_properties(**{'text-align': 'center', 'border': '1px solid #eee'})
+
+    return styled
+
 def display_risk_dashboard(df):
     W = 60
 
@@ -146,7 +198,7 @@ def display_risk_dashboard(df):
     print("\n")
 
 # Exibição do resultado para o relatório
-display(df_consolidado)
+display(style_risk_dataframe(df_consolidado))
 display_risk_dashboard(df_consolidado)
 
 # Lógica para "Call to Action":
