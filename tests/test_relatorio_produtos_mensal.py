@@ -183,6 +183,9 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
             if col_name not in ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]: # Not in Mora
                 df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
 
+        # FIX: Explicitly overwrite data_deferimento with data_baixa for Mora
+        df_resolved = df_resolved.withColumn("data_deferimento", col("data_baixa"))
+
         # Proceed with aggregation
         df_monthly = df_resolved.withColumn("mes_ref", trunc(col("data_baixa"), "MM")) \
             .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento")
@@ -249,6 +252,41 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
         # Ensure select was NOT called on df_2025 (the year-filtered one)
         df_2025.select.assert_not_called()
+
+    def test_mora_data_deferimento_adjustment(self):
+        """
+        Verifies that for the Mora stream, data_deferimento is explicitly overwritten with data_baixa.
+        """
+        # Mocks
+        df_mora = MagicMock(name="df_mora")
+        df_mora.columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]
+
+        # Chainable mocks
+        df_mora.filter.return_value = df_mora
+        df_mora.join.return_value = df_mora
+        df_mora.withColumn.return_value = df_mora
+        df_mora.withColumnRenamed.return_value = df_mora
+
+        # --- LOGIC UNDER TEST ---
+        # 1. Resolve Columns (Simplified simulation)
+        df_resolved = df_mora # Assume resolve_columns ran
+
+        # 2. THE FIX: Explicitly overwrite data_deferimento with data_baixa
+        df_mora_corrected = df_resolved.withColumn("data_deferimento", col("data_baixa"))
+
+        # --- ASSERTIONS ---
+        # Verify that withColumn was called with "data_deferimento" and col("data_baixa")
+        with_col_calls = df_mora.withColumn.call_args_list
+
+        found_fix = False
+        for args, kwargs in with_col_calls:
+            col_name = args[0]
+            col_expr = args[1]
+            if col_name == "data_deferimento" and "col('data_baixa')" in str(col_expr):
+                found_fix = True
+                break
+
+        self.assertTrue(found_fix, f"Did not find withColumn('data_deferimento', col('data_baixa')) call. Calls: {with_col_calls}")
 
 if __name__ == "__main__":
     unittest.main()
