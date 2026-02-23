@@ -168,7 +168,7 @@ if buscar_novos_meses:
 
         try:
             # Head request para checar existência sem baixar
-            response = requests.head(url_check)
+            response = requests.head(url_check, timeout=60)
             if response.status_code == 200:
                 print(f"ENCONTRADO: {p_ano}{p_mes}")
                 periodos_para_processar.append(f"{p_ano}{p_mes}")
@@ -214,14 +214,18 @@ else:
             os.makedirs(unzip_path, exist_ok=True)
 
             print(f"Baixando arquivo de {url}...")
-            response = requests.get(url)
+            # Usar stream=True para evitar carregar arquivo inteiro na memória (Memory Exhaustion)
+            # Adicionar timeout para evitar hanging indefinido (DoS)
+            response = requests.get(url, stream=True, timeout=60)
 
             if response.status_code != 200:
                 print(f"AVISO: Falha ao baixar o arquivo para {periodo}. Status code: {response.status_code}. Pulando...")
                 continue
 
             with open(download_path, "wb") as f:
-                f.write(response.content)
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
             print(f"Arquivo salvo em {download_path}")
 
             # --- 2. Descompactação ---
