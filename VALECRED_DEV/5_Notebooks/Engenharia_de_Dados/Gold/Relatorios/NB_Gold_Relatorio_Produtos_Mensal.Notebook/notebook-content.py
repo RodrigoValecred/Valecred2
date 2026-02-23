@@ -223,6 +223,9 @@ df_mora_joined = df_mora_filtered.join(df_map_ops, "cod_operacao", "left")
 # Resolver Ambiguidade e Colunas Faltantes (cod_cliente pode vir do map)
 df_mora_enrich = resolve_columns(df_mora_joined, granular_cols)
 
+# AJUSTE SOLICITADO: Para Mora, data_deferimento deve ser a data do pagamento (data_baixa)
+df_mora_enrich = df_mora_enrich.withColumn("data_deferimento", col("data_baixa"))
+
 # Calcular Atraso (Data Baixa - Data Vencimento)
 # Baixas tem data_baixa e data_vencimento
 df_mora_calc = df_mora_enrich \
