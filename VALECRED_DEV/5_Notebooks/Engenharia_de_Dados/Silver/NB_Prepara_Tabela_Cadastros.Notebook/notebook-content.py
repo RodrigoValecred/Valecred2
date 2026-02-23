@@ -81,6 +81,7 @@ def process_clientes():
             col("CODATIVIDADE").alias("cod_atividade")
         )
     df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_clientes_limpa")
+    return df_deduplicated_clientes
 
 def get_sigla_expr(col_name="nome_base"):
     # 1. Definir "Stopwords" (termos que não devem compor a sigla)
@@ -125,6 +126,7 @@ def process_cadastro_geral():
     # Validação rápida
     # df_cadastros_clean.show(5, truncate=False)
     df_cadastros_clean.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_cad_geral_pf_pj_limpa")
+    return df_cadastros_clean
 
 # METADATA ********************
 
@@ -149,6 +151,7 @@ def process_telefones():
         .select(col("CPFCNPJ").alias("cpf_cnpj"), col("FONE_COMPLETO").alias("fone"), col("CONTATO")).distinct() \
         .groupBy("cpf_cnpj").agg(concat_ws("; ", collect_list("fone")).alias("telefones"))
     df_telefones_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_telefones_agg")
+    return df_telefones_agg
 
 def process_emails():
     print("Processando Emails...")
@@ -157,6 +160,7 @@ def process_emails():
         .select(col("CPFCNPJ").alias("cpf_cnpj"), col("EMAIL").alias("email")).distinct() \
         .groupBy("cpf_cnpj").agg(concat_ws("; ", collect_list("email")).alias("emails"))
     df_emails_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_emails_agg")
+    return df_emails_agg
 
 def process_enderecos():
     print("Processando Endereços...")
@@ -186,6 +190,7 @@ def process_enderecos():
 
     df_enderecos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_enderecos_limpa")
     df_regioes.unpersist()
+    return df_enderecos_final
 
 # METADATA ********************
 
@@ -514,18 +519,18 @@ def process_pareceres_clientes_esteira():
 
 # CELL ********************
 
-def process_sacados_enriquecida():
+def process_sacados_enriquecida(df_geral=None, df_enderecos=None, df_emails=None, df_telefones=None):
     print("Processando Sacados Enriquecida...")
     # Distinct Sacados from Titulos
     df_titulos_sacados = spark.read.table(f"{source_lakehouse}.tab_titulos") \
         .filter(year(col("DATAINCLUSAO")) >= 2021) \
         .select(col("CPFCNPJSACADO").alias("cpf_cnpj")).distinct()
 
-    # Joins
-    df_geral = spark.read.table(f"{target_lakehouse}.staging_cad_geral_pf_pj_limpa")
-    df_enderecos = spark.read.table(f"{target_lakehouse}.staging_enderecos_limpa")
-    df_emails = spark.read.table(f"{target_lakehouse}.staging_emails_agg")
-    df_telefones = spark.read.table(f"{target_lakehouse}.staging_telefones_agg")
+    # Joins - Fallback to table read if DFs not provided
+    if df_geral is None: df_geral = spark.read.table(f"{target_lakehouse}.staging_cad_geral_pf_pj_limpa")
+    if df_enderecos is None: df_enderecos = spark.read.table(f"{target_lakehouse}.staging_enderecos_limpa")
+    if df_emails is None: df_emails = spark.read.table(f"{target_lakehouse}.staging_emails_agg")
+    if df_telefones is None: df_telefones = spark.read.table(f"{target_lakehouse}.staging_telefones_agg")
 
     df_sacados = df_titulos_sacados \
         .join(df_geral, "cpf_cnpj", "left") \
@@ -542,11 +547,13 @@ def process_sacados_enriquecida():
     df_sacados.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_sacados_enriquecida")
 
 # Execução
-process_clientes()
-process_cadastro_geral()
-process_telefones()
-process_emails()
-process_enderecos()
+# Captura DataFrames para reuso
+df_clientes = process_clientes()
+df_geral = process_cadastro_geral()
+df_telefones = process_telefones()
+df_emails = process_emails()
+df_enderecos = process_enderecos()
+
 process_contratos()
 process_bridge_cliente_gerente()
 process_limites()
@@ -556,7 +563,9 @@ process_plataformas()
 process_status_esteira()
 process_usuarios()
 process_pareceres_clientes_esteira()
-process_sacados_enriquecida()
+
+# Passa DataFrames em memória
+process_sacados_enriquecida(df_geral, df_enderecos, df_emails, df_telefones)
 
 print("Limpeza Silver - Cadastros finalizada.")
 mssparkutils.notebook.exit("Success")

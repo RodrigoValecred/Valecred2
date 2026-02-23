@@ -789,7 +789,7 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
     col("gestor_da_plataforma")
 ).dropDuplicates(["cod_operacao"])
 
-df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto)
+df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto).cache()
 output_path_fato_operacoes = TableNames.GOLD_FATO_OPERACOES
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
 print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
@@ -947,7 +947,7 @@ df_fato_titulos_final = df_ordem.select(
     col("spread"), 
     col("comissao_spread"),
     col("cod_cliente")
-)
+).cache()
 output_path_titulos_final = TableNames.GOLD_FATO_TITULOS
 df_fato_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
 print(f"Tabela 'fato_titulos' salva em: {output_path_titulos_final}")
@@ -1169,8 +1169,8 @@ df_info_gestor = df_bridge_atual \
 # 6.1: Métricas de Operações
 # --------------------------
 # Usamos df_fato_operacoes criada na Seção 2.1
-# Optimization: Read from Gold Table to break lineage and avoid recomputing joins
-df_ops_validas = spark.read.table("LH_Gold.fato_operacoes").filter(col("status_analise") == "D")
+# Optimization: Reuse cached DataFrame to avoid I/O and deserialization overhead
+df_ops_validas = df_fato_operacoes.filter(col("status_analise") == "D")
 
 # VOP por Dia da Semana (Top 1)
 df_vop_semana = df_ops_validas.withColumn("dia_semana", dayofweek("data_analise")) \
@@ -1201,8 +1201,8 @@ df_metrics_ops_final = df_metrics_ops.join(df_dia_semana_top, "cod_cliente", "le
 # Usamos df_fato_titulos_final criada na Seção 3.3
 # Join com Operações para pegar cod_cliente
 # OTIMIZAÇÃO: cod_cliente foi adicionado à fato_titulos na Seção 3.3, evitando este join.
-# Optimization: Read from Gold Table to break lineage
-df_titulos_cliente = spark.read.table("LH_Gold.fato_titulos")
+# Optimization: Reuse cached DataFrame to avoid I/O and deserialization overhead
+df_titulos_cliente = df_fato_titulos_final
 
 today_date = current_date()
 
@@ -1707,7 +1707,8 @@ df_final = calculate_funnel_dates(df_funnel) \
 
 # Optimization: Cache df_final before splitting to avoid recomputing the massive join DAG multiple times
 df_final.cache()
-print(f"Total de registros na dim_clientes (Intermediário): {df_final.count()}")
+# Removed expensive count() action to avoid unnecessary eager evaluation
+# print(f"Total de registros na dim_clientes (Intermediário): {df_final.count()}")
 
 # -------------------------------------------------------------
 # Refatoração: Separação da Tabela de Score de Clientes
@@ -1806,8 +1807,10 @@ print("\nIniciando cálculo do HHI da Carteira...")
 
 # Garantindo acesso aos DataFrames base (caso a execução não seja sequencial na sessão interativa)
 if "df_fato_titulos_final" not in locals():
+    # Fallback only if run interactively/out of order
     df_fato_titulos_final = spark.read.table(TableNames.GOLD_FATO_TITULOS)
 if "df_fato_operacoes" not in locals():
+    # Fallback only if run interactively/out of order
     df_fato_operacoes = spark.read.table(TableNames.GOLD_FATO_OPERACOES)
 
 # Join para obter cod_cliente para cada título

@@ -433,39 +433,20 @@ def process_pareceres_operacoes():
     # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
     placeholder = "__NEWLINE__"
 
-# Passo 1: Marcar quebras de linha (<br>, </p>, </div>, </li>, </tr>)
-    # Regex: (?i) flag for case-insensitive
-    # <br\s*/?> matches <br>, <br/>, <br />
-    df_step1 = df_joined.withColumn(
-        "obs_marked",
-        regexp_replace(col("parecer_original"), "(?i)<br\\s*/?>|</p>|</div>|</li>|</tr>", placeholder)
-    )
+    # Optimização: Encadeamento de transformações para reduzir nós no plano lógico e overhead
+    obs_col = col("parecer_original")
+    # 1. Marcar quebras de linha (<br>, </p>, </div>, </li>, </tr>) - Regex case-insensitive
+    obs_col = regexp_replace(obs_col, "(?i)<br\\s*/?>|</p>|</div>|</li>|</tr>", placeholder)
+    # 2. Remover TODAS as tags HTML restantes
+    obs_col = regexp_replace(obs_col, "<[^>]+>", " ")
+    # 3. Decodificar caracteres especiais (Pandas UDF)
+    obs_col = unescape_udf(obs_col)
+    # 4. Normalizar espaços (Squash spaces)
+    obs_col = regexp_replace(obs_col, "\\s+", " ")
+    # 5. Restaurar quebras de linha (substituir placeholder por \n) e trim
+    obs_col = trim(regexp_replace(obs_col, placeholder, "\n"))
 
-# Passo 2: Remover TODAS as tags HTML restantes
-    df_step2 = df_step1.withColumn(
-        "obs_no_tags",
-        regexp_replace(col("obs_marked"), "<[^>]+>", " ")
-    )
-
-# Passo 3: Decodificar caracteres especiais
-    df_step3 = df_step2.withColumn(
-        "obs_decoded",
-        unescape_udf(col("obs_no_tags"))
-    )
-
-# Passo 4: Normalizar espaços
-    # Substituir múltiplos espaços horizontais (tab, space, newline) por um único espaço
-    # (Incluindo newlines originais, pois no HTML newlines geralmente são renderizados como espaço)
-    df_step4 = df_step3.withColumn(
-        "obs_squashed",
-        regexp_replace(col("obs_decoded"), "\\s+", " ")
-    )
-
-# Passo 5: Restaurar quebras de linha (substituir placeholder por \n)
-    df_cleaned = df_step4.withColumn(
-        "Parecer", 
-        trim(regexp_replace(col("obs_squashed"), placeholder, "\n"))
-    )
+    df_cleaned = df_joined.withColumn("Parecer", obs_col)
 
 # --- LÓGICA DE FLAGS (Aplicada já no texto limpo) ---
     # Dica: Use (?i) no rlike para ignorar maiúscula/minúscula (case insensitive)
@@ -474,8 +455,7 @@ def process_pareceres_operacoes():
         .withColumn("ALCADA_SPENCER", when(col("Parecer").rlike("(?i)SPENCER"), "sim").otherwise("não")) \
         .withColumn("ALCADA_CAIO", when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não")) \
         .withColumn("ALCADA_DAIANE", when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não")) \
-        .withColumn("IS_LIMITE_PLUS", when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO")) \
-        .drop("obs_marked", "obs_no_tags", "obs_decoded", "obs_squashed") # Remove colunas temporárias (Mantendo parecer_original)
+        .withColumn("IS_LIMITE_PLUS", when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO"))
 
     # Gravação
     df_final_pareceres.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_pareceres_operacoes")
