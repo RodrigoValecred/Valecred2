@@ -110,6 +110,14 @@ def transform_esteira_dates(df_esteira, status_mapping):
 
     return df_max, df_min
 
+def deduplicate_clientes_staging(df_base_raw):
+    """
+    Deduplicates customer staging data by CPF/CNPJ, keeping the most recent record
+    based on 'data_inclusao' and 'cod_cliente'.
+    """
+    w_dedup = Window.partitionBy("cpf_cnpj").orderBy(col("data_inclusao").desc(), col("cod_cliente").desc())
+    return df_base_raw.withColumn("rn", row_number().over(w_dedup)).filter(col("rn") == 1).drop("rn")
+
 # METADATA ********************
 
 # META {
@@ -1438,16 +1446,8 @@ df_base_raw = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclus
 # Verificação e Remoção de Duplicados (CNPJ)
 # Objetivo: Garantir que a dim_clientes tenha chave única por CPF/CNPJ.
 # Regra: Se houver duplicidade, mantemos o cadastro com data_inclusao mais recente (ou cod_cliente maior).
-df_dupes = df_base_raw.groupBy("cpf_cnpj").count().filter(col("count") > 1)
-n_dupes = df_dupes.count()
-
-if n_dupes > 0:
-    print(f"AVISO: Detectados {n_dupes} CNPJs duplicados em staging_clientes. Aplicando desduplicação (mantendo o registro mais recente).")
-    w_dedup = Window.partitionBy("cpf_cnpj").orderBy(col("data_inclusao").desc(), col("cod_cliente").desc())
-    df_base = df_base_raw.withColumn("rn", row_number().over(w_dedup)).filter(col("rn") == 1).drop("rn")
-else:
-    print("Nenhum CNPJ duplicado detectado na base de clientes.")
-    df_base = df_base_raw
+# Optimization: Always apply deduplication to avoid expensive count() action.
+df_base = deduplicate_clientes_staging(df_base_raw)
 
 # Prepare Esteira Min Dates for Funnel (Joining back to main flow)
 # Renaming for clarity

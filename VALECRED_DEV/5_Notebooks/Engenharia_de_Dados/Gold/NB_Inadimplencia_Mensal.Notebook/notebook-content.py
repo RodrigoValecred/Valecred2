@@ -25,7 +25,7 @@
 
 # CELL ********************
 
-from pyspark.sql.functions import col, lit, explode, sequence, to_date, last_day, when, sum as _sum, months_between, expr
+from pyspark.sql.functions import col, lit, explode, sequence, to_date, last_day, when, sum as _sum, months_between, expr, broadcast
 
 # METADATA ********************
 
@@ -93,31 +93,15 @@ df_titulos_enrich = df_titulos.join(
 
 # CELL ********************
 
-# 4. Cross Join com Calendário (Multiplica Títulos x Meses)
-df_historico_base = df_titulos_enrich.crossJoin(df_calendario)
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# 5. O Filtro de "Existência" (Agora usando DATAACEITE)
-df_calculo_status = df_historico_base.filter(
-    # O título só "existe" no gráfico se a operação já tinha sido aceita naquela data
-    col("data_analise") <= col("DATA_CORTE")
-).withColumn(
-    # Verifica se estava ABERTO na data do corte
-    # Regra: Não foi liquidado OU foi liquidado DEPOIS da data de corte
-    "IS_ABERTO_NA_DATA",
-    when(
-        (col("liquidacao").isNull()) | (col("liquidacao") > col("DATA_CORTE")), 
-        lit(1)
-    ).otherwise(lit(0))
-).filter(col("IS_ABERTO_NA_DATA") == 1) # Mantém apenas a carteira ativa da época
+# 4. Join com Calendário (Otimizado com Broadcast e Condição)
+# Substitui Cross Join + Filter por Join Condicional
+# ⚡ Bolt Optimization: Use Broadcast Join with conditions instead of CrossJoin + Filter
+df_calculo_status = df_titulos_enrich.join(
+    broadcast(df_calendario),
+    (col("data_analise") <= col("DATA_CORTE")) &
+    ((col("liquidacao").isNull()) | (col("liquidacao") > col("DATA_CORTE"))),
+    "inner"
+).withColumn("IS_ABERTO_NA_DATA", lit(1))
 
 # METADATA ********************
 
