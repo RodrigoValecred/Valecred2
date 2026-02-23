@@ -33,10 +33,27 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         # Mock display
         self.mock_display = MagicMock()
 
+        # Mock Colors class
+        class MockColors:
+            HEADER = ''
+            BLUE = ''
+            CYAN = ''
+            GREEN = ''
+            YELLOW = ''
+            RED = ''
+            RESET = ''
+            BOLD = ''
+
+        # Mock draw_risk_meter
+        def mock_draw_risk_meter(score, width=30):
+            return f"[RISK METER: {score:.2f}]"
+
         self.context = {
             'col': self.mock_col,
             'display': self.mock_display,
-            'pd': pd
+            'pd': pd,
+            'Colors': MockColors,
+            'draw_risk_meter': mock_draw_risk_meter
         }
 
     def load_function(self, func_name):
