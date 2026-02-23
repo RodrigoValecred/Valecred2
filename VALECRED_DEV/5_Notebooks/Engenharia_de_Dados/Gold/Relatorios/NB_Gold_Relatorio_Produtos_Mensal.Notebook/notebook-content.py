@@ -34,7 +34,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.functions import (
-    col, sum, avg, count, max, min, lit, when, round, coalesce, year, month, trunc, datediff, to_date, concat, broadcast
+    col, sum, avg, count, max, min, lit, when, round, coalesce, year, month, trunc, datediff, to_date, concat, broadcast, trim
 )
 from notebookutils import mssparkutils
 
@@ -117,7 +117,11 @@ def resolve_columns(df, target_cols):
         if col_name in df.columns:
             # Se existe (ex: nbordero na fato prorrogacao), usamos coalesce para garantir preenchimento caso nulo,
             # mas priorizando o valor do evento.
-            df_resolved = df_resolved.withColumn(col_name, coalesce(col(col_name), col(col_op)))
+
+            # FIX: Tratar string vazia como nulo para evitar buracos no relatório quando a tabela fato tem a coluna mas ela está vazia
+            col_target = when(trim(col(col_name)) == "", None).otherwise(col(col_name))
+
+            df_resolved = df_resolved.withColumn(col_name, coalesce(col_target, col(col_op)))
         elif col_op in df.columns:
             # Se não existe na fato, pegamos do map (op)
             df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
