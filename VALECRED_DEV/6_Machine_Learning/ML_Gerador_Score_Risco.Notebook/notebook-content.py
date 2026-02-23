@@ -117,6 +117,39 @@ print("Tabela mestra criada.")
 
 # CELL ********************
 
+class Colors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+
+def draw_risk_meter(score, width=30):
+    """Draws an ASCII risk meter."""
+    # Handle NaN (Not a Number)
+    if score != score:
+        return f"{Colors.YELLOW}[DADOS INSUFICIENTES]{Colors.RESET}"
+
+    score = max(0, min(1, score)) # Clamp between 0 and 1
+    filled_len = int(width * score)
+
+    # Determine color based on score
+    if score < 0.15:
+        color = Colors.GREEN
+        icon = "✅"
+    elif score < 0.40:
+        color = Colors.YELLOW
+        icon = "⚠️"
+    else:
+        color = Colors.RED
+        icon = "🚨"
+
+    bar = color + '█' * filled_len + Colors.RESET + '░' * (width - filled_len)
+    return f"[{bar}] {color}{score:.2f}{Colors.RESET} {icon}"
+
 def calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_features):
     """Calcula o score de risco para os títulos em aberto de um cliente.
 
@@ -172,37 +205,47 @@ def exibir_analise_risco(df_cliente_pandas, cpf_cnpj):
     """
     score_medio = df_cliente_pandas['SCORE_RISCO'].mean()
 
-    print("\n--- RESULTADO DA ANÁLISE DE RISCO ---")
-    print(f"Cliente: {cpf_cnpj}")
-    print(f"Score de Risco Médio (0 a 1): {score_medio:.2f}")
+    print(f"\n{Colors.BOLD}{Colors.CYAN}--- RESULTADO DA ANÁLISE DE RISCO ---{Colors.RESET}")
+    print(f"{Colors.BOLD}Cliente:{Colors.RESET} {cpf_cnpj}")
+    print(f"{Colors.BOLD}Score de Risco Médio:{Colors.RESET} {draw_risk_meter(score_medio)}")
     print(f"Total de Títulos em Aberto Analisados: {len(df_cliente_pandas)}")
 
     # 4. Gerar Alertas (Análise Simplificada de Contribuição)
-    print("\n--- Principais Fatores de Risco ---")
+    print(f"\n{Colors.BOLD}{Colors.CYAN}--- Principais Fatores de Risco ---{Colors.RESET}")
 
     # Análise de features categóricas de alto risco
     if 'CODRATING_CEDENTE' in df_cliente_pandas.columns:
         rating = df_cliente_pandas['CODRATING_CEDENTE'].mode()[0]
         # Supondo que ratings piores são letras maiores (C, D, E...)
         if rating > 'B':
-            print(f"- ALERTA: O rating predominante do cliente é '{rating}', considerado de alto risco.")
+            print(f"- {Colors.RED}ALERTA:{Colors.RESET} O rating predominante do cliente é '{rating}', considerado de alto risco.")
 
     # Análise de features numéricas
     if 'PRAZO' in df_cliente_pandas.columns and df_cliente_pandas['PRAZO'].mean() > 90:
-        print(f"- ATENÇÃO: O prazo médio dos títulos ({df_cliente_pandas['PRAZO'].mean():.0f} dias) é elevado.")
+        print(f"- {Colors.YELLOW}ATENÇÃO:{Colors.RESET} O prazo médio dos títulos ({df_cliente_pandas['PRAZO'].mean():.0f} dias) é elevado.")
 
     if 'VALOR' in df_cliente_pandas.columns and df_cliente_pandas['VALOR'].mean() > 10000:
         print(f"- INFORMATIVO: O valor médio dos títulos é alto (R$ {df_cliente_pandas['VALOR'].mean():,.2f}).")
 
     if score_medio < 0.15:
-        print("\nConclusão: Risco Baixo. O cliente apresenta um perfil de crédito saudável.")
+        print(f"\nConclusão: {Colors.GREEN}Risco Baixo.{Colors.RESET} O cliente apresenta um perfil de crédito saudável.")
     elif score_medio < 0.40:
-        print("\nConclusão: Risco Moderado. Recomenda-se monitoramento.")
+        print(f"\nConclusão: {Colors.YELLOW}Risco Moderado.{Colors.RESET} Recomenda-se monitoramento.")
     else:
-        print("\nConclusão: Risco Alto. Ações preventivas são recomendadas.")
+        print(f"\nConclusão: {Colors.RED}Risco Alto.{Colors.RESET} Ações preventivas são recomendadas.")
 
-    print("\n--- Detalhes dos Títulos ---")
-    display(df_cliente_pandas[['CODTITULO', 'VALOR', 'VENCIMENTO', 'SCORE_RISCO']])
+    print(f"\n{Colors.BOLD}{Colors.CYAN}--- Detalhes dos Títulos (Mapa de Calor) ---{Colors.RESET}")
+
+    # Aplica gradiente de cor na coluna SCORE_RISCO
+    # RdYlGn_r: Verde (Baixo/0) -> Amarelo -> Vermelho (Alto/1)
+    styled_df = df_cliente_pandas[['CODTITULO', 'VALOR', 'VENCIMENTO', 'SCORE_RISCO']].style.background_gradient(
+        subset=['SCORE_RISCO'],
+        cmap='RdYlGn_r',
+        vmin=0,
+        vmax=1
+    ).format({'SCORE_RISCO': "{:.2f}", 'VALOR': "R$ {:,.2f}"})
+
+    display(styled_df)
 
 
 def gerar_score_e_alertas(cpf_cnpj, df_mestra_spark, model_pipeline, model_features):
