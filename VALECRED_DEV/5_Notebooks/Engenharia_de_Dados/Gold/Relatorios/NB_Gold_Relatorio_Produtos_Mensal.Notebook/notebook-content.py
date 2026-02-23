@@ -185,6 +185,11 @@ df_prorrog_joined = df_prorrog_filtered.join(df_map_ops, "cod_operacao", "left")
 # Resolver Ambiguidade de Colunas (nbordero, plataforma, etc.)
 df_prorrog_enrich = resolve_columns(df_prorrog_joined, granular_cols)
 
+# FIX: Fallback de Atributos Faltantes (Data, Plataforma)
+df_prorrog_enrich = df_prorrog_enrich \
+    .withColumn("data_deferimento", coalesce(col("data_deferimento"), to_date(col("data_inclusao")))) \
+    .withColumn("nome_plataforma", coalesce(col("nome_plataforma"), lit("N/D")))
+
 # Calcular Peso do Prazo (Valor * Dias Prorrogados)
 df_prorrog_calc = df_prorrog_enrich.withColumn("valor_vezes_dias", col("valor") * col("dias_prorrogados"))
 
