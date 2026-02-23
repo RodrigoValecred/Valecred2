@@ -40,7 +40,32 @@ df_subtipos  = spark.table("LH_Bronze.tab_subtipooperacao") # Tabela Auxiliar
 # 2. SELEÇÃO E DISTINCT (A base dos produtos únicos)
 # ==============================================================================
 # Equivalente ao Table.SelectColumns e Table.Distinct do M
-df_base = df_operacoes.select("TTO", "STTO").distinct()
+# ORIGINAL (FILTRO IMPLÍCITO): df_base = df_operacoes.select("TTO", "STTO").distinct()
+
+# NOVO (TODOS OS PRODUTOS CADASTRADOS):
+# 1. Produtos usados (Histórico) - Garantindo String
+df_base_ops = df_operacoes.select(F.col("TTO").cast("string"), F.col("STTO").cast("string"))
+
+# 2. Todos os Tipos (Sem Subtipo)
+# Cast explícito para string no None para garantir compatibilidade no Union
+df_all_types = df_tipos.select(F.col("CODTTO").cast("string").alias("TTO"), F.lit(None).cast("string").alias("STTO"))
+
+# 3. Todos os Subtipos (Se houver vínculo CODTTO na tabela de subtipos)
+# Verificação dinâmica de coluna para evitar quebra se o schema mudar
+has_codtto = "CODTTO" in [c.upper() for c in df_subtipos.columns]
+
+if has_codtto:
+    print("Link CODTTO encontrado em tab_subtipooperacao. Incluindo subtipos cadastrados...")
+    df_all_subtypes = df_subtipos.select(F.col("CODTTO").cast("string").alias("TTO"), F.col("CODSTTO").cast("string").alias("STTO"))
+
+    # Union All dos 3 Dataframes
+    df_base = df_base_ops.unionByName(df_all_types).unionByName(df_all_subtypes).distinct()
+else:
+    print("Link CODTTO NÃO encontrado em tab_subtipooperacao. Incluindo apenas Tipos cadastrados...")
+
+    # Union All dos 2 Dataframes
+    df_base = df_base_ops.unionByName(df_all_types).distinct()
+
 # df_base.show(5)
 # ==============================================================================
 # 3. JOINS (Enriquecimento com as descrições)
