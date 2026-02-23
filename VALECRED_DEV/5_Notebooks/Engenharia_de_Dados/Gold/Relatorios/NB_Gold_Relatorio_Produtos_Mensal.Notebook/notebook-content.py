@@ -204,8 +204,8 @@ df_stream_prorrog = df_prorrog_calc \
                 when(col("total_valor_dias_mes") > 0,
                      (col("receita") / (col("total_valor_dias_mes") / 30)) * 100
                 ).otherwise(0)) \
-    .withColumnRenamed("chave_produto", "sub_tipo_produto") \
-    .drop("total_valor_dias_mes")
+    .withColumn("sub_tipo_produto", lit("PR")) \
+    .drop("chave_produto", "total_valor_dias_mes")
 
 # -------------------------------------------------------------------------
 # STREAM 3: MORA (Juros Pagos no Mês)
