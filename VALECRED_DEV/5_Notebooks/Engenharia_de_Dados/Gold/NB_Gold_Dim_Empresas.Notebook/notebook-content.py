@@ -86,7 +86,7 @@ df_joined = df_empresas_clean.alias("e").join(
 # Join com tabela de apelidos para substituir a lógica complexa de derivação
 df_joined_final = df_joined.join(
     df_apelidos.alias("a"),
-    col("c.nome") == col("a.nome"),
+    col("e.cod_empresa") == col("a.cod_empresa"),
     "left"
 )
 
@@ -103,7 +103,7 @@ df_final = df_joined_final \
         col("e.cnpj"),
         col("e.cod_empresa"),
         col("c.nome").alias("nome_original"),
-        col("a.apelido").alias("empresa"),
+        col("a.apelido_empresa").alias("empresa"),
         col("TIPO")
     )
 
