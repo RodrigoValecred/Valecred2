@@ -225,8 +225,14 @@ df_mora_enrich = resolve_columns(df_mora_joined, granular_cols)
 
 # Calcular Atraso (Data Baixa - Data Vencimento)
 # Baixas tem data_baixa e data_vencimento
+# FIX: Verificar datas nulas ou inválidas (ex: ano 0001) para evitar prazos gigantes
 df_mora_calc = df_mora_enrich \
-    .withColumn("dias_atraso", datediff(col("data_baixa"), col("data_vencimento"))) \
+    .withColumn("dias_atraso",
+                when(col("data_baixa").isNull() | col("data_vencimento").isNull(), 0)
+                .when(year(col("data_baixa")) < 1900, 0)
+                .when(year(col("data_vencimento")) < 1900, 0)
+                .otherwise(datediff(col("data_baixa"), col("data_vencimento")))
+    ) \
     .withColumn("valor_vezes_atraso", col("valor_pago") * col("dias_atraso"))
 
 df_stream_mora = df_mora_calc \
