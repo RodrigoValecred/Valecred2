@@ -74,6 +74,46 @@ def format_currency_br(value):
     """Formats float to Brazilian currency string (R$ 1.234,56)."""
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
+def style_risk_dataframe(df):
+    """
+    Applies visual styling to the risk dataframe for better readability.
+    - Formats currency columns
+    - Color codes utilization percentage
+    """
+    styler = df.style
+
+    # 1. Format Currency Columns
+    currency_cols = ['valor_risco', 'limite_global', 'excesso_valor']
+    existing_cols = [c for c in currency_cols if c in df.columns]
+
+    format_dict = {c: format_currency_br for c in existing_cols}
+    format_dict['utilizacao_pct'] = "{:.2f}%"
+
+    styler = styler.format(format_dict)
+
+    # 2. Color Code 'utilizacao_pct'
+    def color_utilization(val):
+        color = 'white'
+        if pd.isna(val) or np.isinf(val):
+             color = 'white'
+        elif val > 100:
+            color = '#ffcccc' # Light Red
+        elif val > 80:
+            color = '#fff4cc' # Light Yellow
+        else:
+            color = '#ccffcc' # Light Green
+        return f'background-color: {color}; color: black'
+
+    if 'utilizacao_pct' in df.columns:
+        # Use map (Pandas 1.3+) or applymap (older)
+        if hasattr(styler, 'map'):
+            styler = styler.map(color_utilization, subset=['utilizacao_pct'])
+        else:
+            styler = styler.applymap(color_utilization, subset=['utilizacao_pct'])
+
+    styler = styler.set_caption("Relatório Diário de Risco - Detalhado")
+    return styler
+
 def display_risk_dashboard(df):
     W = 60
 
@@ -146,7 +186,7 @@ def display_risk_dashboard(df):
     print("\n")
 
 # Exibição do resultado para o relatório
-display(df_consolidado)
+display(style_risk_dataframe(df_consolidado))
 display_risk_dashboard(df_consolidado)
 
 # Lógica para "Call to Action":
