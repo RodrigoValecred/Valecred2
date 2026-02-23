@@ -971,7 +971,15 @@ df_prorrogacao_silver = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_PRO
 # Leitura das tabelas auxiliares (Silver/Gold) já carregadas no início (df_titulos_limpa, df_operacoes_limpa)
 # Mas garantindo a seleção correta
 df_titulos_join = df_titulos_limpa.select(col("cod_titulo"), col("valor").alias("VALOR_TITULO"))
-df_operacoes_join = df_operacoes_limpa.select(col("cod_operacao"), col("cod_cliente"), col("status_analise").alias("status_analise"), col("status_aceite").alias("status_aceite"), col("nbordero"))
+# PREPARAÇÃO PARA JOIN DE OPERAÇÕES (Evitando Duplicidade de Colunas)
+# Identificamos colunas que já existem na origem (prorrogação) para não duplicar no join
+cols_origem = df_prorrogacao_silver.columns
+cols_desejadas_ops = ["cod_cliente", "status_analise", "status_aceite", "nbordero"]
+
+# Selecionamos apenas as colunas que AINDA NÃO EXISTEM na origem (exceto a chave cod_operacao)
+cols_to_select = ["cod_operacao"] + [c for c in cols_desejadas_ops if c not in cols_origem]
+
+df_operacoes_join = df_operacoes_limpa.select(*[col(c) for c in cols_to_select])
 
 # Join
 # Etapa 2: Mesclar dados de títulos
