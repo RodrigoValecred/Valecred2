@@ -51,6 +51,40 @@ from pyspark.sql.types import StructType, StructField, StringType, LongType, Tim
 from functools import reduce
 from notebookutils import mssparkutils
 import datetime
+from delta.tables import DeltaTable
+
+def check_should_skip(spark, source_table, target_table_path, watermark_col="data_inclusao", target_watermark_col=None):
+    try:
+        if target_watermark_col is None:
+            target_watermark_col = watermark_col
+
+        if not DeltaTable.isDeltaTable(spark, target_table_path):
+            return False # Target doesn't exist, proceed
+
+        # Check source max
+        df_source = spark.read.table(source_table)
+        cols_source = [c.lower() for c in df_source.columns]
+        if watermark_col.lower() not in cols_source:
+             return False # Cannot check, proceed
+
+        actual_col_source = [c for c in df_source.columns if c.lower() == watermark_col.lower()][0]
+        max_source = df_source.agg(max(col(actual_col_source))).collect()[0][0]
+
+        # Check target max
+        df_target = spark.read.format("delta").load(target_table_path)
+        cols_target = [c.lower() for c in df_target.columns]
+        if target_watermark_col.lower() not in cols_target:
+             return False # Cannot check, proceed
+
+        actual_col_target = [c for c in df_target.columns if c.lower() == target_watermark_col.lower()][0]
+        max_target = df_target.agg(max(col(actual_col_target))).collect()[0][0]
+
+        if max_source and max_target and max_source <= max_target:
+            return True # Source is not newer than target
+        return False
+    except Exception as e:
+        print(f"Warning in check_should_skip: {e}")
+        return False
 
 source_lakehouse = "LH_Bronze"
 target_lakehouse = "LH_Silver"
@@ -70,7 +104,14 @@ target_lakehouse = "LH_Silver"
 
 def process_clientes():
     print("Processando Clientes...")
-    df_bronze_clientes = spark.read.table(f"{source_lakehouse}.cad_clientes")
+    source_table = f"{source_lakehouse}.cad_clientes"
+    target_path = f"{target_lakehouse}.staging_clientes_limpa"
+
+    if check_should_skip(spark, source_table, target_path, "DATAINCLUSAO", "data_inclusao"):
+        print("Skipping Clientes (No new data)")
+        return spark.read.format("delta").load(target_path)
+
+    df_bronze_clientes = spark.read.table(source_table)
     windowSpec_clientes = Window.partitionBy("CODCLIENTE").orderBy(col("DATAALTERACAO").desc())
     df_deduplicated_clientes = df_bronze_clientes.withColumn("row_num", row_number().over(windowSpec_clientes)) \
         .filter(col("row_num") == 1).drop("row_num") \
@@ -232,7 +273,14 @@ def process_bridge_cliente_gerente():
 
 def process_limites():
     print("Processando Limites...")
-    df_bronze_limites = spark.read.table(f"{source_lakehouse}.rlc_clientes_sacados_limites")
+    source_table = f"{source_lakehouse}.rlc_clientes_sacados_limites"
+    target_path = f"{target_lakehouse}.staging_rlc_clientes_sacados_limites"
+
+    if check_should_skip(spark, source_table, target_path, "DATAINCLUSAO", "data_inclusao"):
+        print("Skipping Limites (No new data)")
+        return
+
+    df_bronze_limites = spark.read.table(source_table)
     df_transformed_limites = df_bronze_limites \
         .withColumn("tipo", regexp_replace(col("TIPO"), "^I$", "INTERCIA")) \
         .withColumn("tipo_documento_sacado", when(length(col("CPFCNPJ")) == 11, "CPF").when(length(col("CPFCNPJ")) == 14, "CNPJ").otherwise("Inválido")) \
