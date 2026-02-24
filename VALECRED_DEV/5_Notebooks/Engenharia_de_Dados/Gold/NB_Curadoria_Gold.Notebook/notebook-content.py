@@ -459,8 +459,9 @@ df_first_op = df_operacoes_limpa.filter(col("status_aceite") == 'A') \
     .groupBy("cod_cliente").agg(min("data_analise").alias("data_primeira_operacao_calc"))
 
 # PRE-CALCULO: Taxa Cadastro do Cliente (do Contrato Ativo)
+# ⚡ Bolt Optimization: Cache this dataframe to reuse it later (in Section 6.5) avoiding a redundant scan.
 df_client_rate = df_contratos.filter(col("status") == 'A') \
-    .groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro_cliente"))
+    .groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro_cliente")).cache()
 
 # PRE-CALCULO: Gerente Enriquecido (Nome e Comissão)
 # df_gerentes tem cod_broker, cod_usuario, taxa_comissao (added in Silver Prep)
@@ -1475,7 +1476,15 @@ df_esteira_min_prep = df_esteira_min_renamed.withColumnRenamed("cod_cliente", "c
 # Join Chain
 
 # Taxa Cadastro (Power BI Requirement)
-df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
+# ⚡ Bolt Optimization: Reuse cached df_client_rate from Section 1.2 to avoid scanning df_contratos again.
+if "df_client_rate" in locals():
+    df_client_rate_gold = df_client_rate.select(
+        col("cod_cliente").alias("cod_cliente_rate"),
+        col("taxa_cadastro_cliente").alias("taxa_cadastro")
+    )
+else:
+    # Fallback if run interactively out of order
+    df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
 
 def join_cliente_dimensions(
     df_base,
