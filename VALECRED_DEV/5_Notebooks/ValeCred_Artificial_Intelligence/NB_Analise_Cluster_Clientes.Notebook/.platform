@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "NB_Analise_Cluster_Clientes"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "8705ab41-4499-4f06-9e29-f4fa6a3dea2d"
+  }
+}
