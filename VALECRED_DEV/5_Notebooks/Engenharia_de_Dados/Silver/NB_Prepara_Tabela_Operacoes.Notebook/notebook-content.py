@@ -132,6 +132,9 @@ def get_operacoes_schema(df):
     )
 
 def transform_operacoes(df, key_columns_operacoes):
+    # Exclusion of specific bordero requested by user
+    df = df.filter(col("NBORDERO") != 6043702)
+
     df_corrigido = df.withColumn("TTO_corrigido", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
 
     windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
@@ -144,6 +147,10 @@ def transform_operacoes(df, key_columns_operacoes):
 def process_incremental_operacoes(source_table, output_path, key_columns_operacoes):
     print("Modo Incremental: Operações")
     delta_table_ops = DeltaTable.forPath(spark, output_path)
+
+    # 0. Data Patch: Remove excluded bordero 6043702 if present
+    print("Aplicando correções de dados (Exclusões)...")
+    delta_table_ops.delete("nbordero = 6043702")
 
     # 1. Watermark
     watermark_row = spark.read.format("delta").load(output_path) \
