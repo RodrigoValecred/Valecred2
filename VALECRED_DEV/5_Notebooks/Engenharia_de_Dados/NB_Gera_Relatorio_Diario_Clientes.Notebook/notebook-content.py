@@ -140,6 +140,9 @@ def display_risk_dashboard(df):
         limite = row['limite_global']
         excesso = row.get('excesso_valor', 0)
 
+        # Calculate Available
+        disponivel = max(0, limite - risco)
+
         # Progress Bar Logic (V3)
         bar_length = 25
         color = Colors.RESET
@@ -175,8 +178,11 @@ def display_risk_dashboard(df):
         print(f"    Risco:      {format_currency_br(risco):>15}")
         print(f"    Limite:     {format_currency_br(limite):>15}")
 
-        if not (pd.isna(utilizacao) or np.isinf(utilizacao)) and utilizacao > 100:
-             print(f"    {Colors.BOLD}{Colors.RED}🔥 EXCESSO: {format_currency_br(excesso):>15}{Colors.RESET}")
+        if not (pd.isna(utilizacao) or np.isinf(utilizacao)):
+            if utilizacao > 100:
+                print(f"    {Colors.BOLD}{Colors.RED}🔥 EXCESSO: {format_currency_br(excesso):>15}{Colors.RESET}")
+            else:
+                print(f"    {Colors.GREEN}Disponível: {format_currency_br(disponivel):>15}{Colors.RESET}")
 
         # Separator
         if i < total_rows - 1:
