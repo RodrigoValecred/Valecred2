@@ -53,13 +53,16 @@ print("Iniciando Relatório de Produtos Mensal...")
 print("Carregando tabelas Fato e Dimensão...")
 
 # Dimensão Clientes
+# FIX: Incluindo nome_gerente para reportar gestor
 df_clientes = spark.read.table("LH_Gold.dim_clientes") \
-    .select("cod_cliente", "nome", "grupo_economico") \
+    .select("cod_cliente", "nome", "grupo_economico", "nome_gerente") \
     .dropDuplicates(["cod_cliente"])
 
-# Fato Operações
-# Incluindo colunas de detalhamento: nbordero, nome_plataforma, chave_produto, data_deferimento
-df_ops_full = spark.read.table("LH_Gold.fato_operacoes") \
+# Fato Operações (Raw para Mapping Completo)
+df_ops_raw = spark.read.table("LH_Gold.fato_operacoes")
+
+# Fato Operações Filtrada (Para Stream de Operações - Apenas Aceitas/Deferidas)
+df_ops_full = df_ops_raw \
     .filter(col("status_aceite") == "A") \
     .filter(col("status_analise") == "D")
 
@@ -94,8 +97,8 @@ print("Dados carregados.")
 # OBS: Renomeamos colunas com sufixo '_op' para evitar Ambiguidade no join, pois tabelas Fato downstream podem conter
 # colunas com mesmo nome (ex: nbordero, chave_produto, cod_cliente).
 # Incluimos cod_cliente_op para casos onde a tabela Fato de origem não tem cod_cliente (ex: fato_baixas).
-# FIX: Usamos df_ops_full (sem filtro de ano) para garantir que Prorrogacoes/Mora de ops antigas sejam mapeadas.
-df_map_ops = df_ops_full.select(
+# FIX: Usamos df_ops_raw (sem filtro de status/ano) para garantir que Prorrogacoes/Mora de ops antigas ou com status diversos sejam mapeadas.
+df_map_ops = df_ops_raw.select(
     col("cod_operacao"),
     col("nbordero").alias("nbordero_op"),
     col("nome_plataforma").alias("nome_plataforma_op"),
@@ -291,6 +294,7 @@ df_final = df_union.join(df_clientes, "cod_cliente", "left") \
         col("cod_cliente"),
         coalesce(col("nome"), concat(lit("CLIENTE "), col("cod_cliente"))).alias("nome_cliente"),
         col("grupo_economico"),
+        col("nome_gerente"),
         col("cod_operacao"),
         col("nbordero"),
         col("sub_tipo_produto"),
