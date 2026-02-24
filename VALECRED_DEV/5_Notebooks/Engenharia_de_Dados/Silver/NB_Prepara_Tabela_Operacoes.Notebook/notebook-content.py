@@ -83,6 +83,45 @@ def check_is_incremental(spark, output_path, required_col):
              print(f"Error checking delta table schema for {output_path}. Forcing Full Load.")
     return False
 
+def check_should_skip(spark, source_table, target_table_path, watermark_col="data_inclusao", target_watermark_col=None):
+    try:
+        if FULL_LOAD:
+            return False
+
+        if target_watermark_col is None:
+            target_watermark_col = watermark_col
+
+        if not DeltaTable.isDeltaTable(spark, target_table_path):
+            return False # Target doesn't exist, proceed
+
+        # Check source max
+        df_source = spark.read.table(source_table)
+        cols_source = [c.lower() for c in df_source.columns]
+        if watermark_col.lower() not in cols_source:
+             return False # Cannot check, proceed
+
+        actual_col_source = [c for c in df_source.columns if c.lower() == watermark_col.lower()][0]
+        max_source = df_source.agg(max(col(actual_col_source))).collect()[0][0]
+
+        # Check target max
+        df_target = spark.read.format("delta").load(target_table_path)
+        cols_target = [c.lower() for c in df_target.columns]
+        if target_watermark_col.lower() not in cols_target:
+             return False # Cannot check, proceed
+
+        actual_col_target = [c for c in df_target.columns if c.lower() == target_watermark_col.lower()][0]
+        max_target = df_target.agg(max(col(actual_col_target))).collect()[0][0]
+
+        # Debug
+        # print(f"Check Skip {source_table} -> {target_table_path}: Source Max {max_source}, Target Max {max_target}")
+
+        if max_source and max_target and max_source <= max_target:
+            return True # Source is not newer than target
+        return False
+    except Exception as e:
+        print(f"Warning in check_should_skip: {e}")
+        return False
+
 source_lakehouse = "LH_Bronze"
 target_lakehouse = "LH_Silver"
 
@@ -304,7 +343,14 @@ def transform_tac_m(df, tac_variations):
 
 def process_tac_m():
     print("Processando TAC M...")
-    df_tac = spark.read.table(f"{source_lakehouse}.tab_operacoes_tarifas_extras")
+    source_table = f"{source_lakehouse}.tab_operacoes_tarifas_extras"
+    target_path = f"{target_lakehouse}.staging_tac_m"
+
+    if check_should_skip(spark, source_table, target_path, "DATAINCLUSAO"):
+        print("Skipping TAC M (No new data)")
+        return
+
+    df_tac = spark.read.table(source_table)
     df_tac_renamed = df_tac \
         .filter(year(col("DATAINCLUSAO")) >= 2024) \
         .select(
@@ -360,7 +406,14 @@ def standardize_estudo_columns(df):
 
 def process_estudo_op():
     print("Processando Estudo Op...")
-    df_estudo = spark.read.table(f"{source_lakehouse}.tab_estudo_op")
+    source_table = f"{source_lakehouse}.tab_estudo_op"
+    target_path = f"{target_lakehouse}.staging_estudo_operacoes"
+
+    if check_should_skip(spark, source_table, target_path, "DATAINCLUSAO"):
+        print("Skipping Estudo Op (No new data)")
+        return
+
+    df_estudo = spark.read.table(source_table)
 
     # Apply normalization
     new_cols = [col(c).alias(normalize_col(c)) for c in df_estudo.columns]
@@ -414,8 +467,14 @@ def unescape_udf(text: pd.Series) -> pd.Series:
 
 def process_pareceres_operacoes():
     print("Processando Pareceres Operações...")
+    source_table = f"{source_lakehouse}.cad_geral_pareceres"
+    target_path = f"{target_lakehouse}.staging_pareceres_operacoes"
 
-    df_pareceres = spark.read.table(f"{source_lakehouse}.cad_geral_pareceres").alias("cgp")
+    if check_should_skip(spark, source_table, target_path, "DATAINCLUSAO"):
+        print("Skipping Pareceres Operações (No new data)")
+        return
+
+    df_pareceres = spark.read.table(source_table).alias("cgp")
     df_usuarios = spark.read.table(f"{source_lakehouse}.cad_usuarios").alias("cu")
     df_operacoes_ref = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa").alias("to2")
 
@@ -521,9 +580,16 @@ def process_escrow():
 
 def process_prorrogacoes():
     print("Processando Prorrogações...")
+    source_table = f"{target_lakehouse}.staging_operacoes_limpa"
+    target_path = f"{target_lakehouse}.staging_prorrogacoes"
+
+    if check_should_skip(spark, source_table, target_path, "data_inclusao"):
+        print("Skipping Prorrogações (No new data)")
+        return
+
     # Removed try-except to ensure fail-fast if dependencies are missing
     df_boletos = spark.read.table(f"{target_lakehouse}.staging_boletos_titulos")
-    df_ops_pr = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa").filter(col("TTO") == "PR")
+    df_ops_pr = spark.read.table(source_table).filter(col("TTO") == "PR")
 
     df_prorrogacoes = df_ops_pr.join(df_boletos, "cod_operacao", "left") \
         .select(
@@ -534,9 +600,16 @@ def process_prorrogacoes():
 
 def process_tab_operacoes_prorrogacao():
     print("Processando Tab Operações Prorrogação...")
+    source_table = f"{source_lakehouse}.tab_operacoes_prorrogacao"
+    target_table = "staging_operacoes_prorrogacao_limpa"
+    output_path = f"{target_lakehouse}.{target_table}"
+
+    if check_should_skip(spark, source_table, output_path, "DATAINCLUSAO", "data_inclusao"):
+        print(f"Skipping {target_table} (No new data)")
+        return
 
     # 1. Source Data
-    df_prorrogacao = spark.read.table(f"{source_lakehouse}.tab_operacoes_prorrogacao")
+    df_prorrogacao = spark.read.table(source_table)
 
     # 2. Dependencies (Silver)
     # Using Silver tables for enrichment as they are cleaner
@@ -598,9 +671,16 @@ def process_tab_operacoes_prorrogacao():
 
 def process_recompras():
     print("Processando Recompras...")
+    source_table = f"{target_lakehouse}.staging_operacoes_limpa"
+    target_path = f"{target_lakehouse}.staging_operacoes_recompras"
+
+    if check_should_skip(spark, source_table, target_path, "data_inclusao"):
+        print("Skipping Recompras (No new data)")
+        return
+
     # Removed try-except to ensure fail-fast if dependencies are missing
     df_boletos = spark.read.table(f"{target_lakehouse}.staging_boletos_titulos")
-    df_ops_rc = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa") \
+    df_ops_rc = spark.read.table(source_table) \
         .filter(col("TTO").isin(["RC", "RE"])) \
         .filter((col("status_analise") == "D") & (col("status_aceite") == "A"))
 

@@ -240,6 +240,76 @@ def get_status_risco_expr(col_tto="tto", col_vencimento="data_vencimento_util", 
            .when(col(col_vencimento) < current_date_col, "ATENÇÃO") \
            .otherwise("NO PRAZO")
 
+def check_incremental_gold(spark):
+    """
+    Checks if new data exists in Silver layer compared to Gold layer.
+    If no new data, exits the notebook.
+    """
+    try:
+        # Silver Tables (Source)
+        source_ops = TableNames.SILVER_STAGING_OPERACOES_LIMPA
+        source_titulos = TableNames.SILVER_STAGING_TITULOS_LIMPA
+
+        # Gold Tables (Target)
+        target_ops = TableNames.GOLD_FATO_OPERACOES
+        target_titulos = TableNames.GOLD_FATO_TITULOS
+
+        def get_max_date(table_name, col_name="data_inclusao"):
+            try:
+                df = spark.read.table(table_name)
+                # Check column existence case-insensitive
+                cols = [c.lower() for c in df.columns]
+                if col_name.lower() not in cols:
+                    return None
+                # Use the actual column name from df.columns to avoid AnalysisException
+                actual_col = [c for c in df.columns if c.lower() == col_name.lower()][0]
+                row = df.agg(max(col(actual_col))).collect()[0]
+                return row[0]
+            except Exception as e:
+                # print(f"Warning reading {table_name}: {e}")
+                return None
+
+        # Check Ops
+        max_silver_ops = get_max_date(source_ops)
+        max_gold_ops = get_max_date(target_ops)
+
+        # Check Titulos
+        max_silver_titulos = get_max_date(source_titulos)
+        max_gold_titulos = get_max_date(target_titulos)
+
+        print(f"Max Date Ops - Silver: {max_silver_ops}, Gold: {max_gold_ops}")
+        print(f"Max Date Titulos - Silver: {max_silver_titulos}, Gold: {max_gold_titulos}")
+
+        new_ops = False
+        if max_silver_ops:
+            # If Gold is None (First Run) or Silver > Gold, we have new data
+            if not max_gold_ops or max_silver_ops > max_gold_ops:
+                new_ops = True
+
+        new_titulos = False
+        if max_silver_titulos:
+            if not max_gold_titulos or max_silver_titulos > max_gold_titulos:
+                new_titulos = True
+
+        # If both checks failed to find new data (and sources exist), skip.
+        # If sources don't exist (max_silver is None), we probably can't run anyway, but let's be safe and proceed (it will likely fail later or handle empty).
+        # Actually, if sources are None, we should probably SKIP or Proceed?
+        # If Proceed, we hit errors later. If Skip, we save time.
+        # Let's assume if source exists and no new data, we SKIP.
+
+        if (max_silver_ops or max_silver_titulos) and (not new_ops and not new_titulos):
+            print("Nenhum dado novo detectado em Operações ou Títulos (Silver vs Gold). Pulando execução Gold.")
+            from notebookutils import mssparkutils
+            mssparkutils.notebook.exit("Skipped")
+        else:
+            print("Novos dados detectados ou carga inicial. Prosseguindo com a execução Gold.")
+
+    except Exception as e:
+        print(f"Erro na verificação incremental: {e}. Prosseguindo por segurança.")
+
+# Execute Incremental Check
+check_incremental_gold(spark)
+
 
 # METADATA ********************
 
