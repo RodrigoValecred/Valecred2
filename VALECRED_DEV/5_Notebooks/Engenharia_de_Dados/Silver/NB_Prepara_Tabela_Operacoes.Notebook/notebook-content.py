@@ -39,6 +39,11 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
 
+# --- CONFIGURATION ---
+# Set to True to force a Full Load (useful for cleaning up deleted records from source)
+FULL_LOAD = False
+# ---------------------
+
 from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
@@ -193,9 +198,11 @@ def process_operacoes():
 
     key_columns_operacoes = ["CODOPERACAO"]
 
-    if check_is_incremental(spark, output_path_operacoes, "cod_operacao"):
+    if not FULL_LOAD and check_is_incremental(spark, output_path_operacoes, "cod_operacao"):
         process_incremental_operacoes(source_table_operacoes, output_path_operacoes, key_columns_operacoes)
     else:
+        if FULL_LOAD:
+            print("Forcing Full Load (FULL_LOAD = True)...")
         process_full_operacoes(source_table_operacoes, output_path_operacoes, key_columns_operacoes)
 
 
