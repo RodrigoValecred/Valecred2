@@ -39,6 +39,11 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
 
+# --- CONFIGURATION ---
+# Set to True to force a Full Load (useful for cleaning up deleted records from source)
+FULL_LOAD = False
+# ---------------------
+
 from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
@@ -132,9 +137,6 @@ def get_operacoes_schema(df):
     )
 
 def transform_operacoes(df, key_columns_operacoes):
-    # Exclusion of specific bordero requested by user
-    df = df.filter(col("NBORDERO") != 6043702)
-
     df_corrigido = df.withColumn("TTO_corrigido", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
 
     windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
@@ -147,10 +149,6 @@ def transform_operacoes(df, key_columns_operacoes):
 def process_incremental_operacoes(source_table, output_path, key_columns_operacoes):
     print("Modo Incremental: Operações")
     delta_table_ops = DeltaTable.forPath(spark, output_path)
-
-    # 0. Data Patch: Remove excluded bordero 6043702 if present
-    print("Aplicando correções de dados (Exclusões)...")
-    delta_table_ops.delete("nbordero = 6043702")
 
     # 1. Watermark
     watermark_row = spark.read.format("delta").load(output_path) \
@@ -200,9 +198,11 @@ def process_operacoes():
 
     key_columns_operacoes = ["CODOPERACAO"]
 
-    if check_is_incremental(spark, output_path_operacoes, "cod_operacao"):
+    if not FULL_LOAD and check_is_incremental(spark, output_path_operacoes, "cod_operacao"):
         process_incremental_operacoes(source_table_operacoes, output_path_operacoes, key_columns_operacoes)
     else:
+        if FULL_LOAD:
+            print("Forcing Full Load (FULL_LOAD = True)...")
         process_full_operacoes(source_table_operacoes, output_path_operacoes, key_columns_operacoes)
 
 
