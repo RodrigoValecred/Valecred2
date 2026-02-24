@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "MLExperiment",
+    "displayName": "NB_Analise_Cluster_Clientes"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "8ab2bdd0-8933-b298-4f7b-518a0dbdcab9"
+  }
+}

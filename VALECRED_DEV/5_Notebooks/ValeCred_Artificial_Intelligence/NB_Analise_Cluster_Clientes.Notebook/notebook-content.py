@@ -9,8 +9,16 @@
 # META   "dependencies": {
 # META     "lakehouse": {
 # META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Gold",
-# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
+# META       "default_lakehouse_name": "LH_Bronze",
+# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
+# META       "known_lakehouses": [
+# META         {
+# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
+# META         },
+# META         {
+# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
+# META         }
+# META       ]
 # META     }
 # META   }
 # META }
@@ -43,6 +51,13 @@ except Exception as e:
     print(f"Erro ao carregar tabelas: {e}")
     # Fallback ou Exit se necessário
     raise e
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -103,6 +118,13 @@ df_features_final = df_features.withColumn("tendencia_atraso", col("media_atraso
         "max_atraso_historico"
     )
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
 # ## 2. Clustering (K-Means)
@@ -127,6 +149,13 @@ df_scaled = scaler_model.transform(df_vectorized)
 kmeans = KMeans(k=3, seed=42, featuresCol="features", predictionCol="cluster_id")
 model = kmeans.fit(df_scaled)
 df_clustered = model.transform(df_scaled)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -172,6 +201,13 @@ mapping_expr = create_map([lit(x) for x in chain(*cluster_map.items())])
 
 df_final_labeled = df_clustered.withColumn("perfil_cliente", mapping_expr[col("cluster_id")])
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
 # ## 4. Salvar Resultado
@@ -198,3 +234,10 @@ df_output.write.mode("overwrite").option("overwriteSchema", "true").format("delt
 print(f"Tabela {table_name} salva com sucesso!")
 print("Amostra dos dados:")
 df_output.show(10, truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
