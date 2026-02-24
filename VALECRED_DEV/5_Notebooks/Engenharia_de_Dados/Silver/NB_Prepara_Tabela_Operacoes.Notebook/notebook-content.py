@@ -41,7 +41,7 @@ spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
 
 # --- CONFIGURATION ---
 # Set to True to force a Full Load (useful for cleaning up deleted records from source)
-FULL_LOAD = False
+FULL_LOAD = True
 # ---------------------
 
 from pyspark.sql.window import Window
