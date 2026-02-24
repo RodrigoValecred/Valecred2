@@ -71,6 +71,11 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("✅", full_output)
         self.assertIn("🚨", full_output)
 
+        # UX Improvement Check: "Disponível" should be shown for safe groups
+        self.assertIn("Disponível:", full_output)
+        # "EXCESSO" should be shown for unsafe groups (already implicit in logic, but good to check)
+        self.assertIn("EXCESSO:", full_output)
+
     @patch('builtins.print')
     def test_display_risk_dashboard_long_name(self, mock_print):
         long_name = "A Very Long Group Name That Should Be Truncated Because It Exceeds The Limit Of The Layout"
