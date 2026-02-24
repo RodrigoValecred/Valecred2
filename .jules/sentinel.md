@@ -7,3 +7,8 @@
 **Vulnerability:** `NB_Load_Bronze_From_BrasilIO.Notebook` performed `requests.get` calls without a `timeout` parameter. This could lead to indefinite hanging of the Spark driver/executor if the external server (Brasil.IO) is unresponsive, causing resource exhaustion (DoS).
 **Learning:** Default behavior of Python's `requests` library is to wait forever. This is dangerous in production data pipelines.
 **Prevention:** Enforce a `timeout` (e.g., 60s) on all external network calls. Added a static analysis test `tests/test_brasil_io_security.py` to enforce this pattern in the future.
+
+## 2026-02-19 - [Memory Exhaustion in Large File Downloads]
+**Vulnerability:** `NB_Load_From_CVM.Notebook` downloaded large ZIP files (potential >500MB) directly into memory using `requests.get().content`, causing potential OOM (Out of Memory) errors and driver failures on constrained Spark clusters.
+**Learning:** Default `requests.get` behavior loads the entire response body into RAM. For data engineering pipelines handling external datasets, this is a critical scalability and availability risk.
+**Prevention:** Always use `stream=True` and `iter_content(chunk_size=...)` for downloading files, regardless of the expected file size.

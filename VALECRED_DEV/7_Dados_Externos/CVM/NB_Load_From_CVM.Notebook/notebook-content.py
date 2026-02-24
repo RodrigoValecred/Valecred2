@@ -214,14 +214,16 @@ else:
             os.makedirs(unzip_path, exist_ok=True)
 
             print(f"Baixando arquivo de {url}...")
-            response = requests.get(url, timeout=60)
+            response = requests.get(url, timeout=60, stream=True)
 
             if response.status_code != 200:
                 print(f"AVISO: Falha ao baixar o arquivo para {periodo}. Status code: {response.status_code}. Pulando...")
                 continue
 
             with open(download_path, "wb") as f:
-                f.write(response.content)
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
             print(f"Arquivo salvo em {download_path}")
 
             # --- 2. Descompactação ---
