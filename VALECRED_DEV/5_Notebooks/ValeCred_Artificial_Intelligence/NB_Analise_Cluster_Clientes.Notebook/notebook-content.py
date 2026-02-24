@@ -9,8 +9,16 @@
 # META   "dependencies": {
 # META     "lakehouse": {
 # META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Gold",
-# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"
+# META       "default_lakehouse_name": "LH_Bronze",
+# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
+# META       "known_lakehouses": [
+# META         {
+# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
+# META         },
+# META         {
+# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
+# META         }
+# META       ]
 # META     }
 # META   }
 # META }
@@ -49,6 +57,13 @@ try:
 except Exception as e:
     print(f"Erro ao carregar tabelas: {e}")
     raise e
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -120,9 +135,46 @@ df_features_final = df_features.withColumn("tendencia_atraso", col("media_atraso
         "flag_renegociacao"
     )
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
-# ## 2. Segmentação Híbrida (Hard Rules + Clustering)
+# ## 2. Clustering (K-Means)
+
+print("Executando K-Means...")
+
+# 2.1 Preparação (Assembler + Scaler)
+# Selecionamos as features mais relevantes para segmentação
+feature_cols = ["media_atraso_historico", "taxa_pontualidade", "tendencia_atraso", "saldo_inadimplente_atual"]
+
+# Vetorização
+assembler = VectorAssembler(inputCols=feature_cols, outputCol="features_raw")
+df_vectorized = assembler.transform(df_features_final)
+
+# Normalização (Importante para K-Means pois features têm escalas diferentes ex: dias vs valor monetário)
+scaler = StandardScaler(inputCol="features_raw", outputCol="features", withStd=True, withMean=True)
+scaler_model = scaler.fit(df_vectorized)
+df_scaled = scaler_model.transform(df_vectorized)
+
+# 2.2 Treinamento
+# k=3 conforme solicitado (Bom, Rentável, Risco)
+kmeans = KMeans(k=3, seed=42, featuresCol="features", predictionCol="cluster_id")
+model = kmeans.fit(df_scaled)
+df_clustered = model.transform(df_scaled)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
 
 print("Aplicando regras de negócio (Hard Rules) para Risco Crítico...")
 
@@ -194,6 +246,13 @@ else:
     print("Todos os clientes caíram na regra crítica (improvável).")
     df_final_combined = df_critical
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
 # ## 3. Salvar Resultado
@@ -221,5 +280,12 @@ table_name = "LH_Gold.analise_cluster_clientes"
 df_output.write.mode("overwrite").option("overwriteSchema", "true").format("delta").saveAsTable(table_name)
 
 print(f"Tabela {table_name} salva com sucesso!")
-print("Distribuição Final dos Perfis:")
-df_output.groupBy("perfil_cliente").count().show(truncate=False)
+print("Amostra dos dados:")
+df_output.show(10, truncate=False)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
