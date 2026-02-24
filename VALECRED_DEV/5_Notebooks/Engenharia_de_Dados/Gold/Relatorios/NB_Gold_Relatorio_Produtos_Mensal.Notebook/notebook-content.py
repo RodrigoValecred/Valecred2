@@ -79,6 +79,20 @@ df_prorrog = spark.read.table("LH_Gold.fato_prorrogacoes_de_titulos")
 # Fato Baixas (para Mora Realizada)
 df_baixas = spark.read.table("LH_Gold.fato_baixas")
 
+# Dados para Fallback de Plataforma (Quando a operação não tem informação)
+print("Carregando tabelas para fallback de plataforma (Silver)...")
+df_bridge = spark.read.table("LH_Silver.bridge_cliente_gerente").filter(col("data_fim_vigencia") == "9999-12-31")
+df_gerentes = spark.read.table("LH_Silver.staging_gerentes")
+df_plataformas = spark.read.table("LH_Silver.staging_plataformas")
+
+# Criar mapa Cliente -> Plataforma Atual
+# Join: Bridge -> Gerente -> Plataforma
+df_cli_plat_map = df_bridge.join(df_gerentes.alias("g"), df_bridge.cod_gerente == col("g.cod_broker"), "left") \
+    .join(df_plataformas.alias("p"), col("g.cod_agencia") == col("p.cod_agencia"), "left") \
+    .select(df_bridge.cod_cliente, col("p.nome_plataforma").alias("nome_plataforma_cli")) \
+    .filter(col("nome_plataforma_cli").isNotNull()) \
+    .dropDuplicates(["cod_cliente"])
+
 print("Dados carregados.")
 
 # METADATA ********************
@@ -189,9 +203,12 @@ df_prorrog_joined = df_prorrog_filtered.join(df_map_ops, "cod_operacao", "left")
 df_prorrog_enrich = resolve_columns(df_prorrog_joined, granular_cols)
 
 # FIX: Fallback de Atributos Faltantes (Data, Plataforma)
+# Estratégia Plataforma: 1. Operação Original, 2. Plataforma Atual do Cliente, 3. "N/D"
 df_prorrog_enrich = df_prorrog_enrich \
+    .join(df_cli_plat_map, "cod_cliente", "left") \
     .withColumn("data_deferimento", coalesce(col("data_deferimento"), to_date(col("data_inclusao")))) \
-    .withColumn("nome_plataforma", coalesce(col("nome_plataforma"), lit("N/D")))
+    .withColumn("nome_plataforma", coalesce(col("nome_plataforma"), col("nome_plataforma_cli"), lit("N/D"))) \
+    .drop("nome_plataforma_cli")
 
 # Calcular Peso do Prazo (Valor * Dias Prorrogados)
 df_prorrog_calc = df_prorrog_enrich.withColumn("valor_vezes_dias", col("valor") * col("dias_prorrogados"))
@@ -232,7 +249,12 @@ df_mora_joined = df_mora_filtered.join(df_map_ops, "cod_operacao", "left")
 df_mora_enrich = resolve_columns(df_mora_joined, granular_cols)
 
 # AJUSTE SOLICITADO: Para Mora, data_deferimento deve ser a data do pagamento (data_baixa)
-df_mora_enrich = df_mora_enrich.withColumn("data_deferimento", col("data_baixa"))
+# Aplicar também fallback de plataforma
+df_mora_enrich = df_mora_enrich \
+    .join(df_cli_plat_map, "cod_cliente", "left") \
+    .withColumn("data_deferimento", col("data_baixa")) \
+    .withColumn("nome_plataforma", coalesce(col("nome_plataforma"), col("nome_plataforma_cli"), lit("N/D"))) \
+    .drop("nome_plataforma_cli")
 
 # Calcular Atraso (Data Baixa - Data Vencimento)
 # Baixas tem data_baixa e data_vencimento
