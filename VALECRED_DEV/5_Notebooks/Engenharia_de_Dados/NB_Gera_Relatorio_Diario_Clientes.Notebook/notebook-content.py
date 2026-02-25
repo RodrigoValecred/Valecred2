@@ -21,26 +21,116 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-# Exemplo de dados simulando a leitura da Camada Bronze/Silver
-# Em produção, isso viria de um spark.read.table("silver_operacoes")
-data_hoje = datetime.now().date()
+try:
+    from pyspark.sql.functions import col, sum as spark_sum, min as spark_min, max as spark_max, coalesce, lit
+except ImportError:
+    pass
+
+def get_production_data(spark):
+    """
+    Reads production data from Gold layer (fato_titulos, dim_clientes).
+    Returns (df_ops, df_limites) as Pandas DataFrames matching the mock schema.
+
+    Note: We use LH_Gold tables (NB_Curadoria_Gold output) as they contain the
+    curated risk and limit data, rather than raw Silver tables mentioned in
+    older comments (silver_operacoes).
+    """
+    print("Reading production data from Gold Layer...")
+
+    # 1. Read Tables
+    df_titulos = spark.read.table("LH_Gold.fato_titulos")
+    df_clientes = spark.read.table("LH_Gold.dim_clientes")
+
+    # 2. Filter Active Risk (Accepted and Not Liquidated)
+    df_risk_active = df_titulos.filter(
+        (col("status_deferimento") == "Sim") &
+        (col("liquidacao").isNull())
+    )
+
+    # 3. Join with Client Data to get Group info
+    # We join on cod_cliente.
+    df_joined = df_risk_active.join(df_clientes, "cod_cliente", "left")
+
+    # 4. Prepare df_ops (Granular Operations/Titles)
+    # Schema: grupo, cedente, produto, valor_risco, data_vencimento
+    # Logic:
+    # - grupo: nome_do_grupo (fallback to 'Sem Grupo')
+    # - cedente: nome (fallback to cod_cliente)
+    # - produto: chave_produto
+    # - valor_risco: valor_devido
+    # - data_vencimento: data_vencimento_util
+
+    df_ops_spark = df_joined.select(
+        coalesce(col("nome_do_grupo"), lit("Sem Grupo")).alias("grupo"),
+        coalesce(col("nome"), col("cod_cliente").cast("string")).alias("cedente"),
+        col("chave_produto").alias("produto"),
+        col("valor_devido").alias("valor_risco"),
+        col("data_vencimento_util").alias("data_vencimento")
+    )
+
+    # 5. Prepare df_limites (Aggregated by Group)
+    # Schema: grupo, limite_global, validade_limite
+    # We use MAX logic for limits assuming group limits are projected to clients in dim_clientes.
+    df_limites_spark = df_clientes.groupBy(
+        coalesce(col("nome_do_grupo"), lit("Sem Grupo")).alias("grupo")
+    ).agg(
+        spark_max("limite").alias("limite_global"),
+        spark_min("vencimento_limite").alias("validade_limite")
+    ).select(
+        col("grupo"),
+        col("limite_global"),
+        col("validade_limite")
+    )
+
+    # Convert to Pandas
+    # Warning: Ensure data volume is manageable.
+    # Daily report usually filters active risk, so volume should be low enough for driver.
+    df_ops = df_ops_spark.toPandas()
+    df_limites = df_limites_spark.toPandas()
+
+    return df_ops, df_limites
+
+def get_mock_data():
+    """
+    Returns mock data for simulation/testing purposes.
+    """
+    # DataFrame de Operações (Risco Atual)
+    df_ops = pd.DataFrame({
+        'grupo': ['Vale/Transvale', 'Vale/Transvale', 'Vale/Transvale', 'Outro Grupo'],
+        'cedente': ['Vale Rio Novo', 'Transvale', 'Vale Rio Novo', 'Outra Empresa'],
+        'produto': ['Comissária', 'Nota Comercial', 'Fomento', 'Fomento'],
+        'valor_risco': [1785316.73, 9225550.48, 4788696.00, 500000.00],
+        'data_vencimento': ['2026-01-14', '2026-04-24', '2026-01-14', '2025-12-30']
+    })
+
+    # DataFrame de Limites (Parametrizado para escalar para outros grupos)
+    df_limites = pd.DataFrame({
+        'grupo': ['Vale/Transvale', 'Outro Grupo'],
+        'limite_global': [30000000.00, 1000000.00],
+        'validade_limite': ['2025-12-12', '2025-12-30'] # Note que Vale já venceu no exemplo do email
+    })
+
+    return df_ops, df_limites
+
+# Main Data Loading Logic
+# In production (Synapse/Fabric), 'spark' is available globally.
+if 'spark' in locals() or 'spark' in globals():
+    print("Spark session detected. Loading production data from Gold Layer...")
+    # Intentionally letting exceptions propagate here to fail the job if production data is missing/invalid.
+    df_ops, df_limites = get_production_data(spark)
+
+    # Use current date for production report
+    data_hoje = datetime.now().date()
+    print("Successfully loaded production data.")
+else:
+    print("Spark session not found. Using mock data for simulation/testing.")
+    df_ops, df_limites = get_mock_data()
+
+    # Use simulation date to match mock data scenario (e.g. limit expiry check)
+    # Mock data has limit expiring in Dec 2025, so we simulate Dec 2025 context.
+    data_hoje = datetime(2025, 12, 23).date()
+
 data_semana_passada = data_hoje - timedelta(days=7)
-
-# DataFrame de Operações (Risco Atual)
-df_ops = pd.DataFrame({
-    'grupo': ['Vale/Transvale', 'Vale/Transvale', 'Vale/Transvale', 'Outro Grupo'],
-    'cedente': ['Vale Rio Novo', 'Transvale', 'Vale Rio Novo', 'Outra Empresa'],
-    'produto': ['Comissária', 'Nota Comercial', 'Fomento', 'Fomento'],
-    'valor_risco': [1785316.73, 9225550.48, 4788696.00, 500000.00],
-    'data_vencimento': ['2026-01-14', '2026-04-24', '2026-01-14', '2025-12-30']
-})
-
-# DataFrame de Limites (Parametrizado para escalar para outros grupos)
-df_limites = pd.DataFrame({
-    'grupo': ['Vale/Transvale', 'Outro Grupo'],
-    'limite_global': [30000000.00, 1000000.00],
-    'validade_limite': ['2025-12-12', '2025-12-30'] # Note que Vale já venceu no exemplo do email
-})
 
 # 1. Agregação de Risco por Grupo
 df_risco_total = df_ops.groupby('grupo')['valor_risco'].sum().reset_index()
