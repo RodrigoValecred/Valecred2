@@ -11,7 +11,7 @@ from notebook_utils import extract_function_from_file
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
-    "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py"
+    "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Shared.Notebook/notebook-content.py"
 )
 
 class TestStatusRiscoExpr(unittest.TestCase):

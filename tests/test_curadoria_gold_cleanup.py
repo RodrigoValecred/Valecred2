@@ -3,7 +3,7 @@ import os
 
 class TestCuradoriaGoldCleanup(unittest.TestCase):
     def setUp(self):
-        self.notebook_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py"
+        self.notebook_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Shared.Notebook/notebook-content.py"
         with open(self.notebook_path, "r", encoding="utf-8") as f:
             self.content = f.read()
 
