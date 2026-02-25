@@ -36,7 +36,7 @@
 
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from pyspark.sql.types import DoubleType, IntegerType, DateType
+from pyspark.sql.types import DoubleType, IntegerType, DateType, StructType, StructField, StringType
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
@@ -240,36 +240,49 @@ df_with_bench = df_final_metrics.join(df_curve_avg, "mob", "left").join(df_curve
 # Para cada gerente ativo (MOB < 24), projetar próximo mês
 print("Calculando Projeções...")
 
-# Converter para Pandas apenas o necessário (Gerentes recentes)
-df_recentes = df_with_bench.filter(F.col("mob") <= 24).select("id_gerente", "mob", "rogm").toPandas()
-projections = []
+# Optimized: Use applyInPandas for parallel processing instead of collecting to driver
+result_schema = StructType([
+    StructField("id_gerente", StringType(), True),
+    StructField("mob_projecao", IntegerType(), True),
+    StructField("rogm_projetado", DoubleType(), True)
+])
 
-if not df_recentes.empty:
-    for gerente, dados in df_recentes.groupby("id_gerente"):
-        if len(dados) > 2: # Minimo 3 pontos para regressão
-            X = dados["mob"].values.reshape(-1, 1)
-            y = dados["rogm"].values
-            # Peso maior para dados recentes? O modelo simples não faz, mas LinearRegression pega tendência.
-            model = LinearRegression()
-            model.fit(X, y)
+def train_model(pdf):
+    # pdf is a pandas DataFrame for one group
+    if len(pdf) <= 2:
+        return pd.DataFrame(columns=["id_gerente", "mob_projecao", "rogm_projetado"])
 
-            last_mob = dados["mob"].max()
-            next_mob = last_mob + 1
-            pred_rogm = model.predict([[next_mob]])[0]
+    # Taking the first ID found. Groupby ensures all rows are for same manager.
+    manager_id = str(pdf["id_gerente"].iloc[0])
 
-            projections.append({
-                "id_gerente": gerente,
-                "mob_projecao": int(next_mob),
-                "rogm_projetado": float(pred_rogm)
-            })
+    X = pdf["mob"].values.reshape(-1, 1)
+    y = pdf["rogm"].values
 
-# Transformar projeções em DataFrame Spark
-if projections:
-    df_proj = spark.createDataFrame(pd.DataFrame(projections))
-    # Join de volta (Opcional, ou salvar em tabela separada)
-    # Aqui vamos apenas exibir ou salvar tabela de projeções
+    # Linear Regression
+    model = LinearRegression()
+    model.fit(X, y)
+
+    last_mob = pdf["mob"].max()
+    next_mob = last_mob + 1
+    pred_rogm = model.predict([[next_mob]])[0]
+
+    return pd.DataFrame([{
+        "id_gerente": manager_id,
+        "mob_projecao": int(next_mob),
+        "rogm_projetado": float(pred_rogm)
+    }])
+
+df_recentes_spark = df_with_bench.filter(F.col("mob") <= 24).select("id_gerente", "mob", "rogm")
+
+# Apply parallel processing
+df_proj = df_recentes_spark.groupby("id_gerente").applyInPandas(train_model, schema=result_schema)
+
+# Save results
+try:
     df_proj.write.mode("overwrite").saveAsTable("LH_Gold.analise_safra_projeccoes")
     print("Projeções salvas em LH_Gold.analise_safra_projeccoes")
+except Exception as e:
+    print(f"Erro ao salvar projeções: {e}")
 
 # 9. Salvar Tabela Final
 df_final_output = df_with_bench.select(
