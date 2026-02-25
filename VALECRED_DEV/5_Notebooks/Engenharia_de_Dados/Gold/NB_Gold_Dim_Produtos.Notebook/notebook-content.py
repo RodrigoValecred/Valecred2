@@ -41,6 +41,33 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 from pyspark.sql.functions import col, lit, concat, when, regexp_replace, upper, row_number, broadcast, trim, coalesce
 from pyspark.sql.window import Window
 
+def incorporar_produtos_ausentes(spark, df_calc):
+    """
+    Tenta enriquecer df_calc com descrições de produtos ausentes (manual upload).
+    Se a tabela não existir, retorna df_calc original.
+    """
+    try:
+        # Tabela de suporte manual para produtos que não existem no sistema legado
+        df_produtos_ausentes = spark.read.table("LH_Silver.sup_produtos_ausentes")
+
+        # Selecionar apenas colunas relevantes e renomear para evitar conflitos
+        # Assumimos que sup_produtos_ausentes tem: tto, descricao (mapeado para tipo_produto)
+        df_ausentes_lookup = df_produtos_ausentes.select(
+            trim(col("codtto")).alias("tto_ausente"),
+            col("descricao").alias("desc_ausente")
+        )
+
+        # Join para preencher tipo_produto nulo ou incorreto
+        df_enriched = df_calc.join(broadcast(df_ausentes_lookup), trim(df_calc.tto) == df_ausentes_lookup.tto_ausente, "left_outer") \
+            .withColumn("tipo_produto", coalesce(col("tipo_produto"), col("desc_ausente"))) \
+            .drop("tto_ausente", "desc_ausente")
+
+        return df_enriched
+
+    except Exception as e:
+        print(f"Aviso: Não foi possível carregar ou utilizar LH_Silver.sup_produtos_ausentes: {e}. Prosseguindo sem enrichment manual.")
+        return df_calc
+
 # METADATA ********************
 
 # META {
@@ -86,24 +113,7 @@ df_desc = df_prod_base \
 df_calc = df_desc.withColumn("chave_produto", concat(col("tto"), coalesce(col("stto"), lit(""))))
 
 # 4.1. Incorporar Descrições de Produtos Ausentes (Manual Upload)
-try:
-    # Tabela de suporte manual para produtos que não existem no sistema legado
-    df_produtos_ausentes = spark.read.table("LH_Silver.sup_produtos_ausentes")
-
-    # Selecionar apenas colunas relevantes e renomear para evitar conflitos
-    # Assumimos que sup_produtos_ausentes tem: tto, descricao (mapeado para tipo_produto)
-    df_ausentes_lookup = df_produtos_ausentes.select(
-        trim(col("codtto")).alias("tto_ausente"),
-        col("descricao").alias("desc_ausente")
-    )
-
-    # Join para preencher tipo_produto nulo ou incorreto
-    df_calc = df_calc.join(broadcast(df_ausentes_lookup), trim(df_calc.tto) == df_ausentes_lookup.tto_ausente, "left_outer") \
-        .withColumn("tipo_produto", coalesce(col("tipo_produto"), col("desc_ausente"))) \
-        .drop("tto_ausente", "desc_ausente")
-
-except Exception as e:
-    print(f"Aviso: Não foi possível carregar ou utilizar LH_Silver.sup_produtos_ausentes: {e}. Prosseguindo sem enrichment manual.")
+df_calc = incorporar_produtos_ausentes(spark, df_calc)
 
 # Coluna 'Produto'
 # Lógica: Se subtipo nulo, usa tipo. Senão "Subtipo - Tipo"
