@@ -110,13 +110,15 @@ shared fact_operacoes = let
 in
     #"Linhas classificadas";
 shared source_operacoes = let
+  // Data de corte para análise
+  DataCorteAnalise = #datetime(2020, 12, 31, 0, 0, 0),
   Origem = Lakehouse.Contents(null),
   Navegação = Origem{[workspaceId = "41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],
   #"Navegação 1" = Navegação{[lakehouseId = "8f85c372-56ad-4f3f-acf9-3be2e9b99513"]}[Data],
   #"Navegação 2" = #"Navegação 1"{[Id = "staging_operacoes_limpa", ItemKind = "Table"]}[Data],
   selecionarColunas = Table.SelectColumns(#"Navegação 2", {"NBORDERO","CODBROKER","CODOPERACAO","CODEMPRESA","DATAINCLUSAO","CODCLIENTE","CPFCNPJCLIENTE","STATUSANALISE","DATAANALISE","STATUSACEITE","DATAACEITE","DATAENVIOEMAIL","STTO","TTO","FATOR","TARIFA","TARIFARECOMPRA","TAC","NDOCS","NDOCSRECOMPRA","TOTADVAL","TOTTAXAADM","TOTTAR","APROVACAO1","DATAALTERACAO","CODINDEFERIMENTO","CONTRATOFISICO","USUAINCLUSAO","USUATRAVA","USUASTANALISE","NOTASERVICO"}),
-    // Filtra linhas com DATAANALISE posterior a 31/12/2020.
-  linhasDataAnaliseFiltradas = Table.SelectRows(selecionarColunas, each [DATAANALISE] > #datetime(2020, 12, 31, 0, 0, 0)),
+    // Filtra linhas com DATAANALISE posterior a DataCorteAnalise.
+  linhasDataAnaliseFiltradas = Table.SelectRows(selecionarColunas, each [DATAANALISE] > DataCorteAnalise),
   // Adiciona a coluna "BASE" com o valor constante 40.
   baseAdicionada = Table.AddColumn(linhasDataAnaliseFiltradas, "BASE", each 40),
       // Adiciona uma coluna temporária 'TTO_Corrigido_Temp' com lógica de correção.
