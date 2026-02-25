@@ -27,12 +27,10 @@
 
 # # Análise de Cluster de Clientes (Híbrido: Regras de Negócio + K-Means)
 # **Objetivo:** Segmentar a base de clientes em 3 grupos comportamentais (RFM e Behavioral Scoring) com priorização de risco (PDD).
-#
-# **Estratégia Híbrida:**
+# # **Estratégia Híbrida:**
 # 1. **Regras de Negócio (Hard Filters):** Clientes em situação crítica (Renegociação ou Atraso > 120 dias) são *automaticamente* classificados como "Alerta".
 # 2. **K-Means:** Aplicado apenas aos clientes restantes para distinguir entre "Prime" e "Rentável".
-#
-# **Perfis:**
+# # **Perfis:**
 # 1. **Prime (Estável)**: Pagam em dia e possuem consistência.
 # 2. **Rentável (Atraso Moderado)**: Pagam com atraso, gerando receita de juros, mas sem risco crítico.
 # 3. **Alerta (Risco)**: Renegociação ('RN'), Atraso > 120 dias, ou comportamento degradante.
