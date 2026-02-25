@@ -66,17 +66,24 @@ df_chave_filtrada = df_titulos \
     .distinct()
 
 # 3. Extração dos componentes (Parsing)
-# Substring em Spark é 1-based.
-df_detalhada = df_chave_filtrada \
-    .withColumn("uf", substring(col("CHAVEDANFE"), 1, 2)) \
-    .withColumn("aamm", substring(col("CHAVEDANFE"), 3, 4)) \
-    .withColumn("cnpj", substring(col("CHAVEDANFE"), 7, 14)) \
-    .withColumn("modelo", substring(col("CHAVEDANFE"), 21, 2)) \
-    .withColumn("serie", substring(col("CHAVEDANFE"), 23, 3)) \
-    .withColumn("numero_nf", substring(col("CHAVEDANFE"), 26, 9)) \
-    .withColumn("codigo_nf", substring(col("CHAVEDANFE"), 35, 9)) \
-    .withColumn("dv", substring(col("CHAVEDANFE"), 44, 1)) \
-    .withColumnRenamed("CHAVEDANFE", "chave_danfe")
+def parse_danfe(df):
+    """
+    Parses the DANFE key into its components.
+    Expects a column named 'CHAVEDANFE'.
+    """
+    # Substring em Spark é 1-based.
+    return df \
+        .withColumn("uf", substring(col("CHAVEDANFE"), 1, 2)) \
+        .withColumn("aamm", substring(col("CHAVEDANFE"), 3, 4)) \
+        .withColumn("cnpj", substring(col("CHAVEDANFE"), 7, 14)) \
+        .withColumn("modelo", substring(col("CHAVEDANFE"), 21, 2)) \
+        .withColumn("serie", substring(col("CHAVEDANFE"), 23, 3)) \
+        .withColumn("numero_nf", substring(col("CHAVEDANFE"), 26, 9)) \
+        .withColumn("codigo_nf", substring(col("CHAVEDANFE"), 35, 9)) \
+        .withColumn("dv", substring(col("CHAVEDANFE"), 44, 1)) \
+        .withColumnRenamed("CHAVEDANFE", "chave_danfe")
+
+df_detalhada = parse_danfe(df_chave_filtrada)
 
 # 4. Escrita
 output_path = "LH_Gold.dim_danfe"
