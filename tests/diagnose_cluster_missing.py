@@ -1,9 +1,5 @@
-
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit, when, count, avg, sum, max, datediff, current_date, stddev
-from pyspark.ml.feature import VectorAssembler, StandardScaler
-from pyspark.ml.clustering import KMeans
-import shutil
+from pyspark.sql.functions import col, when, avg, sum, datediff, current_date
 
 # Initialize Spark
 spark = SparkSession.builder \
