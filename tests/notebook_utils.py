@@ -47,7 +47,7 @@ def extract_function_from_file(filepath, function_name):
         return None
 
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == function_name:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == function_name:
             if hasattr(ast, 'get_source_segment'):
                 raw_source = ast.get_source_segment(source, node)
             else:
