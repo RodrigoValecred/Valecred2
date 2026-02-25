@@ -42,6 +42,11 @@ from pyspark.sql.functions import (
 from pyspark.sql.types import LongType
 from delta.tables import *
 import datetime
+import logging
+
+# Configuração de Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # METADATA ********************
 
@@ -53,7 +58,7 @@ import datetime
 # CELL ********************
 
 # Célula de Leitura de Dependências
-print("Lendo tabelas necessárias...")
+logger.info("Lendo tabelas necessárias...")
 df_pareceres_raw = spark.read.table("LH_Bronze.cad_geral_pareceres")
 df_clientes_staging = spark.read.table("LH_Silver.staging_clientes_limpa")
 df_usuarios_raw = spark.read.table("LH_Bronze.cad_usuarios")
@@ -70,7 +75,7 @@ df_status_clientes_esteira = spark.read.table("LH_Silver.sup_status_de_clientes_
 
 # Célula 4.1: Configuração e Watermark
 # ------------------------------------------------
-print("\nIniciando o processamento incremental de pareceres...")
+logger.info("Iniciando o processamento incremental de pareceres...")
 target_pareceres_status_table_name = "LH_Silver.pareceres_de_alteracao_de_status"
 target_esteira_table_name = "LH_Gold.esteira_de_propostas"
 watermark_table_name = "LH_Silver.etl_watermark_control"
@@ -87,15 +92,15 @@ try:
     last_watermark_str = df_watermark.filter(col("TableName") == notebook_name).select("LastWatermarkValue").collect()
     if last_watermark_str:
         last_watermark = datetime.datetime.strptime(last_watermark_str[0][0].split('.')[0], "%Y-%m-%d %H:%M:%S")
-        print(f"Watermark encontrado: {last_watermark}")
+        logger.info(f"Watermark encontrado: {last_watermark}")
     else:
         # Se não achou com nome novo, tenta com nome antigo para migração suave?
         # Melhor não, vamos reprocessar tudo para garantir consistencia neste novo notebook.
         last_watermark = DEFAULT_WATERMARK
-        print(f"Watermark não encontrado. Usando padrão: {last_watermark}.")
+        logger.info(f"Watermark não encontrado. Usando padrão: {last_watermark}.")
 except Exception:
     last_watermark = DEFAULT_WATERMARK
-    print(f"Usando watermark padrão (erro na leitura): {last_watermark}.")
+    logger.info(f"Usando watermark padrão (erro na leitura): {last_watermark}.")
 
 # METADATA ********************
 
@@ -111,12 +116,11 @@ except Exception:
 df_pareceres_incremental = df_pareceres_raw.filter((col("DATAINCLUSAO") > last_watermark) | (col("DATAALTERACAO") > last_watermark)).cache()
 record_count = df_pareceres_incremental.count()
 
-print("mostrando colunas da df_pareceres_incremental:")
-print(df_pareceres_incremental.columns)
+logger.info(f"Colunas da df_pareceres_incremental: {df_pareceres_incremental.columns}")
 
 if record_count > 0:
     new_watermark = df_pareceres_incremental.agg(max(greatest(coalesce(col("DATAINCLUSAO"), lit(DEFAULT_WATERMARK)), coalesce(col("DATAALTERACAO"), lit(DEFAULT_WATERMARK))))).collect()[0][0]
-    print(f"Registros incrementais: {record_count}. Novo watermark: {new_watermark}")
+    logger.info(f"Registros incrementais: {record_count}. Novo watermark: {new_watermark}")
 
     df_replica_pareceres_delta = df_pareceres_incremental.filter(year(col("DATAINCLUSAO")) >= 2024).drop("ENCAMINHAR", "ALERTA", "CODPASTA", "CODTAREFA", "USUAALTERACAO", "DATAALTERACAO").withColumn("OBS", col("OBS").substr(1, 255)).withColumn("codTipoParecer", col("CODTIPOPARECER").cast(LongType())).filter((col("codTipoParecer") == 1) & (col("CPFCNPJ").isNotNull()) & (col("CPFCNPJ") != "") & (col("OBS").isNotNull()) & (col("OBS") != "") & (col("USUAINCLUSAO").isNotNull()) & (col("DATAINCLUSAO").isNotNull())).filter(col("OBS").startswith("STATUS ALTERADO PARA ")).withColumn("STATUS_DO_CLIENTE", trim(substring(col("OBS"), 22, 100))).withColumn("BASE", lit(40).cast(LongType())).select("CODPARECER", "CPFCNPJ", "CODOPERACAO", "DATAINCLUSAO", "USUAINCLUSAO", "STATUS_DO_CLIENTE", "BASE")
 
@@ -163,7 +167,7 @@ if record_count > 0:
         )
 
     if spark.catalog.tableExists(target_pareceres_status_table_name):
-        print(f"Executando Merge na tabela {target_pareceres_status_table_name}...")
+        logger.info(f"Executando Merge na tabela {target_pareceres_status_table_name}...")
         # Schema Evolution: Se houver colunas novas, permite a evolução
         delta_table = DeltaTable.forName(spark, target_pareceres_status_table_name)
         spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
@@ -174,11 +178,11 @@ if record_count > 0:
          .whenNotMatchedInsertAll() \
          .execute()
     else:
-        print(f"Criando tabela {target_pareceres_status_table_name} pela primeira vez...")
+        logger.info(f"Criando tabela {target_pareceres_status_table_name} pela primeira vez...")
         df_pareceres_enriquecidos_delta.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_pareceres_status_table_name)
 else:
     new_watermark = last_watermark
-    print("Nenhum dado novo encontrado.")
+    logger.info("Nenhum dado novo encontrado.")
 
 if 'df_pareceres_incremental' in locals():
     df_pareceres_incremental.unpersist()
@@ -195,23 +199,23 @@ if 'df_pareceres_incremental' in locals():
 # Célula 4.3: Reconstrução da Esteira e Atualização do Watermark
 # -------------------------------------------------------------
 if record_count > 0 or not spark.catalog.tableExists(target_esteira_table_name):
-    print("Reconstruindo esteira_de_propostas...")
+    logger.info("Reconstruindo esteira_de_propostas...")
     df_pareceres_completa = spark.read.table(target_pareceres_status_table_name)
     window_lag = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")
     df_com_lag = df_pareceres_completa.withColumn("STATUS_DO_CLIENTE_ANTERIOR", lag("STATUS_DO_CLIENTE").over(window_lag)).withColumn("DATALOG_ANTERIOR", lag("DATALOG").over(window_lag)).withColumn("MACROPROCESSO_ANTERIOR", lag("MACROPROCESSO").over(window_lag)).withColumn("FASE_ANTERIOR", lag("FASE").over(window_lag))
     df_transicoes = df_com_lag.filter(col("STATUS_DO_CLIENTE") != col("STATUS_DO_CLIENTE_ANTERIOR")).na.drop(subset=["STATUS_DO_CLIENTE_ANTERIOR"])
     df_esteira_final = df_transicoes.withColumn("DEVOLUCAO", when((col("MACROPROCESSO_ANTERIOR") == "CREDITO") & (col("MACROPROCESSO") == "COMERCIAL"), True).otherwise(False)).withColumn("RECEBIDA", when((col("MACROPROCESSO_ANTERIOR") == "COMERCIAL") & (col("MACROPROCESSO") == "CREDITO"), True).otherwise(False)).select(col("INDICE").alias("indice"), col("CODCLIENTE").alias("cod_cliente"), col("BASE").alias("base"), col("DATALOG_ANTERIOR").alias("datalog_anterior"), col("DATALOG").alias("datalog"), "chave_base_cliente", col("STATUS_DO_CLIENTE_ANTERIOR").alias("status_do_cliente_anterior"), col("STATUS_DO_CLIENTE").alias("status_do_cliente"), col("MACROPROCESSO_ANTERIOR").alias("macroprocesso_anterior"), col("MACROPROCESSO").alias("macroprocesso"), col("FASE_ANTERIOR").alias("fase_anterior"), col("FASE").alias("fase"), col("USUARIO").alias("usuario"), col("DEVOLUCAO").alias("devolucao"), col("RECEBIDA").alias("recebida"))
     df_esteira_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_esteira_table_name)
-    print("Esteira reconstruída.")
+    logger.info("Esteira reconstruída.")
 
-    print("Atualizando watermark...")
+    logger.info("Atualizando watermark...")
     df_new_watermark = spark.createDataFrame([(notebook_name, new_watermark.strftime("%Y-%m-%d %H:%M:%S.%f"))], ["TableName", "LastWatermarkValue"])
     if spark.catalog.tableExists(watermark_table_name):
         DeltaTable.forName(spark, watermark_table_name).alias("t").merge(df_new_watermark.alias("s"), "t.TableName = s.TableName").whenMatchedUpdate(set={"LastWatermarkValue": "s.LastWatermarkValue"}).whenNotMatchedInsert(values={"TableName": "s.TableName", "LastWatermarkValue": "s.LastWatermarkValue"}).execute()
     else:
         df_new_watermark.write.mode("overwrite").saveAsTable(watermark_table_name)
 
-print("Processo Esteira Propostas Gold concluído.")
+logger.info("Processo Esteira Propostas Gold concluído.")
 
 # METADATA ********************
 
