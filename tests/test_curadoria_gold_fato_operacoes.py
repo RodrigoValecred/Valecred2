@@ -31,6 +31,10 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         if not cls.helper2_source:
              raise ValueError("Function join_operacoes_dimensions not found in notebook.")
 
+        cls.helper3_source = extract_function_from_file(NOTEBOOK_PATH, "select_fato_operacoes_columns")
+        if not cls.helper3_source:
+             raise ValueError("Function select_fato_operacoes_columns not found in notebook.")
+
     def test_sk_produto_join(self):
         # Dictionary to store mocks created by col()
         col_mocks = {}
@@ -95,6 +99,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         # Helpers must be in exec_globals so create_fato_operacoes can see them
         exec(self.helper1_source, exec_globals)
         exec(self.helper2_source, exec_globals)
+        exec(self.helper3_source, exec_globals)
 
         exec(self.func_source, exec_globals, local_scope)
         create_fato_operacoes = local_scope['create_fato_operacoes']
