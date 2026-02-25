@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 
 # Exemplo de dados simulando a leitura da Camada Bronze/Silver
 # Em produção, isso viria de um spark.read.table("silver_operacoes")
-data_hoje = datetime(2025, 12, 23).date()
+data_hoje = datetime.now().date()
 data_semana_passada = data_hoje - timedelta(days=7)
 
 # DataFrame de Operações (Risco Atual)
