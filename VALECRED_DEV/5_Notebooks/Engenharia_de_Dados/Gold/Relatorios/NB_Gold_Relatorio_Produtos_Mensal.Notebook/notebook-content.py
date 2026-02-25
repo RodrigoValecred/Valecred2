@@ -111,7 +111,7 @@ print("Dados carregados.")
 # OBS: Renomeamos colunas com sufixo '_op' para evitar Ambiguidade no join, pois tabelas Fato downstream podem conter
 # colunas com mesmo nome (ex: nbordero, chave_produto, cod_cliente).
 # Incluimos cod_cliente_op para casos onde a tabela Fato de origem não tem cod_cliente (ex: fato_baixas).
-# FIX: Usamos df_ops_raw (sem filtro de status/ano) para garantir que Prorrogacoes/Mora de ops antigas ou com status diversos sejam mapeadas.
+# Usamos df_ops_raw (sem filtro de status/ano) para garantir que Prorrogacoes/Mora de ops antigas ou com status diversos sejam mapeadas.
 df_map_ops = df_ops_raw.select(
     col("cod_operacao"),
     col("nbordero").alias("nbordero_op"),
