@@ -1,6 +1,11 @@
 import unittest
 from unittest.mock import MagicMock, call
 import sys
+import os
+
+# Adjust path to import notebook_utils
+sys.path.append(os.getcwd())
+from tests.notebook_utils import extract_function_from_file
 
 # 1. Mock PySpark modules BEFORE imports
 sys.modules["pyspark"] = MagicMock()
@@ -38,7 +43,11 @@ def avg(c): return MagicMock()
 def count(c): return MagicMock()
 def max(c): return MagicMock()
 def min(c): return MagicMock()
-def when(condition, value): return MagicMock().otherwise(MagicMock())
+def when(condition, value):
+    m = MagicMock()
+    m.when = lambda c, v: m # Chainable when
+    m.otherwise = lambda v: m # Chainable otherwise
+    return m
 def round(c, scale): return MagicMock()
 def datediff(end, start): return MagicMock()
 def coalesce(*cols): return MagicMock()
@@ -287,6 +296,50 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
                 break
 
         self.assertTrue(found_fix, f"Did not find withColumn('data_deferimento', col('data_baixa')) call. Calls: {with_col_calls}")
+
+    def test_calculate_mora_delay_logic(self):
+        """
+        Validates the logic for calculating mora delay, specifically checking for invalid dates and nulls.
+        """
+        # Extract function source
+        notebook_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py"
+        func_source = extract_function_from_file(notebook_path, "calculate_mora_delay")
+        self.assertIsNotNone(func_source, "Could not extract calculate_mora_delay function")
+
+        # Execute function definition
+        exec(func_source, globals())
+
+        # Mock inputs
+        df_mora_enrich = MagicMock(name="df_mora_enrich")
+        df_titulos = MagicMock(name="df_titulos")
+
+        # Setup mocks
+        df_titulos.select.return_value = df_titulos # Mock selection
+        df_mora_enrich.join.return_value = df_mora_enrich # Mock join result
+        df_mora_enrich.withColumn.return_value = df_mora_enrich # Chainable
+
+        # Call the function
+        # calculate_mora_delay is now in globals()
+        df_result = calculate_mora_delay(df_mora_enrich, df_titulos)
+
+        # Assertions
+        # 1. Check title selection
+        df_titulos.select.assert_called()
+        args, _ = df_titulos.select.call_args
+        col_names = [str(arg) for arg in args]
+        self.assertTrue(any("cod_titulo" in c for c in col_names))
+        self.assertTrue(any("venc_prorrogado" in c for c in col_names))
+
+        # 2. Check Join
+        df_mora_enrich.join.assert_called()
+
+        # 3. Check withColumn calls
+        with_col_calls = df_mora_enrich.withColumn.call_args_list
+        called_cols = [args[0] for args, _ in with_col_calls]
+
+        self.assertIn("data_referencia_mora", called_cols)
+        self.assertIn("dias_atraso", called_cols)
+        self.assertIn("valor_vezes_atraso", called_cols)
 
 if __name__ == "__main__":
     unittest.main()

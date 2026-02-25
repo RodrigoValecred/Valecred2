@@ -144,6 +144,26 @@ def resolve_columns(df, target_cols):
             df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
     return df_resolved
 
+def calculate_mora_delay(df_mora_enrich, df_titulos):
+    """
+    Calcula dias de atraso considerando vencimento prorrogado e validando datas.
+    """
+    # FIX: Usar Vencimento Prorrogado se disponível (via join com titulos)
+    df_titulos_dates = df_titulos.select(col("cod_titulo"), col("venc_prorrogado"))
+    df_mora_enrich_venc = df_mora_enrich.join(df_titulos_dates, "cod_titulo", "left")
+
+    df_mora_calc = df_mora_enrich_venc \
+        .withColumn("data_referencia_mora", coalesce(col("venc_prorrogado"), col("data_vencimento"))) \
+        .withColumn("dias_atraso",
+                    when(col("data_baixa").isNull() | col("data_referencia_mora").isNull(), 0)
+                    .when(year(col("data_baixa")) < 1900, 0)
+                    .when(year(col("data_referencia_mora")) < 1900, 0)
+                    .otherwise(datediff(col("data_baixa"), col("data_referencia_mora")))
+        ) \
+        .withColumn("valor_vezes_atraso", col("valor_pago") * col("dias_atraso"))
+
+    return df_mora_calc
+
 # Lista de colunas para resolver (incluindo cod_cliente para Streams que não o tenham)
 granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente"]
 
@@ -260,18 +280,7 @@ df_mora_enrich = df_mora_enrich \
 # Baixas tem data_baixa e data_vencimento
 # FIX: Verificar datas nulas ou inválidas (ex: ano 0001) para evitar prazos gigantes
 # FIX: Usar Vencimento Prorrogado se disponível (via join com titulos)
-df_titulos_dates = df_titulos.select(col("cod_titulo"), col("venc_prorrogado"))
-df_mora_enrich_venc = df_mora_enrich.join(df_titulos_dates, "cod_titulo", "left")
-
-df_mora_calc = df_mora_enrich_venc \
-    .withColumn("data_referencia_mora", coalesce(col("venc_prorrogado"), col("data_vencimento"))) \
-    .withColumn("dias_atraso",
-                when(col("data_baixa").isNull() | col("data_referencia_mora").isNull(), 0)
-                .when(year(col("data_baixa")) < 1900, 0)
-                .when(year(col("data_referencia_mora")) < 1900, 0)
-                .otherwise(datediff(col("data_baixa"), col("data_referencia_mora")))
-    ) \
-    .withColumn("valor_vezes_atraso", col("valor_pago") * col("dias_atraso"))
+df_mora_calc = calculate_mora_delay(df_mora_enrich, df_titulos)
 
 df_stream_mora = df_mora_calc \
     .withColumn("mes_ref", trunc(col("data_baixa"), "MM")) \
