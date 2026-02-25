@@ -1,6 +1,12 @@
 import unittest
 from unittest.mock import MagicMock, call
 import sys
+import os
+
+# Ensure tests package is in path
+sys.path.append(os.getcwd())
+
+from tests.notebook_utils import extract_function_from_file
 
 # 1. Mock PySpark modules BEFORE imports
 sys.modules["pyspark"] = MagicMock()
@@ -13,7 +19,9 @@ sys.modules["notebookutils"] = MagicMock() # For mssparkutils
 # 2. Define Mock Functions to mimic PySpark behavior
 def col(name):
     m = MagicMock()
+    # Define explicit repr and str for easier debugging and assertions
     m.__repr__ = lambda x: f"col('{name}')"
+    m.__str__ = lambda x: f"col('{name}')"
     # Implement arithmetic
     m.__mul__ = lambda self, other: MagicMock()
     m.__truediv__ = lambda self, other: MagicMock()
@@ -25,7 +33,10 @@ def col(name):
     m.__lt__ = lambda self, other: MagicMock()
     m.__le__ = lambda self, other: MagicMock()
     m.__eq__ = lambda self, other: MagicMock()
+    m.__or__ = lambda self, other: MagicMock() # bitwise OR for filter
     m.alias = MagicMock(return_value=m)
+    m.isNull = MagicMock(return_value=MagicMock())
+    m.isNotNull = MagicMock(return_value=MagicMock())
     return m
 
 def lit(val):
@@ -38,7 +49,11 @@ def avg(c): return MagicMock()
 def count(c): return MagicMock()
 def max(c): return MagicMock()
 def min(c): return MagicMock()
-def when(condition, value): return MagicMock().otherwise(MagicMock())
+def when(condition, value):
+    m = MagicMock()
+    m.otherwise = MagicMock(return_value=m)
+    m.when = MagicMock(return_value=m) # Chainable when
+    return m
 def round(c, scale): return MagicMock()
 def datediff(end, start): return MagicMock()
 def coalesce(*cols): return MagicMock()
@@ -55,6 +70,7 @@ def to_date(c): return MagicMock()
 def trunc(c, fmt): return MagicMock()
 def concat(*cols): return MagicMock()
 def broadcast(df): return MagicMock()
+def trim(c): return MagicMock()
 
 # 3. Patch the modules with our functions
 sys.modules["pyspark.sql.functions"].col = col
@@ -74,210 +90,134 @@ sys.modules["pyspark.sql.functions"].to_date = to_date
 sys.modules["pyspark.sql.functions"].trunc = trunc
 sys.modules["pyspark.sql.functions"].concat = concat
 sys.modules["pyspark.sql.functions"].broadcast = broadcast
+sys.modules["pyspark.sql.functions"].trim = trim
+
+# Constants for test
+NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py"
 
 class TestRelatorioProdutosMensal(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Extract functions once
+        cls.resolve_code = extract_function_from_file(NOTEBOOK_PATH, "resolve_columns")
+        cls.load_code = extract_function_from_file(NOTEBOOK_PATH, "load_and_prepare_data")
+        cls.ops_code = extract_function_from_file(NOTEBOOK_PATH, "process_operacoes_stream")
+        cls.prorrog_code = extract_function_from_file(NOTEBOOK_PATH, "process_prorrogacoes_stream")
+        cls.mora_code = extract_function_from_file(NOTEBOOK_PATH, "process_mora_stream")
+
+        # Execute in global scope
+        for code in [cls.resolve_code, cls.load_code, cls.ops_code, cls.prorrog_code, cls.mora_code]:
+            if code:
+                exec(code, globals())
+
     def setUp(self):
         self.spark = MagicMock()
-        self.spark.read.table.return_value = MagicMock()
-
-    def test_operations_granularity(self):
-        """
-        Validates the logic for Operations stream with increased granularity.
-        """
-        # Mocks
-        df_ops = MagicMock()
-        df_ops.filter.return_value = df_ops
-        df_ops.join.return_value = df_ops
-        df_ops.withColumn.return_value = df_ops # Chainable
-        df_ops.groupBy.return_value.agg.return_value = df_ops # Result of agg is a DF
-
-        df_titulos = MagicMock()
-        df_titulos.groupBy.return_value.agg.return_value = df_titulos
-
-        # Setup Spark Read
-        def side_effect(table_name):
-            if table_name == "LH_Gold.fato_operacoes": return df_ops
-            if table_name == "LH_Gold.fato_titulos": return df_titulos
-            return MagicMock()
-
-        self.spark.read.table.side_effect = side_effect
-
-        # --- LOGIC TO TEST ---
-        # 1. Load & Filter
-        df_ops_filtered = df_ops.filter(col("data_deferimento") >= "2025-01-01")
-
-        # 2. Join Titles for Term (Weighted Average)
-        df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
-            sum(col("valor") * col("prazo")).alias("soma_valor_prazo"),
-            sum("valor").alias("soma_valor_titulos")
-        )
-
-        df_ops_joined = df_ops_filtered.join(df_titulos_agg, "cod_operacao", "left")
-
-        # 3. Aggregate by Monthly Granularity (cod_operacao, nbordero, etc.)
-        df_monthly = df_ops_joined.withColumn("mes_ref", trunc(col("data_deferimento"), "MM")) \
-            .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento").agg(
-                sum("valor_de_face").alias("volume"),
-                sum("soma_valor_prazo").alias("total_valor_prazo"),
-                sum("desagio").alias("receita_desagio"),
-                sum("total_de_tarifas").alias("receita_tarifas")
-            )
-
-        # 4. Final Calc
-        df_final = df_monthly.withColumn("prazo_medio", col("total_valor_prazo") / col("volume")) \
-            .withColumn("receita_total", col("receita_desagio") + col("receita_tarifas")) \
-            .withColumn("taxa_mensal", (col("receita_total") / (col("total_valor_prazo") / 30))) \
-            .withColumnRenamed("chave_produto", "sub_tipo_produto")
-
-        # --- ASSERTIONS ---
-        # Check aggregation structure
-        self.assertTrue(df_ops.withColumn.call_count >= 3)
-        self.assertTrue(df_ops_joined.groupBy.called)
-
-    def test_mora_missing_client_fix(self):
-        """
-        Validates Mora stream handling missing cod_cliente by resolving it from the map.
-        Simulates: fato_baixas (no cod_cliente) JOIN df_map_ops (has cod_cliente_op) -> Resolve cod_cliente.
-        """
-        df_mora = MagicMock()
-        df_ops_map = MagicMock()
-
-        mock_grouped = MagicMock()
-        df_mora.groupBy.return_value = mock_grouped
-
-        # Simulate 'cod_cliente' NOT being in df_mora columns
-        type(df_mora).columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]
-
-        df_mora.filter.return_value = df_mora
-        df_mora.withColumn.return_value = df_mora
-        df_mora.join.return_value = df_mora
-        df_mora.withColumnRenamed.return_value = df_mora # Simulate rename
-
-        self.spark.read.table.side_effect = lambda t: df_mora if "baixas" in t else df_ops_map
-
-        # Logic
-        df_mora_filtered = df_mora.filter(year(col("data_baixa")) == 2025).filter(col("juros") > 0)
-
-        # Map with cod_cliente_op
-        df_map_ops_clean = df_ops_map.select(
-            col("cod_operacao"),
-            col("nbordero").alias("nbordero_op"),
-            col("nome_plataforma").alias("nome_plataforma_op"),
-            col("chave_produto").alias("chave_produto_op"),
-            col("data_deferimento").alias("data_deferimento_op"),
-            col("cod_cliente").alias("cod_cliente_op")
-        )
-
-        # Join
-        df_mora_joined = df_mora_filtered.join(df_map_ops_clean, "cod_operacao", "left")
-
-        # Resolve Ambiguity
-        cols_to_resolve = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente"]
-
-        df_resolved = df_mora_joined
-
-        # Simulation of resolve_columns logic
-        for col_name in cols_to_resolve:
-            col_op = f"{col_name}_op"
-            # Simulate column missing in source -> rename op
-            if col_name not in ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]: # Not in Mora
-                df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
-
-        # FIX: Explicitly overwrite data_deferimento with data_baixa for Mora
-        df_resolved = df_resolved.withColumn("data_deferimento", col("data_baixa"))
-
-        # Proceed with aggregation
-        df_monthly = df_resolved.withColumn("mes_ref", trunc(col("data_baixa"), "MM")) \
-            .groupBy("cod_cliente", "mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento")
-
-        # Add the .agg call that was missing in previous failure
-        df_monthly.agg(
-            sum("valor_pago").alias("volume"),
-            sum("valor_vezes_atraso").alias("total_valor_atraso_mes"),
-            sum("juros").alias("receita"),
-            count("cod_titulo").alias("qtd_eventos")
-        )
-
-        # Assert
-        # Verify map creation includes cod_cliente_op
-        df_ops_map.select.assert_called()
-
-        # Verify aggregation on resolved columns
-        df_mora.groupBy.assert_called()
-        mock_grouped.agg.assert_called()
 
     def test_historical_mapping_fix(self):
         """
         Verifies that df_map_ops is created from all operations (not just 2025+),
         while df_ops (Stream 1) is restricted to 2025+.
+        Uses extracted load_and_prepare_data.
         """
-        # Mocks
-        df_raw = MagicMock(name="df_raw")
-        df_status_1 = MagicMock(name="df_status_1")
-        df_status_2 = MagicMock(name="df_status_2") # Result of status filters (df_ops_full)
-        df_2025 = MagicMock(name="df_2025")     # Result of year filter
+        # Mocks for tables
+        df_ops_raw = MagicMock(name="df_ops_raw")
+        df_clients = MagicMock(name="df_clients")
+        df_titulos = MagicMock(name="df_titulos")
+        df_prorrog = MagicMock(name="df_prorrog")
+        df_baixas = MagicMock(name="df_baixas")
+        df_bridge = MagicMock(name="df_bridge")
+        df_gerentes = MagicMock(name="df_gerentes")
+        df_plataformas = MagicMock(name="df_plataformas")
 
-        # Setup filter chain
-        # 1. status filters (two calls)
-        df_raw.filter.return_value = df_status_1
-        df_status_1.filter.return_value = df_status_2
+        # Mock behavior for ops filtering
+        df_ops_full = MagicMock(name="df_ops_full")
+        df_ops_2025 = MagicMock(name="df_ops_2025")
 
-        # 2. year filter (called on df_status_2)
-        df_status_2.filter.return_value = df_2025
+        # Chain for ops
+        df_ops_raw.filter.return_value.filter.return_value = df_ops_full
+        df_ops_full.filter.return_value = df_ops_2025 # This is the year filter
 
-        self.spark.read.table.return_value = df_raw
+        # Setup side_effect for spark.read.table
+        def side_effect(table_name):
+            if table_name == "LH_Gold.fato_operacoes": return df_ops_raw
+            if table_name == "LH_Gold.dim_clientes": return df_clients
+            if table_name == "LH_Gold.fato_titulos": return df_titulos
+            if table_name == "LH_Gold.fato_prorrogacoes_de_titulos": return df_prorrog
+            if table_name == "LH_Gold.fato_baixas": return df_baixas
+            if table_name == "LH_Silver.bridge_cliente_gerente": return df_bridge
+            if table_name == "LH_Silver.staging_gerentes": return df_gerentes
+            if table_name == "LH_Silver.staging_plataformas": return df_plataformas
+            return MagicMock()
 
-        # --- LOGIC UNDER TEST (The Fix) ---
-        # 1. Load Full
-        df_ops_full = self.spark.read.table("LH_Gold.fato_operacoes") \
-            .filter(col("status_aceite") == "A") \
-            .filter(col("status_analise") == "D")
+        self.spark.read.table.side_effect = side_effect
 
-        # 2. Stream 1 (Filtered)
-        df_ops = df_ops_full.filter(year(col("data_deferimento")) >= 2025)
+        # Call extracted function
+        load_and_prepare_data_func = globals()["load_and_prepare_data"]
+        result = load_and_prepare_data_func(self.spark)
 
-        # 3. Map (Unfiltered by year)
-        df_map_ops = df_ops_full.select(
-            col("cod_operacao"),
-            col("nbordero").alias("nbordero_op")
-        )
+        # Assertions
+        # 1. df_map_ops should come from df_ops_raw directly (select called on raw)
+        # In the function: df_map_ops = df_ops_raw.select(...)
+        df_ops_raw.select.assert_called()
 
-        # --- ASSERTIONS ---
-        # Verify df_map_ops is derived from df_status_2 (unfiltered by year)
-        df_status_2.select.assert_called()
+        # 2. df_ops (result["df_ops"]) should be filtered by year
+        # The function does: df_ops = df_ops_full.filter(year >= 2025)
+        # So df_ops_full.filter should be called
+        df_ops_full.filter.assert_called()
 
-        # Verify df_ops (Stream 1) involved the year filter
-        # It calls filter on df_status_2
-        df_status_2.filter.assert_called()
+        # And the result in dictionary should be df_ops_2025
+        self.assertEqual(result["df_ops"], df_ops_2025)
 
-        # Ensure select was NOT called on df_2025 (the year-filtered one)
-        df_2025.select.assert_not_called()
-
-    def test_mora_data_deferimento_adjustment(self):
+    def test_operations_granularity(self):
         """
-        Verifies that for the Mora stream, data_deferimento is explicitly overwritten with data_baixa.
+        Validates the logic for Operations stream using extracted process_operacoes_stream.
         """
-        # Mocks
-        df_mora = MagicMock(name="df_mora")
-        df_mora.columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]
+        df_ops = MagicMock(name="df_ops")
+        df_titulos = MagicMock(name="df_titulos")
+
+        # Mocks for join/agg
+        df_ops.join.return_value = df_ops
+        df_ops.withColumn.return_value = df_ops
+        df_ops.groupBy.return_value.agg.return_value = df_ops
+
+        process_operacoes_stream_func = globals()["process_operacoes_stream"]
+        result_df = process_operacoes_stream_func(df_ops, df_titulos)
+
+        # Verify structure
+        # Should join with titles
+        df_ops.join.assert_called()
+        # Should aggregate
+        df_ops.groupBy.assert_called()
+
+    def test_mora_missing_client_fix_extracted(self):
+        """
+        Validates Mora stream logic (extracted) includes resolution and fix.
+        This effectively replaces test_mora_missing_client_fix and test_mora_data_deferimento_adjustment.
+        """
+        # Ensure functions were extracted
+        self.assertIsNotNone(self.mora_code, "Failed to extract process_mora_stream")
+
+        # Mock Inputs
+        df_baixas = MagicMock(name="df_baixas")
+        df_map_ops = MagicMock(name="df_map_ops")
+        df_cli_plat_map = MagicMock(name="df_cli_plat_map")
+        df_titulos = MagicMock(name="df_titulos")
+
+        df_baixas.columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]
 
         # Chainable mocks
-        df_mora.filter.return_value = df_mora
-        df_mora.join.return_value = df_mora
-        df_mora.withColumn.return_value = df_mora
-        df_mora.withColumnRenamed.return_value = df_mora
+        df_baixas.filter.return_value = df_baixas
+        df_baixas.join.return_value = df_baixas
+        df_baixas.withColumn.return_value = df_baixas
+        df_baixas.withColumnRenamed.return_value = df_baixas
 
-        # --- LOGIC UNDER TEST ---
-        # 1. Resolve Columns (Simplified simulation)
-        df_resolved = df_mora # Assume resolve_columns ran
+        granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente"]
 
-        # 2. THE FIX: Explicitly overwrite data_deferimento with data_baixa
-        df_mora_corrected = df_resolved.withColumn("data_deferimento", col("data_baixa"))
+        process_mora_stream_func = globals()["process_mora_stream"]
+        result_df = process_mora_stream_func(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, granular_cols)
 
-        # --- ASSERTIONS ---
-        # Verify that withColumn was called with "data_deferimento" and col("data_baixa")
-        with_col_calls = df_mora.withColumn.call_args_list
-
+        # Verify the FIX: .withColumn("data_deferimento", col("data_baixa"))
+        with_col_calls = df_baixas.withColumn.call_args_list
         found_fix = False
         for args, kwargs in with_col_calls:
             col_name = args[0]
@@ -286,7 +226,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
                 found_fix = True
                 break
 
-        self.assertTrue(found_fix, f"Did not find withColumn('data_deferimento', col('data_baixa')) call. Calls: {with_col_calls}")
+        self.assertTrue(found_fix, "Did not find withColumn('data_deferimento', col('data_baixa')) call in process_mora_stream")
 
 if __name__ == "__main__":
     unittest.main()
