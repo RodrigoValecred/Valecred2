@@ -53,7 +53,6 @@ print("Iniciando Relatório de Produtos Mensal...")
 print("Carregando tabelas Fato e Dimensão...")
 
 # Dimensão Clientes
-# FIX: Incluindo nome_gerente para reportar gestor
 df_clientes = spark.read.table("LH_Gold.dim_clientes") \
     .select("cod_cliente", "nome", "grupo_economico", "nome_gerente") \
     .dropDuplicates(["cod_cliente"])
@@ -310,26 +309,29 @@ print("Consolidando dados...")
 df_union = df_stream_ops.unionByName(df_stream_prorrog).unionByName(df_stream_mora)
 
 # Join com Clientes para Nome e Grupo
-df_final = df_union.join(df_clientes, "cod_cliente", "left") \
-    .select(
-        col("mes_ref").alias("mes_referencia"),
-        col("cod_cliente"),
-        coalesce(col("nome"), concat(lit("CLIENTE "), col("cod_cliente"))).alias("nome_cliente"),
-        col("grupo_economico"),
-        col("nome_gerente"),
-        col("cod_operacao"),
-        col("nbordero"),
-        col("sub_tipo_produto"),
-        col("nome_plataforma"),
-        col("data_deferimento"),
-        col("tipo_produto"),
-        round(col("volume"), 2).alias("volume"),
-        round(col("prazo_medio"), 2).alias("prazo_medio_dias"),
-        round(col("taxa_media"), 4).alias("taxa_media_mensal_pct"),
-        round(col("receita"), 2).alias("receita"),
-        col("qtd_eventos")
-    ) \
-    .orderBy("mes_referencia", "nome_cliente", "tipo_produto")
+def consolidate_report(df_union, df_clientes):
+    return df_union.join(df_clientes, "cod_cliente", "left") \
+        .select(
+            col("mes_ref").alias("mes_referencia"),
+            col("cod_cliente"),
+            coalesce(col("nome"), concat(lit("CLIENTE "), col("cod_cliente"))).alias("nome_cliente"),
+            col("grupo_economico"),
+            col("nome_gerente"),
+            col("cod_operacao"),
+            col("nbordero"),
+            col("sub_tipo_produto"),
+            col("nome_plataforma"),
+            col("data_deferimento"),
+            col("tipo_produto"),
+            round(col("volume"), 2).alias("volume"),
+            round(col("prazo_medio"), 2).alias("prazo_medio_dias"),
+            round(col("taxa_media"), 4).alias("taxa_media_mensal_pct"),
+            round(col("receita"), 2).alias("receita"),
+            col("qtd_eventos")
+        ) \
+        .orderBy("mes_referencia", "nome_cliente", "tipo_produto")
+
+df_final = consolidate_report(df_union, df_clientes)
 
 # Salvar
 output_table = "LH_Gold.relatorio_produtos_mensal"

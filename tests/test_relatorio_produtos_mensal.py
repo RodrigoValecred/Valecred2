@@ -1,6 +1,19 @@
 import unittest
 from unittest.mock import MagicMock, call
 import sys
+import os
+
+# Ensure project root is in path
+sys.path.append(os.getcwd())
+
+try:
+    from tests.notebook_utils import extract_function_from_file
+except ImportError:
+    try:
+        from notebook_utils import extract_function_from_file
+    except ImportError:
+         print("Warning: Could not import notebook_utils")
+         extract_function_from_file = lambda x, y: None
 
 # 1. Mock PySpark modules BEFORE imports
 sys.modules["pyspark"] = MagicMock()
@@ -55,6 +68,7 @@ def to_date(c): return MagicMock()
 def trunc(c, fmt): return MagicMock()
 def concat(*cols): return MagicMock()
 def broadcast(df): return MagicMock()
+def trim(c): return MagicMock()
 
 # 3. Patch the modules with our functions
 sys.modules["pyspark.sql.functions"].col = col
@@ -74,8 +88,16 @@ sys.modules["pyspark.sql.functions"].to_date = to_date
 sys.modules["pyspark.sql.functions"].trunc = trunc
 sys.modules["pyspark.sql.functions"].concat = concat
 sys.modules["pyspark.sql.functions"].broadcast = broadcast
+sys.modules["pyspark.sql.functions"].trim = trim
 
 class TestRelatorioProdutosMensal(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.notebook_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py"
+        cls.consolidate_source = extract_function_from_file(cls.notebook_path, "consolidate_report")
+        if not cls.consolidate_source:
+            print(f"Warning: Could not extract consolidate_report from {cls.notebook_path}")
+
     def setUp(self):
         self.spark = MagicMock()
         self.spark.read.table.return_value = MagicMock()
@@ -287,6 +309,50 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
                 break
 
         self.assertTrue(found_fix, f"Did not find withColumn('data_deferimento', col('data_baixa')) call. Calls: {with_col_calls}")
+
+    def test_manager_name_inclusion(self):
+        """
+        Verifies that nome_gerente is selected from dim_clientes and included in the final report join.
+        Validates the extracted consolidate_report function.
+        """
+        if not self.consolidate_source:
+             self.fail(f"Could not extract consolidate_report function from {self.notebook_path}")
+
+        # Mocks
+        df_dim_clientes = MagicMock(name="dim_clientes")
+        df_union = MagicMock(name="df_union")
+        df_joined = MagicMock(name="df_joined")
+
+        df_union.join.return_value = df_joined
+        df_joined.select.return_value = df_joined
+        df_joined.orderBy.return_value = df_joined
+
+        # Load logic into scope
+        scope = {
+            "col": col, "lit": lit, "concat": concat, "coalesce": coalesce,
+            "round": round, "when": when, "trim": trim
+        }
+
+        exec(self.consolidate_source, scope)
+        consolidate_report = scope["consolidate_report"]
+
+        # Call the extracted function
+        df_final = consolidate_report(df_union, df_dim_clientes)
+
+        # --- ASSERTIONS ---
+
+        # 1. Verify Join happened
+        df_union.join.assert_called_with(df_dim_clientes, "cod_cliente", "left")
+
+        # 2. Verify 'nome_gerente' is in the final select list
+        final_select_calls = df_joined.select.call_args_list
+        found_final_select = False
+        for args, kwargs in final_select_calls:
+            for column in args:
+                if "col('nome_gerente')" in str(column):
+                    found_final_select = True
+                    break
+        self.assertTrue(found_final_select, "nome_gerente should be included in the final report select statement (verified via extracted code)")
 
 if __name__ == "__main__":
     unittest.main()
