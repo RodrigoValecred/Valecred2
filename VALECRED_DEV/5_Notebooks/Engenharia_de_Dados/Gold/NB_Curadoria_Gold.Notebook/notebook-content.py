@@ -813,14 +813,10 @@ def join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_p
         "left"
     )
 
-def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto):
-    # 1. PREPARAÇÃO (Engenharia):
-    df_operacoes_filtered = prepare_operacoes_dataframe(df_operacoes_enriquecida)
-
-    # 2. JOINS
-    df_fato_operacoes_joined = join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_produto)
-
-    # 3. SELEÇÃO FINAL
+def select_fato_operacoes_columns(df_fato_operacoes_joined):
+    """
+    Seleciona e renomeia as colunas finais para a tabela fato_operacoes.
+    """
     return df_fato_operacoes_joined.select(
         col("sk_operacao"),
         col("cod_operacao"),
@@ -838,55 +834,65 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
         col("sk_produto"),
         col("operacao_informal"),
         col("valor_retido"),
-    col("valor_desembolsado"),
-    col("valor_de_face"),
-    col("desagio"),
-    col("total_de_tarifas"),
-    col("valor_pendencias"),
-    col("valor_utilizacao_limite_plus_excedente"),
-    col("sk_data"),
-    col("valor_recomprado"),
-    col("usuario_inclusao"),
-    col("nivel_usuario_inclusao"),
-    col("analista"),
-    col("analista_trava"),
-    col("motivo_indeferimento"),
-    col("grupo_motivo_indeferimento"),
-    col("taxa_cadastro"),
-    col("taxa").alias("taxa_operacao"),
-    col("era"),
-    col("data_deferimento"),
-    col("chave_base_cliente"),
-    col("chave_base_operacao"),
-    col("chave_base_empresa"),
-    col("incluido_por"),
-    col("tac"),
-    col("valor_taxa_adm"),
-    col("valor_advalorem"),
-    col("n_docs_recompra"),
-    col("chave_meta"),
-    col("ano_do_deferimento"),
-    col("comissao_das_tarifas"),
-    col("data_inicio_do_mes"),
-    col("dia_da_operacao"),
-    col("dia_da_semana_da_operacao"),
-    col("dia_da_semana_da_operacao_por_extenso"),
-    col("faixa_de_tempo_de_analise_horas"),
-    col("faixa_de_tempo_de_analise_minutos"),
-    col("tempo_de_analise_minutos"),
-    col("hora_da_inclusao"),
-    col("meses_de_idade_do_cliente"),
-    col("semana_do_deferimento"),
-    col("status_analisado_no_mesmo_dia"),
-    col("status_escrow"),
-    col("status_meta"),
-    col("status_taxa_majorada"),
-    col("tarifa_de_recompra"),
-    col("tarifa_de_titulos"),
-    col("gestor_da_operacao"),
-    col("nome_plataforma"),
-    col("gestor_da_plataforma")
-).dropDuplicates(["cod_operacao"])
+        col("valor_desembolsado"),
+        col("valor_de_face"),
+        col("desagio"),
+        col("total_de_tarifas"),
+        col("valor_pendencias"),
+        col("valor_utilizacao_limite_plus_excedente"),
+        col("sk_data"),
+        col("valor_recomprado"),
+        col("usuario_inclusao"),
+        col("nivel_usuario_inclusao"),
+        col("analista"),
+        col("analista_trava"),
+        col("motivo_indeferimento"),
+        col("grupo_motivo_indeferimento"),
+        col("taxa_cadastro"),
+        col("taxa").alias("taxa_operacao"),
+        col("era"),
+        col("data_deferimento"),
+        col("chave_base_cliente"),
+        col("chave_base_operacao"),
+        col("chave_base_empresa"),
+        col("incluido_por"),
+        col("tac"),
+        col("valor_taxa_adm"),
+        col("valor_advalorem"),
+        col("n_docs_recompra"),
+        col("chave_meta"),
+        col("ano_do_deferimento"),
+        col("comissao_das_tarifas"),
+        col("data_inicio_do_mes"),
+        col("dia_da_operacao"),
+        col("dia_da_semana_da_operacao"),
+        col("dia_da_semana_da_operacao_por_extenso"),
+        col("faixa_de_tempo_de_analise_horas"),
+        col("faixa_de_tempo_de_analise_minutos"),
+        col("tempo_de_analise_minutos"),
+        col("hora_da_inclusao"),
+        col("meses_de_idade_do_cliente"),
+        col("semana_do_deferimento"),
+        col("status_analisado_no_mesmo_dia"),
+        col("status_escrow"),
+        col("status_meta"),
+        col("status_taxa_majorada"),
+        col("tarifa_de_recompra"),
+        col("tarifa_de_titulos"),
+        col("gestor_da_operacao"),
+        col("nome_plataforma"),
+        col("gestor_da_plataforma")
+    ).dropDuplicates(["cod_operacao"])
+
+def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto):
+    # 1. PREPARAÇÃO (Engenharia):
+    df_operacoes_filtered = prepare_operacoes_dataframe(df_operacoes_enriquecida)
+
+    # 2. JOINS
+    df_fato_operacoes_joined = join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_produto)
+
+    # 3. SELEÇÃO FINAL
+    return select_fato_operacoes_columns(df_fato_operacoes_joined)
 
 df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto).cache()
 output_path_fato_operacoes = TableNames.GOLD_FATO_OPERACOES
