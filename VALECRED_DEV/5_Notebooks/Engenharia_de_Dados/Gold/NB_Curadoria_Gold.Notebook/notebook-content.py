@@ -52,7 +52,6 @@ from pyspark.sql.functions import (
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, DoubleType, DateType, BooleanType
 from delta.tables import *
-from functools import reduce
 import datetime
 
 def safe_read_table(spark, table_name, schema=None, fallback_df=None):
