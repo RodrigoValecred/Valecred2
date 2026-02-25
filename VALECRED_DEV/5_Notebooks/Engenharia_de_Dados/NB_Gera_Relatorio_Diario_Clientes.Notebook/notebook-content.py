@@ -130,18 +130,18 @@ def display_risk_dashboard(df):
     print(Colors.CYAN + "─"*W + Colors.RESET)
 
     total_rows = len(df)
-    for i, (_, row) in enumerate(df.iterrows()):
-        grupo = str(row['grupo'])
+    for i, row in enumerate(df.itertuples(index=False)):
+        grupo = str(row.grupo)
         if len(grupo) > 50:
              grupo = grupo[:47] + "..."
 
-        utilizacao = row['utilizacao_pct']
-        risco = row['valor_risco']
-        limite = row['limite_global']
-        excesso = row.get('excesso_valor', 0)
+        utilizacao = row.utilizacao_pct
+        risco = row.valor_risco
+        limite = row.limite_global
+        excesso = getattr(row, 'excesso_valor', 0)
 
         # Validation Logic
-        validade = row.get('validade_limite', 'N/A')
+        validade = getattr(row, 'validade_limite', 'N/A')
         validade_display = str(validade)
 
         try:
