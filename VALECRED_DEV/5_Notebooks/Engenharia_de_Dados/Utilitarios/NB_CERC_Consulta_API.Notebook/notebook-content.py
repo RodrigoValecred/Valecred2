@@ -103,21 +103,29 @@ def create_app():
     return app
 
 if __name__ == '__main__':
-    # Configura a variável de ambiente para os testes locais, se não existir
-    if "CERC_API_KEY" not in os.environ:
-        print("Aviso: Configurando CERC_API_KEY para ambiente de teste/desenvolvimento.")
-        os.environ["CERC_API_KEY"] = "test-secret-key"
-
-    print("Inicializando a aplicação e o cliente de teste...")
-    app = create_app()
-    client = TestClient(app)
+    # Configuração de ambiente isolado para testes
+    # SENTINEL-FIX: Removido fallback inseguro global. Agora usamos uma chave dinâmica apenas no escopo do teste.
+    print("Inicializando testes com chave de segurança dinâmica...")
     
-    # Header de autenticação para os testes
-    auth_headers = {API_KEY_NAME: "test-secret-key"}
+    # Gera uma chave aleatória para o teste
+    test_secret_key = secrets.token_urlsafe(32)
 
-    print("Executando testes com TestClient (sem servidor HTTP exposto)...")
+    # Salva o estado original do ambiente
+    original_api_key = os.environ.get("CERC_API_KEY")
     
+    # Define a chave de teste no ambiente (necessário pois get_api_key lê os.environ)
+    os.environ["CERC_API_KEY"] = test_secret_key
+
     try:
+        print("Inicializando a aplicação e o cliente de teste...")
+        app = create_app()
+        client = TestClient(app)
+
+        # Header de autenticação para os testes usando a chave dinâmica
+        auth_headers = {API_KEY_NAME: test_secret_key}
+
+        print("Executando testes com TestClient (sem servidor HTTP exposto)...")
+
         print("Executando Cenário 1...")
         response = client.get("/consulta_cerc?cpf_cnpj=14630809000101", headers=auth_headers)
         response.raise_for_status()
@@ -158,6 +166,14 @@ if __name__ == '__main__':
 
     except Exception as e:
         print(f"\nErro ao executar os testes: {e}")
+
+    finally:
+        # Restaura o estado original do ambiente
+        if original_api_key is not None:
+            os.environ["CERC_API_KEY"] = original_api_key
+        else:
+            os.environ.pop("CERC_API_KEY", None)
+        print("Ambiente de teste limpo (variável de ambiente restaurada).")
 
 # METADATA ********************
 
