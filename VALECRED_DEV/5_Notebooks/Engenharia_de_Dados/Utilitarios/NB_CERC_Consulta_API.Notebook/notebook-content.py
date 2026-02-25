@@ -22,17 +22,8 @@
 
 # CELL ********************
 
-import subprocess
-import sys
-
-def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-install("fastapi")
-install("uvicorn")
-install("requests")
-install("httpx")
-install("typing_extensions>=4.10.0")
+# Dependencies should be installed via requirements.txt or the environment setup.
+# The following packages are required: fastapi, uvicorn, requests, httpx, typing_extensions>=4.10.0
 
 # METADATA ********************
 
