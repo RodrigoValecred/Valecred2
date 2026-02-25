@@ -37,6 +37,16 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             # Fallback mock if not found (though it should be there)
             self.scope['format_currency_br'] = lambda x: f"R$ {x:.2f}"
 
+        # Extract prepare_dashboard_data
+        prepare_source = extract_function_from_file(NOTEBOOK_PATH, "prepare_dashboard_data")
+        if not prepare_source:
+             self.fail("Function prepare_dashboard_data not found in notebook")
+        try:
+            exec(prepare_source, self.scope, self.scope)
+            self.prepare_dashboard_data = self.scope['prepare_dashboard_data']
+        except Exception as e:
+             self.fail(f"Failed to execute extracted function prepare_dashboard_data: {e}")
+
         # Extract display_risk_dashboard
         source = extract_function_from_file(NOTEBOOK_PATH, "display_risk_dashboard")
         if not source:
@@ -48,6 +58,34 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             self.display_risk_dashboard = self.scope['display_risk_dashboard']
         except Exception as e:
             self.fail(f"Failed to execute extracted function source: {e}")
+
+    def test_prepare_dashboard_data_logic(self):
+        """Test business logic in isolation without print mocking"""
+        df = pd.DataFrame({
+            'grupo': ['Safe Group', 'Risky Group'],
+            'valor_risco': [50.0, 150.0],
+            'limite_global': [100.0, 100.0],
+            'utilizacao_pct': [50.0, 150.0],
+            'excesso_valor': [0.0, 50.0],
+            'validade_limite': ['2026-01-01', '2026-01-01']
+        })
+
+        view_data = self.prepare_dashboard_data(df, self.data_hoje)
+
+        self.assertEqual(len(view_data), 2)
+
+        # Safe Group
+        item0 = view_data[0]
+        self.assertEqual(item0['grupo_display'], 'Safe Group')
+        self.assertTrue(item0['is_valid_utilization'])
+        self.assertFalse(item0['is_excess'])
+        self.assertIn("✅", item0['bar_display']) # Check for icon (mock Colors are empty strings but icon is literal)
+
+        # Risky Group
+        item1 = view_data[1]
+        self.assertTrue(item1['is_excess'])
+        self.assertIn("🚨", item1['bar_display'])
+        self.assertEqual(item1['excesso_fmt'], "R$ 50,00")
 
     @patch('builtins.print')
     def test_display_risk_dashboard_output_structure(self, mock_print):

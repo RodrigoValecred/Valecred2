@@ -204,62 +204,68 @@ def style_risk_dataframe(df):
     styler = styler.set_caption("Relatório Diário de Risco - Detalhado")
     return styler
 
-def display_risk_dashboard(df):
-    W = 60
+def prepare_dashboard_data(df, ref_date):
+    """
+    Prepares the risk dashboard data for display.
+    Returns a list of dictionaries containing formatted strings and display properties.
+    """
+    view_data = []
 
-    print("\n")
-    print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
-    print(Colors.BOLD + Colors.CYAN + f"{' 📊 PAINEL DE RISCO - RELATÓRIO DIÁRIO':^{W}}" + Colors.RESET)
-    print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
+    for row in df.itertuples(index=False):
+        item = {}
 
-    # Summary
-    n_groups = len(df)
-    n_alerts = len(df[df['utilizacao_pct'] > 100])
-    summary_color = Colors.RED if n_alerts > 0 else Colors.GREEN
-    print(f" Resumo: {n_groups} Grupos analisados. {summary_color}{n_alerts} Alertas.{Colors.RESET}")
-    print(Colors.CYAN + "─"*W + Colors.RESET)
-
-    total_rows = len(df)
-    for i, row in enumerate(df.itertuples(index=False)):
+        # 1. Group Name Truncation
         grupo = str(row.grupo)
         if len(grupo) > 50:
-             grupo = grupo[:47] + "..."
+             item['grupo_display'] = grupo[:47] + "..."
+        else:
+             item['grupo_display'] = grupo
 
+        # 2. Extract Values
         utilizacao = row.utilizacao_pct
         risco = row.valor_risco
         limite = row.limite_global
         excesso = getattr(row, 'excesso_valor', 0)
-
-        # Validation Logic
         validade = getattr(row, 'validade_limite', 'N/A')
-        validade_display = str(validade)
 
+        item['risco_fmt'] = format_currency_br(risco)
+        item['limite_fmt'] = format_currency_br(limite)
+        item['excesso_fmt'] = format_currency_br(excesso)
+
+        # 3. Validity Logic
+        validade_display = str(validade)
         try:
              val_date = datetime.strptime(str(validade), '%Y-%m-%d').date()
-             days_remaining = (val_date - data_hoje).days
+             days_remaining = (val_date - ref_date).days
 
              if days_remaining < 0:
                  validade_display = f"{Colors.RED}{validade} (VENCIDO) ⚠️{Colors.RESET}"
-             elif days_remaining <= 30: # Warn if < 30 days
+             elif days_remaining <= 30:
                  validade_display = f"{Colors.YELLOW}{validade} ({days_remaining}d){Colors.RESET}"
              else:
                  validade_display = f"{Colors.GREEN}{validade}{Colors.RESET}"
-        except Exception as e:
+        except Exception:
              pass
+        item['validade_display'] = validade_display
 
-        # Calculate Available
+        # 4. Available Amount
         disponivel = max(0, limite - risco)
+        item['disponivel_fmt'] = format_currency_br(disponivel)
 
-        # Progress Bar Logic (V3)
+        # 5. Progress Bar Logic
         bar_length = 25
         color = Colors.RESET
+        status_icon = ""
+        util_str = ""
 
         if pd.isna(utilizacao) or np.isinf(utilizacao):
             bar = '░' * bar_length
             status_icon = "⚠️"
             util_str = "N/A"
             color = Colors.YELLOW
+            item['is_valid_utilization'] = False
         else:
+            item['is_valid_utilization'] = True
             pct_clamped = min(max(utilizacao, 0), 100)
             filled_length = int(bar_length * pct_clamped / 100)
 
@@ -276,21 +282,53 @@ def display_risk_dashboard(df):
             bar = color + '█' * filled_length + Colors.RESET + '░' * (bar_length - filled_length)
             util_str = f"{utilizacao:.1f}%"
 
-        print(f" {Colors.BOLD}🏢 {grupo}{Colors.RESET}")
+        item['bar_display'] = f"[{bar}] {color}{util_str:>6}{Colors.RESET} {status_icon}"
+        item['utilizacao_val'] = utilizacao
+        item['is_excess'] = (not (pd.isna(utilizacao) or np.isinf(utilizacao))) and (utilizacao > 100)
+
+        view_data.append(item)
+
+    return view_data
+
+def display_risk_dashboard(df, ref_date=None):
+    W = 60
+
+    # Handle optional ref_date with backward compatibility for global 'data_hoje'
+    if ref_date is None:
+        if 'data_hoje' in globals():
+            ref_date = globals()['data_hoje']
+        else:
+            ref_date = datetime.now().date()
+
+    view_data = prepare_dashboard_data(df, ref_date)
+
+    print("\n")
+    print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
+    print(Colors.BOLD + Colors.CYAN + f"{' 📊 PAINEL DE RISCO - RELATÓRIO DIÁRIO':^{W}}" + Colors.RESET)
+    print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
+
+    # Summary
+    n_groups = len(df)
+    n_alerts = len(df[df['utilizacao_pct'] > 100])
+    summary_color = Colors.RED if n_alerts > 0 else Colors.GREEN
+    print(f" Resumo: {n_groups} Grupos analisados. {summary_color}{n_alerts} Alertas.{Colors.RESET}")
+    print(Colors.CYAN + "─"*W + Colors.RESET)
+
+    total_rows = len(view_data)
+    for i, item in enumerate(view_data):
+        print(f" {Colors.BOLD}🏢 {item['grupo_display']}{Colors.RESET}")
 
         # Metrics
-        # Indent 4 spaces
-        bar_display = f"[{bar}] {color}{util_str:>6}{Colors.RESET} {status_icon}"
-        print(f"    Utilização: {bar_display}")
-        print(f"    Risco:      {format_currency_br(risco):>15}")
-        print(f"    Limite:     {format_currency_br(limite):>15}")
-        print(f"    Validade:   {validade_display:>26}")
+        print(f"    Utilização: {item['bar_display']}")
+        print(f"    Risco:      {item['risco_fmt']:>15}")
+        print(f"    Limite:     {item['limite_fmt']:>15}")
+        print(f"    Validade:   {item['validade_display']:>26}")
 
-        if not (pd.isna(utilizacao) or np.isinf(utilizacao)):
-            if utilizacao > 100:
-                print(f"    {Colors.BOLD}{Colors.RED}🔥 EXCESSO: {format_currency_br(excesso):>15}{Colors.RESET}")
+        if item.get('is_valid_utilization', False):
+            if item.get('is_excess', False):
+                print(f"    {Colors.BOLD}{Colors.RED}🔥 EXCESSO: {item['excesso_fmt']:>15}{Colors.RESET}")
             else:
-                print(f"    {Colors.GREEN}Disponível: {format_currency_br(disponivel):>15}{Colors.RESET}")
+                print(f"    {Colors.GREEN}Disponível: {item['disponivel_fmt']:>15}{Colors.RESET}")
 
         # Separator
         if i < total_rows - 1:
