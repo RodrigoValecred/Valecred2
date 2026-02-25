@@ -211,12 +211,17 @@ df_perf_12m = df_final_metrics.filter(F.col("mes_ref") >= mes_corte) \
 # Quantil 0.75
 try:
     corte_top = df_perf_12m.approxQuantile("res_acum", [0.75], 0.01)[0]
-    top_performers = df_perf_12m.filter(F.col("res_acum") >= corte_top).select("id_gerente").rdd.flatMap(lambda x: x).collect()
-except:
-    top_performers = []
+    # Perform join instead of collect for scalability
+    df_top_performers = df_perf_12m.filter(F.col("res_acum") >= corte_top).select("id_gerente").withColumn("is_top_flag", F.lit(True))
 
-# Flag Top Performer
-df_final_metrics = df_final_metrics.withColumn("is_top_performer", F.col("id_gerente").isin(top_performers))
+    df_final_metrics = df_final_metrics.join(
+        df_top_performers,
+        on="id_gerente",
+        how="left"
+    ).withColumn("is_top_performer", F.coalesce(F.col("is_top_flag"), F.lit(False))) \
+     .drop("is_top_flag")
+except:
+    df_final_metrics = df_final_metrics.withColumn("is_top_performer", F.lit(False))
 
 # 7. Curvas de Referência (Benchmarks)
 print("Gerando Curvas...")
