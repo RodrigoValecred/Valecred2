@@ -130,14 +130,16 @@ if __name__ == '__main__':
         response = client.get("/consulta_cerc?cpf_cnpj=14630809000101", headers=auth_headers)
         response.raise_for_status()
         data = response.json()
-        print(f"Cenário 1: {data}")
+        # SECURITY-FIX: Avoid logging PII (CPF/CNPJ)
+        print(f"Cenário 1: Resultado -> {data.get('duplicatas')}")
         assert data["duplicatas"] == "nenhuma duplicata encontrada"
 
         print("\nExecutando Cenário 2...")
         response = client.get("/consulta_cerc?cpf_cnpj=12345678901234", headers=auth_headers)
         response.raise_for_status()
         data = response.json()
-        print(f"Cenário 2: {data}")
+        # SECURITY-FIX: Avoid logging PII (CPF/CNPJ)
+        print(f"Cenário 2: Resultado -> {data.get('duplicatas')}")
         assert data["duplicatas"] == "duplicatas encontradas"
 
         print("\nExecutando Cenário 3 (Validação de Segurança - Input)...")
