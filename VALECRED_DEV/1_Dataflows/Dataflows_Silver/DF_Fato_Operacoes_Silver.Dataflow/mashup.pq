@@ -149,17 +149,4 @@ shared fact_operacoes_DataDestination = let
   TableNavigation = Navigation_2{[Id = "fact_operacoes", ItemKind = "Table"]}?[Data]?
 in
   TableNavigation;
-shared staging_tratamento_de_operacoes = let
-  origem = source_operacoes,
-        // Adiciona uma coluna temporária 'TTO_Corrigido_Temp' com lógica de correção.
-    ttoCorrigidoAdicionado = Table.AddColumn(origem, "TTO_Corrigido_Temp",
-        each if [CODOPERACAO] = 3042074 then "CS" else [TTO], type text),
-
-    // Remove a coluna 'TTO' original.
-    ttoOriginalRemovido = Table.RemoveColumns(ttoCorrigidoAdicionado, {"TTO"}),
-
-    // Renomeia a coluna temporária 'TTO_Corrigido_Temp' para 'TTO'.
-    ttoColunaRenomeada = Table.RenameColumns(ttoOriginalRemovido, {{"TTO_Corrigido_Temp", "TTO"}})
-    
-in
-    ttoColunaRenomeada;
+shared staging_tratamento_de_operacoes = source_operacoes;
