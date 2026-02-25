@@ -1,0 +1,142 @@
+# Fabric notebook source
+
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {
+# META     "lakehouse": {
+# META       "default_lakehouse": "ee40705b-0100-49bc-8f35-81d71839f042",
+# META       "default_lakehouse_name": "LH_Gold",
+# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
+# META       "known_lakehouses": [
+# META         {
+# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
+# META         }
+# META       ]
+# META     }
+# META   }
+# META }
+
+# MARKDOWN ********************
+
+# # Relatório Mensal de Fechamento de Prorrogação
+# **Objetivo:** Gerar um relatório detalhado de prorrogações, identificando operações Deferidas, Indeferidas e Recuperadas (Indeferidas seguidas de Deferimento para o mesmo título).
+# **Solicitação:** Puxar informações de Indeferidos e Deferidos, considerando casos de "Instruções que voltam indeferidas e fazemos boletos avulsos que gera outra instrução sendo essa deferida".
+
+# CELL ********************
+
+spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
+spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
+
+from pyspark.sql.functions import (
+    col, sum, max, min, lit, when, coalesce, year, month, trunc, datediff, to_date, concat, broadcast, trim
+)
+from pyspark.sql.window import Window
+from notebookutils import mssparkutils
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 1. Carregamento e Preparação de Dados
+def load_and_prepare_data(spark):
+    print("Carregando Fato Prorrogações de Títulos (Gold)...")
+    df_prorrog = spark.read.table("LH_Gold.fato_prorrogacoes_de_titulos")
+
+    print("Carregando Dimensão Clientes (Gold)...")
+    df_clientes = spark.read.table("LH_Gold.dim_clientes") \
+        .select("cod_cliente", "nome", "grupo_economico", "nome_gerente") \
+        .dropDuplicates(["cod_cliente"])
+
+    # Normalizar datas e status
+    df_prorrog_prep = df_prorrog \
+        .withColumn("data_referencia", to_date(col("data_inclusao"))) \
+        .withColumn("status_analise_norm",
+            when(col("status_analise") == "D", "DEFERIDO")
+            .otherwise("INDEFERIDO")
+        )
+
+    return df_prorrog_prep, df_clientes
+
+def process_fechamento_prorrogacao(df_prorrog, df_clientes):
+    print("Processando lógica de Fechamento (Indeferidos vs Recuperados)...")
+
+    # Identificar se houve deferimento eventual para o mesmo título
+    # Agrupando por Título (cod_titulo)
+    w_titulo = Window.partitionBy("cod_titulo")
+
+    # Flag: 1 se status_analise == 'D' (DEFERIDO)
+    df_flagged = df_prorrog.withColumn("is_deferido",
+        when(col("status_analise_norm") == "DEFERIDO", 1).otherwise(0)
+    )
+
+    # Calcular se houve algum deferimento no histórico (ou no mês, se quisermos restringir, mas geralmente o título é único)
+    # Assumindo que cod_titulo é único globalmente ou por cliente.
+    df_calculated = df_flagged.withColumn("foi_deferido_eventualmente",
+        max("is_deferido").over(w_titulo)
+    )
+
+    # Categorização Final
+    # DEFERIDO: status_analise == 'D'
+    # RECUPERADA: status_analise != 'D' mas foi_deferido_eventualmente == 1
+    # INDEFERIDO: status_analise != 'D' e foi_deferido_eventualmente == 0
+    df_categorized = df_calculated.withColumn("status_final_prorrogacao",
+        when(col("status_analise_norm") == "DEFERIDO", "DEFERIDO")
+        .when((col("status_analise_norm") != "DEFERIDO") & (col("foi_deferido_eventualmente") == 1), "RECUPERADA")
+        .otherwise("INDEFERIDO")
+    )
+
+    # Adicionar Mês de Referência para Agrupamento
+    df_enrich = df_categorized.withColumn("mes_referencia", trunc(col("data_referencia"), "MM"))
+
+    # Join com Clientes
+    df_final = df_enrich.join(df_clientes, "cod_cliente", "left") \
+        .select(
+            col("mes_referencia"),
+            col("cod_cliente"),
+            coalesce(col("nome"), concat(lit("CLIENTE "), col("cod_cliente"))).alias("nome_cliente"),
+            col("grupo_economico"),
+            col("nome_gerente"),
+            col("cod_operacao"),
+            col("cod_titulo"),
+            col("n_doc"),
+            col("nbordero"),
+            col("data_referencia").alias("data_operacao"),
+            col("valor"),
+            col("dias_prorrogados"),
+            col("status_analise").alias("status_analise_orig"),
+            col("status_final_prorrogacao")
+        ) \
+        .orderBy("mes_referencia", "nome_cliente", "data_operacao")
+
+    return df_final
+
+# Execução
+print("Iniciando Relatório de Fechamento de Prorrogação...")
+df_prorrog_prep, df_clientes = load_and_prepare_data(spark)
+df_relatorio = process_fechamento_prorrogacao(df_prorrog_prep, df_clientes)
+
+# Exibição (Amostra)
+# df_relatorio.show(10, truncate=False)
+
+# Salvar
+output_table = "LH_Gold.relatorio_fechamento_prorrogacao"
+df_relatorio.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
+print(f"Relatório salvo em: {output_table}")
+
+mssparkutils.notebook.exit("Success")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
