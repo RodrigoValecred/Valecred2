@@ -118,6 +118,34 @@ def deduplicate_clientes_staging(df_base_raw):
     w_dedup = Window.partitionBy("cpf_cnpj").orderBy(col("data_inclusao").desc(), col("cod_cliente").desc())
     return df_base_raw.withColumn("rn", row_number().over(w_dedup)).filter(col("rn") == 1).drop("rn")
 
+def calculate_vop_metrics(df_ops_validas):
+    """
+    Calculates VOP metrics (Top Day of Week and Top Day of Month) for each client.
+    Optimized to reuse existing date columns in df_ops_validas.
+    """
+    # VOP por Dia da Semana (Top 1)
+    # Reusing 'dia_da_semana_da_operacao' (1=Sun, 2=Mon...) calculated in Section 1.2
+    # Note: 'dia_da_semana_da_operacao' is derived from 'data_deferimento' which is to_date('data_analise').
+    # So it is functionally equivalent to dayofweek('data_analise').
+    df_vop_semana = df_ops_validas.groupBy("cod_cliente", col("dia_da_semana_da_operacao").alias("dia_semana")) \
+        .agg(sum("valor_de_face").alias("vop"))
+
+    w_rank_semana = Window.partitionBy("cod_cliente").orderBy(col("vop").desc())
+    df_dia_semana_top = df_vop_semana.withColumn("rn", row_number().over(w_rank_semana)).filter(col("rn") == 1) \
+        .select(col("cod_cliente"), col("dia_semana").alias("dia_semana_mais_vop"))
+
+    # VOP por Dia do Mês (Top 1)
+    # Reusing 'dia_da_operacao' (Day of Month) calculated in Section 1.2
+    # Note: 'dia_da_operacao' is derived from 'data_deferimento' (to_date('data_analise')).
+    df_vop_mes = df_ops_validas.groupBy("cod_cliente", col("dia_da_operacao").alias("dia_mes")) \
+        .agg(sum("valor_de_face").alias("vop"))
+
+    w_rank_mes = Window.partitionBy("cod_cliente").orderBy(col("vop").desc())
+    df_dia_mes_top = df_vop_mes.withColumn("rn", row_number().over(w_rank_mes)).filter(col("rn") == 1) \
+        .select(col("cod_cliente"), col("dia_mes").alias("dia_mes_mais_vop"))
+
+    return df_dia_semana_top, df_dia_mes_top
+
 # METADATA ********************
 
 # META {
@@ -1095,8 +1123,9 @@ print(f"Tabela '{target_fato_prorrogacao}' criada com sucesso.")
 print("\nIniciando construção da fato_operacoes_prorrogacao (NOVA)...")
 
 # Fonte = stg_operacoes (df_operacoes_limpa)
-# Explicit read for robustness
-df_operacoes_source = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_LIMPA)
+# ⚡ Bolt Optimization: Reuse dataframe loaded in Section 0.2
+# df_operacoes_source = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_LIMPA)
+df_operacoes_source = df_operacoes_limpa
 
 # Filtrar TTO = 'PR'
 df_ops_pr = df_operacoes_source.filter(col("tto") == "PR")
@@ -1151,8 +1180,9 @@ print("\nIniciando construção da fato_operacoes_recompra...")
 
 # Fonte = stg_operacoes
 # Optimization: Reuse dataframe loaded in Section 0.2 or 5.3
-if "df_operacoes_source" not in locals():
-    df_operacoes_source = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_LIMPA)
+# if "df_operacoes_source" not in locals():
+#     df_operacoes_source = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_LIMPA)
+df_operacoes_source = df_operacoes_limpa
 
 # Filter TTO = 'RC' or 'RE' AND status_analise = 'D' AND status_aceite = 'A'
 df_ops_rc = df_operacoes_source.filter(
@@ -1218,7 +1248,7 @@ df_status_cad_prep = df_cad_clientes_bronze.join(
     col("status_do_cliente").alias("status_do_cliente_cad")
 )
 
-# Grupos Econômicos
+# Grupos Economicos
 df_grupos_prep = df_grupos_economicos.withColumnRenamed("nomegrupo", "grupo_economico")
 if "cod_cliente" not in df_grupos_prep.columns and "codcliente" in df_grupos_prep.columns:
      df_grupos_prep = df_grupos_prep.withColumnRenamed("codcliente", "cod_cliente")
@@ -1243,19 +1273,8 @@ df_info_gestor = df_bridge_atual \
 # Optimization: Reuse cached DataFrame to avoid I/O and deserialization overhead
 df_ops_validas = df_fato_operacoes.filter(col("status_analise") == "D")
 
-# VOP por Dia da Semana (Top 1)
-df_vop_semana = df_ops_validas.withColumn("dia_semana", dayofweek("data_analise")) \
-    .groupBy("cod_cliente", "dia_semana").agg(sum("valor_de_face").alias("vop"))
-w_rank_semana = Window.partitionBy("cod_cliente").orderBy(col("vop").desc())
-df_dia_semana_top = df_vop_semana.withColumn("rn", row_number().over(w_rank_semana)).filter(col("rn") == 1) \
-    .select(col("cod_cliente"), col("dia_semana").alias("dia_semana_mais_vop"))
-
-# VOP por Dia do Mês (Top 1)
-df_vop_mes = df_ops_validas.withColumn("dia_mes", dayofmonth("data_analise")) \
-    .groupBy("cod_cliente", "dia_mes").agg(sum("valor_de_face").alias("vop"))
-w_rank_mes = Window.partitionBy("cod_cliente").orderBy(col("vop").desc())
-df_dia_mes_top = df_vop_mes.withColumn("rn", row_number().over(w_rank_mes)).filter(col("rn") == 1) \
-    .select(col("cod_cliente"), col("dia_mes").alias("dia_mes_mais_vop"))
+# ⚡ Bolt Optimization: Calculate VOP metrics reusing existing columns
+df_dia_semana_top, df_dia_mes_top = calculate_vop_metrics(df_ops_validas)
 
 # Métricas Gerais Operações
 df_metrics_ops = df_ops_validas.groupBy("cod_cliente").agg(
