@@ -135,7 +135,7 @@ def resolve_columns(df, target_cols):
             # Se existe (ex: nbordero na fato prorrogacao), usamos coalesce para garantir preenchimento caso nulo,
             # mas priorizando o valor do evento.
 
-            # FIX: Tratar string vazia como nulo para evitar buracos no relatório quando a tabela fato tem a coluna mas ela está vazia
+            # Tratar string vazia como nulo para evitar buracos no relatório quando a tabela fato tem a coluna mas ela está vazia
             col_target = when(trim(col(col_name)) == "", None).otherwise(col(col_name))
 
             df_resolved = df_resolved.withColumn(col_name, coalesce(col_target, col(col_op)))
