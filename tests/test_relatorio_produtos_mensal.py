@@ -288,5 +288,61 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
         self.assertTrue(found_fix, f"Did not find withColumn('data_deferimento', col('data_baixa')) call. Calls: {with_col_calls}")
 
+    def test_prorrogacao_fallback_attributes(self):
+        """
+        Verifies the fallback logic for Date and Platform in the Prorrogacoes stream.
+        Extracts 'apply_fallback_prorrogacoes' from notebook and tests it.
+        """
+        # Import helper
+        from tests.notebook_utils import extract_function_from_file
+
+        # Extract function source
+        nb_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py"
+        func_source = extract_function_from_file(nb_path, "apply_fallback_prorrogacoes")
+
+        self.assertIsNotNone(func_source, "Could not extract apply_fallback_prorrogacoes function")
+
+        # Execute function definition in local scope
+        # We need the mocks (col, lit, etc) available
+        # They are in the global scope of this test module
+        exec(func_source, globals())
+
+        # Now apply_fallback_prorrogacoes should be available
+
+        # Mocks
+        df_prorrog = MagicMock(name="df_prorrog")
+        df_cli_map = MagicMock(name="df_cli_map")
+
+        # Mock method chaining
+        df_prorrog.join.return_value = df_prorrog
+        df_prorrog.withColumn.return_value = df_prorrog
+        df_prorrog.drop.return_value = df_prorrog
+
+        # Call the function
+        apply_fallback_prorrogacoes(df_prorrog, df_cli_map)
+
+        # --- ASSERTIONS ---
+        # 1. Verify Join
+        df_prorrog.join.assert_called_with(df_cli_map, "cod_cliente", "left")
+
+        # 2. Verify withColumn calls arguments
+        with_col_calls = df_prorrog.withColumn.call_args_list
+
+        found_date_fallback = False
+        found_plat_fallback = False
+
+        for args, kwargs in with_col_calls:
+            col_name = args[0]
+            if col_name == "data_deferimento":
+                found_date_fallback = True
+            elif col_name == "nome_plataforma":
+                found_plat_fallback = True
+
+        self.assertTrue(found_date_fallback, "Missing withColumn call for 'data_deferimento'")
+        self.assertTrue(found_plat_fallback, "Missing withColumn call for 'nome_plataforma'")
+
+        # 3. Verify drop
+        df_prorrog.drop.assert_called_with("nome_plataforma_cli")
+
 if __name__ == "__main__":
     unittest.main()

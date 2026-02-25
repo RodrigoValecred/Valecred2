@@ -144,6 +144,19 @@ def resolve_columns(df, target_cols):
             df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
     return df_resolved
 
+# Helper Function para Fallback de Atributos (Prorrogações)
+def apply_fallback_prorrogacoes(df, df_map_plat):
+    """
+    Aplica fallback para data_deferimento e nome_plataforma no stream de Prorrogações.
+    Estratégia Plataforma: 1. Operação Original, 2. Plataforma Atual do Cliente, 3. "N/D"
+    Estratégia Data: 1. Data Deferimento Original, 2. Data Inclusão
+    """
+    return df \
+        .join(df_map_plat, "cod_cliente", "left") \
+        .withColumn("data_deferimento", coalesce(col("data_deferimento"), to_date(col("data_inclusao")))) \
+        .withColumn("nome_plataforma", coalesce(col("nome_plataforma"), col("nome_plataforma_cli"), lit("N/D"))) \
+        .drop("nome_plataforma_cli")
+
 # Lista de colunas para resolver (incluindo cod_cliente para Streams que não o tenham)
 granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente"]
 
@@ -204,11 +217,7 @@ df_prorrog_enrich = resolve_columns(df_prorrog_joined, granular_cols)
 
 # FIX: Fallback de Atributos Faltantes (Data, Plataforma)
 # Estratégia Plataforma: 1. Operação Original, 2. Plataforma Atual do Cliente, 3. "N/D"
-df_prorrog_enrich = df_prorrog_enrich \
-    .join(df_cli_plat_map, "cod_cliente", "left") \
-    .withColumn("data_deferimento", coalesce(col("data_deferimento"), to_date(col("data_inclusao")))) \
-    .withColumn("nome_plataforma", coalesce(col("nome_plataforma"), col("nome_plataforma_cli"), lit("N/D"))) \
-    .drop("nome_plataforma_cli")
+df_prorrog_enrich = apply_fallback_prorrogacoes(df_prorrog_enrich, df_cli_plat_map)
 
 # Calcular Peso do Prazo (Valor * Dias Prorrogados)
 df_prorrog_calc = df_prorrog_enrich.withColumn("valor_vezes_dias", col("valor") * col("dias_prorrogados"))
