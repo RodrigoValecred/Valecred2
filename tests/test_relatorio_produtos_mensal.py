@@ -236,31 +236,40 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
         self.spark.read.table.return_value = df_raw
 
-        # --- LOGIC UNDER TEST (The Fix) ---
-        # 1. Load Full
-        df_ops_full = self.spark.read.table("LH_Gold.fato_operacoes") \
+        # --- LOGIC UNDER TEST (Refined to match notebook) ---
+        # 1. Load Raw
+        df_ops_raw = self.spark.read.table("LH_Gold.fato_operacoes")
+
+        # 2. Filter for Stream 1 (df_ops)
+        df_ops_full = df_ops_raw \
             .filter(col("status_aceite") == "A") \
             .filter(col("status_analise") == "D")
 
-        # 2. Stream 1 (Filtered)
         df_ops = df_ops_full.filter(year(col("data_deferimento")) >= 2025)
 
-        # 3. Map (Unfiltered by year)
-        df_map_ops = df_ops_full.select(
+        # 3. Map (Unfiltered by year AND status)
+        df_map_ops = df_ops_raw.select(
             col("cod_operacao"),
             col("nbordero").alias("nbordero_op")
         )
 
         # --- ASSERTIONS ---
-        # Verify df_map_ops is derived from df_status_2 (unfiltered by year)
-        df_status_2.select.assert_called()
+        # Verify df_map_ops is derived from df_raw (unfiltered)
+        df_raw.select.assert_called()
 
-        # Verify df_ops (Stream 1) involved the year filter
-        # It calls filter on df_status_2
+        # Verify df_ops (Stream 1) involved the status and year filters
+        # It calls filter on df_raw, then on df_status_1, then on df_status_2
+        df_raw.filter.assert_called()
+        df_status_1.filter.assert_called()
         df_status_2.filter.assert_called()
 
-        # Ensure select was NOT called on df_2025 (the year-filtered one)
-        df_2025.select.assert_not_called()
+        # Ensure select was NOT called on df_status_2 (filtered status) for mapping purposes
+        # Note: df_status_2 is used for df_ops, but df_map_ops should use df_raw.
+        # However, verifying negative calls on mocks can be tricky if they share names.
+        # Here we just ensure df_raw.select WAS called, which is the key fix.
+
+        # Verify df_map_ops did NOT come from the filtered DF
+        df_status_2.select.assert_not_called()
 
     def test_mora_data_deferimento_adjustment(self):
         """
