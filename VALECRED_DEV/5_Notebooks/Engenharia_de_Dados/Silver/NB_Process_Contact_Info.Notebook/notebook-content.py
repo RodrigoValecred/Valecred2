@@ -43,6 +43,26 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 from pyspark.sql.window import Window
 from pyspark.sql.functions import row_number, col, when, lit, split, explode, trim
 
+def unfold_contact_info(df, input_col_name, output_col_name, delimiter):
+    """
+    Desdobra (unfold) uma coluna contendo múltiplos valores separados por um delimitador.
+
+    :param delimiter: Padrão regex para usar como delimitador na função split.
+    """
+    # 1. Desdobrar (unfold) a coluna.
+    df_unfolded = df.withColumn(
+        output_col_name,
+        explode(split(col(input_col_name), delimiter))
+    )
+
+    # 2. Limpar os dados desdobrados.
+    df_cleaned = df_unfolded.withColumn(
+        output_col_name,
+        trim(col(output_col_name))
+    )
+
+    return df_cleaned
+
 # METADATA ********************
 
 # META {
@@ -107,19 +127,8 @@ key_columns_email = ["CPFCNPJ"]
 email_column = "EMAIL"
 delimiter = ";"
 
-# 1. Desdobrar (unfold) a coluna de emails.
-#    A função `split` divide a string em um array, e `explode` cria uma nova linha para cada item no array.
-df_unfolded_email = df_email_bronze.withColumn(
-    "EMAIL_INDIVIDUAL",
-    explode(split(col(email_column), delimiter))
-)
-
-# 2. Limpar os dados do email desdobrado.
-#    A função `trim` remove espaços em branco no início e no fim da string.
-df_cleaned_email = df_unfolded_email.withColumn(
-    "EMAIL_INDIVIDUAL",
-    trim(col("EMAIL_INDIVIDUAL"))
-)
+# 1. Desdobrar (unfold) e limpar a coluna de emails usando a função helper.
+df_cleaned_email = unfold_contact_info(df_email_bronze, email_column, "EMAIL_INDIVIDUAL", delimiter)
 
 print("Desdobramento e limpeza de emails concluídos.")
 
@@ -227,15 +236,7 @@ key_columns_tel = ["CPFCNPJ"]
 tel_column = "TELEFONE"
 delimiter = ";"
 
-df_unfolded_tel = df_tel_bronze.withColumn(
-    "TELEFONE_INDIVIDUAL",
-    explode(split(col(tel_column), delimiter))
-)
-
-df_cleaned_tel = df_unfolded_tel.withColumn(
-    "TELEFONE_INDIVIDUAL",
-    trim(col("TELEFONE_INDIVIDUAL"))
-)
+df_cleaned_tel = unfold_contact_info(df_tel_bronze, tel_column, "TELEFONE_INDIVIDUAL", delimiter)
 
 print("Desdobramento e limpeza de telefones concluídos.")
 
