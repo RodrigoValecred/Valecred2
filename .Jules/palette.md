@@ -17,3 +17,7 @@
 ## 2025-07-28 - Styled DataFrames in Notebooks
 **Learning:** Raw DataFrame output is hard to scan for anomalies. Applying conditional formatting (colors) and currency masks via `df.style` transforms a data dump into an actionable dashboard for analysts.
 **Action:** Always wrap key reporting DataFrames in a `style_...` function that highlights critical thresholds (e.g., utilization > 100%) and formats currency.
+
+## 2026-02-24 - Temporal Context in Dashboards
+**Learning:** Displaying limits/metrics without their expiry/validity date is dangerous. Adding time context (days remaining, expired status) alongside financial metrics drastically improves risk assessment.
+**Action:** Always pair financial limits/targets with their validity period in reports.

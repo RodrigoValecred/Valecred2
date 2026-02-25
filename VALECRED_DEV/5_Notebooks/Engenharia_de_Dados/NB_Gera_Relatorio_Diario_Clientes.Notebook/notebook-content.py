@@ -140,6 +140,23 @@ def display_risk_dashboard(df):
         limite = row['limite_global']
         excesso = row.get('excesso_valor', 0)
 
+        # Validation Logic
+        validade = row.get('validade_limite', 'N/A')
+        validade_display = str(validade)
+
+        try:
+             val_date = datetime.strptime(str(validade), '%Y-%m-%d').date()
+             days_remaining = (val_date - data_hoje).days
+
+             if days_remaining < 0:
+                 validade_display = f"{Colors.RED}{validade} (VENCIDO) ⚠️{Colors.RESET}"
+             elif days_remaining <= 30: # Warn if < 30 days
+                 validade_display = f"{Colors.YELLOW}{validade} ({days_remaining}d){Colors.RESET}"
+             else:
+                 validade_display = f"{Colors.GREEN}{validade}{Colors.RESET}"
+        except Exception as e:
+             pass
+
         # Calculate Available
         disponivel = max(0, limite - risco)
 
@@ -177,6 +194,7 @@ def display_risk_dashboard(df):
         print(f"    Utilização: {bar_display}")
         print(f"    Risco:      {format_currency_br(risco):>15}")
         print(f"    Limite:     {format_currency_br(limite):>15}")
+        print(f"    Validade:   {validade_display:>26}")
 
         if not (pd.isna(utilizacao) or np.isinf(utilizacao)):
             if utilizacao > 100:

@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
 from tests.notebook_utils import extract_function_from_file
 
 NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/NB_Gera_Relatorio_Diario_Clientes.Notebook/notebook-content.py"
@@ -10,7 +11,11 @@ NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/NB_Gera_Relatorio_
 class TestRelatorioDiarioUX(unittest.TestCase):
     def setUp(self):
         # 1. Prepare Scope with Dependencies
-        self.scope = {'pd': pd, 'np': np}
+        self.scope = {'pd': pd, 'np': np, 'datetime': datetime}
+
+        # Inject data_hoje
+        self.data_hoje = datetime(2025, 12, 23).date()
+        self.scope['data_hoje'] = self.data_hoje
 
         # Mock Colors class since we can't easily extract classes with current util
         class MockColors:
@@ -96,6 +101,31 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         truncated_part = long_name[:47]
         self.assertIn(truncated_part, full_output)
         self.assertIn("...", full_output)
+
+    @patch('builtins.print')
+    def test_display_risk_dashboard_validity(self, mock_print):
+        # Test Case: Expired, Near Expiry, Safe
+        df = pd.DataFrame({
+            'grupo': ['Expired', 'Near', 'Safe'],
+            'valor_risco': [10.0, 10.0, 10.0],
+            'limite_global': [100.0, 100.0, 100.0],
+            'utilizacao_pct': [10.0, 10.0, 10.0],
+            'excesso_valor': [0, 0, 0],
+            'validade_limite': [
+                '2025-12-01', # Expired (Assuming self.data_hoje is 2025-12-23)
+                '2025-12-30', # Near (7 days)
+                '2026-06-01'  # Safe
+            ]
+        })
+
+        self.display_risk_dashboard(df)
+
+        calls = [args[0] for args, _ in mock_print.call_args_list if args]
+        full_output = "\n".join(calls)
+
+        self.assertIn("VENCIDO", full_output)
+        self.assertIn("(7d)", full_output)
+        self.assertIn("2026-06-01", full_output)
 
     def test_style_risk_dataframe(self):
         # This function is what we are adding.
