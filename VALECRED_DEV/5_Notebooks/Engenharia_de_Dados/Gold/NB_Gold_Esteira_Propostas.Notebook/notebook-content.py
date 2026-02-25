@@ -75,11 +75,6 @@ target_pareceres_status_table_name = "LH_Silver.pareceres_de_alteracao_de_status
 target_esteira_table_name = "LH_Gold.esteira_de_propostas"
 watermark_table_name = "LH_Silver.etl_watermark_control"
 DEFAULT_WATERMARK = datetime.datetime(1900, 1, 1)
-notebook_name = "NB_Curadoria_Gold" # Mantendo nome antigo para compatibilidade do watermark ou deveria mudar?
-# Decisão: Manter o nome antigo por enquanto para não reprocessar tudo, ou mudar para novo nome.
-# Se mudar para "NB_Gold_Esteira_Propostas", ele vai começar do zero (1900).
-# Se começar do zero, vai reprocessar tudo. Como é idempotente (Merge), não tem problema, mas pode demorar a primeira vez.
-# Vou usar o nome NOVO para ter controle correto deste notebook.
 notebook_name = "NB_Gold_Esteira_Propostas"
 
 try:
