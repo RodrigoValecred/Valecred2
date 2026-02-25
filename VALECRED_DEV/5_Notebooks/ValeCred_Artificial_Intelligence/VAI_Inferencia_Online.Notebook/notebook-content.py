@@ -29,10 +29,12 @@
 # CELL ********************
 
 import mlflow
+import mlflow.pyfunc
 import pandas as pd
 import numpy as np
 from pyspark.sql import functions as F
-from pyspark.sql.types import DoubleType
+from pyspark.sql.types import DoubleType, StringType
+from pyspark.sql.functions import col, lit, when, pandas_udf, PandasUDFType
 
 # ==============================================================================
 # 1. LEITURA E PREPARAÇÃO DOS DADOS (Spark)
@@ -122,24 +124,28 @@ else:
                              .withColumn("concentracao_operacao", F.lit(1.0)) \
                              .withColumn("ratio_cobertura_liquidez", F.lit(0.0))
 
-# --- CONVERSÃO PARA PANDAS ---
-print("2. Convertendo para Pandas para aplicar IA...")
-df_pandas = df_enrich.toPandas()
+# --- INFERÊNCIA DISTRIBUÍDA (SPARK) ---
+print("2. Aplicando IA de forma distribuída...")
 
-# Lista de Backup (ATUALIZADA com o produto) 🆕
+# Lista de Features (Backup e Análise)
 features_backup = [
     'vlr_total_sacado', 'prazo_medio_titulos', 'taxa', 
     'exposicao_acumulada', 'concentracao_operacao', 'qtd_titulos',
-    'cod_produto_ia', 'ratio_cobertura_liquidez' # <--- Adicionado aqui!
+    'cod_produto_ia', 'ratio_cobertura_liquidez'
 ]
 
-# Garante que não existem nulos nas features
-for col in features_backup:
-    if col in df_pandas.columns:
-        df_pandas[col] = df_pandas[col].fillna(0)
+features_para_analisar = [
+    'vlr_total_sacado', 'prazo_medio_titulos', 'taxa',
+    'concentracao_operacao', 'ratio_alavancagem_interna'
+]
+
+# 1. Garantir que colunas existem e tratar nulos (Spark)
+df_scored = df_enrich
+for col_name in features_backup + features_para_analisar:
+    if col_name not in df_scored.columns:
+        df_scored = df_scored.withColumn(col_name, F.lit(0.0))
     else:
-        # Se a coluna não existir (ex: erro no join), cria zerada para não quebrar
-        df_pandas[col] = 0
+        df_scored = df_scored.fillna(0.0, subset=[col_name])
 
 # ==============================================================================
 # 2. BUSCA DINÂMICA DO CÉREBRO DA V.A.I. (MLflow)
@@ -165,56 +171,61 @@ try:
     print(f"✅ Cérebro encontrado! Usando Run ID: {latest_run_id}")
     
     model_uri = f"runs:/{latest_run_id}/Modelo_Risco_FIDC"
-    loaded_model = mlflow.sklearn.load_model(model_uri)
     
-    # Aplica a IA
-    if hasattr(loaded_model, "feature_names_in_"):
-        cols_esperadas = loaded_model.feature_names_in_
-        for col in cols_esperadas:
-            if col not in df_pandas.columns:
-                df_pandas[col] = 0
-        df_pandas['anomaly_score'] = loaded_model.predict(df_pandas[cols_esperadas])
-    else:
-        df_pandas['anomaly_score'] = loaded_model.predict(df_pandas[features_backup])
+    # Criar UDF do Spark para inferência distribuída
+    predict_udf = mlflow.pyfunc.spark_udf(spark, model_uri, result_type=DoubleType())
 
-    print("🚀 V.A.I. aplicada com sucesso!")
+    # Aplicar UDF
+    # Assume-se que o modelo espera as colunas em features_backup ou similar.
+    # MLflow spark_udf mapeia colunas por nome se passado como struct, ou args posicionais.
+    # O uso comum é predict_udf(*cols). Vamos passar features_backup.
+    cols_input = [F.col(c) for c in features_backup]
+    df_scored = df_scored.withColumn("anomaly_score", predict_udf(*cols_input))
+
+    print("🚀 V.A.I. aplicada com sucesso (Distribuído)!")
 
 except Exception as e:
     print(f"❌ Erro/Aviso na IA: {e}")
     print("⚠️ ATENÇÃO: Usando regra manual de contingência.")
-    df_pandas['anomaly_score'] = np.where(
-        (df_pandas['taxa'] < 1.5) | (df_pandas['prazo_medio_titulos'] > 60), -1, 1
+    df_scored = df_scored.withColumn(
+        "anomaly_score",
+        F.when((F.col('taxa') < 1.5) | (F.col('prazo_medio_titulos') > 60), -1.0).otherwise(1.0)
     )
+
 # ==============================================================================
 # 🆕 XAI: EXPLICAR O MOTIVO DA ANOMALIA (DIAGNÓSTICO)
 # ==============================================================================
 print("🕵️ Calculando o motivo principal das anomalias...")
 
-features_para_analisar = [
-    'vlr_total_sacado', 'prazo_medio_titulos', 'taxa',
-    'concentracao_operacao', 'ratio_alavancagem_interna'
-]
+# Calcular estatísticas globais para Z-Score (Mean, Std)
+# Necessário coletar para o driver para passar para a UDF
+exprs = []
+for c in features_para_analisar:
+    exprs.append(F.mean(F.col(c)).alias(f"mean_{c}"))
+    exprs.append(F.stddev(F.col(c)).alias(f"std_{c}"))
 
-# Filtrar apenas colunas presentes
-present_features = [col for col in features_para_analisar if col in df_pandas.columns]
+stats_row = df_scored.select(*exprs).collect()[0]
+stats_dict = stats_row.asDict()
 
-if not present_features:
-    # Se não houver features, fallback seguro
-    df_pandas['motivo_principal'] = np.where(df_pandas['anomaly_score'] == 1, "Normal", "Desconhecido")
-else:
-    # 1. Calcular Z-Scores vetorizados
-    df_features = df_pandas[present_features]
-    means = df_features.mean()
-    stds = df_features.std().replace(0, 1) # Evita divisão por zero
+# Definir Pandas UDF para lógica row-wise do XAI
+@pandas_udf(StringType())
+def compute_reason_udf(*cols):
+    # cols: features + anomaly_score
+    features_data = cols[:-1]
+    anomaly_score = cols[-1]
+
+    # Reconstruir DataFrame pandas do batch
+    df_chunk = pd.DataFrame({c: s for c, s in zip(features_para_analisar, features_data)})
     
-    z_scores = ((df_features - means) / stds).abs()
+    # Z-Scores usando stats globais
+    means = pd.Series({c: stats_dict[f"mean_{c}"] for c in features_para_analisar})
+    stds = pd.Series({c: stats_dict[f"std_{c}"] for c in features_para_analisar}).replace(0, 1)
+
+    z_scores = ((df_chunk - means) / stds).abs()
     
-    # 2. Identificar coluna com maior desvio
-    # idxmax retorna o nome da coluna com maior valor
     culpados_cols = z_scores.idxmax(axis=1)
     max_z_scores = z_scores.max(axis=1)
     
-    # 3. Mapear para nomes amigáveis
     mapa_nomes = {
         'vlr_total_sacado': 'Valor Muito Alto',
         'prazo_medio_titulos': 'Prazo Fora do Comum',
@@ -225,38 +236,47 @@ else:
     
     culpados_friendly = culpados_cols.map(mapa_nomes).fillna(culpados_cols)
 
-    # 4. Ajustar lógica final
-    # Normal -> "Normal"
-    # Anomalia mas Z-Score 0 -> "Desconhecido"
-    # Anomalia com Z-Score > 0 -> Nome da feature
-
-    # Começa com "Normal"
-    df_pandas['motivo_principal'] = "Normal"
-
-    # Máscara de anomalias
-    mask_anomaly = df_pandas['anomaly_score'] != 1
+    reasons = pd.Series("Normal", index=df_chunk.index)
+    mask_anomaly = anomaly_score != 1
 
     if mask_anomaly.any():
-        # Define valores para linhas anômalas
-        # Se max_z_score > 0, usa culpado_friendly, senão "Desconhecido"
-        reasons = np.where(max_z_scores[mask_anomaly] > 0,
-                           culpados_friendly[mask_anomaly],
-                           "Desconhecido")
+        r = np.where(max_z_scores[mask_anomaly] > 0,
+                        culpados_friendly[mask_anomaly],
+                        "Desconhecido")
+        reasons.loc[mask_anomaly] = r
 
-        df_pandas.loc[mask_anomaly, 'motivo_principal'] = reasons
+    return reasons
+
+# Aplicar XAI UDF
+xai_input_cols = [F.col(c) for c in features_para_analisar] + [F.col("anomaly_score")]
+df_final = df_scored.withColumn("motivo_principal", compute_reason_udf(*xai_input_cols))
+
 # ==============================================================================
 # 3. SALVAR RESULTADO NA TV
 # ==============================================================================
 
-df_pandas['status_ia'] = np.where(df_pandas['anomaly_score'] == -1, "ALTO RISCO", "NORMAL")
-df_pandas['data_processamento'] = pd.Timestamp.now()
+df_final = df_final.withColumn("status_ia", F.when(F.col("anomaly_score") == -1, "ALTO RISCO").otherwise("NORMAL"))
+df_final = df_final.withColumn("data_processamento", F.current_timestamp())
 
 print("4. Salvando resultados na tabela Gold...")
-df_final = spark.createDataFrame(df_pandas)
 df_final.write.mode("overwrite").option("overwriteSchema", "true").format("delta").saveAsTable("LH_Gold.Alertas_Risco_TV")
 
-print(f"✅ Processo Finalizado! {len(df_pandas)} operações enviadas para a TV.")
-display(df_final.select("id_operacao", "status_ia","motivo_principal"))
+# Calcular métricas para o dashboard antes de sair
+total_ops = df_final.count()
+risco_alto = df_final.filter(F.col("status_ia") == "ALTO RISCO").count()
+# Top 3 motivos
+top_motivos_rows = df_final.filter(F.col("status_ia") == "ALTO RISCO") \
+    .groupBy("motivo_principal").count().orderBy(F.col("count").desc()).limit(3).collect()
+top_motivos = [(row['motivo_principal'], row['count']) for row in top_motivos_rows]
+
+metrics = {
+    "total_ops": total_ops,
+    "risco_alto": risco_alto,
+    "top_motivos": top_motivos
+}
+
+print(f"✅ Processo Finalizado! {total_ops} operações enviadas para a TV.")
+# display(df_final.select("id_operacao", "status_ia","motivo_principal")) # Keep commented or remove
 
 # ==============================================================================
 # 4. DASHBOARD RÁPIDO DE SAÍDA (UX)
@@ -271,33 +291,32 @@ def create_progress_bar(percentage, width=20):
     bar = "█" * filled + "░" * (width - filled)
     return f"[{bar}] {percentage:.1f}%"
 
-def display_terminal_dashboard(df):
+def display_terminal_dashboard(metrics):
     W = 52
-    cw = 48 # Content width (excluding side padding spaces)
-    # Total line width = 1 (║) + 1 ( ) + 48 + 1 ( ) + 1 (║) = 52
+    cw = 48
 
     print("\n")
     print("╔" + "═"*(W-2) + "╗")
     print(f"║ {'📊 RESUMO DO PROCESSAMENTO V.A.I.':^{cw}} ║")
     print("╠" + "═"*(W-2) + "╣")
 
-    if not df.empty and 'status_ia' in df.columns:
-        total_ops = len(df)
-        risco_alto = len(df[df['status_ia'] == 'ALTO RISCO'])
+    total_ops = metrics.get('total_ops', 0)
+    risco_alto = metrics.get('risco_alto', 0)
+    top_motivos = metrics.get('top_motivos', [])
+
+    if total_ops > 0:
         normal = total_ops - risco_alto
-        percent_risco = (risco_alto / total_ops) * 100 if total_ops > 0 else 0
+        percent_risco = (risco_alto / total_ops) * 100
 
         # Status
         status_icon = "🟢" if percent_risco < 10 else "🔴" if percent_risco < 30 else "🔥"
         status_text = f"{status_icon} Status: {percent_risco:.1f}% Risco"
-        # Emoji adjustment: 1 char extra visual width per emoji
         padding = cw - (len(status_text) + 1)
         print(f"║ {status_text}{' '*padding} ║")
 
         print(f"║ {' '*cw} ║") # Spacer
 
         # Metrics
-        # Padding calc: "  🔢 Total:       " (17 chars) + 31 chars value = 48 chars content
         print(f"║  🔢 Total:       {str(total_ops):<31} ║")
         print(f"║  🚨 Alto Risco:  {str(risco_alto):<31} ║")
         print(f"║  ✅ Normal:      {str(normal):<31} ║")
@@ -306,21 +325,17 @@ def display_terminal_dashboard(df):
 
         # Progress Bar
         bar = create_progress_bar(percent_risco, width=25)
-        # "  Risco: " (9 chars) + bar (approx 34 chars) + padding -> 48 chars
-        # 48 - 9 = 39 chars space for bar
         print(f"║  Risco: {bar:<39} ║")
 
         print(f"║ {' '*cw} ║") # Spacer
 
         # Top Reasons
-        if risco_alto > 0 and 'motivo_principal' in df.columns:
+        if risco_alto > 0 and top_motivos:
             print("╠" + "─"*(W-2) + "╣")
             print(f"║ {'🔍 TOP 3 MOTIVOS DE RISCO':^{cw}} ║")
             print("╠" + "─"*(W-2) + "╣")
 
-            top_motivos = df[df['status_ia'] == 'ALTO RISCO']['motivo_principal'].value_counts().head(3)
-
-            for i, (motivo, count) in enumerate(top_motivos.items(), 1):
+            for i, (motivo, count) in enumerate(top_motivos, 1):
                 motivo_disp = (motivo[:35] + '..') if len(motivo) > 35 else motivo
                 line = f"{i}. {motivo_disp}: {count}"
                 print(f"║ {line:<{cw}} ║")
@@ -330,10 +345,7 @@ def display_terminal_dashboard(df):
     print("╚" + "═"*(W-2) + "╝")
     print("\n")
 
-display_terminal_dashboard(df_pandas)
-
-# Executa o dashboard
-display_terminal_dashboard(df_pandas)
+display_terminal_dashboard(metrics)
 
 # METADATA ********************
 

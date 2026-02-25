@@ -70,44 +70,23 @@ class TestVaiUX:
     def test_display_terminal_dashboard(self, mock_print):
         # Extract and execute display_terminal_dashboard
         source = extract_function_from_file(NOTEBOOK_PATH, "display_terminal_dashboard")
+
+        # We also need create_progress_bar in the scope because display_terminal_dashboard calls it
+        source_pb = extract_function_from_file(NOTEBOOK_PATH, "create_progress_bar")
+        exec(source_pb, self.local_scope, self.local_scope)
+
         exec(source, self.local_scope, self.local_scope)
         display_terminal_dashboard = self.local_scope['display_terminal_dashboard']
 
-        # Setup Mock DataFrame
-        mock_df = MagicMock()
-        mock_df.empty = False
-        mock_df.columns = ['status_ia', 'motivo_principal']
-        mock_df.__len__.return_value = 10
-
-        # Mock df['status_ia'] == 'ALTO RISCO'
-        mock_status_ia = MagicMock()
-        mock_mask = MagicMock()
-        mock_status_ia.__eq__.return_value = mock_mask
-
-        # Mock df[mock_mask]
-        mock_filtered_df = MagicMock()
-        mock_filtered_df.__len__.return_value = 3
-
-        # Mock df[mock_mask]['motivo_principal']
-        mock_motivos = MagicMock()
-        mock_filtered_df.__getitem__.return_value = mock_motivos
-
-        # Mock value_counts().head(3)
-        mock_counts = MagicMock()
-        mock_counts.head.return_value = MagicMock()
-        mock_counts.head.return_value.items.return_value = [('Motivo A', 2), ('Motivo B', 1)]
-        mock_motivos.value_counts.return_value = mock_counts
-
-        # Final setup for __getitem__ side effect
-        def getitem_side_effect(key):
-            if key == 'status_ia': return mock_status_ia
-            if key is mock_mask: return mock_filtered_df
-            return MagicMock()
-
-        mock_df.__getitem__.side_effect = getitem_side_effect
+        # Setup Metrics Dictionary
+        metrics = {
+            "total_ops": 10,
+            "risco_alto": 3,
+            "top_motivos": [('Motivo A', 2), ('Motivo B', 1)]
+        }
 
         # Run function
-        display_terminal_dashboard(mock_df)
+        display_terminal_dashboard(metrics)
 
         # Verify output
         output = "\n".join([call.args[0] for call in mock_print.call_args_list if call.args])
