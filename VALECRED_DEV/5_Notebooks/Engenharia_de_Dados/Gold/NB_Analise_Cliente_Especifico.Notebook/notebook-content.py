@@ -44,6 +44,14 @@ from pyspark.sql.functions import col
 import pandas as pd
 import numpy as np
 
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# ATENÇÃO: Substitua o valor abaixo pelo CPF/CNPJ do cliente a ser analisado
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+CLIENTE_CPFCNPJ = "14630809000101"
+
+# Tipos de operação a serem excluídos da análise (mesmo padrão do modelo)
+tipos_excluir = ['RN', 'RE', 'RC', 'PR', 'AB', 'AM', 'LB', 'PB']
+
 # Configurações do Spark
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED")
 spark.conf.set("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
@@ -86,10 +94,21 @@ df_mestra_spark = df_mestra_spark.join(
     how="left"
 )
 
+# Filtros de performance aplicados em Spark antes do toPandas
+print(f"Filtrando dados para o cliente {CLIENTE_CPFCNPJ} e aplicando regras de negócio em Spark...")
+df_mestra_spark = df_mestra_spark.filter(col("CPFCNPJ") == CLIENTE_CPFCNPJ)
+df_mestra_spark = df_mestra_spark.filter(
+    (col("STATUSANALISE") == 'D') &
+    (col("STATUSACEITE") == 'A') &
+    (col("ACEITO") == 'S')
+)
+df_mestra_spark = df_mestra_spark.filter(~col("TTO_OPERACAO").isin(tipos_excluir))
+df_mestra_spark = df_mestra_spark.filter(col("LIQUIDACAO").isNotNull())
+
 # Convertendo para Pandas para facilitar a manipulação
 print("Convertendo para DataFrame Pandas...")
-df_mestra_bruta = df_mestra_spark.toPandas()
-print("Tabela mestra criada com sucesso.")
+df_filtrado = df_mestra_spark.toPandas()
+print("Tabela mestra filtrada e carregada com sucesso.")
 
 # METADATA ********************
 
@@ -106,20 +125,7 @@ print("Tabela mestra criada com sucesso.")
 
 # CELL ********************
 
-# Regra 1: Considerar apenas títulos aceitos e deferidos
-df_filtrado = df_mestra_bruta[
-    (df_mestra_bruta['STATUSANALISE'] == 'D') &
-    (df_mestra_bruta['STATUSACEITE'] == 'A') &
-    (df_mestra_bruta['ACEITO'] == 'S')
-].copy()
-
-# Regra 2: Desconsiderar renegociações
-tipos_excluir = ['RN','RE','RC','PR','AB','AM','LB','PB']
-df_filtrado = df_filtrado[~df_filtrado['TTO_OPERACAO'].isin(tipos_excluir)].copy()
-
-# Regra 3: Considerar apenas títulos liquidados para análise histórica
-df_filtrado = df_filtrado[df_filtrado['LIQUIDACAO'].notna()].copy()
-print(f"Universo de análise contém {len(df_filtrado)} títulos liquidados.")
+print(f"Universo de análise contém {len(df_filtrado)} títulos liquidados para o cliente {CLIENTE_CPFCNPJ}.")
 
 # Criando a variável Target
 def create_target_variable(df):
@@ -160,15 +166,10 @@ print("Variável TARGET criada.")
 
 # CELL ********************
 
-# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-# ATENÇÃO: Substitua o valor abaixo pelo CPF/CNPJ do cliente a ser analisado
-# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-CLIENTE_CPFCNPJ = "14630809000101"
-
 print(f"Analisando o cliente com CPF/CNPJ: {CLIENTE_CPFCNPJ}")
 
-# Filtrando o DataFrame para o cliente específico
-df_cliente = df_filtrado[df_filtrado['CPFCNPJ'] == CLIENTE_CPFCNPJ].copy()
+# O DataFrame df_filtrado já contém apenas os dados do cliente específico
+df_cliente = df_filtrado.copy()
 
 if df_cliente.empty:
     print("ALERTA: Nenhum título encontrado para este cliente com os filtros aplicados.")
