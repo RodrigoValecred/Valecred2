@@ -74,6 +74,7 @@ print("\nIniciando o processamento incremental de pareceres...")
 target_pareceres_status_table_name = "LH_Silver.pareceres_de_alteracao_de_status"
 target_esteira_table_name = "LH_Gold.esteira_de_propostas"
 watermark_table_name = "LH_Silver.etl_watermark_control"
+DEFAULT_WATERMARK = datetime.datetime(1900, 1, 1)
 notebook_name = "NB_Curadoria_Gold" # Mantendo nome antigo para compatibilidade do watermark ou deveria mudar?
 # Decisão: Manter o nome antigo por enquanto para não reprocessar tudo, ou mudar para novo nome.
 # Se mudar para "NB_Gold_Esteira_Propostas", ele vai começar do zero (1900).
@@ -90,10 +91,10 @@ try:
     else:
         # Se não achou com nome novo, tenta com nome antigo para migração suave?
         # Melhor não, vamos reprocessar tudo para garantir consistencia neste novo notebook.
-        last_watermark = datetime.datetime(1900, 1, 1)
+        last_watermark = DEFAULT_WATERMARK
         print(f"Watermark não encontrado. Usando padrão: {last_watermark}.")
 except Exception:
-    last_watermark = datetime.datetime(1900, 1, 1)
+    last_watermark = DEFAULT_WATERMARK
     print(f"Usando watermark padrão (erro na leitura): {last_watermark}.")
 
 # METADATA ********************
@@ -114,7 +115,7 @@ print("mostrando colunas da df_pareceres_incremental:")
 print(df_pareceres_incremental.columns)
 
 if record_count > 0:
-    new_watermark = df_pareceres_incremental.agg(max(greatest(coalesce(col("DATAINCLUSAO"), lit(datetime.datetime(1900,1,1))), coalesce(col("DATAALTERACAO"), lit(datetime.datetime(1900,1,1)))))).collect()[0][0]
+    new_watermark = df_pareceres_incremental.agg(max(greatest(coalesce(col("DATAINCLUSAO"), lit(DEFAULT_WATERMARK)), coalesce(col("DATAALTERACAO"), lit(DEFAULT_WATERMARK))))).collect()[0][0]
     print(f"Registros incrementais: {record_count}. Novo watermark: {new_watermark}")
 
     df_replica_pareceres_delta = df_pareceres_incremental.filter(year(col("DATAINCLUSAO")) >= 2024).drop("ENCAMINHAR", "ALERTA", "CODPASTA", "CODTAREFA", "USUAALTERACAO", "DATAALTERACAO").withColumn("OBS", col("OBS").substr(1, 255)).withColumn("codTipoParecer", col("CODTIPOPARECER").cast(LongType())).filter((col("codTipoParecer") == 1) & (col("CPFCNPJ").isNotNull()) & (col("CPFCNPJ") != "") & (col("OBS").isNotNull()) & (col("OBS") != "") & (col("USUAINCLUSAO").isNotNull()) & (col("DATAINCLUSAO").isNotNull())).filter(col("OBS").startswith("STATUS ALTERADO PARA ")).withColumn("STATUS_DO_CLIENTE", trim(substring(col("OBS"), 22, 100))).withColumn("BASE", lit(40).cast(LongType())).select("CODPARECER", "CPFCNPJ", "CODOPERACAO", "DATAINCLUSAO", "USUAINCLUSAO", "STATUS_DO_CLIENTE", "BASE")
