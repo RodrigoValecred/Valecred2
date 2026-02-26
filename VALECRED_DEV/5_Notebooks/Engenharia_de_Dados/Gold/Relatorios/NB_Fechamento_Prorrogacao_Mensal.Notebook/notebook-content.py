@@ -20,6 +20,30 @@
 # META   }
 # META }
 
+# CELL ********************
+
+# Fabric notebook source
+
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {
+# META     "lakehouse": {
+# META       "default_lakehouse": "ee40705b-0100-49bc-8f35-81d71839f042",
+# META       "default_lakehouse_name": "LH_Gold",
+# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
+# META       "known_lakehouses": [
+# META         {
+# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
+# META         }
+# META       ]
+# META     }
+# META   }
+# META }
+
 # MARKDOWN ********************
 
 # # Relatório Mensal de Fechamento de Prorrogação
@@ -59,7 +83,7 @@ def load_and_prepare_data(spark):
     # Normalizar datas e status
     df_prorrog_prep = df_prorrog \
         .withColumn("data_referencia", to_date(col("data_inclusao"))) \
-        .withColumn("status_analise_norm",
+        .withColumn("status_analise_norm", 
             when(col("status_analise") == "D", "DEFERIDO")
             .otherwise("INDEFERIDO")
         )
@@ -74,13 +98,13 @@ def process_fechamento_prorrogacao(df_prorrog, df_clientes):
     w_titulo = Window.partitionBy("cod_titulo")
 
     # Flag: 1 se status_analise == 'D' (DEFERIDO)
-    df_flagged = df_prorrog.withColumn("is_deferido",
+    df_flagged = df_prorrog.withColumn("is_deferido", 
         when(col("status_analise_norm") == "DEFERIDO", 1).otherwise(0)
     )
 
     # Calcular se houve algum deferimento no histórico (ou no mês, se quisermos restringir, mas geralmente o título é único)
     # Assumindo que cod_titulo é único globalmente ou por cliente.
-    df_calculated = df_flagged.withColumn("foi_deferido_eventualmente",
+    df_calculated = df_flagged.withColumn("foi_deferido_eventualmente", 
         max("is_deferido").over(w_titulo)
     )
 
@@ -107,7 +131,6 @@ def process_fechamento_prorrogacao(df_prorrog, df_clientes):
             col("nome_gerente"),
             col("cod_operacao"),
             col("cod_titulo"),
-            col("n_doc"),
             col("nbordero"),
             col("data_referencia").alias("data_operacao"),
             col("valor"),
@@ -133,6 +156,13 @@ df_relatorio.write.mode("overwrite").option("overwriteSchema", "true").saveAsTab
 print(f"Relatório salvo em: {output_table}")
 
 mssparkutils.notebook.exit("Success")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # METADATA ********************
 
