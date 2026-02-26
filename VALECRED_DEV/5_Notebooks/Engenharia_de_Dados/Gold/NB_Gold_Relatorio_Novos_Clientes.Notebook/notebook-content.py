@@ -51,7 +51,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, min, row_number, coalesce, when, lit, first
+from pyspark.sql.functions import col, min, row_number, coalesce, when, lit, first, broadcast
 from pyspark.sql.window import Window
 from delta.tables import *
 
@@ -87,8 +87,10 @@ df_grupos = df_grupos.select("cod_cliente", "grupo_economico")
 # 3. Filtrar Operações Válidas (Aceitas)
 # "Data de entrada" implica sucesso na operação.
 # Incluímos 'data_analise' para o join com a bridge
+# Otimização: Pre-cast de 'data_analise' para evitar cast repetido no join
 df_ops_validas = df_ops.filter(col("status_aceite") == 'A') \
-    .select("cod_operacao", "cod_cliente", "data_inclusao", "data_analise", "cod_broker")
+    .select("cod_operacao", "cod_cliente", "data_inclusao", "data_analise", "cod_broker") \
+    .withColumn("data_analise_date", col("data_analise").cast("date"))
 
 # 4. Enriquecimento de Gerente (Bridge)
 print("Aplicando enriquecimento de gerentes via Bridge (Strict + Fallback)...")
@@ -97,11 +99,12 @@ df_bridge_prep = df_bridge.withColumnRenamed("cod_cliente", "cod_cliente_bridge"
 
 # 4.1 Strict Join (Date Match)
 # Join com Bridge baseado na data da análise
+# Otimização: Uso de Broadcast Join (Bridge é pequena) e coluna pré-calculada
 df_ops_enriched = df_ops_validas.join(
-    df_bridge_prep,
-    (df_ops_validas["cod_cliente"] == df_bridge_prep["cod_cliente_bridge"]) &
-    (df_ops_validas["data_analise"].cast("date") >= df_bridge_prep["data_inicio_vigencia"]) &
-    (df_ops_validas["data_analise"].cast("date") <= df_bridge_prep["data_fim_vigencia"]),
+    broadcast(df_bridge_prep),
+    (col("cod_cliente") == col("cod_cliente_bridge")) &
+    (col("data_analise_date") >= col("data_inicio_vigencia")) &
+    (col("data_analise_date") <= col("data_fim_vigencia")),
     "left"
 )
 
