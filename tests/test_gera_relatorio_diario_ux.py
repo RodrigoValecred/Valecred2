@@ -80,11 +80,13 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertTrue(item0['is_valid_utilization'])
         self.assertFalse(item0['is_excess'])
         self.assertIn("✅", item0['bar_display']) # Check for icon (mock Colors are empty strings but icon is literal)
+        self.assertIn("Seguro", item0['bar_display']) # Check for status text
 
         # Risky Group
         item1 = view_data[1]
         self.assertTrue(item1['is_excess'])
         self.assertIn("🚨", item1['bar_display'])
+        self.assertIn("Crítico", item1['bar_display']) # Check for status text
         self.assertEqual(item1['excesso_fmt'], "R$ 50,00")
 
     @patch('builtins.print')
@@ -107,6 +109,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
 
         # Assertions
         self.assertIn("PAINEL DE RISCO", full_output)
+        self.assertIn("Data de Referência", full_output)
         self.assertIn("Test Group A", full_output)
         self.assertIn("50.0%", full_output)
         # Note: Colors are empty strings in mock, so we won't see ANSI codes, but text structure remains

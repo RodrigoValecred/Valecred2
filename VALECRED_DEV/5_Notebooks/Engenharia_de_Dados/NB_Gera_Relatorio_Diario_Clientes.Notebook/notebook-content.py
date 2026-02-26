@@ -261,6 +261,7 @@ def prepare_dashboard_data(df, ref_date):
         if pd.isna(utilizacao) or np.isinf(utilizacao):
             bar = '░' * bar_length
             status_icon = "⚠️"
+            status_text = "Indisponível"
             util_str = "N/A"
             color = Colors.YELLOW
             item['is_valid_utilization'] = False
@@ -271,18 +272,22 @@ def prepare_dashboard_data(df, ref_date):
 
             if utilizacao <= 80:
                 status_icon = "✅"
+                status_text = "Seguro"
                 color = Colors.GREEN
             elif utilizacao <= 100:
                 status_icon = "⚠️"
+                status_text = "Atenção"
                 color = Colors.YELLOW
             else:
                 status_icon = "🚨"
+                status_text = "Crítico"
                 color = Colors.RED
 
             bar = color + '█' * filled_length + Colors.RESET + '░' * (bar_length - filled_length)
             util_str = f"{utilizacao:.1f}%"
 
-        item['bar_display'] = f"[{bar}] {color}{util_str:>6}{Colors.RESET} {status_icon}"
+        # Improved UX: Add status text for clarity
+        item['bar_display'] = f"[{bar}] {color}{util_str:>6}{Colors.RESET} {status_icon} {color}({status_text}){Colors.RESET}"
         item['utilizacao_val'] = utilizacao
         item['is_excess'] = (not (pd.isna(utilizacao) or np.isinf(utilizacao))) and (utilizacao > 100)
 
@@ -305,6 +310,11 @@ def display_risk_dashboard(df, ref_date=None):
     print("\n")
     print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
     print(Colors.BOLD + Colors.CYAN + f"{' 📊 PAINEL DE RISCO - RELATÓRIO DIÁRIO':^{W}}" + Colors.RESET)
+
+    # Improved UX: Show reference date clearly
+    date_str = ref_date.strftime('%d/%m/%Y') if ref_date else "N/A"
+    print(Colors.BOLD + Colors.CYAN + f"{f'📅 Data de Referência: {date_str}':^{W}}" + Colors.RESET)
+
     print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
 
     # Summary
