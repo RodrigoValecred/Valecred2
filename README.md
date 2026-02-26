@@ -89,6 +89,33 @@ Autonomia: Sistema "Vivo" que aprende semanalmente com novos dados, adaptando-se
 
 ## 📞 Contato / Consultoria
 Desenvolvido por RBO Consultoria em Dados. Especialistas em Engenharia de Dados e IA para Mercado Financeiro.
+
+## 🚀 Evolução e Melhorias Técnicas (Jules.google.com)
+
+A plataforma passou por um ciclo intensivo de refatoração e melhorias técnicas lideradas pelo agente de IA **Jules.google.com**, visando aumentar a robustez, performance e segurança do ecossistema de dados.
+
+**Marcos Principais (Início: Fevereiro 2026):**
+
+### 1. Engenharia de Software e Qualidade (Testes Automatizados)
+*   **Pipeline de Testes Unitários (`tests/`)**: Criação de uma suíte de testes robusta utilizando `unittest` e `mock`, permitindo a validação da lógica de notebooks PySpark sem a necessidade de um cluster ativo.
+*   **Verificação de Sintaxe e Linting**: Implementação de verificação automática de sintaxe (`py_compile`) para prevenir erros em tempo de execução.
+*   **Isolamento de Lógica**: Refatoração de notebooks monolíticos para extrair regras de negócio em funções testáveis e reutilizáveis via `extract_function_from_file`.
+
+### 2. Performance e Otimização Spark
+*   **Paralelismo em Machine Learning**: Otimização do notebook `NB_Analise_Safra_Gerentes` substituindo loops sequenciais (`collect()`) por execução paralela distribuída usando Pandas UDF (`applyInPandas`), resultando em ganhos significativos de performance.
+*   **Lazy Evaluation**: Revisão de pipelines (ex: `NB_Curadoria_Gold`) para maximizar o uso de avaliação preguiçosa do Spark e reduzir leituras desnecessárias.
+*   **Broadcast Joins**: Aplicação estratégica de joins via broadcast para otimizar o cruzamento de grandes volumes de dados com tabelas dimensionais menores.
+
+### 3. Segurança e Governança
+*   **Gestão de Segredos**: Remoção de credenciais *hardcoded* (ex: API Keys) e substituição por variáveis de ambiente e cofres seguros.
+*   **Sanitização de Logs**: Implementação de filtros em logs de execução (ex: `NB_CERC_Consulta_API`) para evitar vazamento de PII (Informações Pessoais Identificáveis).
+*   **Gerenciamento de Dependências**: Substituição de instalações inseguras via subprocessos (`pip install`) por arquivos de requisitos padronizados.
+
+### 4. Lógica de Negócio e Analytics Avançado
+*   **Cálculo de Atraso (Mora) Refinado**: Implementação de lógica defensiva para cálculo de dias em atraso, priorizando datas de prorrogação e tratando datas inválidas/nulas para evitar distorções nas métricas de risco.
+*   **Clusterização Híbrida**: Desenvolvimento de algoritmos de segmentação de clientes (`NB_Analise_Cluster_Clientes`) combinando regras de negócio determinísticas com K-Means para identificação precisa de perfis de risco.
+*   **Dashboards de Risco**: Refatoração da lógica de visualização para separar cálculo de métricas da apresentação, garantindo consistência entre dados processados e exibidos.
+
 ## Como Começar
 
 Para começar a trabalhar com a plataforma, siga os passos abaixo.
