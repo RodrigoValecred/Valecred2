@@ -42,6 +42,7 @@ from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.clustering import KMeans
 from pyspark.ml.evaluation import ClusteringEvaluator
 from itertools import chain
+import time
 
 # Configurações
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "CORRECTED")
@@ -133,6 +134,14 @@ df_features_final = df_features.withColumn("tendencia_atraso", col("media_atraso
         "flag_renegociacao"
     )
 
+# 🧠 TENSOR OPTIMIZATION: Cache reuse of heavy feature engineering
+# This dataframe is used for both 'df_critical' and 'df_to_cluster', and subsequent KMeans
+print("⚡ Tensor: Caching df_features_final to prevent re-computation...")
+start_cache = time.time()
+df_features_final.cache()
+count_features = df_features_final.count() # Force materialization
+print(f"⚡ Tensor: Feature store cached. Count: {count_features}. Time: {time.time() - start_cache:.2f}s")
+
 # METADATA ********************
 
 # META {
@@ -147,23 +156,10 @@ df_features_final = df_features.withColumn("tendencia_atraso", col("media_atraso
 print("Executando K-Means...")
 
 # 2.1 Preparação (Assembler + Scaler)
-# Selecionamos as features mais relevantes para segmentação
-feature_cols = ["media_atraso_historico", "taxa_pontualidade", "tendencia_atraso", "saldo_inadimplente_atual"]
-
-# Vetorização
-assembler = VectorAssembler(inputCols=feature_cols, outputCol="features_raw")
-df_vectorized = assembler.transform(df_features_final)
-
-# Normalização (Importante para K-Means pois features têm escalas diferentes ex: dias vs valor monetário)
-scaler = StandardScaler(inputCol="features_raw", outputCol="features", withStd=True, withMean=True)
-scaler_model = scaler.fit(df_vectorized)
-df_scaled = scaler_model.transform(df_vectorized)
-
-# 2.2 Treinamento
-# k=3 conforme solicitado (Bom, Rentável, Risco)
-kmeans = KMeans(k=3, seed=42, featuresCol="features", predictionCol="cluster_id")
-model = kmeans.fit(df_scaled)
-df_clustered = model.transform(df_scaled)
+# 🧠 TENSOR OPTIMIZATION: Removed redundant K=3 training block.
+# The logic below uses a hybrid approach (Hard Rules + K=2) starting from df_features_final.
+# The previous K=3 model was trained but its results were never used.
+print("⚡ Tensor: Skipped redundant K=3 Model Training.")
 
 # METADATA ********************
 
@@ -280,6 +276,10 @@ df_output.write.mode("overwrite").option("overwriteSchema", "true").format("delt
 print(f"Tabela {table_name} salva com sucesso!")
 print("Amostra dos dados:")
 df_output.show(10, truncate=False)
+
+# 🧠 TENSOR OPTIMIZATION: Free memory
+df_features_final.unpersist()
+print("⚡ Tensor: Cache cleared.")
 
 # METADATA ********************
 
