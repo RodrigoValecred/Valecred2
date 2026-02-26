@@ -1,6 +1,11 @@
 import ast
 import os
+import sys
 import unittest
+
+# Ensure we can import from tests package
+sys.path.append(os.getcwd())
+from tests.notebook_utils import extract_function_from_file
 
 class TestCVMSecurity(unittest.TestCase):
     def test_requests_timeout(self):
@@ -103,6 +108,50 @@ class TestCVMSecurity(unittest.TestCase):
             stream_val = keywords['stream']
             if not (isinstance(stream_val, ast.Constant) and stream_val.value is True):
                  self.fail(f"requests.{func_name} call at line {call.lineno} has 'stream' argument but it is not set to True")
+
+class TestCVMPeriodValidation(unittest.TestCase):
+    def setUp(self):
+        # Locate the notebook file
+        self.notebook_path = "VALECRED_DEV/7_Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
+
+        # Extract the function source code
+        self.func_source = extract_function_from_file(self.notebook_path, "validate_periodo")
+
+        if self.func_source is None:
+            self.fail(f"Function validate_periodo not found in {self.notebook_path}")
+
+        # Execute the function definition in a local scope
+        self.exec_globals = {}
+        exec(self.func_source, self.exec_globals)
+        self.validate_periodo = self.exec_globals["validate_periodo"]
+
+    def test_valid_periodos(self):
+        """Test valid period formats (YYYYMM)."""
+        valid_cases = ["202501", "199912", "202409", "000000"]
+        for p in valid_cases:
+            with self.subTest(periodo=p):
+                self.assertTrue(self.validate_periodo(p), f"Should accept valid period: {p}")
+
+    def test_invalid_periodos_length(self):
+        """Test periods with incorrect length."""
+        invalid_cases = ["2025", "2025011", "1", ""]
+        for p in invalid_cases:
+            with self.subTest(periodo=p):
+                self.assertFalse(self.validate_periodo(p), f"Should reject invalid length: {p}")
+
+    def test_invalid_periodos_content(self):
+        """Test periods with non-digit characters."""
+        invalid_cases = ["20250a", "abcdef", "2025-1", "20.250", "../...", "....//"]
+        for p in invalid_cases:
+            with self.subTest(periodo=p):
+                self.assertFalse(self.validate_periodo(p), f"Should reject non-digits: {p}")
+
+    def test_invalid_types(self):
+        """Test non-string inputs."""
+        invalid_cases = [202501, None, ["202501"], 123456]
+        for p in invalid_cases:
+            with self.subTest(periodo=p):
+                self.assertFalse(self.validate_periodo(p), f"Should reject non-string types: {p}")
 
 if __name__ == '__main__':
     unittest.main()
