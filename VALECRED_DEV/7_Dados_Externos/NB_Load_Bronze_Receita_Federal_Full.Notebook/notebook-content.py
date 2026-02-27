@@ -44,7 +44,8 @@ from pyspark.sql.functions import col, to_date, regexp_replace
 # --- Configurações ---
 MIRRORS = [
     "https://dadosabertos.rfb.gov.br/CNPJ/",
-    "http://200.152.38.155/CNPJ/" # IP direto caso DNS falhe
+    "http://200.152.38.155/CNPJ/", # IP direto caso DNS falhe
+    "https://github.com/jonathands/dados-abertos-receita-cnpj/releases/download/2024.09/" # Mirror GitHub
 ]
 
 # Diretórios no Lakehouse (Files API)
@@ -179,8 +180,9 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
 
         try:
             # Primeiro tenta um HEAD request para ver se o arquivo existe e servidor responde
+            # allow_redirects=True é crucial para o mirror do GitHub, que redireciona para o storage de assets
             try:
-                head_response = requests.head(url, headers=headers, verify=False, timeout=30)
+                head_response = requests.head(url, headers=headers, verify=False, timeout=30, allow_redirects=True)
                 if head_response.status_code != 200:
                     print(f"Arquivo não encontrado ou erro no servidor (HEAD): {url} - Status: {head_response.status_code}")
                     continue # Tenta próximo mirror
