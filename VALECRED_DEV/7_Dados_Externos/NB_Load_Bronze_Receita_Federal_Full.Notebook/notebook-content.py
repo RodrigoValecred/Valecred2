@@ -121,12 +121,17 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
     local_zip_path = os.path.join(base_dir_download, filename)
     download_success = False
 
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+
     for base_url in MIRRORS:
         url = f"{base_url}{filename}"
         print(f"Tentando baixar de: {url}")
 
         try:
-            response = requests.get(url, verify=False, stream=True, timeout=120)
+            # Aumentando timeout para 300s (5min) e adicionando User-Agent
+            response = requests.get(url, verify=False, stream=True, timeout=300, headers=headers)
 
             if response.status_code == 200:
                 with open(local_zip_path, 'wb') as f:
@@ -178,6 +183,17 @@ print("Processando ESTABELECIMENTOS...")
 for file in FILES_ESTABELECIMENTOS:
     download_and_extract(file, LAKEHOUSE_DOWNLOAD_DIR, LAKEHOUSE_EXTRACT_DIR)
 
+# Verificação de Arquivos Extraídos
+print("\n--- Verificando arquivos extraídos ---")
+try:
+    files_extracted = mssparkutils.fs.ls(EXTRACT_DIR_REL)
+    print(f"Total de arquivos em {EXTRACT_DIR_REL}: {len(files_extracted)}")
+    # Listar primeiros 5 para debug
+    for f in files_extracted[:5]:
+        print(f" - {f.name}")
+except Exception as e:
+    print(f"Erro ao listar arquivos extraídos: {e}")
+
 # CELL ********************
 
 # --- Leitura e Carga para Bronze: EMPRESAS ---
@@ -188,20 +204,24 @@ try:
     # Usar caminho relativo para leitura no Spark para evitar problemas com driver ABFS
     path_empresas = f"{EXTRACT_DIR_REL}/*.EMPRE*"
 
-    df_empresas = spark.read.format("csv") \
-        .option("delimiter", ";") \
-        .option("header", "false") \
-        .option("encoding", "ISO-8859-1") \
-        .option("quote", '"') \
-        .schema(schema_empresas) \
-        .load(path_empresas)
+    # Verificar se existem arquivos antes de tentar ler
+    if len([f for f in mssparkutils.fs.ls(EXTRACT_DIR_REL) if ".EMPRE" in f.name]) > 0:
+        df_empresas = spark.read.format("csv") \
+            .option("delimiter", ";") \
+            .option("header", "false") \
+            .option("encoding", "ISO-8859-1") \
+            .option("quote", '"') \
+            .schema(schema_empresas) \
+            .load(path_empresas)
 
-    # Tratamento básico: Converter capital social (1000,00 -> 1000.00)
-    df_empresas = df_empresas.withColumn("capital_social", regexp_replace(col("capital_social"), ",", ".").cast(DoubleType()))
+        # Tratamento básico: Converter capital social (1000,00 -> 1000.00)
+        df_empresas = df_empresas.withColumn("capital_social", regexp_replace(col("capital_social"), ",", ".").cast(DoubleType()))
 
-    print("Salvando EMPRESAS em LH_Bronze...")
-    df_empresas.write.format("delta").mode("overwrite").saveAsTable("LH_Bronze.rfb_empresas_full")
-    print("EMPRESAS salvas com sucesso.")
+        print("Salvando EMPRESAS em LH_Bronze...")
+        df_empresas.write.format("delta").mode("overwrite").saveAsTable("LH_Bronze.rfb_empresas_full")
+        print("EMPRESAS salvas com sucesso.")
+    else:
+        print("AVISO: Nenhum arquivo de EMPRESAS encontrado para processar. Pulando etapa.")
 
 except Exception as e:
     print(f"Erro ao processar EMPRESAS: {e}")
@@ -216,22 +236,26 @@ try:
     # Usar caminho relativo para leitura no Spark
     path_estabelecimentos = f"{EXTRACT_DIR_REL}/*.ESTABELE*"
 
-    df_estab = spark.read.format("csv") \
-        .option("delimiter", ";") \
-        .option("header", "false") \
-        .option("encoding", "ISO-8859-1") \
-        .option("quote", '"') \
-        .schema(schema_estabelecimentos) \
-        .load(path_estabelecimentos)
+    # Verificar se existem arquivos antes de tentar ler
+    if len([f for f in mssparkutils.fs.ls(EXTRACT_DIR_REL) if ".ESTABELE" in f.name]) > 0:
+        df_estab = spark.read.format("csv") \
+            .option("delimiter", ";") \
+            .option("header", "false") \
+            .option("encoding", "ISO-8859-1") \
+            .option("quote", '"') \
+            .schema(schema_estabelecimentos) \
+            .load(path_estabelecimentos)
 
-    # Converter datas de string YYYYMMDD para DateType
-    date_cols = ["data_situacao_cadastral", "data_inicio_atividade", "data_situacao_especial"]
-    for c in date_cols:
-        df_estab = df_estab.withColumn(c, to_date(col(c), "yyyyMMdd"))
+        # Converter datas de string YYYYMMDD para DateType
+        date_cols = ["data_situacao_cadastral", "data_inicio_atividade", "data_situacao_especial"]
+        for c in date_cols:
+            df_estab = df_estab.withColumn(c, to_date(col(c), "yyyyMMdd"))
 
-    print("Salvando ESTABELECIMENTOS em LH_Bronze...")
-    df_estab.write.format("delta").mode("overwrite").saveAsTable("LH_Bronze.rfb_estabelecimentos_full")
-    print("ESTABELECIMENTOS salvos com sucesso.")
+        print("Salvando ESTABELECIMENTOS em LH_Bronze...")
+        df_estab.write.format("delta").mode("overwrite").saveAsTable("LH_Bronze.rfb_estabelecimentos_full")
+        print("ESTABELECIMENTOS salvos com sucesso.")
+    else:
+        print("AVISO: Nenhum arquivo de ESTABELECIMENTOS encontrado para processar. Pulando etapa.")
 
 except Exception as e:
     print(f"Erro ao processar ESTABELECIMENTOS: {e}")
