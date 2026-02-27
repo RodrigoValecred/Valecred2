@@ -238,12 +238,15 @@ def prepare_dashboard_data(df, ref_date):
              val_date = datetime.strptime(str(validade), '%Y-%m-%d').date()
              days_remaining = (val_date - ref_date).days
 
+             # Format date as DD/MM/YYYY for better UX consistency
+             val_date_str = val_date.strftime('%d/%m/%Y')
+
              if days_remaining < 0:
-                 validade_display = f"{Colors.RED}{validade} (VENCIDO) ⚠️{Colors.RESET}"
+                 validade_display = f"{Colors.RED}{val_date_str} (VENCIDO) ⚠️{Colors.RESET}"
              elif days_remaining <= 30:
-                 validade_display = f"{Colors.YELLOW}{validade} ({days_remaining}d){Colors.RESET}"
+                 validade_display = f"{Colors.YELLOW}{val_date_str} ({days_remaining}d){Colors.RESET}"
              else:
-                 validade_display = f"{Colors.GREEN}{validade}{Colors.RESET}"
+                 validade_display = f"{Colors.GREEN}{val_date_str}{Colors.RESET}"
         except Exception:
              pass
         item['validade_display'] = validade_display
@@ -345,6 +348,10 @@ def display_risk_dashboard(df, ref_date=None):
             print(" " + Colors.CYAN + "─"*(W-2) + Colors.RESET)
 
     print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
+
+    # Legend for UX
+    print(Colors.CYAN + f"{'Legenda: ✅ Seguro (<=80%) | ⚠️ Atenção (80-100%) | 🚨 Crítico (>100%)':^{W}}" + Colors.RESET)
+
     print("\n")
 
 # Exibição do resultado para o relatório
