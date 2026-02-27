@@ -56,7 +56,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.functions import (
-    col, sum, max, min, lit, when, coalesce, year, month, trunc, datediff, to_date, concat, broadcast, trim
+    col, sum, max, min, lit, when, coalesce, year, month, trunc, datediff, to_date, concat, broadcast, trim, regexp_extract
 )
 from pyspark.sql.window import Window
 from notebookutils import mssparkutils
@@ -80,8 +80,22 @@ def load_and_prepare_data(spark):
         .select("cod_cliente", "nome", "grupo_economico", "nome_gerente") \
         .dropDuplicates(["cod_cliente"])
 
+    print("Carregando e Processando Pareceres (Silver)...")
+    df_pareceres = spark.read.table("LH_Silver.staging_pareceres_operacoes")
+
+    # Extrair Bordero Indeferido
+    # Regex: Procura por 'BORDERO INDEFERIDO:' seguido de digitos
+    df_pareceres_ref = df_pareceres \
+        .withColumn("bordero_referencia_indeferido", regexp_extract(col("Parecer"), r"(?i)BORDERO\s+INDEFERIDO:\s*(\d+)", 1)) \
+        .filter(col("bordero_referencia_indeferido") != "") \
+        .groupBy("cod_operacao") \
+        .agg(max("bordero_referencia_indeferido").alias("bordero_referencia_indeferido"))
+
+    # Join Prorrog with Pareceres Ref
+    df_prorrog_enriched = df_prorrog.join(df_pareceres_ref, "cod_operacao", "left")
+
     # Normalizar datas e status
-    df_prorrog_prep = df_prorrog \
+    df_prorrog_prep = df_prorrog_enriched \
         .withColumn("data_referencia", to_date(col("data_inclusao"))) \
         .withColumn("status_analise_norm", 
             when(col("status_analise") == "D", "DEFERIDO")
@@ -132,6 +146,7 @@ def process_fechamento_prorrogacao(df_prorrog, df_clientes):
             col("cod_operacao"),
             col("cod_titulo"),
             col("nbordero"),
+            col("bordero_referencia_indeferido"),
             col("data_referencia").alias("data_operacao"),
             col("valor"),
             col("dias_prorrogados"),
