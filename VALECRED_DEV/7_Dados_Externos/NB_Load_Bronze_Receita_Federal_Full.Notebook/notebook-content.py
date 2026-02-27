@@ -111,6 +111,13 @@ schema_estabelecimentos = StructType([
     StructField("data_situacao_especial", StringType(), True)
 ])
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
 def download_and_extract(filename, base_dir_download, base_dir_extract):
@@ -169,6 +176,13 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
         print(f"FALHA FATAL: Não foi possível baixar {filename} de nenhum mirror.")
         return False
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
 # --- Execução Download e Extração ---
@@ -225,6 +239,13 @@ try:
 
 except Exception as e:
     print(f"Erro ao processar EMPRESAS: {e}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
