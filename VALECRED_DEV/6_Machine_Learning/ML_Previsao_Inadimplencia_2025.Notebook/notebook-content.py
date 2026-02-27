@@ -50,8 +50,21 @@ spark.conf.set("spark.sql.parquet.int96RebaseModeInWrite", "CORRECTED")
 
 # Carregamento das tabelas
 print("Carregando tabelas do Lakehouse Silver...")
-df_titulos = spark.read.table("LH_Silver.staging_titulos_limpa")
-df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa")
+
+# Filtros para Predicate Pushdown (Otimização Tensor)
+tdoc_excluir = ['BL']
+tipos_excluir = ['RE','RC','PR','AB','AM','LB','PB']
+
+df_titulos = spark.read.table("LH_Silver.staging_titulos_limpa") \
+    .filter(col("LIQUIDACAO").isNull()) \
+    .filter(~col("TDOC").isin(tdoc_excluir))
+
+df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa") \
+    .filter(col("STATUSANALISE") == 'D') \
+    .filter(col("STATUSACEITE") == 'A') \
+    .filter(col("ACEITO") == 'S') \
+    .filter(~col("TTO").isin(tipos_excluir))
+
 df_cedentes = spark.read.table("LH_Silver.dim_cliente")
 df_cad_geral = spark.read.table("LH_Silver.staging_cad_geral_limpa")
 print("Tabelas carregadas com sucesso.")
@@ -111,7 +124,8 @@ for old, new in cols_cedentes.items():
 
 # Realizando os joins
 print("Criando tabela mestra com os joins...")
-df_mestra_spark = df_titulos.join(df_operacoes, on="CODOPERACAO", how="left")
+# Otimização Tensor: Alterado para INNER join pois df_operacoes já está filtrado
+df_mestra_spark = df_titulos.join(df_operacoes, on="CODOPERACAO", how="inner")
 df_mestra_spark = df_mestra_spark.join(df_cedentes, on="CODCLIENTE", how="left")
 df_mestra_spark = df_mestra_spark.join(
     df_cad_geral.select("CPFCNPJ", "CIDADE", "UF").dropDuplicates(["CPFCNPJ"]),
@@ -143,25 +157,8 @@ print("Tabela mestra criada.")
 
 print("Filtrando o universo de dados para a previsão...")
 # Aplicando filtros de negócio
-df_filtrado_spark = df_mestra_spark.filter(
-    (col('STATUSANALISE') == 'D') &
-    (col('STATUSACEITE') == 'A') &
-    (col('ACEITO') == 'S')
-)
-
-# Excluindo renegociações
-tipos_excluir = ['RE','RC','PR','AB','AM','LB','PB']
-df_filtrado_spark = df_filtrado_spark.filter(~col('TTO_OPERACAO').isin(tipos_excluir))
-
-# Excluindo boletos
-tdoc_excluir = ['BL']
-df_filtrado_spark = df_filtrado_spark.filter(~df_titulos['TDOC'].isin(tdoc_excluir))
-
-
-# Filtrando para o ano de 2025 e títulos em aberto
-df_previsao_spark = df_filtrado_spark.filter(
-    (df_titulos["LIQUIDACAO"].isNull())
-)
+# Otimização Tensor: Filtros já aplicados no carregamento (Predicate Pushdown)
+df_previsao_spark = df_mestra_spark
 
 # Convertendo para Pandas para usar com scikit-learn
 # Otimização: Mantendo em Spark para inferência distribuída
