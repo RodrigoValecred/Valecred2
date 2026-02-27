@@ -49,7 +49,11 @@ def avg(c): return MagicMock()
 def count(c): return MagicMock()
 def max(c): return MagicMock()
 def min(c): return MagicMock()
-def when(condition, value):
+# We need a way to track calls to 'when'
+mock_when_tracker = MagicMock()
+
+def mock_when(condition, value):
+    mock_when_tracker(condition, value) # Track call
     m = MagicMock()
     m.otherwise = MagicMock(return_value=m)
     m.when = MagicMock(return_value=m) # Chainable when
@@ -108,6 +112,8 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         # Execute in global scope
         for code in [cls.resolve_code, cls.load_code, cls.ops_code, cls.prorrog_code, cls.mora_code]:
             if code:
+                # Add mock_when as 'when' to the execution context
+                globals()['when'] = mock_when
                 exec(code, globals())
 
     def setUp(self):
@@ -259,11 +265,11 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         # --- ASSERTIONS ---
         # Verify withColumn was called for 'data_referencia_mora'
         # And verify that 'when' was called.
-        self.assertTrue(mock_when.called)
+        self.assertTrue(mock_when_tracker.called)
 
         # We can inspect the arguments passed to mock_when
         # call_args_list[0] should be the 'year(venc_prorrogado) > 1900' check
-        first_call_args = mock_when.call_args_list[0]
+        first_call_args = mock_when_tracker.call_args_list[0]
         condition_arg = first_call_args[0][0] # The condition object (Mock)
 
         # We can't easily assert the mock structure of the condition without deep inspection,
