@@ -111,14 +111,30 @@ schema_estabelecimentos = StructType([
     StructField("data_situacao_especial", StringType(), True)
 ])
 
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
 # CELL ********************
+
+def safe_extract(zip_ref, path):
+    """
+    Extrai arquivos de forma segura, prevenindo path traversal (Zip Slip).
+    """
+    target_path = os.path.abspath(path)
+    safe_members = []
+
+    for member in zip_ref.namelist():
+        # Resolver o caminho completo do membro
+        # Nota: os.path.join descartará 'target_path' se 'member' for absoluto
+        member_path = os.path.join(target_path, member)
+        # Normalizar o caminho do membro para resolver '..' e '.'
+        abs_member_path = os.path.abspath(member_path)
+
+        # Verificar se o caminho do membro começa com o caminho de destino
+        # Adicionamos os.sep para garantir que correspondemos aos limites do diretório (ex: /tmp/foo vs /tmp/foobar)
+        if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
+             raise Exception(f"Zip Slip vulnerability detected: {member}")
+
+        safe_members.append(member)
+
+    zip_ref.extractall(path, members=safe_members)
 
 def download_and_extract(filename, base_dir_download, base_dir_extract):
     """
@@ -160,7 +176,8 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
             # Extrair
             print(f"Extraindo {filename}...")
             with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
-                zip_ref.extractall(base_dir_extract)
+                # Usar extração segura para prevenir Zip Slip
+                safe_extract(zip_ref, base_dir_extract)
             print(f"Extração concluída em {base_dir_extract}")
 
             # Remove zip para economizar espaço? (Opcional)
@@ -175,13 +192,6 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
     else:
         print(f"FALHA FATAL: Não foi possível baixar {filename} de nenhum mirror.")
         return False
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
@@ -239,13 +249,6 @@ try:
 
 except Exception as e:
     print(f"Erro ao processar EMPRESAS: {e}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # CELL ********************
 
