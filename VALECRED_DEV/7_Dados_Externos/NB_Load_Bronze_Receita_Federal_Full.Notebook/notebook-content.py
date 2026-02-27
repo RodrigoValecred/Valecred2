@@ -22,404 +22,213 @@
 
 # MARKDOWN ********************
 
-# # Notebook de Carga de Dados Completos da Receita Federal
-# **Objetivo:** Este notebook é responsável por baixar os dados brutos de CNPJ do site da Receita Federal, processá-los e carregá-los na camada Bronze do Lakehouse.
-# **Fonte dos Dados:** Dados públicos de CNPJ da [Receita Federal do Brasil](https://www.gov.br/receitafederal/pt-br/assuntos/orientacao-tributaria/cadastros/consultas/dados-publicos-cnpj).
-# **Fonte dos Scripts de Processamento:** [turicas/socios-brasil](https://github.com/turicas/socios-brasil)
-# **Processos realizados:**
-# 1.  **Download dos Dados Brutos:** Baixa os arquivos `.zip` a partir de um mirror do Brasil.IO para o Lakehouse.
-# 2.  **Execução do Script de Extração:** Utiliza os scripts Python do repositório `socios-brasil` para descompactar e converter os dados brutos em formato CSV.
-# 3.  **Gravação na Camada Bronze:** Salva o DataFrame do arquivo de empresas principal como uma tabela Delta no Lakehouse `LH_Bronze`.
-
-
-# MARKDOWN ********************
-
-# ## Seção 1: Preparação do Ambiente de Processamento
-# Esta célula baixa os scripts Python e os arquivos de configuração necessários do repositório `turicas/socios-brasil` e os armazena no Lakehouse para que possam ser usados nas etapas posteriores.
+# # Notebook de Carga de Dados da Receita Federal (Nativo)
+# **Objetivo:** Baixar e carregar dados públicos de CNPJ (Empresas e Estabelecimentos) da Receita Federal para a camada Bronze.
+# **Fonte:** [Dados Abertos CNPJ](https://dadosabertos.rfb.gov.br/CNPJ/)
+# **Processo:**
+# 1.  Download dos arquivos ZIP (Empresas0-9, Estabelecimentos0-9).
+# 2.  Extração dos arquivos CSV.
+# 3.  Leitura com Spark (Schema manual).
+# 4.  Salvamento em Delta (LH_Bronze).
 
 # CELL ********************
 
-import os
 import requests
-import hashlib
-from notebookutils import mssparkutils
-
-# --- CONFIGURAÇÃO DOS ARQUIVOS DE AJUDA ---
-
-# Dicionário com os arquivos necessários e seus destinos no Lakehouse
-helper_files = {
-    # Scripts Python
-    "extract_dump.py": "Files/RFB_Processor/extract_dump.py",
-    "requirements.txt": "Files/RFB_Processor/requirements.txt",
-    # Arquivo de dados para o script
-    "data/natureza-juridica.csv": "Files/RFB_Processor/data/natureza-juridica.csv",
-    # Arquivos de cabeçalho para o script
-    "headers/cnae_secundaria.csv": "Files/RFB_Processor/headers/cnae_secundaria.csv",
-    "headers/empresa.csv": "Files/RFB_Processor/headers/empresa.csv",
-    "headers/header.csv": "Files/RFB_Processor/headers/header.csv",
-    "headers/socio.csv": "Files/RFB_Processor/headers/socio.csv",
-    "headers/trailler.csv": "Files/RFB_Processor/headers/trailler.csv"
-}
-
-# SECURITY: SHA256 hashes for executable/critical files to ensure integrity.
-FILE_HASHES = {
-    "extract_dump.py": "c53801ddd2e4c04fd69c5d7179b48e365b50048bd6840d27f0d4be7ab0b8e4f4",
-    "requirements.txt": "ef9f18112ebaf55988be6cdc869e3382ed224d0ca9cefe382f001f1659431f3f"
-}
-
-# SECURITY: Pinning to specific commit hash (7b56360) to prevent supply chain attacks via mutable 'master' branch.
-# This ensures that malicious code pushed to the remote repository cannot be automatically executed here.
-base_repo_url = "https://raw.githubusercontent.com/turicas/socios-brasil/7b56360e93f35349fe29588dddf7d3c8b07eb22b/"
-local_temp_dir = "/tmp/rfb_helpers"
-
-def verify_file_hash(filepath, filename):
-    """
-    Verifies that the file at filepath matches the expected SHA256 hash if one exists for filename.
-    Raises an exception if the hash does not match.
-    """
-    if filename in FILE_HASHES:
-        expected_hash = FILE_HASHES[filename]
-        print(f"Verifying integrity of '{filename}'...")
-
-        sha256_hash = hashlib.sha256()
-        with open(filepath, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(byte_block)
-
-        calculated_hash = sha256_hash.hexdigest()
-
-        if calculated_hash != expected_hash:
-            raise ValueError(f"SECURITY ALERT: Hash mismatch for {filename}!\nExpected: {expected_hash}\nCalculated: {calculated_hash}")
-        print(f"✅ Integrity confirmed for '{filename}'.")
-
-# --- EXECUÇÃO DO DOWNLOAD DOS ARQUIVOS DE AJUDA ---
-
-print("Iniciando a preparação do ambiente de processamento...")
-os.makedirs(local_temp_dir, exist_ok=True)
-
-for source_path, lakehouse_dest_path in helper_files.items():
-    file_url = f"{base_repo_url}{source_path}"
-    file_name = os.path.basename(source_path)
-    local_file = os.path.join(local_temp_dir, file_name)
-
-    # Cria o diretório de destino no Lakehouse, se não existir
-    lakehouse_dir = os.path.dirname(lakehouse_dest_path)
-    mssparkutils.fs.mkdirs(lakehouse_dir)
-
-    print(f"Baixando '{file_name}' de '{file_url}'...")
-    try:
-        r = requests.get(file_url, allow_redirects=True, timeout=30)
-        r.raise_for_status()
-
-        # Write to file
-        with open(local_file, 'wb') as f:
-            f.write(r.content)
-
-        # SECURITY: Verify Hash
-        if source_path in file_hashes:
-            expected_hash = file_hashes[source_path]
-            sha256_hash = hashlib.sha256()
-            with open(local_file, "rb") as f:
-                for byte_block in iter(lambda: f.read(4096), b""):
-                    sha256_hash.update(byte_block)
-
-            calculated_hash = sha256_hash.hexdigest()
-            if calculated_hash != expected_hash:
-                if os.path.exists(local_file):
-                    os.remove(local_file)
-                raise ValueError(f"SECURITY ALERT: Hash mismatch for {source_path}. Expected {expected_hash}, got {calculated_hash}")
-            print(f"Hash verified for {file_name}")
-
-        # Move o arquivo baixado para o Lakehouse
-        print(f"Movendo '{file_name}' para '{lakehouse_dest_path}'")
-        mssparkutils.fs.mv(f"file://{local_file}", lakehouse_dest_path, overwrite=True)
-
-    except Exception as e:
-        print(f"ERRO: Falha ao baixar {file_url}: {e}")
-        # Considerar parar a execução se um arquivo essencial falhar
-        raise e
-
-print("\nAmbiente de processamento preparado com sucesso!")
-
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# MARKDOWN ********************
-
-# ## Seção 2: Configuração e Download dos Dados Brutos
-
-
-# CELL ********************
-
+import zipfile
 import os
-import requests
-from bs4 import BeautifulSoup
-from notebookutils import mssparkutils
-import time
-
-# --- ETAPA 1: DEFINIR OS CAMINHOS E URLS ---
-
-# URL oficial para obter a lista de arquivos (URL antiga e funcional que não exige login)
-RFB_URL = "https://receita.economia.gov.br/orientacao/tributaria/cadastros/cadastro-nacional-de-pessoas-juridicas-cnpj/dados-publicos-cnpj"
-# URL do mirror para download rápido
-MIRROR_URL_BASE = "https://data.brasil.io/mirror/socios-brasil"
-
-# Caminho de download local temporário no cluster
-local_download_path = "/tmp/rfb_downloads"
-os.makedirs(local_download_path, exist_ok=True)
-
-# Caminho de destino no Lakehouse (Files)
-lakehouse_download_dir = "Files/RFB_Downloads"
-mssparkutils.fs.mkdirs(lakehouse_download_dir)
-
-
-# --- ETAPA 2: GERAR A LISTA DE ARQUIVOS .ZIP PARA BAIXAR ---
-
-# Com base na URL fornecida pelo usuário, podemos construir as URLs diretamente.
-# Isso é mais robusto do que depender de web scraping.
-BASE_URL = "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/2025-08"
-FILE_TYPES = ["Empresas", "Socios", "Estabelecimentos"] # Adicione outros tipos se necessário
-NUM_FILES_PER_TYPE = 10 # Assumindo 10 arquivos por tipo (0-9)
-
-file_urls = []
-for file_type in FILE_TYPES:
-    for i in range(NUM_FILES_PER_TYPE):
-        file_urls.append(f"{BASE_URL}/{file_type}{i}.zip")
-
-print(f"Geradas {len(file_urls)} URLs para tentar o download.")
-print("Exemplo de URL:", file_urls[0])
-
-
-# --- ETAPA 3: FAZER O DOWNLOAD DOS ARQUIVOS ---
-
-for url in file_urls:
-    file_name = os.path.basename(url)
-    local_file_path = os.path.join(local_download_path, file_name)
-    lakehouse_file_path = os.path.join(lakehouse_download_dir, file_name)
-
-    print(f"Iniciando o download de '{file_name}' de: {url}")
-
-    # Verifica se o arquivo já existe no lakehouse para evitar re-download
-    if mssparkutils.fs.exists(lakehouse_file_path):
-        print(f"O arquivo '{file_name}' já existe no Lakehouse. Pulando o download.")
-        continue
-
-    # Baixa o arquivo para o /tmp local
-    try:
-        with requests.get(url, stream=True) as r:
-            # Se o arquivo não existir (404), pula para o próximo
-            if r.status_code == 404:
-                print(f"Arquivo não encontrado em {url}. Pulando.")
-                continue
-            r.raise_for_status() # Lança erro para outros status HTTP ruins
-
-            with open(local_file_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-        print(f"Download de '{file_name}' para o diretório local concluído.")
-
-        # Move o arquivo do /tmp local para o Lakehouse
-        print(f"Movendo '{local_file_path}' para o Lakehouse em '{lakehouse_file_path}'...")
-        mssparkutils.fs.mv(f"file://{local_file_path}", lakehouse_file_path, overwrite=True)
-        print("Arquivo movido para o Lakehouse com sucesso.")
-
-    except requests.exceptions.RequestException as e:
-        print(f"Falha ao baixar {url}: {e}")
-
-    # Pequena pausa para não sobrecarregar o servidor
-    time.sleep(1)
-
-print("\nProcesso de download concluído.")
-
-
-# ## Seção 2: Extração e Processamento dos Dados
-
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-import os
-import subprocess
 import shutil
 from notebookutils import mssparkutils
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
+from pyspark.sql.functions import col, to_date, regexp_replace
 
-# --- ETAPA 1: CONFIGURAR AMBIENTE DE EXECUÇÃO LOCAL ---
+# --- Configurações ---
+BASE_URL = "https://dadosabertos.rfb.gov.br/CNPJ/"
+FALLBACK_URL = "http://200.152.38.155/CNPJ/" # IP direto caso DNS falhe
 
-# Diretórios no Lakehouse
-LAKEHOUSE_PROCESSOR_DIR = "Files/RFB_Processor"
-LAKEHOUSE_DOWNLOAD_DIR = "Files/RFB_Downloads"
-LAKEHOUSE_OUTPUT_DIR = "Files/RFB_Output"
+# Diretórios no Lakehouse (Files API)
+LAKEHOUSE_DOWNLOAD_DIR = "/lakehouse/default/Files/RFB_Downloads"
+LAKEHOUSE_EXTRACT_DIR = "/lakehouse/default/Files/RFB_Extracted"
 
-# Diretórios locais temporários no nó do Spark
-LOCAL_ROOT = "/tmp/rfb_processing"
-LOCAL_PROCESSOR_DIR = os.path.join(LOCAL_ROOT, "RFB_Processor")
-LOCAL_INPUT_DIR = os.path.join(LOCAL_ROOT, "input")
-LOCAL_OUTPUT_DIR = os.path.join(LOCAL_ROOT, "output")
+# Garantir diretórios
+mssparkutils.fs.mkdirs("Files/RFB_Downloads")
+mssparkutils.fs.mkdirs("Files/RFB_Extracted")
 
-# Limpa o diretório local de execuções anteriores e recria a estrutura
-if os.path.exists(LOCAL_ROOT):
-    shutil.rmtree(LOCAL_ROOT)
-os.makedirs(LOCAL_INPUT_DIR, exist_ok=True)
-os.makedirs(LOCAL_OUTPUT_DIR, exist_ok=True)
+# Listas de arquivos para baixar
+FILES_EMPRESAS = [f"Empresas{i}.zip" for i in range(10)]
+FILES_ESTABELECIMENTOS = [f"Estabelecimentos{i}.zip" for i in range(10)]
 
-print(f"Diretórios locais criados em: {LOCAL_ROOT}")
+# --- Schemas ---
 
+schema_empresas = StructType([
+    StructField("cnpj_basico", StringType(), True),
+    StructField("razao_social", StringType(), True),
+    StructField("natureza_juridica", StringType(), True),
+    StructField("qualificacao_responsavel", StringType(), True),
+    StructField("capital_social", StringType(), True), # Vem como string com vírgula (ex: "1000,00")
+    StructField("porte_empresa", StringType(), True),
+    StructField("ente_federativo_responsavel", StringType(), True)
+])
 
-# --- ETAPA 2: COPIAR ARQUIVOS DO LAKEHOUSE PARA O AMBIENTE LOCAL ---
-
-# Copia os scripts e arquivos de dependência (headers, etc.)
-print(f"Copiando scripts de '{LAKEHOUSE_PROCESSOR_DIR}' para '{LOCAL_PROCESSOR_DIR}'...")
-mssparkutils.fs.cp(LAKEHOUSE_PROCESSOR_DIR, f"file://{LOCAL_PROCESSOR_DIR}", recurse=True)
-
-# Copia os arquivos .zip baixados
-print(f"Copiando arquivos .zip de '{LAKEHOUSE_DOWNLOAD_DIR}' para '{LOCAL_INPUT_DIR}'...")
-zip_files_source = [f.path for f in mssparkutils.fs.ls(LAKEHOUSE_DOWNLOAD_DIR) if f.path.endswith('.zip')]
-for f_path in zip_files_source:
-    mssparkutils.fs.cp(f_path, f"file://{LOCAL_INPUT_DIR}/")
-
-print("Cópia de arquivos para o ambiente local concluída.")
-
-
-# --- ETAPA 3: EXECUTAR O SCRIPT DE PROCESSAMENTO ---
-
-print("\n--- Instalando dependências do script ---")
-requirements_path = os.path.join(LOCAL_PROCESSOR_DIR, "requirements.txt")
-install_command = ["pip", "install", "-r", requirements_path]
-
-print(f"Executando comando: {install_command}")
-install_result = subprocess.run(
-    install_command,
-    shell=False,
-    capture_output=True,
-    text=True,
-    timeout=300  # Timeout de 5 minutos para a instalação
-)
-
-if install_result.returncode == 0:
-    print("Dependências instaladas com sucesso!")
-    # print("STDOUT:", install_result.stdout) # Opcional: pode ser muito verboso
-else:
-    print("ERRO ao instalar dependências:")
-    print("RETURN CODE:", install_result.returncode)
-    print("STDOUT:", install_result.stdout)
-    print("STDERR:", install_result.stderr)
-    # Lançar uma exceção para parar a execução do notebook se as dependências falharem
-    raise Exception("Falha ao instalar as dependências do script. Verifique o log de erro acima.")
-
-print("\n--- Executando o script de extração ---")
-script_path = os.path.join(LOCAL_PROCESSOR_DIR, "extract_dump.py")
-local_zip_files = [os.path.join(LOCAL_INPUT_DIR, os.path.basename(f)) for f in zip_files_source]
-# O script espera ser executado do diretório que contém a pasta 'data', então mudamos o CWD
-command = ["python", os.path.basename(script_path), LOCAL_OUTPUT_DIR] + local_zip_files
-
-print(f"Comando a ser executado em '{LOCAL_PROCESSOR_DIR}':")
-print(command)
-
-try:
-    # Executa o script. O timeout é longo para permitir o processamento.
-    result = subprocess.run(
-        command,
-        shell=False,
-        capture_output=True,
-        text=True,
-        timeout=3600,  # Timeout de 1 hora
-        cwd=LOCAL_PROCESSOR_DIR  # Define o diretório de trabalho
-    )
-
-    if result.returncode == 0:
-        print("Script executado com sucesso!")
-        print("STDOUT:", result.stdout)
-    else:
-        print("Erro na execução do script:")
-        print("RETURN CODE:", result.returncode)
-        print("STDOUT:", result.stdout)
-        print("STDERR:", result.stderr)
-
-except subprocess.TimeoutExpired:
-    print("Erro: O script demorou mais de 1 hora para executar e sofreu timeout.")
-except Exception as e:
-    print(f"Ocorreu um erro inesperado ao executar o subprocesso: {e}")
-
-
-# --- ETAPA 4: MOVER OS RESULTADOS DE VOLTA PARA O LAKEHOUSE ---
-
-print(f"Copiando arquivos processados de '{LOCAL_OUTPUT_DIR}' para '{LAKEHOUSE_OUTPUT_DIR}'...")
-# O comando 'mv' do mssparkutils pode não suportar 'recurse=True'. Usamos 'cp' que é mais garantido.
-# A limpeza do diretório de origem será feita na etapa 5.
-mssparkutils.fs.cp(f"file://{LOCAL_OUTPUT_DIR}", LAKEHOUSE_OUTPUT_DIR, recurse=True)
-print("Arquivos copiados para o Lakehouse com sucesso.")
-
-
-# --- ETAPA 5: LIMPEZA DO AMBIENTE LOCAL ---
-
-print(f"Limpando diretório local: {LOCAL_ROOT}")
-shutil.rmtree(LOCAL_ROOT)
-print("Limpeza concluída.")
-
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# MARKDOWN ********************
-
-# ## Seção 3: Carga para a Tabela Delta
+schema_estabelecimentos = StructType([
+    StructField("cnpj_basico", StringType(), True),
+    StructField("cnpj_ordem", StringType(), True),
+    StructField("cnpj_dv", StringType(), True),
+    StructField("identificador_matriz_filial", StringType(), True),
+    StructField("nome_fantasia", StringType(), True),
+    StructField("situacao_cadastral", StringType(), True),
+    StructField("data_situacao_cadastral", StringType(), True),
+    StructField("motivo_situacao_cadastral", StringType(), True),
+    StructField("nome_cidade_exterior", StringType(), True),
+    StructField("pais", StringType(), True),
+    StructField("data_inicio_atividade", StringType(), True),
+    StructField("cnae_fiscal_principal", StringType(), True),
+    StructField("cnae_fiscal_secundaria", StringType(), True),
+    StructField("tipo_logradouro", StringType(), True),
+    StructField("logradouro", StringType(), True),
+    StructField("numero", StringType(), True),
+    StructField("complemento", StringType(), True),
+    StructField("bairro", StringType(), True),
+    StructField("cep", StringType(), True),
+    StructField("uf", StringType(), True),
+    StructField("municipio", StringType(), True),
+    StructField("ddd_1", StringType(), True),
+    StructField("telefone_1", StringType(), True),
+    StructField("ddd_2", StringType(), True),
+    StructField("telefone_2", StringType(), True),
+    StructField("ddd_fax", StringType(), True),
+    StructField("fax", StringType(), True),
+    StructField("correio_eletronico", StringType(), True),
+    StructField("situacao_especial", StringType(), True),
+    StructField("data_situacao_especial", StringType(), True)
+])
 
 # CELL ********************
 
-from pyspark.sql.functions import col
-from pyspark.sql.types import StringType
+def download_and_extract(filename, base_dir_download, base_dir_extract):
+    """
+    Baixa um arquivo ZIP e extrai seu conteúdo.
+    """
+    url = f"{BASE_URL}{filename}"
+    local_zip_path = os.path.join(base_dir_download, filename)
 
-# --- ETAPA 1: DEFINIR OS CAMINHOS E NOME DA TABELA ---
+    # Check if already processed (could add more robust check)
+    # For now, simplistic check if zip exists.
+    # Em produção, ideal checar se extraído já existe.
 
-# Caminho onde os arquivos processados foram movidos no Lakehouse
-LAKEHOUSE_OUTPUT_DIR = "/lakehouse/default/Files/RFB_Output"
-# O script de processamento cria uma subpasta 'output' dentro do diretório de saída
-processed_empresas_path = f"{LAKEHOUSE_OUTPUT_DIR}/output/empresa.csv.gz"
+    print(f"Iniciando download: {url}")
+    try:
+        response = requests.get(url, verify=False, stream=True, timeout=120)
+        if response.status_code != 200:
+            # Tentar fallback
+            url = f"{FALLBACK_URL}{filename}"
+            print(f"Tentando fallback: {url}")
+            response = requests.get(url, verify=False, stream=True, timeout=120)
 
-# Nome da tabela Delta de destino
-target_table_name = "bronze_rfb_empresas_full"
+        if response.status_code == 200:
+            with open(local_zip_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print(f"Download concluído: {local_zip_path}")
 
+            # Extrair
+            print(f"Extraindo {filename}...")
+            with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
+                zip_ref.extractall(base_dir_extract)
+            print(f"Extração concluída em {base_dir_extract}")
 
-# --- ETAPA 2: LER O CSV PROCESSADO E SALVAR COMO TABELA DELTA ---
+            # Remove zip para economizar espaço? (Opcional)
+            # os.remove(local_zip_path)
 
-print(f"Iniciando a leitura do arquivo processado: {processed_empresas_path}")
+            return True
+        else:
+            print(f"Erro ao baixar {filename}: Status {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"Exceção no download de {filename}: {e}")
+        return False
 
-# A etapa anterior (extração) deve ter movido os arquivos CSV processados para o Lakehouse.
-# Agora, vamos ler o arquivo de empresas e salvá-lo como uma tabela Delta.
-df = spark.read.csv(processed_empresas_path,
-                    header=True,
-                    inferSchema=True,
-                    sep=',',
-                    quote='"',
-                    escape='"')
+# CELL ********************
 
-print("Leitura do CSV concluída. Schema inferido:")
-df.printSchema()
+# --- Execução Download e Extração ---
 
-print(f"\nSalvando o DataFrame na tabela Delta '{target_table_name}'...")
-df.write.mode("overwrite").format("delta").saveAsTable(target_table_name)
-print("Tabela salva com sucesso!")
+# Empresas
+print("Processando EMPRESAS...")
+for file in FILES_EMPRESAS:
+    download_and_extract(file, LAKEHOUSE_DOWNLOAD_DIR, LAKEHOUSE_EXTRACT_DIR)
 
-# Mostra uma amostra dos dados da nova tabela
-print("Amostra da tabela criada:")
-spark.table(target_table_name).show(5)
+# Estabelecimentos
+print("Processando ESTABELECIMENTOS...")
+for file in FILES_ESTABELECIMENTOS:
+    download_and_extract(file, LAKEHOUSE_DOWNLOAD_DIR, LAKEHOUSE_EXTRACT_DIR)
 
-print("\nProcesso de carga para a camada Bronze concluído.")
+# CELL ********************
+
+# --- Leitura e Carga para Bronze: EMPRESAS ---
+
+# Listar arquivos CSV extraídos que correspondem a Empresas
+# Os arquivos extraídos geralmente têm nomes como "K3241.K03200Y0.D50211.EMPRECSV" ou similar, mas terminam ou contêm indicação.
+# Na verdade, o padrão do RFB ao extrair é manter o nome interno.
+# Vamos assumir que todos os extraídos estão na pasta EXTRACT.
+# Precisamos diferenciar quais são Empresas e quais são Estabelecimentos se eles não tiverem nomes claros.
+# O padrão dos arquivos dentro do ZIP:
+# Empresas -> *.EMPRECSV
+# Estabelecimentos -> *.ESTABELE
+
+# Vamos usar wildcard do Spark para ler todos que correspondem ao padrão.
+# path_empresas = f"{LAKEHOUSE_EXTRACT_DIR}/*.EMPRECSV" # Ajustar conforme o nome real extraído
+# Se o nome for aleatório, talvez tenhamos que inspecionar os arquivos.
+# Pelo padrão atual (2024/2025), a extensão costuma ajudar.
+
+# Vamos verificar o diretório para ver o padrão de nomes (se já houver arquivos)
+# Como é a primeira execução, assumimos o padrão documentado ou comum "*.EMPRECSV".
+
+print("Lendo dados de EMPRESAS...")
+
+try:
+    df_empresas = spark.read.format("csv") \
+        .option("delimiter", ";") \
+        .option("header", "false") \
+        .option("encoding", "ISO-8859-1") \
+        .option("quote", '"') \
+        .schema(schema_empresas) \
+        .load(f"{LAKEHOUSE_EXTRACT_DIR}/*.EMPRE*") # Tentativa de match genérico
+
+    # Tratamento básico: Converter capital social (1000,00 -> 1000.00)
+    df_empresas = df_empresas.withColumn("capital_social", regexp_replace(col("capital_social"), ",", ".").cast(DoubleType()))
+
+    print("Salvando EMPRESAS em LH_Bronze...")
+    df_empresas.write.format("delta").mode("overwrite").saveAsTable("LH_Bronze.rfb_empresas_full")
+    print("EMPRESAS salvas com sucesso.")
+
+except Exception as e:
+    print(f"Erro ao processar EMPRESAS: {e}")
+
+# CELL ********************
+
+# --- Leitura e Carga para Bronze: ESTABELECIMENTOS ---
+
+print("Lendo dados de ESTABELECIMENTOS...")
+
+try:
+    df_estab = spark.read.format("csv") \
+        .option("delimiter", ";") \
+        .option("header", "false") \
+        .option("encoding", "ISO-8859-1") \
+        .option("quote", '"') \
+        .schema(schema_estabelecimentos) \
+        .load(f"{LAKEHOUSE_EXTRACT_DIR}/*.ESTABELE*") # Tentativa de match genérico
+
+    # Converter datas de string YYYYMMDD para DateType
+    date_cols = ["data_situacao_cadastral", "data_inicio_atividade", "data_situacao_especial"]
+    for c in date_cols:
+        df_estab = df_estab.withColumn(c, to_date(col(c), "yyyyMMdd"))
+
+    print("Salvando ESTABELECIMENTOS em LH_Bronze...")
+    df_estab.write.format("delta").mode("overwrite").saveAsTable("LH_Bronze.rfb_estabelecimentos_full")
+    print("ESTABELECIMENTOS salvos com sucesso.")
+
+except Exception as e:
+    print(f"Erro ao processar ESTABELECIMENTOS: {e}")
 
 # METADATA ********************
 
