@@ -37,9 +37,13 @@ import requests
 import zipfile
 import os
 import shutil
+import urllib3
 from notebookutils import mssparkutils
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 from pyspark.sql.functions import col, to_date, regexp_replace
+
+# Suprimir avisos de SSL inseguro (já que usamos verify=False)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- Configurações ---
 MIRRORS = [
