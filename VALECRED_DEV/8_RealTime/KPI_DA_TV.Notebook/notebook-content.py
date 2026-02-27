@@ -13,14 +13,18 @@
 
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
+from notebookutils import mssparkutils
 
 # 1. Configuração de conexão (Substitua pelos seus dados do MySQL)
 # No Fabric, você pode usar o conector nativo ou ler da camada Bronze
+# SECURE: Usando Azure Key Vault para recuperar senha
+password = mssparkutils.credentials.getSecret("SeuKeyVault", "SenhaMySQL")
+
 df_raw = spark.read.format("jdbc") \
     .option("url", "jdbc:mysql://seu_servidor:3306/seu_db") \
     .option("dbtable", "tab_operacoes") \
     .option("user", "seu_usuario") \
-    .option("password", "sua_senha") \
+    .option("password", password) \
     .load()
 
 # 2. Filtro de Janela (Últimas 24h para manter o dash leve)
