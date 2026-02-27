@@ -75,7 +75,7 @@ def safe_read_table(spark, table_name, schema=None, fallback_df=None):
 def transform_esteira_dates(df_esteira, status_mapping):
     """
     Optimized transformation to get Max and Min dates per status in a single pass.
-    Returns (df_pivot_max, df_pivot_min).
+    Returns a single dataframe with all columns renamed.
     """
     expected_status = list(status_mapping.keys())
 
@@ -88,26 +88,20 @@ def transform_esteira_dates(df_esteira, status_mapping):
             min("datalog").alias("min")
         )
 
-    # Separate and Rename
-    # 1. Max Dates (df_esteira_pivot)
-    # Expected cols: cod_cliente, pivot_checklist, pivot_assinatura...
-    select_max = [col("cod_cliente")]
+    # Single Select with Renaming
+    # Expected cols: cod_cliente, pivot_{clean_name}, min_{clean_name}
+    select_exprs = [col("cod_cliente")]
+
     for status, clean_name in status_mapping.items():
-        col_name = f"{status}_max"
-        select_max.append(col(col_name).alias(f"pivot_{clean_name}"))
+        # Max -> pivot_{clean_name}
+        col_max = f"{status}_max"
+        select_exprs.append(col(col_max).alias(f"pivot_{clean_name}"))
 
-    df_max = df_combined.select(select_max)
+        # Min -> min_{clean_name} (Standardized)
+        col_min = f"{status}_min"
+        select_exprs.append(col(col_min).alias(f"min_{clean_name}"))
 
-    # 2. Min Dates (df_esteira_min)
-    # Expected cols: cod_cliente, CHECKLIST, ASSINATURA...
-    select_min = [col("cod_cliente")]
-    for status in expected_status:
-        col_name = f"{status}_min"
-        select_min.append(col(col_name).alias(status))
-
-    df_min = df_combined.select(select_min)
-
-    return df_max, df_min
+    return df_combined.select(select_exprs)
 
 def deduplicate_clientes_staging(df_base_raw):
     """
@@ -1365,8 +1359,8 @@ if "DATALOG" in df_esteira.columns:
 expected_status = list(STATUS_ESTEIRA_MAPPING.keys())
 
 # Pivot Simples das Datas Maximas e Minimas por Status (Otimizado - Single Pass)
-# ⚡ Bolt Optimization: Use single pass pivot for both Max and Min dates
-df_esteira_pivot, df_esteira_min = transform_esteira_dates(df_esteira, STATUS_ESTEIRA_MAPPING)
+# ⚡ Bolt Optimization: Use single pass pivot for both Max and Min dates. Returns single combined DF.
+df_esteira_combined = transform_esteira_dates(df_esteira, STATUS_ESTEIRA_MAPPING)
 
 
 # 6.3.1: Latest Status Esteira (Power BI Requirement)
@@ -1547,20 +1541,9 @@ df_base_raw = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclus
 # Optimization: Always apply deduplication to avoid expensive count() action.
 df_base = deduplicate_clientes_staging(df_base_raw)
 
-# Prepare Esteira Min Dates for Funnel (Joining back to main flow)
-# Renaming for clarity
-df_esteira_min_renamed = df_esteira_min \
-    .withColumnRenamed("PROPOSTA", "min_proposta") \
-    .withColumnRenamed("REVISÃO COMERCIAL", "min_revisao") \
-    .withColumnRenamed("DIR COMERCIAL", "min_dir_comercial") \
-    .withColumnRenamed("CREDITO", "min_credito") \
-    .withColumnRenamed("CHECKLIST", "min_checklist") \
-    .withColumnRenamed("CONCLUIDO", "min_concluido") \
-    .select("cod_cliente", "min_proposta", "min_revisao", "min_dir_comercial", "min_credito", "min_checklist", "min_concluido")
-
 # Renomeando chaves para evitar ambiguidade nos joins
-df_esteira_pivot_prep = df_esteira_pivot.withColumnRenamed("cod_cliente", "cod_cliente_pivot")
-df_esteira_min_prep = df_esteira_min_renamed.withColumnRenamed("cod_cliente", "cod_cliente_min")
+# ⚡ Bolt Optimization: Using single combined DF instead of split max/min DFs
+df_esteira_pivot_prep = df_esteira_combined.withColumnRenamed("cod_cliente", "cod_cliente_pivot")
 
 # Join Chain
 
@@ -1581,7 +1564,6 @@ def join_cliente_dimensions(
     df_metrics_ops_final,
     df_metrics_titulos_final,
     df_esteira_pivot_prep,
-    df_esteira_min_prep,
     df_esteira_latest,
     df_limites_agg,
     df_grupos_prep,
@@ -1601,9 +1583,9 @@ def join_cliente_dimensions(
         .join(df_metrics_titulos_final, "cod_cliente", "left")
 
     # 2. Informações de Esteira (Pivoted, Min Dates, Latest Status)
+    # ⚡ Bolt Optimization: Removed redundant join for df_esteira_min_prep as it is now combined in df_esteira_pivot_prep
     df_esteira = df_metrics \
         .join(df_esteira_pivot_prep, df_base.cod_cliente == df_esteira_pivot_prep.cod_cliente_pivot, "left").drop("cod_cliente_pivot") \
-        .join(df_esteira_min_prep, df_base.cod_cliente == df_esteira_min_prep.cod_cliente_min, "left").drop("cod_cliente_min") \
         .join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest")
 
     # 3. Limites e Grupos Econômicos
@@ -1628,7 +1610,6 @@ df_join_1 = join_cliente_dimensions(
     df_metrics_ops_final,
     df_metrics_titulos_final,
     df_esteira_pivot_prep,
-    df_esteira_min_prep,
     df_esteira_latest,
     df_limites_agg,
     df_grupos_prep,
