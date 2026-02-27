@@ -24,11 +24,12 @@ sys.modules['requests'] = MagicMock()
 import requests
 
 # Redefine logic here because importing from notebook content is tricky
-# Updated to match the refactored logic in the notebook (headers + HEAD check)
+# Updated to match the refactored logic in the notebook (headers + HEAD check + new mirrors)
 def download_logic_snippet(filename, base_dir_download, requests_mock):
     MIRRORS = [
         "https://dadosabertos.rfb.gov.br/CNPJ/",
-        "http://200.152.38.155/CNPJ/"
+        "http://200.152.38.155/CNPJ/",
+        "https://github.com/jonathands/dados-abertos-receita-cnpj/releases/download/2024.09/"
     ]
     local_zip_path = os.path.join(base_dir_download, filename)
     download_success = False
@@ -44,7 +45,7 @@ def download_logic_snippet(filename, base_dir_download, requests_mock):
         try:
             # HEAD request check
             try:
-                head_response = requests_mock.head(url, headers=headers, verify=False, timeout=30)
+                head_response = requests_mock.head(url, headers=headers, verify=False, timeout=30, allow_redirects=True)
                 if head_response.status_code != 200:
                     print(f"Arquivo não encontrado ou erro no servidor (HEAD): {url} - Status: {head_response.status_code}")
                     continue
@@ -115,3 +116,41 @@ def test_download_all_fail():
     success = download_logic_snippet("test.zip", "/tmp", requests_mock)
 
     assert success is False
+
+def test_github_mirror_redirect():
+    requests_mock = MagicMock()
+
+    primary_url = "https://dadosabertos.rfb.gov.br/CNPJ/test.zip"
+    fallback_url = "http://200.152.38.155/CNPJ/test.zip"
+    github_url = "https://github.com/jonathands/dados-abertos-receita-cnpj/releases/download/2024.09/test.zip"
+
+    # 1. Primary and Fallback fail/timeout
+    # 2. GitHub succeeds with redirect allowed
+
+    def head_side_effect(url, **kwargs):
+        # Verify allow_redirects=True is present
+        assert kwargs.get('allow_redirects') is True
+
+        if url == github_url:
+            return MagicMock(status_code=200)
+        else:
+            raise Exception("ConnectTimeout")
+
+    def get_side_effect(url, **kwargs):
+        if url == github_url:
+             mock_resp = MagicMock()
+             mock_resp.status_code = 200
+             mock_resp.iter_content = MagicMock(return_value=[b'chunk'])
+             return mock_resp
+        raise Exception("ConnectTimeout")
+
+    requests_mock.head.side_effect = head_side_effect
+    requests_mock.get.side_effect = get_side_effect
+
+    success = download_logic_snippet("test.zip", "/tmp", requests_mock)
+
+    assert success is True
+
+    # Verify GitHub mirror was tried with correct params
+    requests_mock.head.assert_any_call(github_url, headers=ANY, verify=False, timeout=30, allow_redirects=True)
+    requests_mock.get.assert_called_with(github_url, headers=ANY, verify=False, stream=True, timeout=120)
