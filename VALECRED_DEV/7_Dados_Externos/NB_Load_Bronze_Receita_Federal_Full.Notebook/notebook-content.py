@@ -116,6 +116,13 @@ schema_estabelecimentos = StructType([
     StructField("data_situacao_especial", StringType(), True)
 ])
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
 def safe_extract(zip_ref, path):
@@ -241,6 +248,12 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
         return False
 
     return True
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -266,6 +279,13 @@ try:
         print(f" - {f.name}")
 except Exception as e:
     print(f"Erro ao listar arquivos extraídos: {e}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -298,6 +318,13 @@ try:
 
 except Exception as e:
     print(f"Erro ao processar EMPRESAS: {e}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
