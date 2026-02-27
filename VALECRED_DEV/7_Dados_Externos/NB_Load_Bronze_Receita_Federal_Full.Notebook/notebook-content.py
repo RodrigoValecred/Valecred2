@@ -37,9 +37,13 @@ import requests
 import zipfile
 import os
 import shutil
+import urllib3
 from notebookutils import mssparkutils
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 from pyspark.sql.functions import col, to_date, regexp_replace
+
+# Suprimir avisos de SSL inseguro (já que usamos verify=False)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- Configurações ---
 MIRRORS = [
@@ -172,9 +176,10 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
     """
     Baixa um arquivo ZIP e extrai seu conteúdo.
     Tenta baixar de múltiplos mirrors em caso de falha.
+    Realiza verificação de integridade do ZIP imediatamente após download.
     """
     local_zip_path = os.path.join(base_dir_download, filename)
-    download_success = False
+    success = False
 
     # Headers para evitar bloqueio (alguns servidores exigem User-Agent)
     headers = {
@@ -186,25 +191,50 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
         print(f"Tentando baixar de: {url}")
 
         try:
-            # Primeiro tenta um HEAD request para ver se o arquivo existe e servidor responde
-            # allow_redirects=True é crucial para o mirror do GitHub, que redireciona para o storage de assets
+            # HEAD request para verificar disponibilidade
             try:
                 head_response = requests.head(url, headers=headers, verify=False, timeout=30, allow_redirects=True)
                 if head_response.status_code != 200:
                     print(f"Arquivo não encontrado ou erro no servidor (HEAD): {url} - Status: {head_response.status_code}")
-                    continue # Tenta próximo mirror
+                    continue
             except Exception as e:
                 print(f"Erro no HEAD request para {url}: {e}. Tentando GET direto...")
 
+            # Download
             response = requests.get(url, headers=headers, verify=False, stream=True, timeout=120)
 
             if response.status_code == 200:
                 with open(local_zip_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
-                print(f"Download concluído com sucesso: {local_zip_path}")
-                download_success = True
-                break  # Sair do loop de mirrors se sucesso
+                print(f"Download concluído: {local_zip_path}")
+
+                # Verificação de integridade e Extração imediata
+                try:
+                    print(f"Verificando integridade e extraindo {filename}...")
+                    with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
+                        if zip_ref.testzip() is not None:
+                            raise zipfile.BadZipFile("Teste de integridade falhou (CRC check)")
+                        # Usar extração segura para prevenir Zip Slip
+                        safe_extract(zip_ref, base_dir_extract)
+
+                    print(f"Sucesso: {filename} baixado e extraído corretamente.")
+                    success = True
+                    break # Sair do loop de mirrors pois funcionou
+
+                except zipfile.BadZipFile as e:
+                    print(f"ERRO: Arquivo corrompido baixado de {url}. Erro: {e}")
+                    # Remove arquivo corrompido e tenta próximo mirror
+                    if os.path.exists(local_zip_path):
+                        os.remove(local_zip_path)
+                    continue
+                except Exception as e:
+                    print(f"ERRO: Falha na extração de {filename}. Erro: {e}")
+                    # Falha de extração (não necessariamente download) - tentar próximo mirror por segurança
+                    if os.path.exists(local_zip_path):
+                        os.remove(local_zip_path)
+                    continue
+
             else:
                 print(f"Falha ao baixar de {url}. Status Code: {response.status_code}")
 
@@ -213,28 +243,11 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
         except Exception as e:
             print(f"Erro inesperado ao baixar de {url}: {e}")
 
-    if download_success:
-        try:
-            # Extrair
-            print(f"Extraindo {filename}...")
-            with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
-                # Usar extração segura para prevenir Zip Slip
-                safe_extract(zip_ref, base_dir_extract)
-            print(f"Extração concluída em {base_dir_extract}")
-
-            # Remove zip para economizar espaço? (Opcional)
-            # os.remove(local_zip_path)
-            return True
-        except zipfile.BadZipFile:
-            print(f"Erro: O arquivo baixado {filename} não é um ZIP válido.")
-            return False
-        except Exception as e:
-            print(f"Erro durante a extração de {filename}: {e}")
-            return False
-    else:
-        print(f"FALHA FATAL: Não foi possível baixar {filename} de nenhum mirror.")
+    if not success:
+        print(f"FALHA FATAL: Não foi possível baixar e extrair {filename} de nenhum mirror.")
         return False
 
+    return True
 # METADATA ********************
 
 # META {
