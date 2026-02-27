@@ -120,6 +120,30 @@ schema_estabelecimentos = StructType([
 
 # CELL ********************
 
+def safe_extract(zip_ref, path):
+    """
+    Extracts a zip file to the specified path, preventing Zip Slip vulnerability.
+    """
+    # Normalize the target path to an absolute path
+    target_path = os.path.abspath(path)
+    safe_members = []
+
+    for member in zip_ref.namelist():
+        # Resolve the full path of the member
+        # Note: os.path.join will discard 'target_path' if 'member' is absolute
+        member_path = os.path.join(target_path, member)
+        # Normalize the member path to resolve '..' and '.'
+        abs_member_path = os.path.abspath(member_path)
+
+        # Check if the member path starts with the target path
+        # We append os.sep to ensure we match directory boundaries (e.g. /tmp/foo vs /tmp/foobar)
+        if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
+             raise Exception(f"Zip Slip vulnerability detected: {member}")
+
+        safe_members.append(member)
+
+    zip_ref.extractall(path, members=safe_members)
+
 def download_and_extract(filename, base_dir_download, base_dir_extract):
     """
     Baixa um arquivo ZIP e extrai seu conteúdo.
@@ -128,12 +152,26 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
     local_zip_path = os.path.join(base_dir_download, filename)
     download_success = False
 
+    # Headers para evitar bloqueio (alguns servidores exigem User-Agent)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+
     for base_url in MIRRORS:
         url = f"{base_url}{filename}"
         print(f"Tentando baixar de: {url}")
 
         try:
-            response = requests.get(url, verify=False, stream=True, timeout=120)
+            # Primeiro tenta um HEAD request para ver se o arquivo existe e servidor responde
+            try:
+                head_response = requests.head(url, headers=headers, verify=False, timeout=30)
+                if head_response.status_code != 200:
+                    print(f"Arquivo não encontrado ou erro no servidor (HEAD): {url} - Status: {head_response.status_code}")
+                    continue # Tenta próximo mirror
+            except Exception as e:
+                print(f"Erro no HEAD request para {url}: {e}. Tentando GET direto...")
+
+            response = requests.get(url, headers=headers, verify=False, stream=True, timeout=120)
 
             if response.status_code == 200:
                 with open(local_zip_path, 'wb') as f:
@@ -155,7 +193,7 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
             # Extrair
             print(f"Extraindo {filename}...")
             with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
-                zip_ref.extractall(base_dir_extract)
+                safe_extract(zip_ref, base_dir_extract)
             print(f"Extração concluída em {base_dir_extract}")
 
             # Remove zip para economizar espaço? (Opcional)

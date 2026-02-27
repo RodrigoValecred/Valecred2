@@ -395,3 +395,49 @@ Utilize o notebook genérico `NB_Load_Silver_From_Manual_Uploads` para carregar 
 1.  **Abra o Notebook**: Navegue até `7_Dados_Externos/CVM/NB_Load_From_CVM`.
 2.  **Ajuste os Parâmetros**: Modifique as variáveis `ano` e `mes`.
 3.  **Execute o Notebook**: O processo fará a ingestão com substituição de partição dinâmica.
+
+## Boas Práticas para Ingestão de Dados Externos
+
+Ao desenvolver notebooks para ingestão de dados de fontes externas (como CVM, Receita Federal, Brasil.IO), siga as diretrizes abaixo para garantir segurança, performance e robustez.
+
+### 1. Segurança (Zip Slip e Path Traversal)
+
+Ao descompactar arquivos ZIP baixados da internet, **sempre** utilize a função `safe_extract` para prevenir vulnerabilidades do tipo Zip Slip, onde um arquivo malicioso pode tentar sobrescrever arquivos fora do diretório de destino.
+
+```python
+def safe_extract(zip_ref, path):
+    """
+    Extrai arquivos de forma segura, prevenindo path traversal.
+    """
+    target_path = os.path.abspath(path)
+    safe_members = []
+    for member in zip_ref.namelist():
+        member_path = os.path.join(target_path, member)
+        abs_member_path = os.path.abspath(member_path)
+        if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
+             raise Exception(f"Zip Slip vulnerability detected: {member}")
+        safe_members.append(member)
+    zip_ref.extractall(path, members=safe_members)
+```
+
+### 2. Ingestão Robusta
+
+*   **User-Agent**: Muitos servidores governamentais bloqueiam requisições sem User-Agent. Adicione sempre um cabeçalho descritivo:
+    ```python
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    requests.get(url, headers=headers)
+    ```
+*   **Timeouts e Retries**: Defina timeouts explícitos (`timeout=60`) e implemente lógica de retry para falhas de rede.
+*   **Validação Prévia**: Se possível, use `requests.head()` para verificar se o arquivo existe antes de iniciar o download.
+
+### 3. Performance (Spark vs Pandas)
+
+*   **Leitura Distribuída**: Para arquivos grandes (acima de 100MB), evite ler com Pandas (`pd.read_csv`). Use o leitor nativo do Spark (`spark.read.csv`), que processa o arquivo de forma distribuída no cluster.
+*   **Encoding**: Especifique sempre o encoding correto (geralmente `ISO-8859-1` ou `latin1` para dados brasileiros) para evitar erros de caracteres.
+
+### 4. Idempotência e Particionamento
+
+*   **Partition Overwrite Mode**: Ao salvar tabelas particionadas (ex: por Ano/Mês), ative o modo dinâmico para permitir reprocessar apenas um mês específico sem apagar todo o histórico.
+    ```python
+    spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
+    ```
