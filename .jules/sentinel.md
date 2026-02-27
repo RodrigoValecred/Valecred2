@@ -12,3 +12,8 @@
 **Vulnerability:** `NB_Load_From_CVM.Notebook` downloaded large ZIP files (potential >500MB) directly into memory using `requests.get().content`, causing potential OOM (Out of Memory) errors and driver failures on constrained Spark clusters.
 **Learning:** Default `requests.get` behavior loads the entire response body into RAM. For data engineering pipelines handling external datasets, this is a critical scalability and availability risk.
 **Prevention:** Always use `stream=True` and `iter_content(chunk_size=...)` for downloading files, regardless of the expected file size.
+
+## 2026-02-23 - [Hardcoded Credentials in RealTime Notebook]
+**Vulnerability:** `VALECRED_DEV/8_RealTime/KPI_DA_TV.Notebook` contained a hardcoded password string (`.option("password", "sua_senha")`).
+**Learning:** Even placeholder passwords in committed code can be dangerous if they are accidentally deployed or if real credentials are later substituted and committed. Hardcoded secrets are a top security risk.
+**Prevention:** Always use a secrets management service (like Azure Key Vault) via `mssparkutils.credentials.getSecret` instead of string literals. Added `tests/test_kpi_security.py` to strictly enforce this.
