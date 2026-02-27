@@ -42,16 +42,25 @@ from pyspark.sql.types import StructType, StructField, StringType, IntegerType, 
 from pyspark.sql.functions import col, to_date, regexp_replace
 
 # --- Configurações ---
-BASE_URL = "https://dadosabertos.rfb.gov.br/CNPJ/"
-FALLBACK_URL = "http://200.152.38.155/CNPJ/" # IP direto caso DNS falhe
+MIRRORS = [
+    "https://dadosabertos.rfb.gov.br/CNPJ/",
+    "http://200.152.38.155/CNPJ/" # IP direto caso DNS falhe
+]
 
 # Diretórios no Lakehouse (Files API)
-LAKEHOUSE_DOWNLOAD_DIR = "/lakehouse/default/Files/RFB_Downloads"
-LAKEHOUSE_EXTRACT_DIR = "/lakehouse/default/Files/RFB_Extracted"
+# Para operações de arquivo Python (os.path, open), usamos o caminho absoluto do OneLake.
+# Para operações Spark e mssparkutils, usamos o caminho relativo "Files/...".
+
+LAKEHOUSE_ROOT = "/lakehouse/default"
+DOWNLOAD_DIR_REL = "Files/RFB_Downloads"
+EXTRACT_DIR_REL = "Files/RFB_Extracted"
+
+LAKEHOUSE_DOWNLOAD_DIR = f"{LAKEHOUSE_ROOT}/{DOWNLOAD_DIR_REL}"
+LAKEHOUSE_EXTRACT_DIR = f"{LAKEHOUSE_ROOT}/{EXTRACT_DIR_REL}"
 
 # Garantir diretórios
-mssparkutils.fs.mkdirs("Files/RFB_Downloads")
-mssparkutils.fs.mkdirs("Files/RFB_Extracted")
+mssparkutils.fs.mkdirs(DOWNLOAD_DIR_REL)
+mssparkutils.fs.mkdirs(EXTRACT_DIR_REL)
 
 # Listas de arquivos para baixar
 FILES_EMPRESAS = [f"Empresas{i}.zip" for i in range(10)]
@@ -107,29 +116,35 @@ schema_estabelecimentos = StructType([
 def download_and_extract(filename, base_dir_download, base_dir_extract):
     """
     Baixa um arquivo ZIP e extrai seu conteúdo.
+    Tenta baixar de múltiplos mirrors em caso de falha.
     """
-    url = f"{BASE_URL}{filename}"
     local_zip_path = os.path.join(base_dir_download, filename)
+    download_success = False
 
-    # Check if already processed (could add more robust check)
-    # For now, simplistic check if zip exists.
-    # Em produção, ideal checar se extraído já existe.
+    for base_url in MIRRORS:
+        url = f"{base_url}{filename}"
+        print(f"Tentando baixar de: {url}")
 
-    print(f"Iniciando download: {url}")
-    try:
-        response = requests.get(url, verify=False, stream=True, timeout=120)
-        if response.status_code != 200:
-            # Tentar fallback
-            url = f"{FALLBACK_URL}{filename}"
-            print(f"Tentando fallback: {url}")
+        try:
             response = requests.get(url, verify=False, stream=True, timeout=120)
 
-        if response.status_code == 200:
-            with open(local_zip_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            print(f"Download concluído: {local_zip_path}")
+            if response.status_code == 200:
+                with open(local_zip_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                print(f"Download concluído com sucesso: {local_zip_path}")
+                download_success = True
+                break  # Sair do loop de mirrors se sucesso
+            else:
+                print(f"Falha ao baixar de {url}. Status Code: {response.status_code}")
 
+        except requests.exceptions.RequestException as e:
+            print(f"Erro de conexão ao baixar de {url}: {e}")
+        except Exception as e:
+            print(f"Erro inesperado ao baixar de {url}: {e}")
+
+    if download_success:
+        try:
             # Extrair
             print(f"Extraindo {filename}...")
             with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
@@ -138,13 +153,15 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
 
             # Remove zip para economizar espaço? (Opcional)
             # os.remove(local_zip_path)
-
             return True
-        else:
-            print(f"Erro ao baixar {filename}: Status {response.status_code}")
+        except zipfile.BadZipFile:
+            print(f"Erro: O arquivo baixado {filename} não é um ZIP válido.")
             return False
-    except Exception as e:
-        print(f"Exceção no download de {filename}: {e}")
+        except Exception as e:
+            print(f"Erro durante a extração de {filename}: {e}")
+            return False
+    else:
+        print(f"FALHA FATAL: Não foi possível baixar {filename} de nenhum mirror.")
         return False
 
 # CELL ********************
@@ -165,33 +182,19 @@ for file in FILES_ESTABELECIMENTOS:
 
 # --- Leitura e Carga para Bronze: EMPRESAS ---
 
-# Listar arquivos CSV extraídos que correspondem a Empresas
-# Os arquivos extraídos geralmente têm nomes como "K3241.K03200Y0.D50211.EMPRECSV" ou similar, mas terminam ou contêm indicação.
-# Na verdade, o padrão do RFB ao extrair é manter o nome interno.
-# Vamos assumir que todos os extraídos estão na pasta EXTRACT.
-# Precisamos diferenciar quais são Empresas e quais são Estabelecimentos se eles não tiverem nomes claros.
-# O padrão dos arquivos dentro do ZIP:
-# Empresas -> *.EMPRECSV
-# Estabelecimentos -> *.ESTABELE
-
-# Vamos usar wildcard do Spark para ler todos que correspondem ao padrão.
-# path_empresas = f"{LAKEHOUSE_EXTRACT_DIR}/*.EMPRECSV" # Ajustar conforme o nome real extraído
-# Se o nome for aleatório, talvez tenhamos que inspecionar os arquivos.
-# Pelo padrão atual (2024/2025), a extensão costuma ajudar.
-
-# Vamos verificar o diretório para ver o padrão de nomes (se já houver arquivos)
-# Como é a primeira execução, assumimos o padrão documentado ou comum "*.EMPRECSV".
-
 print("Lendo dados de EMPRESAS...")
 
 try:
+    # Usar caminho relativo para leitura no Spark para evitar problemas com driver ABFS
+    path_empresas = f"{EXTRACT_DIR_REL}/*.EMPRE*"
+
     df_empresas = spark.read.format("csv") \
         .option("delimiter", ";") \
         .option("header", "false") \
         .option("encoding", "ISO-8859-1") \
         .option("quote", '"') \
         .schema(schema_empresas) \
-        .load(f"{LAKEHOUSE_EXTRACT_DIR}/*.EMPRE*") # Tentativa de match genérico
+        .load(path_empresas)
 
     # Tratamento básico: Converter capital social (1000,00 -> 1000.00)
     df_empresas = df_empresas.withColumn("capital_social", regexp_replace(col("capital_social"), ",", ".").cast(DoubleType()))
@@ -210,13 +213,16 @@ except Exception as e:
 print("Lendo dados de ESTABELECIMENTOS...")
 
 try:
+    # Usar caminho relativo para leitura no Spark
+    path_estabelecimentos = f"{EXTRACT_DIR_REL}/*.ESTABELE*"
+
     df_estab = spark.read.format("csv") \
         .option("delimiter", ";") \
         .option("header", "false") \
         .option("encoding", "ISO-8859-1") \
         .option("quote", '"') \
         .schema(schema_estabelecimentos) \
-        .load(f"{LAKEHOUSE_EXTRACT_DIR}/*.ESTABELE*") # Tentativa de match genérico
+        .load(path_estabelecimentos)
 
     # Converter datas de string YYYYMMDD para DateType
     date_cols = ["data_situacao_cadastral", "data_inicio_atividade", "data_situacao_especial"]
