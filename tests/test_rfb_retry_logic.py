@@ -46,7 +46,7 @@ def download_logic_snippet(filename, base_dir_download, requests_mock, zipfile_m
         try:
             # HEAD request check
             try:
-                head_response = requests_mock.head(url, headers=headers, verify=False, timeout=30, allow_redirects=True)
+                head_response = requests_mock.head(url, headers=headers, verify=True, timeout=30, allow_redirects=True)
                 if head_response.status_code != 200:
                     print(f"Arquivo não encontrado ou erro no servidor (HEAD): {url} - Status: {head_response.status_code}")
                     continue
@@ -54,7 +54,7 @@ def download_logic_snippet(filename, base_dir_download, requests_mock, zipfile_m
                 print(f"Erro no HEAD request para {url}: {e}. Tentando GET direto...")
 
             # GET request
-            response = requests_mock.get(url, headers=headers, verify=False, stream=True, timeout=120)
+            response = requests_mock.get(url, headers=headers, verify=True, stream=True, timeout=120)
 
             if response.status_code == 200:
                 # In real code we write to file here
@@ -125,7 +125,7 @@ def test_download_retry_mechanism():
 
     # Verify calls were made
     # Check that fallback was attempted
-    requests_mock.get.assert_called_with(fallback_url, headers=ANY, verify=False, stream=True, timeout=120)
+    requests_mock.get.assert_called_with(fallback_url, headers=ANY, verify=True, stream=True, timeout=120)
 
 def test_download_all_fail():
     requests_mock = MagicMock()
@@ -180,8 +180,8 @@ def test_github_mirror_redirect():
     assert success is True
 
     # Verify GitHub mirror was tried with correct params
-    requests_mock.head.assert_any_call(github_url, headers=ANY, verify=False, timeout=30, allow_redirects=True)
-    requests_mock.get.assert_called_with(github_url, headers=ANY, verify=False, stream=True, timeout=120)
+    requests_mock.head.assert_any_call(github_url, headers=ANY, verify=True, timeout=30, allow_redirects=True)
+    requests_mock.get.assert_called_with(github_url, headers=ANY, verify=True, stream=True, timeout=120)
 
 def test_corrupt_zip_fallback():
     requests_mock = MagicMock()

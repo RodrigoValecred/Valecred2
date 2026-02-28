@@ -17,3 +17,8 @@
 **Vulnerability:** `VALECRED_DEV/8_RealTime/KPI_DA_TV.Notebook` contained a hardcoded password string (`.option("password", "sua_senha")`).
 **Learning:** Even placeholder passwords in committed code can be dangerous if they are accidentally deployed or if real credentials are later substituted and committed. Hardcoded secrets are a top security risk.
 **Prevention:** Always use a secrets management service (like Azure Key Vault) via `mssparkutils.credentials.getSecret` instead of string literals. Added `tests/test_kpi_security.py` to strictly enforce this.
+
+## 2026-02-19 - [Insecure HTTP Request Validation]
+**Vulnerability:** `NB_Load_Bronze_Receita_Federal_Full.Notebook` performed `requests.get` and `requests.head` calls with `verify=False` and used `urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)`. This disables SSL verification, leaving the application vulnerable to Man-in-the-Middle (MitM) attacks where bad actors could intercept the data transfer.
+**Learning:** Downloading remote data without verifying certificates poses a risk, particularly when the data may impact sensitive internal workflows. Using `verify=False` should be avoided in production.
+**Prevention:** Ensure that external requests are made securely with `verify=True` and avoid suppressing the insecure request warnings.
