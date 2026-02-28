@@ -21,3 +21,15 @@
 ## 2026-02-24 - Temporal Context in Dashboards
 **Learning:** Displaying limits/metrics without their expiry/validity date is dangerous. Adding time context (days remaining, expired status) alongside financial metrics drastically improves risk assessment.
 **Action:** Always pair financial limits/targets with their validity period in reports.
+
+## 2026-02-28 - Progress Bar Clamping Output
+**Learning:** When building visual indicators like text-based progress bars, it's not enough to clamp values just for the visual layout width. You must also clamp the numeric output rendered to the user to avoid contradictory UX (like a 100% full bar that says `110%`).
+**Action:** Always ensure that calculations dictating visual limits are consistently applied to the accompanying descriptive string output.
+
+## 2026-02-28 - Test Alignment with UI
+**Learning:** When improving UI formats (like changing date formats from YYYY-MM-DD to DD/MM/YYYY), the corresponding tests must also be updated. UI components and their validation layers are closely coupled.
+**Action:** Always verify that string/format assertions in tests match the expected UI changes to prevent false positives/negatives in UX testing.
+
+## 2026-02-28 - Progress Bar Clamping
+**Learning:** When building visual indicators like text-based progress bars, inputs (like percentages) must be strictly clamped before calculation. Failing to do so for negative values or percentages over 100% can break layout widths and create confusing UI states.
+**Action:** Always clamp mathematical inputs that determine visual widths to a 0-100% range before calculating their display lengths.

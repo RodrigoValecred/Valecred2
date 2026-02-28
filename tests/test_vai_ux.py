@@ -56,14 +56,14 @@ class TestVaiUX:
         # Current bug: results in width 11 if not clamped
         result = self.create_progress_bar(-10, width=10)
         # Expected: clamp to 0 filled, total width 10
-        expected = "[░░░░░░░░░░] -10.0%"
+        expected = "[░░░░░░░░░░] 0.0%"
         assert result == expected
 
     def test_progress_bar_overflow_clamping(self):
         # Current bug: results in width 11 if not clamped
         result = self.create_progress_bar(110, width=10)
         # Expected: clamp to 10 filled, total width 10
-        expected = "[██████████] 110.0%"
+        expected = "[██████████] 100.0%"
         assert result == expected
 
     @patch('builtins.print')
