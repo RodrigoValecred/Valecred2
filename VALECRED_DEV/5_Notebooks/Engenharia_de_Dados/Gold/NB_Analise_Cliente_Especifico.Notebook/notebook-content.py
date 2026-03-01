@@ -84,28 +84,41 @@ df_operacoes = df_operacoes.withColumnRenamed("TTO", "TTO_OPERACAO")
 df_operacoes = df_operacoes.withColumnRenamed("CODRATING", "CODRATING_OPERACAO")
 df_cedentes = df_cedentes.withColumnRenamed("CODRATING", "CODRATING_CEDENTE")
 
-# Realizando os joins
-print("Criando tabela mestra com os joins...")
-df_mestra_spark = df_titulos.join(df_operacoes, on="CODOPERACAO", how="left")
-df_mestra_spark = df_mestra_spark.join(df_cedentes, on="CODCLIENTE", how="left")
+# 🧠 TENSOR OPTIMIZATION: Predicate Pushdown and Inner Joins
+# Applying filters directly to source tables BEFORE joining to drastically reduce the data footprint.
+# Using INNER JOINs means filtering df_cedentes by CPFCNPJ automatically filters operations and titles.
+print(f"Filtrando dados para o cliente {CLIENTE_CPFCNPJ} e aplicando regras de negócio em Spark antes dos joins...")
+
+df_cedentes_filtered = df_cedentes.filter(col("CPFCNPJ") == CLIENTE_CPFCNPJ)
+
+df_operacoes_filtered = df_operacoes.filter(
+    (col("STATUSANALISE") == 'D') &
+    (col("STATUSACEITE") == 'A') &
+    (col("ACEITO") == 'S') &
+    (~col("TTO_OPERACAO").isin(tipos_excluir))
+)
+
+df_titulos_filtered = df_titulos.filter(col("LIQUIDACAO").isNotNull())
+
+df_cad_geral_filtered = df_cad_geral.select("CPFCNPJ", "CIDADE", "UF").dropDuplicates(["CPFCNPJ"]).filter(col("CPFCNPJ") == CLIENTE_CPFCNPJ)
+
+# Realizando os joins otimizados
+print("Criando tabela mestra com joins INNER otimizados...")
+
+# First, join operations with the specific client to filter operations
+df_op_ced = df_operacoes_filtered.join(df_cedentes_filtered, on="CODCLIENTE", how="inner")
+
+# Then, join filtered titles with the specific client's operations
+df_mestra_spark = df_titulos_filtered.join(df_op_ced, on="CODOPERACAO", how="inner")
+
+# Finally, add the general registry data
 df_mestra_spark = df_mestra_spark.join(
-    df_cad_geral.select("CPFCNPJ", "CIDADE", "UF").dropDuplicates(["CPFCNPJ"]),
+    df_cad_geral_filtered,
     on="CPFCNPJ",
     how="left"
 )
 
-# Filtros de performance aplicados em Spark antes do toPandas
-print(f"Filtrando dados para o cliente {CLIENTE_CPFCNPJ} e aplicando regras de negócio em Spark...")
-df_mestra_spark = df_mestra_spark.filter(col("CPFCNPJ") == CLIENTE_CPFCNPJ)
-df_mestra_spark = df_mestra_spark.filter(
-    (col("STATUSANALISE") == 'D') &
-    (col("STATUSACEITE") == 'A') &
-    (col("ACEITO") == 'S')
-)
-df_mestra_spark = df_mestra_spark.filter(~col("TTO_OPERACAO").isin(tipos_excluir))
-df_mestra_spark = df_mestra_spark.filter(col("LIQUIDACAO").isNotNull())
-
-# Convertendo para Pandas para facilitar a manipulação
+# Convertendo para Pandas para facilitar a manipulação (agora muito mais leve e rápido)
 print("Convertendo para DataFrame Pandas...")
 df_filtrado = df_mestra_spark.toPandas()
 print("Tabela mestra filtrada e carregada com sucesso.")
