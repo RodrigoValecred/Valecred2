@@ -113,6 +113,8 @@ print("2. Iniciando Treinamento da IA...")
 # evitando OOM no driver e reduzindo tempo de transferência.
 # Limitamos a 500k linhas ou 50% dos dados, o que for menor.
 print("📉 Gerando amostra para treinamento (Performance)...")
+spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+# Convert to Pandas (Com Amostragem para Performance)
 df_pandas = df_features_spark.sample(fraction=0.5, seed=42).limit(500000).toPandas()
 
 # Definir as Features
