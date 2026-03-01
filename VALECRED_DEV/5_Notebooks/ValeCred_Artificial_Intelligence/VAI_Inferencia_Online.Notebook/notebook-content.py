@@ -287,9 +287,10 @@ print("="*40)
 
 def create_progress_bar(percentage, width=20):
     # Clamps the filled value to ensure the progress bar width is consistent
-    filled = max(0, min(width, int(width * percentage / 100)))
+    clamped_pct = max(0.0, min(100.0, float(percentage)))
+    filled = max(0, min(width, int(width * clamped_pct / 100)))
     bar = "█" * filled + "░" * (width - filled)
-    return f"[{bar}] {percentage:.1f}%"
+    return f"[{bar}] {clamped_pct:.1f}%"
 
 def display_terminal_dashboard(metrics):
     W = 52
