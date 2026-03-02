@@ -338,6 +338,7 @@ try:
             df_estab = df_estab.withColumn(c, to_date(col(c), "yyyyMMdd"))
 
         print("Salvando ESTABELECIMENTOS em LH_Bronze...")
+        spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED")
         df_estab.write.format("delta").mode("overwrite").saveAsTable("LH_Bronze.rfb_estabelecimentos_full")
         print("ESTABELECIMENTOS salvos com sucesso.")
     else:
