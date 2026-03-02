@@ -118,6 +118,10 @@ cols_to_select = [
     "data_inicio_atividade",
     "capital_social",
     "natureza_juridica",
+    "situacao_cadastral",
+    "ddd_1",
+    "telefone_1",
+    "correio_eletronico",
     "porte_empresa"
 ]
 
@@ -135,36 +139,93 @@ print("Processo concluído com sucesso.")
 
 # MARKDOWN ********************
 
-# ## Exemplo de Uso: Cruzamento com Dados CVM
+# ## Cruzamento com Dados CVM (Concentração)
 #
-# O código abaixo demonstra como cruzar a tabela gerada (`LH_Gold.dim_empresas_rfb_target`) com os dados de FIDCs da CVM (`LH_Bronze.cvm_fidc_informe_mensal`) para encontrar clientes com alta concentração.
-#
-# > **Nota:** Este bloco é apenas demonstrativo e depende da existência da tabela da CVM carregada.
+# Cruza a tabela gerada (`LH_Gold.dim_empresas_rfb_target`) com os dados de FIDCs da CVM (`LH_Bronze.cvm_fidc_informe_mensal`) para encontrar clientes com alta concentração.
 
 # CELL ********************
 
-# # Exemplo de Query
-#
-# # 1. Carregar dados de FIDC (Exemplo: Informe Mensal)
-# # Supondo que a tabela CVM tenha uma coluna de CNPJ do Devedor/Cedente ou similar.
-# # Muitas vezes, nos informes mensais, a granularidade pode ser por Fundo, e não por Devedor individual (depende da tabela específica TAB_VI, TAB_IV, etc).
-# # Se tivermos uma tabela de "Operações" ou "Carteira" detalhada com CNPJ do sacado:
-#
-# try:
-#     df_cvm = spark.read.table("LH_Bronze.cvm_fidc_informe_mensal") # Exemplo
-#     df_target_rfb = spark.read.table("LH_Gold.dim_empresas_rfb_target")
-#
-#     # Supondo coluna 'CNPJ_Devedor' na CVM
-#     # df_opportunities = df_cvm.join(df_target_rfb, df_cvm.CNPJ_Devedor == df_target_rfb.cnpj_completo, "inner")
-#
-#     # Filtrar por concentração (Exemplo hipotético de coluna)
-#     # df_high_concentration = df_opportunities.filter(col("percentual_concentracao") > 0.10)
-#
-#     # display(df_high_concentration)
-#     print("Exemplo de código de join pronto para uso (comentado).")
-#
-# except Exception as e:
-#     print(f"Tabelas para exemplo não disponíveis no momento: {e}")
+from pyspark.sql.functions import array, struct, explode, col, lit, regexp_replace
+
+try:
+    print("Iniciando cruzamento com dados da CVM...")
+    df_cvm = spark.read.table("LH_Bronze.cvm_fidc_informe_mensal")
+    df_target_rfb = spark.read.table("LH_Gold.dim_empresas_rfb_target")
+
+    # Os dados da CVM na TAB_I possuem colunas para os 9 maiores cedentes.
+    # TAB_I2A12_CPF_CNPJ_CEDENTE_1 até 9
+    # TAB_I2A12_PR_CEDENTE_1 até 9
+
+    # Criamos um array de structs para desaninhar (unpivot) os cedentes
+    cedentes_cols = []
+    for i in range(1, 10):
+        cnpj_col = f"TAB_I2A12_CPF_CNPJ_CEDENTE_{i}"
+        perc_col = f"TAB_I2A12_PR_CEDENTE_{i}"
+
+        # Verifica se as colunas existem no dataframe
+        if cnpj_col in df_cvm.columns and perc_col in df_cvm.columns:
+            cedentes_cols.append(struct(
+                col(cnpj_col).alias("cnpj_cedente"),
+                col(perc_col).cast("double").alias("percentual_concentracao")
+            ))
+
+    if cedentes_cols:
+        df_cvm_unpivoted = df_cvm.withColumn("cedentes", array(*cedentes_cols)) \
+                                 .select("CNPJ_FUNDO_CLASSE", "DENOM_SOCIAL", "DT_COMPTC", explode("cedentes").alias("cedente")) \
+                                 .select(
+                                     col("CNPJ_FUNDO_CLASSE"),
+                                     col("DENOM_SOCIAL").alias("fundo_denom_social"),
+                                     col("DT_COMPTC"),
+                                     col("cedente.cnpj_cedente").alias("cnpj_cedente_raw"),
+                                     col("cedente.percentual_concentracao")
+                                 )
+
+        # Limpar o CNPJ da CVM (remover pontuações)
+        df_cvm_unpivoted = df_cvm_unpivoted.withColumn("cnpj_cedente_limpo", regexp_replace(col("cnpj_cedente_raw"), "[^0-9]", ""))
+
+        # Filtrar por concentração > 10% e CNPJ não nulo
+        df_high_concentration = df_cvm_unpivoted.filter((col("percentual_concentracao") > 10.0) & (col("cnpj_cedente_limpo") != ""))
+
+        # Realizar o join com as empresas target
+        df_opportunities = df_high_concentration.join(
+            df_target_rfb,
+            df_high_concentration.cnpj_cedente_limpo == df_target_rfb.cnpj_completo,
+            "inner"
+        )
+
+        # Selecionar e organizar as colunas finais
+        cols_final = [
+            "CNPJ_FUNDO_CLASSE",
+            "fundo_denom_social",
+            "DT_COMPTC",
+            "percentual_concentracao",
+            "cnpj_completo",
+            "razao_social",
+            "nome_fantasia",
+            "setor",
+            "cnae_fiscal_principal",
+            "uf",
+            "municipio",
+            "situacao_cadastral",
+            "data_inicio_atividade",
+            "ddd_1",
+            "telefone_1",
+            "correio_eletronico"
+        ]
+
+        df_resultado_final = df_opportunities.select(cols_final)
+
+        table_cvm_target = "LH_Gold.fato_empresas_target_cvm_concentracao"
+        print(f"Salvando {df_resultado_final.count()} oportunidades cruzadas na tabela Gold: {table_cvm_target}")
+
+        df_resultado_final.write.format("delta").mode("overwrite").saveAsTable(table_cvm_target)
+        print("Cruzamento com CVM concluído com sucesso.")
+
+    else:
+        print("Colunas de cedente não encontradas no schema da CVM.")
+
+except Exception as e:
+    print(f"Erro ao processar o cruzamento com a CVM: {e}")
 
 # METADATA ********************
 
