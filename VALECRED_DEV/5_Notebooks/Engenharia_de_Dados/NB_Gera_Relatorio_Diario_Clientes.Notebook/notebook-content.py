@@ -246,7 +246,7 @@ def prepare_dashboard_data(df, ref_date):
              elif days_remaining <= 30:
                  validade_display = f"{Colors.YELLOW}{val_date_str} ({days_remaining}d){Colors.RESET}"
              else:
-                 validade_display = f"{Colors.GREEN}{val_date_str}{Colors.RESET}"
+                 validade_display = val_date_str
         except Exception:
              pass
         item['validade_display'] = validade_display
