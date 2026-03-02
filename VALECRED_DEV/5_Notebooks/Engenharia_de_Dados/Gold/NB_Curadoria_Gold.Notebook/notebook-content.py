@@ -1627,7 +1627,7 @@ df_join_1 = join_cliente_dimensions(
 # Data 4: Concluido (Concluido >= Formalizacao)
 
 df_funnel = df_join_1 \
-    .withColumn("data_primeira_proposta_comercial", least(col("min_proposta"), col("min_revisao"), col("min_dir_comercial"))) \
+    .withColumn("data_primeira_proposta_comercial", least(col("min_proposta"), col("min_revisao_comercial"), col("min_dir_comercial"))) \
     .withColumn("data_primeira_proposta_credito",
         when(col("min_credito") >= col("data_primeira_proposta_comercial"), col("min_credito"))
     ) \
@@ -1818,7 +1818,7 @@ cols_esteira_prazos = [
     "pivot_checklist", "pivot_assinatura", "pivot_comite", "pivot_concluido",
     "pivot_bizagi", "pivot_renovacao", "pivot_reserva", "pivot_start",
     "pivot_credito", "pivot_proposta", "pivot_revisao_comercial", "pivot_dir_comercial",
-    "min_proposta", "min_revisao", "min_dir_comercial", "min_credito",
+    "min_proposta", "min_revisao_comercial", "min_dir_comercial", "min_credito",
     "min_checklist", "min_concluido",
     "data_primeira_proposta_comercial", "data_primeira_proposta_credito",
     "data_primeira_proposta_formalizacao", "data_primeira_proposta_concluida",
