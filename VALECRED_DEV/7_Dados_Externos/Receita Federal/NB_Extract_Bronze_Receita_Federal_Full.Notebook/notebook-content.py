@@ -1,48 +1,9 @@
 # Fabric notebook source
 
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {
-# META     "lakehouse": {
-# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Bronze",
-# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
-# META       "known_lakehouses": [
-# META         {
-# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
-# META         }
-# META       ]
-# META     }
-# META   }
-# META }
 
 # CELL ********************
 
 # Fabric notebook source
-
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {
-# META     "lakehouse": {
-# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Bronze",
-# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
-# META       "known_lakehouses": [
-# META         {
-# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
-# META         }
-# META       ]
-# META     }
-# META   }
-# META }
 
 # MARKDOWN ********************
 
@@ -219,8 +180,6 @@ except Exception as e:
 # META   "language_group": "synapse_pyspark"
 # META }
 
-
-
 # CELL ********************
 
 
@@ -295,13 +254,6 @@ try:
 
 except Exception as e:
     print(f"Erro ao processar ESTABELECIMENTOS: {e}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # METADATA ********************
 
