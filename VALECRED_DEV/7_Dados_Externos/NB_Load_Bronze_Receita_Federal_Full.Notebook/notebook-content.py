@@ -247,7 +247,8 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
         print(f"FALHA FATAL: Não foi possível baixar e extrair {filename} de nenhum mirror.")
         return False
 
-    return True
+    return Tru
+
 # METADATA ********************
 
 # META {

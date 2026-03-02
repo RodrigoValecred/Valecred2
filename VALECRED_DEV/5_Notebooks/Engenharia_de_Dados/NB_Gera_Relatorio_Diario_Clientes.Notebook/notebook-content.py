@@ -85,6 +85,13 @@ def get_production_data(spark):
     # Convert to Pandas
     # Warning: Ensure data volume is manageable.
     # Daily report usually filters active risk, so volume should be low enough for driver.
+
+    # Check if we should use spark.sql.execution.arrow.pyspark.enabled
+    try:
+        spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+    except Exception:
+        pass
+
     df_ops = df_ops_spark.toPandas()
     df_limites = df_limites_spark.toPandas()
 

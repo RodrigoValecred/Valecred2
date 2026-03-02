@@ -6,8 +6,8 @@
       "jobType": "Execute",
       "configuration": {
         "type": "Cron",
-        "startDateTime": "2026-02-18T09:00:00",
-        "endDateTime": "2026-02-28T18:00:00",
+        "startDateTime": "2026-03-02T08:00:00",
+        "endDateTime": "2026-12-31T18:00:00",
         "localTimeZoneId": "E. South America Standard Time",
         "interval": 6
       }
