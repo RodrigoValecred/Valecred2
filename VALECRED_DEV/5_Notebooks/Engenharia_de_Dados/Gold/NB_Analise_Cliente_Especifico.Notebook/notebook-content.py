@@ -107,7 +107,7 @@ df_mestra_spark = df_mestra_spark.filter(col("LIQUIDACAO").isNotNull())
 
 # Convertendo para Pandas para facilitar a manipulação
 print("Convertendo para DataFrame Pandas...")
-df_filtrado = df_mestra_spark.toPandas()
+df_filtrado = df_mestra_spark.cache()
 print("Tabela mestra filtrada e carregada com sucesso.")
 
 # METADATA ********************
@@ -125,30 +125,30 @@ print("Tabela mestra filtrada e carregada com sucesso.")
 
 # CELL ********************
 
-print(f"Universo de análise contém {len(df_filtrado)} títulos liquidados para o cliente {CLIENTE_CPFCNPJ}.")
+# count() on Spark DataFrame is expensive, so omitting exact count in regular runs to save time
+print(f"Universo de análise carregado para o cliente {CLIENTE_CPFCNPJ}.")
 
 # Criando a variável Target
-def create_target_variable(df):
-    """
-    Cria a variável TARGET usando lógica vetorizada.
+from pyspark.sql.functions import col, when
 
-    Args:
-        df (pd.DataFrame): DataFrame contendo as colunas 'MOTIVO' e 'TTO_OPERACAO'.
+def create_target_variable():
+    """
+    Cria a expressão para a variável TARGET usando lógica do Spark.
 
     Returns:
-        pd.Series: Série com valores 0 (Adimplente) ou 1 (Inadimplente).
+        Column: Expressão Spark retornando 0 (Adimplente) ou 1 (Inadimplente).
     """
     # Classifica um título como adimplente (0) ou inadimplente (1) com base no motivo da baixa e no tipo de operação.
     # Regra: Se MOTIVO for 'PG' -> 0 (Adimplente)
     #        Se MOTIVO for 'RC' e TTO_OPERACAO for 'FC' ou 'CM' -> 0 (Adimplente)
     #        Caso contrário -> 1 (Inadimplente)
-    mask_adimplente = (
-        (df['MOTIVO'] == 'PG') |
-        ((df['MOTIVO'] == 'RC') & (df['TTO_OPERACAO'].isin(['FC', 'CM'])))
-    )
-    return np.where(mask_adimplente, 0, 1)
+    return when(
+        (col('MOTIVO') == 'PG') |
+        ((col('MOTIVO') == 'RC') & (col('TTO_OPERACAO').isin(['FC', 'CM']))),
+        0
+    ).otherwise(1)
 
-df_filtrado['TARGET'] = create_target_variable(df_filtrado)
+df_filtrado = df_filtrado.withColumn('TARGET', create_target_variable())
 print("Variável TARGET criada.")
 
 # METADATA ********************
@@ -169,12 +169,12 @@ print("Variável TARGET criada.")
 print(f"Analisando o cliente com CPF/CNPJ: {CLIENTE_CPFCNPJ}")
 
 # O DataFrame df_filtrado já contém apenas os dados do cliente específico
-df_cliente = df_filtrado.copy()
+df_cliente = df_filtrado
 
-if df_cliente.empty:
+if df_cliente.limit(1).count() == 0:
     print("ALERTA: Nenhum título encontrado para este cliente com os filtros aplicados.")
 else:
-    print(f"Encontrados {len(df_cliente)} títulos para este cliente.")
+    print(f"Dados encontrados para este cliente.")
 
     # Features utilizadas pelo modelo
     features_modelo = [
@@ -188,12 +188,13 @@ else:
 
     # Exibindo o resumo dos títulos do cliente
     print("\nResumo dos Títulos do Cliente (usando features do modelo):")
-    display(df_cliente[features_existentes])
+    df_cliente.select(*features_existentes).show(10)
 
     # Análise de inadimplência do cliente
-    inadimplencia_cliente = df_cliente['TARGET'].value_counts(normalize=True)
     print("\nTaxa de Inadimplência do Cliente:")
-    print(inadimplencia_cliente)
+    total_count = df_cliente.count()
+    if total_count > 0:
+        df_cliente.groupBy('TARGET').count().withColumn('pct', col('count') / total_count).show()
 
 # METADATA ********************
 
