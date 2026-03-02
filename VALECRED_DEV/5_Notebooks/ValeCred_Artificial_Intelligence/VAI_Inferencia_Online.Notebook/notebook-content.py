@@ -297,9 +297,9 @@ def display_terminal_dashboard(metrics):
     cw = 48
 
     print("\n")
-    print("╔" + "═"*(W-2) + "╗")
-    print(f"║ {'📊 RESUMO DO PROCESSAMENTO V.A.I.':^{cw}} ║")
-    print("╠" + "═"*(W-2) + "╣")
+    print("═" * W)
+    print(f" {'📊 RESUMO DO PROCESSAMENTO V.A.I.':^{cw}} ")
+    print("═" * W)
 
     total_ops = metrics.get('total_ops', 0)
     risco_alto = metrics.get('risco_alto', 0)
@@ -313,37 +313,37 @@ def display_terminal_dashboard(metrics):
         status_icon = "🟢" if percent_risco < 10 else "🔴" if percent_risco < 30 else "🔥"
         status_text = f"{status_icon} Status: {percent_risco:.1f}% Risco"
         padding = cw - (len(status_text) + 1)
-        print(f"║ {status_text}{' '*padding} ║")
+        print(f" {status_text}{' '*padding} ")
 
-        print(f"║ {' '*cw} ║") # Spacer
+        print(f" {' '*cw} ") # Spacer
 
         # Metrics
-        print(f"║  🔢 Total:       {str(total_ops):<31} ║")
-        print(f"║  🚨 Alto Risco:  {str(risco_alto):<31} ║")
-        print(f"║  ✅ Normal:      {str(normal):<31} ║")
+        print(f"  🔢 Total:       {str(total_ops):<31} ")
+        print(f"  🚨 Alto Risco:  {str(risco_alto):<31} ")
+        print(f"  ✅ Normal:      {str(normal):<31} ")
 
-        print(f"║ {' '*cw} ║") # Spacer
+        print(f" {' '*cw} ") # Spacer
 
         # Progress Bar
         bar = create_progress_bar(percent_risco, width=25)
-        print(f"║  Risco: {bar:<39} ║")
+        print(f"  Risco: {bar:<39} ")
 
-        print(f"║ {' '*cw} ║") # Spacer
+        print(f" {' '*cw} ") # Spacer
 
         # Top Reasons
         if risco_alto > 0 and top_motivos:
-            print("╠" + "─"*(W-2) + "╣")
-            print(f"║ {'🔍 TOP 3 MOTIVOS DE RISCO':^{cw}} ║")
-            print("╠" + "─"*(W-2) + "╣")
+            print("─" * W)
+            print(f" {'🔍 TOP 3 MOTIVOS DE RISCO':^{cw}} ")
+            print("─" * W)
 
             for i, (motivo, count) in enumerate(top_motivos, 1):
                 motivo_disp = (motivo[:35] + '..') if len(motivo) > 35 else motivo
                 line = f"{i}. {motivo_disp}: {count}"
-                print(f"║ {line:<{cw}} ║")
+                print(f" {line:<{cw}} ")
     else:
-        print(f"║ {'⚠️ NENHUM DADO PROCESSADO':^{cw}} ║")
+        print(f" {'⚠️ NENHUM DADO PROCESSADO':^{cw}} ")
 
-    print("╚" + "═"*(W-2) + "╝")
+    print("═" * W)
     print("\n")
 
 display_terminal_dashboard(metrics)

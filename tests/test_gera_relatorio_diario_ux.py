@@ -166,7 +166,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
 
         self.assertIn("VENCIDO", full_output)
         self.assertIn("(7d)", full_output)
-        self.assertIn("2026-06-01", full_output)
+        self.assertIn("01/06/2026", full_output)
 
     def test_style_risk_dataframe(self):
         # This function is what we are adding.
