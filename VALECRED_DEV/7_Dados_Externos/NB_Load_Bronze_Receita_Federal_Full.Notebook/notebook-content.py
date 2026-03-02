@@ -42,9 +42,6 @@ from notebookutils import mssparkutils
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
 from pyspark.sql.functions import col, to_date, regexp_replace
 
-# Suprimir avisos de SSL inseguro (já que usamos verify=False)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 # --- Configurações ---
 MIRRORS = [
     "https://dadosabertos.rfb.gov.br/CNPJ/",
@@ -193,7 +190,7 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
         try:
             # HEAD request para verificar disponibilidade
             try:
-                head_response = requests.head(url, headers=headers, verify=False, timeout=30, allow_redirects=True)
+                head_response = requests.head(url, headers=headers, verify=True, timeout=30, allow_redirects=True)
                 if head_response.status_code != 200:
                     print(f"Arquivo não encontrado ou erro no servidor (HEAD): {url} - Status: {head_response.status_code}")
                     continue
@@ -201,7 +198,7 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
                 print(f"Erro no HEAD request para {url}: {e}. Tentando GET direto...")
 
             # Download
-            response = requests.get(url, headers=headers, verify=False, stream=True, timeout=120)
+            response = requests.get(url, headers=headers, verify=True, stream=True, timeout=120)
 
             if response.status_code == 200:
                 with open(local_zip_path, 'wb') as f:
