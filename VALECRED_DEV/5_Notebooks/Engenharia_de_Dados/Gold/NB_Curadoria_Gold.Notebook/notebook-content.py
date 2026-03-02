@@ -1953,6 +1953,25 @@ print(f"Métricas HHI calculadas e salvas em: {output_path_hhi}")
 print(f"HHI Cedente: {hhi_cedente}")
 print(f"HHI Sacado: {hhi_sacado}")
 
+# -------------------------------------------------------------
+# ⚡ Bolt Optimization: Limpeza de Cache (Memory Management)
+# Objetivo: Liberar memória dos DataFrames oxigenados cacheados
+# previnindo memory leaks e OOM no cluster Spark.
+# -------------------------------------------------------------
+print("\nIniciando limpeza de cache (unpersist)...")
+try:
+    if 'df_titulos_limpa' in locals(): df_titulos_limpa.unpersist()
+    if 'df_dim_calendario' in locals(): df_dim_calendario.unpersist()
+    if 'df_dim_produto' in locals(): df_dim_produto.unpersist()
+    if 'df_client_rate' in locals(): df_client_rate.unpersist()
+    if 'df_operacoes_enriquecida' in locals(): df_operacoes_enriquecida.unpersist()
+    if 'df_fato_operacoes' in locals(): df_fato_operacoes.unpersist()
+    if 'df_fato_titulos_final' in locals(): df_fato_titulos_final.unpersist()
+    if 'df_final' in locals(): df_final.unpersist()
+    print("Memória de cache liberada com sucesso.")
+except Exception as e:
+    print(f"Erro ao liberar cache: {e}")
+
 # METADATA ********************
 
 # META {
