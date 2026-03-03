@@ -123,10 +123,11 @@ def load_and_prepare_data(spark):
         col("nome_plataforma").alias("nome_plataforma_op"),
         col("chave_produto").alias("chave_produto_op"),
         col("data_deferimento").alias("data_deferimento_op"),
-        col("cod_cliente").alias("cod_cliente_op")
+        col("cod_cliente").alias("cod_cliente_op"),
+        col("floating").alias("floating_op")
     ).dropDuplicates(["cod_operacao"])
 
-    granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente"]
+    granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente", "floating"]
 
     print("Dados carregados.")
 
@@ -223,7 +224,7 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
 
     df_stream_prorrog = df_prorrog_calc \
         .withColumn("mes_ref", trunc(col("data_inclusao"), "MM")) \
-        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento") \
+        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
         .agg(
             sum("valor").alias("volume"),
             sum("valor_vezes_dias").alias("total_valor_dias_mes"),
@@ -234,7 +235,6 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
         .withColumn("prazo_medio",
                     when(col("volume") > 0, col("total_valor_dias_mes") / col("volume")).otherwise(0)) \
         .withColumn("prazo_medio_original", lit(None).cast("double")) \
-        .withColumn("floating", lit(None).cast("double")) \
         .withColumn("taxa_media",
                     when(col("total_valor_dias_mes") > 0,
                         (col("receita") / (col("total_valor_dias_mes") / 30)) * 100
@@ -288,7 +288,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
 
     df_stream_mora = df_mora_calc \
         .withColumn("mes_ref", trunc(col("data_baixa"), "MM")) \
-        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento") \
+        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
         .agg(
             sum("valor_pago").alias("volume"),
             sum("valor_vezes_atraso").alias("total_valor_atraso_mes"),
@@ -299,7 +299,6 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
         .withColumn("prazo_medio",
                     when(col("volume") > 0, col("total_valor_atraso_mes") / col("volume")).otherwise(0)) \
         .withColumn("prazo_medio_original", lit(None).cast("double")) \
-        .withColumn("floating", lit(None).cast("double")) \
         .withColumn("taxa_media",
                     when(col("total_valor_atraso_mes") > 0,
                         (col("receita") / (col("total_valor_atraso_mes") / 30)) * 100

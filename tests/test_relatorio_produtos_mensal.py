@@ -217,7 +217,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         df_baixas.withColumn.return_value = df_baixas
         df_baixas.withColumnRenamed.return_value = df_baixas
 
-        granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente"]
+        granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente", "floating"]
 
         process_mora_stream_func = globals()["process_mora_stream"]
         result_df = process_mora_stream_func(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, granular_cols)
