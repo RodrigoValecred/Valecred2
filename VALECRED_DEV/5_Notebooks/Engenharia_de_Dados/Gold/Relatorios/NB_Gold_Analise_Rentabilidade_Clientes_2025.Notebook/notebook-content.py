@@ -149,6 +149,7 @@ df_titulos = spark.read.table("LH_Gold.fato_titulos") \
     .filter(col("aceito") == "S") \
     .filter(col("t_doc") != "BL") \
     .dropDuplicates(["cod_titulo"]) \
+    .join(df_ops.select("cod_operacao", "data_deferimento"), "cod_operacao", "left") \
     .withColumn("data_final_real",
                 when(col("liquidacao").isNotNull(), col("liquidacao"))
                 .when(col("venc_prorrogado").isNotNull(), col("venc_prorrogado"))
@@ -163,7 +164,9 @@ df_titulos = spark.read.table("LH_Gold.fato_titulos") \
                 .otherwise(datediff(current_date(), col("data_vencimento_ajustado")))) \
     .withColumn("em_mora", col("dias_atraso_real") > 0) \
     .withColumn("valor_vezes_atraso", when(col("em_mora"), col("valor") * col("dias_atraso_real")).otherwise(0)) \
-    .withColumn("valor_em_mora", when(col("em_mora"), col("valor")).otherwise(0))
+    .withColumn("valor_em_mora", when(col("em_mora"), col("valor")).otherwise(0)) \
+    .withColumn("dias_prazo_total", datediff(col("vencimento"), col("data_deferimento"))) \
+    .withColumn("valor_vezes_prazo_total", col("valor") * col("dias_prazo_total"))
 
 if df_prorrogacao_silver_agg:
     df_titulos = df_titulos.join(df_prorrogacao_silver_agg, "cod_titulo", "left") \
@@ -183,7 +186,8 @@ df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_vezes_atraso").alias("total_valor_atraso_op"),
     sum("valor_em_mora").alias("total_valor_mora_op"),
     sum("receita_prorrogacao_titulo").alias("receita_prorrogacao_op"),
-    sum("receita_prorrogacao_titulo_2025").alias("receita_prorrogacao_op_2025")
+    sum("receita_prorrogacao_titulo_2025").alias("receita_prorrogacao_op_2025"),
+    sum("valor_vezes_prazo_total").alias("soma_produto_valor_prazo_total")
 )
 
 # Baixas (Para cálculo de Receita de Juros de Mora Pagos)
@@ -308,7 +312,11 @@ df_calcs = df_base_cliente \
                 coalesce(col("total_de_tarifas"), lit(0)) + 
                 coalesce(col("total_juros_mora_pago_op"), lit(0)) +
                 coalesce(col("tarifa_de_recompra"), lit(0)) +
-                coalesce(col("receita_prorrogacao_op"), lit(0)))
+                coalesce(col("receita_prorrogacao_op"), lit(0))) \
+    .withColumn("prazo_medio_total",
+                when(col("valor_face_titulos_op") > 0,
+                     col("soma_produto_valor_prazo_total") / col("valor_face_titulos_op")
+                ).otherwise(0).cast("float"))
 
 # 4.2 Aggregation by Client
 df_cliente_agg = df_calcs.groupBy("cod_cliente").agg(
@@ -399,6 +407,7 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
         round(col("prazo_verdadeiro_real_medio_ponderado_op"), 0).cast("int").alias("prazo_verdadeiro_real_medio_ponderado_op"),
         round(col("prazo_medio_mora_op"), 0).cast("int").alias("prazo_medio_ponderado_dias_op"),
         round(col("taxa_media_real_mensal_op"), 4).alias("taxa_media_real_mensal_op"),
+        col("prazo_medio_total"),
         # Métricas Agregadas do Cliente (Repetidas nas linhas)
         col("volume_operado_cliente"),
         col("qtd_operacoes_cliente"),
