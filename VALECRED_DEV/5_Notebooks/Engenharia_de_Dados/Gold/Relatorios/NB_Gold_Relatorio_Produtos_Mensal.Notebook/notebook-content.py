@@ -159,7 +159,9 @@ def process_operacoes_stream(df_ops, df_titulos):
     df_titulos_agg_op = df_titulos_dates.groupBy("cod_operacao").agg(
         sum(col("valor") * col("prazo")).alias("soma_valor_prazo_op"),
         sum("valor").alias("soma_valor_titulos_op"),
-        sum("valor_vezes_prazo_original").alias("soma_valor_prazo_original_op")
+        sum("valor_vezes_prazo_original").alias("soma_valor_prazo_original_op"),
+        min("vencimento").alias("menor_vencimento"),
+        max("vencimento").alias("maior_vencimento")
     )
 
     # Join Ops com Títulos Agg
@@ -179,13 +181,16 @@ def process_operacoes_stream(df_ops, df_titulos):
             sum("soma_valor_prazo_op").alias("total_valor_prazo_mes"),
             sum("soma_valor_prazo_original_op").alias("total_valor_prazo_original_mes"),
             sum("receita_total_op").alias("receita"),
-            count("cod_operacao").alias("qtd_eventos")
+            count("cod_operacao").alias("qtd_eventos"),
+            min("menor_vencimento").alias("menor_vencimento"),
+            max("maior_vencimento").alias("maior_vencimento")
         ) \
         .withColumn("tipo_produto", lit("OPERACOES")) \
         .withColumn("prazo_medio",
                     when(col("volume") > 0, col("total_valor_prazo_mes") / col("volume")).otherwise(0)) \
         .withColumn("prazo_medio_original",
                     when(col("volume") > 0, col("total_valor_prazo_original_mes") / col("volume")).otherwise(0)) \
+        .withColumn("prazo_medio_total", col("prazo_medio") + coalesce(col("floating"), lit(0))) \
         .withColumn("taxa_media",
                     when(col("total_valor_prazo_mes") > 0,
                         (col("receita") / (col("total_valor_prazo_mes") / 30)) * 100
@@ -235,6 +240,9 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
         .withColumn("prazo_medio",
                     when(col("volume") > 0, col("total_valor_dias_mes") / col("volume")).otherwise(0)) \
         .withColumn("prazo_medio_original", lit(None).cast("double")) \
+        .withColumn("prazo_medio_total", col("prazo_medio") + coalesce(col("floating"), lit(0))) \
+        .withColumn("menor_vencimento", lit(None).cast("date")) \
+        .withColumn("maior_vencimento", lit(None).cast("date")) \
         .withColumn("taxa_media",
                     when(col("total_valor_dias_mes") > 0,
                         (col("receita") / (col("total_valor_dias_mes") / 30)) * 100
@@ -299,6 +307,9 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
         .withColumn("prazo_medio",
                     when(col("volume") > 0, col("total_valor_atraso_mes") / col("volume")).otherwise(0)) \
         .withColumn("prazo_medio_original", lit(None).cast("double")) \
+        .withColumn("prazo_medio_total", col("prazo_medio") + coalesce(col("floating"), lit(0))) \
+        .withColumn("menor_vencimento", lit(None).cast("date")) \
+        .withColumn("maior_vencimento", lit(None).cast("date")) \
         .withColumn("taxa_media",
                     when(col("total_valor_atraso_mes") > 0,
                         (col("receita") / (col("total_valor_atraso_mes") / 30)) * 100
@@ -348,6 +359,9 @@ df_final = df_union \
         round(col("prazo_medio"), 2).alias("prazo_medio_dias"),
         round(col("prazo_medio_original"), 2).alias("prazo_medio_original_dias"),
         col("floating"),
+        round(col("prazo_medio_total"), 2).alias("prazo_medio_total_dias"),
+        col("menor_vencimento").alias("menor_vencimento_op"),
+        col("maior_vencimento").alias("maior_vencimento_op"),
         round(col("taxa_media"), 4).alias("taxa_media_mensal_pct"),
         round(col("receita"), 2).alias("receita"),
         col("qtd_eventos")
