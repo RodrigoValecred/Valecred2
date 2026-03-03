@@ -12,4 +12,10 @@ CREATE TABLE [dbo].[fato_operacoes] (
 	[chave_produto] varchar(4) NULL, 
 	[tac_mesa] decimal(18,2) NULL, 
 	[tarifas_de_operacao] decimal(18,2) NULL
+,
+	[floating] float NULL,
+	[prazo_medio] float NULL,
+	[prazo_medio_total] float NULL,
+	[menor_vencimento] date NULL,
+	[maior_vencimento] date NULL
 );

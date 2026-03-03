@@ -870,7 +870,11 @@ def select_fato_operacoes_columns(df_fato_operacoes_joined):
         col("tarifa_de_titulos"),
         col("gestor_da_operacao"),
         col("nome_plataforma"),
-        col("gestor_da_plataforma")
+        col("gestor_da_plataforma"),
+        col("prazo_medio"),
+        col("prazo_medio_total"),
+        col("menor_vencimento"),
+        col("maior_vencimento")
     ).dropDuplicates(["cod_operacao"])
 
 def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto):
@@ -883,7 +887,20 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
     # 3. SELEÇÃO FINAL
     return select_fato_operacoes_columns(df_fato_operacoes_joined)
 
+
+# Calcular prazo_medio e vencimentos
+df_titulos_agg = df_titulos_com_chave_sacado.groupBy("cod_operacao").agg(
+    sum(col("valor") * col("prazo")).alias("soma_valor_prazo_op"),
+    sum("valor").alias("soma_valor_titulos_op"),
+    min("vencimento").alias("menor_vencimento"),
+    max("vencimento").alias("maior_vencimento")
+).withColumn("prazo_medio", when(col("soma_valor_titulos_op") > 0, col("soma_valor_prazo_op") / col("soma_valor_titulos_op")).otherwise(0)).drop("soma_valor_prazo_op", "soma_valor_titulos_op")
+
+df_operacoes_enriquecida = df_operacoes_enriquecida.join(df_titulos_agg, "cod_operacao", "left") \
+    .withColumn("prazo_medio_total", col("prazo_medio") + coalesce(col("floating"), lit(0)))
+
 df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto).cache()
+
 output_path_fato_operacoes = TableNames.GOLD_FATO_OPERACOES
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
 print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
@@ -957,7 +974,7 @@ df_titulos_base = df_titulos_limpa.filter(~col("t_doc").isin("BL", "RC")) \
 
 # Adicionando sk_operacao para join eficiente no Power BI
 df_operacoes_enriquecida_sk = df_operacoes_enriquecida.withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
-df_operacoes_small = df_operacoes_enriquecida_sk.select("sk_operacao", "cod_operacao", "cod_cliente", "data_analise", "status_aceite", "status_analise", "chave_produto", "tto", "taxa_comissao").dropDuplicates(["cod_operacao"])
+df_operacoes_small = df_operacoes_enriquecida_sk.select("sk_operacao", "cod_operacao", "cod_cliente", "data_analise", "data_deferimento", "status_aceite", "status_analise", "chave_produto", "tto", "taxa_comissao", "floating").dropDuplicates(["cod_operacao"])
 df_limites_small = df_limites.select("chave_cliente_sacado", "tipo").dropDuplicates(["chave_cliente_sacado"])
 df_produtos_small = df_dim_produto.select(col("chave_produto"), col("produto_informacao_de_mercado").alias("produto_temp")).dropDuplicates(["chave_produto"])
 df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao").alias("cod_operacao_recompra")).dropDuplicates(["cod_titulo"])
@@ -967,7 +984,9 @@ df_protestos_small = df_protestos.select("cod_titulo", "status_protesto").dropDu
 # Flag Juridico
 df_juridico_flag = df_relatorio_juridico.select("cod_titulo").distinct().withColumn("status_enviado_juridico", lit(True))
 
-df_titulos_com_chave_sacado = df_titulos_base.join(broadcast(df_operacoes_small), "cod_operacao", "left").withColumn("chave_cliente_sacado", concat(col("cod_cliente").cast("string"), lit("-"), col("raiz_cnpj")))
+df_titulos_com_chave_sacado = df_titulos_base.join(broadcast(df_operacoes_small), "cod_operacao", "left") \
+    .withColumn("chave_cliente_sacado", concat(col("cod_cliente").cast("string"), lit("-"), col("raiz_cnpj"))) \
+    .withColumn("prazo", datediff(col("vencimento"), col("data_deferimento")))
 
 df_enriquecido = df_titulos_com_chave_sacado \
     .join(broadcast(df_limites_small), "chave_cliente_sacado", "left") \
