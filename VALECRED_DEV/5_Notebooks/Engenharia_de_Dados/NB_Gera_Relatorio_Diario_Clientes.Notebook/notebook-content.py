@@ -333,6 +333,13 @@ def display_risk_dashboard(df, ref_date=None):
 
     print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
 
+    # Empty State UX
+    if df.empty:
+        print(f"{'⚠️ NENHUM GRUPO COM RISCO ATIVO ENCONTRADO':^{W}}")
+        print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
+        print("\n")
+        return
+
     # Summary
     n_groups = len(df)
     n_alerts = len(df[df['utilizacao_pct'] > 100])
