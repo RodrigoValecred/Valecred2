@@ -801,6 +801,90 @@
                 "value": "{\"isGeneralNumber\":true}"
               }
             ]
+          },
+          {
+            "name": "floating",
+            "dataType": "double",
+            "sourceColumn": "floating",
+            "sourceProviderType": "float",
+            "sourceLineageTag": "floating",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "prazo_medio",
+            "dataType": "double",
+            "sourceColumn": "prazo_medio",
+            "sourceProviderType": "float",
+            "sourceLineageTag": "prazo_medio",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "prazo_medio_total",
+            "dataType": "double",
+            "sourceColumn": "prazo_medio_total",
+            "sourceProviderType": "float",
+            "sourceLineageTag": "prazo_medio_total",
+            "summarizeBy": "sum",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              },
+              {
+                "name": "PBI_FormatHint",
+                "value": "{\"isGeneralNumber\":true}"
+              }
+            ]
+          },
+          {
+            "name": "menor_vencimento",
+            "dataType": "dateTime",
+            "sourceColumn": "menor_vencimento",
+            "formatString": "General Date",
+            "sourceProviderType": "date",
+            "sourceLineageTag": "menor_vencimento",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
+          },
+          {
+            "name": "maior_vencimento",
+            "dataType": "dateTime",
+            "sourceColumn": "maior_vencimento",
+            "formatString": "General Date",
+            "sourceProviderType": "date",
+            "sourceLineageTag": "maior_vencimento",
+            "summarizeBy": "none",
+            "annotations": [
+              {
+                "name": "SummarizationSetBy",
+                "value": "Automatic"
+              }
+            ]
           }
         ],
         "partitions": [
