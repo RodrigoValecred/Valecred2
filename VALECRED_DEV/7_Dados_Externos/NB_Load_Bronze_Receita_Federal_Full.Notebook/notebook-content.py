@@ -188,14 +188,14 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
             # Primeiro tenta um HEAD request para ver se o arquivo existe e servidor responde
             # allow_redirects=True é crucial para o mirror do GitHub, que redireciona para o storage de assets
             try:
-                head_response = requests.head(url, headers=headers, verify=False, timeout=30, allow_redirects=True)
+                head_response = requests.head(url, headers=headers, verify=True, timeout=30, allow_redirects=True)
                 if head_response.status_code != 200:
                     print(f"Arquivo não encontrado ou erro no servidor (HEAD): {url} - Status: {head_response.status_code}")
                     continue # Tenta próximo mirror
             except Exception as e:
                 print(f"Erro no HEAD request para {url}: {e}. Tentando GET direto...")
 
-            response = requests.get(url, headers=headers, verify=False, stream=True, timeout=120)
+            response = requests.get(url, headers=headers, verify=True, stream=True, timeout=120)
 
             if response.status_code == 200:
                 with open(local_zip_path, 'wb') as f:
