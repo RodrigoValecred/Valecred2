@@ -840,6 +840,8 @@ def select_fato_operacoes_columns(df_fato_operacoes_joined):
         col("taxa").alias("taxa_operacao"),
         col("era"),
         col("data_deferimento"),
+        col("data_aceite"),
+        col("floating"),
         col("chave_base_cliente"),
         col("chave_base_operacao"),
         col("chave_base_empresa"),
