@@ -82,20 +82,16 @@ def get_production_data(spark):
         col("validade_limite")
     )
 
-    # Convert to Pandas
-    # Warning: Ensure data volume is manageable.
-    # Daily report usually filters active risk, so volume should be low enough for driver.
-
     # Check if we should use spark.sql.execution.arrow.pyspark.enabled
     try:
         spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
     except Exception:
         pass
 
-    df_ops = df_ops_spark.toPandas()
-    df_limites = df_limites_spark.toPandas()
-
-    return df_ops, df_limites
+    # 🧠 TENSOR OPTIMIZATION: Retornar Spark DataFrames para evitar overhead de driver e network.
+    # Em vez de chamar .toPandas() em df_ops_spark (granular, com milhares de linhas),
+    # delegamos a agregação e o join para o cluster Spark antes da conversão.
+    return df_ops_spark, df_limites_spark
 
 def get_mock_data():
     """
@@ -124,11 +120,21 @@ def get_mock_data():
 if 'spark' in locals() or 'spark' in globals():
     print("Spark session detected. Loading production data from Gold Layer...")
     # Intentionally letting exceptions propagate here to fail the job if production data is missing/invalid.
-    df_ops, df_limites = get_production_data(spark)
+    df_ops_spark, df_limites_spark = get_production_data(spark)
 
     # Use current date for production report
     data_hoje = datetime.now().date()
     print("Successfully loaded production data.")
+
+    # 🧠 TENSOR OPTIMIZATION: Spark distributed aggregation and join before collecting to driver memory.
+    df_risco_total_spark = df_ops_spark.groupBy('grupo').agg(
+        spark_sum('valor_risco').alias('valor_risco')
+    )
+    df_consolidado_spark = df_risco_total_spark.join(df_limites_spark, on='grupo', how='left')
+
+    # Finally, convert the much smaller, aggregated DataFrame to Pandas
+    df_consolidado = df_consolidado_spark.toPandas()
+
 else:
     print("Spark session not found. Using mock data for simulation/testing.")
     df_ops, df_limites = get_mock_data()
@@ -137,13 +143,13 @@ else:
     # Mock data has limit expiring in Dec 2025, so we simulate Dec 2025 context.
     data_hoje = datetime(2025, 12, 23).date()
 
+    # 1. Agregação de Risco por Grupo
+    df_risco_total = df_ops.groupby('grupo')['valor_risco'].sum().reset_index()
+
+    # 2. Join com Limites
+    df_consolidado = pd.merge(df_risco_total, df_limites, on='grupo', how='left')
+
 data_semana_passada = data_hoje - timedelta(days=7)
-
-# 1. Agregação de Risco por Grupo
-df_risco_total = df_ops.groupby('grupo')['valor_risco'].sum().reset_index()
-
-# 2. Join com Limites
-df_consolidado = pd.merge(df_risco_total, df_limites, on='grupo', how='left')
 
 # 3. Cálculo de KPIs de Negócio
 df_consolidado['excesso_valor'] = df_consolidado['valor_risco'] - df_consolidado['limite_global']
