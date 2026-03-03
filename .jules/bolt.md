@@ -9,3 +9,7 @@
 ## 2025-03-03 - [Optimize PySpark to Pandas Conversion]
 **Learning:** In Fabric/Spark pipelines, using `.toPandas()` on large DataFrames blocks the driver and creates huge bottlenecks, often leading to OOM errors. It's much better to rewrite logic using native PySpark functions (like `.withColumn()` and `when()`). For times when `.toPandas()` is unavoidable for plotting or interfacing with external ML libraries, configuring PyArrow (`spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")`) offers a massive speedup by reducing serialization overhead.
 **Action:** When reviewing PySpark notebooks, always check for `.toPandas()`. If the logic can be rewritten in PySpark, refactor it. If pandas is necessary, ensure PyArrow is enabled.
+
+## 2025-03-03 - [PySpark Distributed Aggregation Before Pandas]
+**Learning:** Performing aggregations (like `.groupBy()`) and joins on PySpark DataFrames before calling `.toPandas()` drastically reduces the size of the DataFrame collected to the driver node. In `NB_Gera_Relatorio_Diario_Clientes.Notebook`, the driver was pulling thousands of rows just to group and sum them in Pandas.
+**Action:** Always verify if Pandas `groupby()` and `merge()` operations on a Spark-originated DataFrame can be pushed down to Spark natively before collecting the data.
