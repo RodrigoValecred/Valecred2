@@ -151,8 +151,8 @@ def process_operacoes_stream(df_ops, df_titulos):
     # Agregamos por operação primeiro
 
     # Enriquecer Títulos com Data de Deferimento da Operação (para cálculo do Prazo Original)
-    df_titulos_dates = df_titulos.join(df_ops.select("cod_operacao", "data_aceite"), "cod_operacao", "inner") \
-        .withColumn("prazo_original_dias", datediff(col("vencimento"), col("data_aceite"))) \
+    df_titulos_dates = df_titulos.join(df_ops.select("cod_operacao", "data_deferimento"), "cod_operacao", "inner") \
+        .withColumn("prazo_original_dias", datediff(col("vencimento"), col("data_deferimento"))) \
         .withColumn("valor_vezes_prazo_original", col("valor") * col("prazo_original_dias"))
 
     df_titulos_agg_op = df_titulos_dates.groupBy("cod_operacao").agg(
