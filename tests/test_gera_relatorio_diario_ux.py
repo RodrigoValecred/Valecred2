@@ -123,6 +123,18 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("EXCESSO:", full_output)
 
     @patch('builtins.print')
+    def test_display_risk_dashboard_empty(self, mock_print):
+        # Empty DataFrame
+        df = pd.DataFrame(columns=['grupo', 'valor_risco', 'limite_global', 'utilizacao_pct', 'excesso_valor'])
+        self.display_risk_dashboard(df)
+
+        calls = [args[0] for args, _ in mock_print.call_args_list if args]
+        full_output = "\n".join(calls)
+
+        self.assertIn("NENHUM GRUPO COM RISCO ATIVO ENCONTRADO", full_output)
+        self.assertNotIn("Grupos analisados", full_output)
+
+    @patch('builtins.print')
     def test_display_risk_dashboard_long_name(self, mock_print):
         long_name = "A Very Long Group Name That Should Be Truncated Because It Exceeds The Limit Of The Layout"
         df = pd.DataFrame({
