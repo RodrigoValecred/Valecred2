@@ -260,8 +260,9 @@ def prepare_dashboard_data(df, ref_date):
                  validade_display = f"{Colors.YELLOW}{val_date_str} ({days_remaining}d){Colors.RESET}"
              else:
                  validade_display = val_date_str
-        except Exception:
-             pass
+        except (ValueError, TypeError) as e:
+             if str(validade) not in ('N/A', 'nan', 'None', 'NaT'):
+                 print(f"Aviso: Não foi possível formatar a data de validade '{validade}': {e}")
         item['validade_display'] = validade_display
 
         # 4. Available Amount
