@@ -89,6 +89,19 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
 source_lakehouse = "LH_Bronze"
 target_lakehouse = "LH_Silver"
 
+def validate_lakehouse(name):
+    """
+    Valida se o nome do lakehouse está na lista de permitidos para evitar SQL Injection.
+    """
+    allowed_lakehouses = {"LH_Bronze", "LH_Silver", "LH_Gold"}
+    if name not in allowed_lakehouses:
+        raise ValueError(f"Security Alert: Nome de lakehouse não autorizado: {name}")
+    return name
+
+# Validação de segurança para evitar injeção em nomes de tabelas dinâmicas
+source_lakehouse = validate_lakehouse(source_lakehouse)
+target_lakehouse = validate_lakehouse(target_lakehouse)
+
 # METADATA ********************
 
 # META {
