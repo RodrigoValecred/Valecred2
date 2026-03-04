@@ -35,14 +35,14 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
 
         # Mock Colors class
         class MockColors:
-            HEADER = ''
-            BLUE = ''
-            CYAN = ''
-            GREEN = ''
-            YELLOW = ''
-            RED = ''
-            RESET = ''
-            BOLD = ''
+            HEADER = '[HEADER]'
+            BLUE = '[BLUE]'
+            CYAN = '[CYAN]'
+            GREEN = '[GREEN]'
+            YELLOW = '[YELLOW]'
+            RED = '[RED]'
+            RESET = '[RESET]'
+            BOLD = '[BOLD]'
 
         # Mock draw_risk_meter
         def mock_draw_risk_meter(score, width=30):
@@ -55,6 +55,71 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
             'Colors': MockColors,
             'draw_risk_meter': mock_draw_risk_meter
         }
+
+    def test_draw_risk_meter(self):
+        try:
+            draw_risk_meter = self.load_function("draw_risk_meter")
+        except ValueError:
+            return
+
+        # Test NaN
+        res_nan = draw_risk_meter(float('nan'))
+        self.assertIn("[DADOS INSUFICIENTES]", res_nan)
+        self.assertIn("[YELLOW]", res_nan)
+
+        # Test clamp minimum (e.g., negative score -> 0.0)
+        res_min = draw_risk_meter(-0.5, width=10)
+        self.assertIn("[GREEN]", res_min)
+        self.assertIn("✅", res_min)
+        self.assertIn("0.00", res_min)
+        # 0 filled, 10 empty
+        self.assertIn("░" * 10, res_min)
+
+        # Test clamp maximum (e.g., > 1.0 -> 1.0)
+        res_max = draw_risk_meter(1.5, width=10)
+        self.assertIn("[RED]", res_max)
+        self.assertIn("🚨", res_max)
+        self.assertIn("1.00", res_max)
+        # 10 filled, 0 empty
+        self.assertIn("█" * 10, res_max)
+
+        # Test Low Risk (< 0.15)
+        res_low = draw_risk_meter(0.10, width=10)
+        self.assertIn("[GREEN]", res_low)
+        self.assertIn("✅", res_low)
+        self.assertIn("0.10", res_low)
+        # 10 * 0.10 = 1 filled, 9 empty
+        self.assertIn("█", res_low)
+        self.assertIn("░" * 9, res_low)
+
+        # Test Medium Risk (>= 0.15 and < 0.40)
+        res_med = draw_risk_meter(0.25, width=10)
+        self.assertIn("[YELLOW]", res_med)
+        self.assertIn("⚠️", res_med)
+        self.assertIn("0.25", res_med)
+        # 10 * 0.25 = 2 filled, 8 empty
+        self.assertIn("█" * 2, res_med)
+        self.assertIn("░" * 8, res_med)
+
+        # Test High Risk (>= 0.40)
+        res_high = draw_risk_meter(0.50, width=10)
+        self.assertIn("[RED]", res_high)
+        self.assertIn("🚨", res_high)
+        self.assertIn("0.50", res_high)
+        # 10 * 0.50 = 5 filled, 5 empty
+        self.assertIn("█" * 5, res_high)
+        self.assertIn("░" * 5, res_high)
+
+        # Test Boundary Thresholds
+        res_bound1 = draw_risk_meter(0.149)
+        self.assertIn("[GREEN]", res_bound1)
+        res_bound2 = draw_risk_meter(0.15)
+        self.assertIn("[YELLOW]", res_bound2)
+
+        res_bound3 = draw_risk_meter(0.399)
+        self.assertIn("[YELLOW]", res_bound3)
+        res_bound4 = draw_risk_meter(0.40)
+        self.assertIn("[RED]", res_bound4)
 
     def load_function(self, func_name):
         source = extract_function_from_file(NOTEBOOK_PATH, func_name)
