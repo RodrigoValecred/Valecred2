@@ -107,17 +107,11 @@ class TestDimEmpresas(unittest.TestCase):
         mock_col.assert_any_call("a.apelido_empresa")
 
         # Ensure a.nome and a.apelido were NOT called
-        try:
+        with self.assertRaises(AssertionError):
             mock_col.assert_any_call("a.nome")
-            self.fail("FAIL: 'a.nome' was accessed!")
-        except AssertionError:
-            pass # Good
 
-        try:
+        with self.assertRaises(AssertionError):
             mock_col.assert_any_call("a.apelido")
-            self.fail("FAIL: 'a.apelido' was accessed!")
-        except AssertionError:
-            pass # Good
 
 if __name__ == '__main__':
     unittest.main()
