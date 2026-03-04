@@ -17,3 +17,8 @@
 **Vulnerability:** `VALECRED_DEV/8_RealTime/KPI_DA_TV.Notebook` contained a hardcoded password string (`.option("password", "sua_senha")`).
 **Learning:** Even placeholder passwords in committed code can be dangerous if they are accidentally deployed or if real credentials are later substituted and committed. Hardcoded secrets are a top security risk.
 **Prevention:** Always use a secrets management service (like Azure Key Vault) via `mssparkutils.credentials.getSecret` instead of string literals. Added `tests/test_kpi_security.py` to strictly enforce this.
+
+## 2026-03-08 - [Missing SSL Verification in External Requests]
+**Vulnerability:** External network request to CVM (`requests.head` and `requests.get`) in `NB_Load_From_CVM.Notebook` did not strictly enforce SSL certificate verification (`verify=True` was missing). This can make the application vulnerable to Man-in-the-Middle (MitM) attacks where an attacker intercepts or tampers with the connection.
+**Learning:** Relying on default configuration of requests can sometimes expose pipelines if SSL is not explicitly enforced, particularly when downloading critical financial datasets from external sources.
+**Prevention:** Always explicitly include `verify=True` when calling `requests.get()` or `requests.head()`.
