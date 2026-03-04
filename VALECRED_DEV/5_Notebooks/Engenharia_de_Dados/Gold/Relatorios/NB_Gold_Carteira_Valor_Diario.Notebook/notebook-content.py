@@ -47,7 +47,6 @@ from pyspark.sql.functions import (
     when, datediff, count, max, min, round, abs
 )
 from pyspark.sql.types import DateType
-import datetime
 
 print("Configuração concluída.")
 
