@@ -38,7 +38,6 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.functions import col, lit, concat, udf, regexp_replace, when
-from pyspark.sql.types import StringType
 
 # METADATA ********************
 
