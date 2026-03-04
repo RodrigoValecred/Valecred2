@@ -285,7 +285,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
     df_mora_enrich_venc = df_mora_enrich.join(df_titulos_dates, "cod_titulo", "left")
 
     df_mora_calc = df_mora_enrich_venc \
-        .withColumn("data_referencia_mora", coalesce(col("venc_prorrogado"), col("data_vencimento"))) \
+        .withColumn("data_referencia_mora", when(year(col("venc_prorrogado")) > 1900, col("venc_prorrogado")).otherwise(col("data_vencimento"))) \
         .withColumn("dias_atraso",
                     when(col("data_baixa").isNull() | col("data_referencia_mora").isNull(), 0)
                     .when(year(col("data_baixa")) < 1900, 0)
