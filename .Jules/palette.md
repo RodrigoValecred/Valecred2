@@ -33,3 +33,7 @@
 ## 2026-02-28 - Progress Bar Clamping
 **Learning:** When building visual indicators like text-based progress bars, inputs (like percentages) must be strictly clamped before calculation. Failing to do so for negative values or percentages over 100% can break layout widths and create confusing UI states.
 **Action:** Always clamp mathematical inputs that determine visual widths to a 0-100% range before calculating their display lengths.
+
+## 2026-03-04 - Terminal Dashboard Enumerations
+**Learning:** When displaying status breakdowns (like Deferido, Indeferido) in text outputs, pairing the status with distinct emojis (✅, ❌, 🔄) significantly improves scanability for operators reading batch logs.
+**Action:** Always add categorized summaries with distinct icons at the end of aggregation reports to improve batch log UX.
