@@ -75,7 +75,7 @@ def load_and_prepare_data(spark):
     print("Carregando tabelas Fato e Dimensão...")
 
     # Dimensão Clientes
-    # FIX: Incluindo nome_gerente para reportar gestor
+    # Incluindo nome_gerente para reportar gestor
     df_clientes = spark.read.table("LH_Gold.dim_clientes") \
         .select("cod_cliente", "nome", "grupo_economico", "nome_gerente") \
         .dropDuplicates(["cod_cliente"])
@@ -116,7 +116,7 @@ def load_and_prepare_data(spark):
         .dropDuplicates(["cod_cliente"])
 
     # Tabela de Mapeamento para Enriquecer Prorrogações e Mora
-    # FIX: Usamos df_ops_raw (sem filtro de status/ano) para garantir que Prorrogacoes/Mora de ops antigas ou com status diversos sejam mapeadas.
+    # Usamos df_ops_raw (sem filtro de status/ano) para garantir que Prorrogacoes/Mora de ops antigas ou com status diversos sejam mapeadas.
     df_map_ops = df_ops_raw.select(
         col("cod_operacao"),
         col("nbordero").alias("nbordero_op"),
@@ -216,7 +216,7 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
     # Resolver Ambiguidade de Colunas (nbordero, plataforma, etc.)
     df_prorrog_enrich = resolve_columns(df_prorrog_joined, granular_cols)
 
-    # FIX: Fallback de Atributos Faltantes (Data, Plataforma)
+    # Fallback de Atributos Faltantes (Data, Plataforma)
     # Estratégia Plataforma: 1. Operação Original, 2. Plataforma Atual do Cliente, 3. "N/D"
     df_prorrog_enrich = df_prorrog_enrich \
         .join(df_cli_plat_map, "cod_cliente", "left") \
@@ -279,17 +279,19 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
 
     # Calcular Atraso (Data Baixa - Data Vencimento)
     # Baixas tem data_baixa e data_vencimento
-    # FIX: Verificar datas nulas ou inválidas (ex: ano 0001) para evitar prazos gigantes
-    # FIX: Usar Vencimento Prorrogado se disponível (via join com titulos)
+    # Verificar datas nulas ou inválidas (ex: ano 0001) para evitar prazos gigantes
+    # Usar Vencimento Prorrogado se disponível (via join com titulos)
     df_titulos_dates = df_titulos.select(col("cod_titulo"), col("venc_prorrogado"))
     df_mora_enrich_venc = df_mora_enrich.join(df_titulos_dates, "cod_titulo", "left")
 
     df_mora_calc = df_mora_enrich_venc \
-        .withColumn("data_referencia_mora", coalesce(col("venc_prorrogado"), col("data_vencimento"))) \
+        .withColumn("data_referencia_mora",
+                    when(year(col("venc_prorrogado")) > 1900, col("venc_prorrogado"))
+                    .otherwise(col("data_vencimento"))) \
         .withColumn("dias_atraso",
                     when(col("data_baixa").isNull() | col("data_referencia_mora").isNull(), 0)
-                    .when(year(col("data_baixa")) < 1900, 0)
-                    .when(year(col("data_referencia_mora")) < 1900, 0)
+                    .when(year(col("data_baixa")) <= 1900, 0)
+                    .when(year(col("data_referencia_mora")) <= 1900, 0)
                     .otherwise(datediff(col("data_baixa"), col("data_referencia_mora")))
         ) \
         .withColumn("valor_vezes_atraso", col("valor_pago") * col("dias_atraso"))
