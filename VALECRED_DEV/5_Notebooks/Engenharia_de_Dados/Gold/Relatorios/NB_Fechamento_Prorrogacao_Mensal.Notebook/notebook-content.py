@@ -126,6 +126,37 @@ df_relatorio = process_fechamento_prorrogacao(df_prorrog_prep, df_clientes)
 # Exibição (Amostra)
 # df_relatorio.show(10, truncate=False)
 
+# DASHBOARD RÁPIDO DE SAÍDA (UX)
+def display_summary(df):
+    try:
+        counts = df.groupBy("status_final_prorrogacao").count().collect()
+        total = sum(row['count'] for row in counts)
+
+        print("\n" + "═"*52)
+        print(f"{' 📊 RESUMO DE PRORROGAÇÕES ':^52}")
+        print("═"*52)
+
+        if total == 0:
+            print(f"{'⚠️ NENHUMA PRORROGAÇÃO ENCONTRADA':^52}")
+            print("═"*52 + "\n")
+            return
+
+        print(f"  Total de Operações Processadas: {total}")
+        print("-" * 52)
+
+        icons = {"DEFERIDO": "✅", "RECUPERADA": "🔄", "INDEFERIDO": "❌"}
+        counts_sorted = sorted(counts, key=lambda x: str(x['status_final_prorrogacao']))
+        for row in counts_sorted:
+            status = str(row['status_final_prorrogacao'])
+            qtd = row['count']
+            icon = icons.get(status, "🔹")
+            print(f"  {icon} {status:<15} : {qtd:>10}")
+        print("═"*52 + "\n")
+    except Exception as e:
+        print(f"Resumo indisponível: {e}")
+
+display_summary(df_relatorio)
+
 # Salvar
 output_table = "LH_Gold.relatorio_fechamento_prorrogacao"
 df_relatorio.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
