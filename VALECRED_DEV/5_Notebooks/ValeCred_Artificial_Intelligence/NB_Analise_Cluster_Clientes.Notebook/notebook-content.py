@@ -189,7 +189,8 @@ df_to_cluster = df_features_final.join(df_critical.select("cod_cliente"), "cod_c
 print(f"Clientes restantes para Clusterização: {df_to_cluster.count()}")
 
 # 2.2 K-Means nos Restantes
-if df_to_cluster.count() > 0:
+# 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
+if not df_to_cluster.isEmpty():
     print("Executando K-Means nos clientes restantes...")
 
     # Features (sem as flags, pois elas já definiram o grupo crítico)

@@ -205,7 +205,8 @@ def process_incremental_operacoes(source_table, output_path, key_columns_operaco
     df_bronze_ops = spark.read.table(source_table) \
         .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
 
-    if df_bronze_ops.count() > 0:
+    # 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
+    if not df_bronze_ops.isEmpty():
         # 3. Transform & Deduplicate Batch
         df_final_batch = transform_operacoes(df_bronze_ops, key_columns_operacoes)
 
@@ -284,7 +285,8 @@ def process_incremental_devolucoes(source_table, output_path):
     df_bronze_dev = spark.read.table(source_table) \
         .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
 
-    if df_bronze_dev.count() > 0:
+    # 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
+    if not df_bronze_dev.isEmpty():
         df_final = transform_devolucoes(df_bronze_dev)
 
         delta_table_dev.alias("t").merge(
