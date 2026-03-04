@@ -198,8 +198,7 @@ df_titulos_agg = df_titulos.groupBy("cod_operacao").agg(
     sum("valor_em_mora").alias("total_valor_mora_op"),
     sum("receita_prorrogacao_titulo").alias("receita_prorrogacao_op"),
     sum("receita_prorrogacao_titulo_2025").alias("receita_prorrogacao_op_2025"),
-    sum("valor_vezes_prazo_total").alias("soma_produto_valor_prazo_total"),
-    max("floating").alias("floating")
+    sum("valor_vezes_prazo_total").alias("soma_produto_valor_prazo_total")
 )
 
 # Baixas (Para cálculo de Receita de Juros de Mora Pagos)
