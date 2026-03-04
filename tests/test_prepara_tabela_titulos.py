@@ -150,5 +150,85 @@ class TestSelectTitulos(unittest.TestCase):
         missing_aliases = expected_aliases - found_aliases
         self.assertFalse(missing_aliases, f"Missing output aliases: {missing_aliases}")
 
+class TestDeduplicateTitulos(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from pyspark.sql import SparkSession
+        cls.spark = SparkSession.builder.appName("TestDeduplicateTitulos").master("local[1]").getOrCreate()
+        cls.func_source = extract_function_from_file(NOTEBOOK_PATH, "deduplicate_titulos")
+        if not cls.func_source:
+             raise ValueError("Function deduplicate_titulos not found in notebook.")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.spark.stop()
+
+    def test_deduplicate_titulos_logic(self):
+        from pyspark.sql.functions import col, greatest, row_number
+        from pyspark.sql.window import Window
+
+        # Create execution context
+        exec_globals = {
+            'col': col,
+            'greatest': greatest,
+            'Window': Window,
+            'row_number': row_number,
+        }
+        local_scope = {}
+        exec(self.func_source, exec_globals, local_scope)
+        deduplicate_titulos = local_scope['deduplicate_titulos']
+
+        # Sample data with duplicates for CODTITULO
+        data = [
+            # Título 1 - Row 1 is the most recent due to DATAALTERACAO
+            (1, "2023-01-01", "2023-01-10", None, "A"),
+            (1, "2023-01-01", "2023-01-05", None, "B"),
+
+            # Título 2 - Row 1 is most recent due to LIQUIDACAO
+            (2, "2023-02-01", "2023-02-02", "2023-02-20", "C"),
+            (2, "2023-02-01", "2023-02-15", None, "D"),
+
+            # Título 3 - Only one row
+            (3, "2023-03-01", "2023-03-01", None, "E")
+        ]
+
+        from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+
+        schema = StructType([
+            StructField("CODTITULO", IntegerType(), True),
+            StructField("DATAINCLUSAO", StringType(), True),
+            StructField("DATAALTERACAO", StringType(), True),
+            StructField("LIQUIDACAO", StringType(), True),
+            StructField("OTHER_DATA", StringType(), True)
+        ])
+
+        df = self.spark.createDataFrame(data, schema=schema)
+
+        key_columns = ["CODTITULO"]
+
+        # Execute deduplication
+        df_result = deduplicate_titulos(df, key_columns)
+
+        # Verify results
+        results = df_result.orderBy("CODTITULO").collect()
+
+        self.assertEqual(len(results), 3, "Should have 3 unique titles")
+
+        # Check Título 1 -> expects OTHER_DATA = "A" because DATAALTERACAO is highest ("2023-01-10")
+        row1 = [r for r in results if r.CODTITULO == 1][0]
+        self.assertEqual(row1.OTHER_DATA, "A")
+
+        # Check Título 2 -> expects OTHER_DATA = "C" because LIQUIDACAO is highest ("2023-02-20")
+        row2 = [r for r in results if r.CODTITULO == 2][0]
+        self.assertEqual(row2.OTHER_DATA, "C")
+
+        # Check Título 3 -> expects OTHER_DATA = "E"
+        row3 = [r for r in results if r.CODTITULO == 3][0]
+        self.assertEqual(row3.OTHER_DATA, "E")
+
+        # Check that DATA_MAIS_RECENTE and row_num were correctly dropped
+        self.assertNotIn("DATA_MAIS_RECENTE", df_result.columns)
+        self.assertNotIn("row_num", df_result.columns)
+
 if __name__ == '__main__':
     unittest.main()
