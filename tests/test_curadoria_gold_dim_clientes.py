@@ -65,7 +65,6 @@ class TestJoinClienteDimensions(unittest.TestCase):
             mock_df_metrics_ops,
             mock_df_metrics_titulos,
             mock_df_esteira_pivot,
-            mock_df_esteira_min,
             mock_df_esteira_latest,
             mock_df_limites_agg,
             mock_df_grupos_prep,

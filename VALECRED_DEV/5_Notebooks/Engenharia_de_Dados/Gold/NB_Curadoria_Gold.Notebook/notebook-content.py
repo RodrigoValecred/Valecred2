@@ -889,7 +889,13 @@ def create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_pr
 
 
 # Calcular prazo_medio e vencimentos
-df_titulos_agg = df_titulos_com_chave_sacado.groupBy("cod_operacao").agg(
+df_titulos_prazo = df_titulos_limpa.join(
+    df_operacoes_enriquecida.select("cod_operacao", "data_deferimento").dropDuplicates(["cod_operacao"]),
+    "cod_operacao",
+    "inner"
+).withColumn("prazo", datediff(col("vencimento"), col("data_deferimento")))
+
+df_titulos_agg = df_titulos_prazo.groupBy("cod_operacao").agg(
     sum(col("valor") * col("prazo")).alias("soma_valor_prazo_op"),
     sum("valor").alias("soma_valor_titulos_op"),
     min("vencimento").alias("menor_vencimento"),
