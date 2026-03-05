@@ -13,3 +13,7 @@
 ## 2025-03-03 - [PySpark Distributed Aggregation Before Pandas]
 **Learning:** Performing aggregations (like `.groupBy()`) and joins on PySpark DataFrames before calling `.toPandas()` drastically reduces the size of the DataFrame collected to the driver node. In `NB_Gera_Relatorio_Diario_Clientes.Notebook`, the driver was pulling thousands of rows just to group and sum them in Pandas.
 **Action:** Always verify if Pandas `groupby()` and `merge()` operations on a Spark-originated DataFrame can be pushed down to Spark natively before collecting the data.
+
+## 2025-03-03 - [PySpark Memory Management: Unpersisting Cached DataFrames]
+**Learning:** In PySpark notebooks (especially long-running or interactive ones), explicitly caching DataFrames (`.cache()`) without later unpersisting them (`.unpersist()`) can lead to Out-Of-Memory (OOM) errors and performance degradation as cluster memory fills up.
+**Action:** Always verify that cached DataFrames are explicitly unpersisted at the end of the notebook or when they are no longer needed.
