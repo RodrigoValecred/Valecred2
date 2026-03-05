@@ -85,8 +85,8 @@ def get_production_data(spark):
     # Check if we should use spark.sql.execution.arrow.pyspark.enabled
     try:
         spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Aviso: Não foi possível habilitar o pyarrow: {e}")
 
     # 🧠 TENSOR OPTIMIZATION: Retornar Spark DataFrames para evitar overhead de driver e network.
     # Em vez de chamar .toPandas() em df_ops_spark (granular, com milhares de linhas),
