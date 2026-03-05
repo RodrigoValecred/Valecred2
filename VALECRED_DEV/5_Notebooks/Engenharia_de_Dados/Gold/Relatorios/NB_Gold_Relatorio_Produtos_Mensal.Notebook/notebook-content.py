@@ -160,8 +160,8 @@ def process_operacoes_stream(df_ops, df_titulos):
         sum(col("valor") * col("prazo")).alias("soma_valor_prazo_op"),
         sum("valor").alias("soma_valor_titulos_op"),
         sum("valor_vezes_prazo_original").alias("soma_valor_prazo_original_op"),
-        min("vencimento").alias("menor_vencimento"),
-        max("vencimento").alias("maior_vencimento")
+        min("vencimento").alias("menor_vencimento_titulos"),
+        max("vencimento").alias("maior_vencimento_titulos")
     )
 
     # Join Ops com Títulos Agg
@@ -182,8 +182,8 @@ def process_operacoes_stream(df_ops, df_titulos):
             sum("soma_valor_prazo_original_op").alias("total_valor_prazo_original_mes"),
             sum("receita_total_op").alias("receita"),
             count("cod_operacao").alias("qtd_eventos"),
-            min("menor_vencimento").alias("menor_vencimento"),
-            max("maior_vencimento").alias("maior_vencimento")
+            min(coalesce(col("menor_vencimento_titulos"), col("menor_vencimento"))).alias("menor_vencimento"),
+            max(coalesce(col("maior_vencimento_titulos"), col("maior_vencimento"))).alias("maior_vencimento")
         ) \
         .withColumn("tipo_produto", lit("OPERACOES")) \
         .withColumn("prazo_medio",
