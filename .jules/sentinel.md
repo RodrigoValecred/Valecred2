@@ -22,3 +22,8 @@
 **Vulnerability:** External network request to CVM (`requests.head` and `requests.get`) in `NB_Load_From_CVM.Notebook` did not strictly enforce SSL certificate verification (`verify=True` was missing). This can make the application vulnerable to Man-in-the-Middle (MitM) attacks where an attacker intercepts or tampers with the connection.
 **Learning:** Relying on default configuration of requests can sometimes expose pipelines if SSL is not explicitly enforced, particularly when downloading critical financial datasets from external sources.
 **Prevention:** Always explicitly include `verify=True` when calling `requests.get()` or `requests.head()`.
+
+## 2026-03-08 - [Insecure HTTP Fallback Mirror]
+**Vulnerability:** The RFB data loader `NB_Load_Bronze_Receita_Federal_Full.Notebook` used an unencrypted IP address (`http://200.152.38.155/CNPJ/`) as a fallback mirror in the `MIRRORS` list. If the primary site failed, the pipeline silently fell back to an insecure HTTP connection, exposing the download to Man-in-the-Middle (MitM) attacks.
+**Learning:** High availability workarounds (like fallback mirrors or direct IP addresses) often bypass standard security controls (like HTTPS/SSL) out of convenience or lack of infrastructure, silently introducing vulnerabilities when the primary system goes down.
+**Prevention:** Ensure that all fallback infrastructure, mirrors, and alternative endpoints adhere to the same security standards (HTTPS/TLS) as the primary endpoint. Remove insecure mirrors and replace them with secure alternatives (e.g., GitHub Releases).
