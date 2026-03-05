@@ -1,45 +1,26 @@
-import time
 import pandas as pd
 import numpy as np
+import timeit
 
-num_rows = 1000000
-data = {f'feature_{i}': np.random.rand(num_rows) * 10000 for i in range(20)}
-data['CODSTATUSCLIENTE'] = np.random.choice(['A', 'B', 'C'], size=num_rows)
-data['CODRATING_CEDENTE'] = np.random.choice(['AA', 'A', 'B', 'C'], size=num_rows)
+# Create a sample DataFrame
+np.random.seed(42)
+df = pd.DataFrame({'excesso_valor': np.random.randn(1000000)})
 
-df_pd = pd.DataFrame(data)
+# Function with apply
+def apply_func():
+    df_copy = df.copy()
+    df_copy['excesso_valor'] = df_copy['excesso_valor'].apply(lambda x: x if x > 0 else 0)
 
-# Baseline approach from Notebook
-def baseline_approach(df):
-    X = df.copy()
-    for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
-        if col_name in X.columns:
-            X[col_name] = X[col_name].astype('category')
-    return X
+# Function with np.where
+def where_func():
+    df_copy = df.copy()
+    df_copy['excesso_valor'] = np.where(df_copy['excesso_valor'] > 0, df_copy['excesso_valor'], 0)
 
-# Tensor optimization approach: Select dtype float64 -> float32 and then category
-def tensor_approach(df):
-    X = df.copy()
+def clip_func():
+    df_copy = df.copy()
+    df_copy['excesso_valor'] = df_copy['excesso_valor'].clip(lower=0)
 
-    # Downcast float64 to float32
-    float64_cols = X.select_dtypes(include=['float64']).columns
-    if len(float64_cols) > 0:
-        X[float64_cols] = X[float64_cols].astype('float32')
 
-    for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
-        if col_name in X.columns:
-            X[col_name] = X[col_name].astype('category')
-    return X
-
-# Benchmarking
-start_time = time.time()
-df_base = baseline_approach(df_pd)
-base_time = time.time() - start_time
-print(f"Baseline Time: {base_time:.4f}s")
-print(f"Baseline RAM: {df_base.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
-
-start_time = time.time()
-df_tensor = tensor_approach(df_pd)
-tensor_time = time.time() - start_time
-print(f"Tensor Time: {tensor_time:.4f}s")
-print(f"Tensor RAM: {df_tensor.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+print("Apply execution time: ", timeit.timeit(apply_func, number=10))
+print("Where execution time: ", timeit.timeit(where_func, number=10))
+print("Clip execution time: ", timeit.timeit(clip_func, number=10))
