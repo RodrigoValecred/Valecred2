@@ -21,7 +21,7 @@ from notebookutils import mssparkutils
 password = mssparkutils.credentials.getSecret("SeuKeyVault", "SenhaMySQL")
 
 df_raw = spark.read.format("jdbc") \
-    .option("url", "jdbc:mysql://seu_servidor:3306/seu_db") \
+    .option("url", "jdbc:mysql://seu_servidor:3306/seu_db?useSSL=true&requireSSL=true") \
     .option("dbtable", "tab_operacoes") \
     .option("user", "seu_usuario") \
     .option("password", password) \
