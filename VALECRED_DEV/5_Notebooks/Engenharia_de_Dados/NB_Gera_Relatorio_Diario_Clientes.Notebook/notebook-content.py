@@ -23,8 +23,8 @@ from datetime import datetime, timedelta
 
 try:
     from pyspark.sql.functions import col, sum as spark_sum, min as spark_min, max as spark_max, coalesce, lit
-except ImportError:
-    pass
+except ImportError as e:
+    print(f"Aviso: Não foi possível importar pyspark: {e}")
 
 def get_production_data(spark):
     """
@@ -85,8 +85,8 @@ def get_production_data(spark):
     # Check if we should use spark.sql.execution.arrow.pyspark.enabled
     try:
         spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Aviso: Não foi possível configurar spark.sql.execution.arrow.pyspark.enabled: {e}")
 
     # 🧠 TENSOR OPTIMIZATION: Retornar Spark DataFrames para evitar overhead de driver e network.
     # Em vez de chamar .toPandas() em df_ops_spark (granular, com milhares de linhas),
