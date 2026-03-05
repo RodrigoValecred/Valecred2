@@ -1,0 +1,15 @@
+--- tests/test_ml_gerador_score_risco.py
++++ tests/test_ml_gerador_score_risco.py
+@@ -112,6 +112,12 @@
+         res_bound2 = draw_risk_meter(0.15)
+         self.assertIn("[YELLOW]", res_bound2)
+
++        # Test Edge case just below 0.15
++        res_bound_almost_15 = draw_risk_meter(0.149999)
++        self.assertIn("[GREEN]", res_bound_almost_15)
++        self.assertIn("✅", res_bound_almost_15)
++        self.assertIn("0.15", res_bound_almost_15)  # Because of {:.2f} formatting, it rounds to 0.15 but stays green
++
+         # Test Edge case exactly 0.0 for < 0.15 logic
+         res_zero = draw_risk_meter(0.0, width=10)
+         self.assertIn("[GREEN]", res_zero)
