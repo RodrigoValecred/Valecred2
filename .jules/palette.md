@@ -1,0 +1,3 @@
+## 2026-03-07 - No Frontend UX Enhancements Applicable
+**Learning:** This is a purely backend Data Engineering and Machine Learning repository built on PySpark. There are no UI/frontend components to modify. Terminal dashboards exist for UX but are already highly optimized (with colors, emojis, progress bar clamping, and empty states). Modifying them further risks altering backend logic or introducing performance regressions.
+**Action:** When working in backend-only repositories as the 'Palette' agent, adhere to the boundary of not forcing UX enhancements via terminal dashboards if it introduces risks. Explicitly stop and do not create a PR, as instructed.
