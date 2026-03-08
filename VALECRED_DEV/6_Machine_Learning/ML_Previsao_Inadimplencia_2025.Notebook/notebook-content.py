@@ -312,6 +312,11 @@ df_resultado_final.write.format("delta").mode("overwrite").saveAsTable(table_nam
 
 print(f"Resultados salvos com sucesso na tabela: {table_name}")
 
+# ⚡ Bolt Optimization: Explicitly unpersist the cached DataFrame after processing is complete.
+# 🧠 Tensor/Memory: This reclaims cluster memory and prevents Out-Of-Memory (OOM) errors and performance
+#                   degradation during subsequent interactive usage or long-running pipeline sequences.
+df_previsao_spark.unpersist()
+
 # METADATA ********************
 
 # META {
