@@ -161,8 +161,7 @@ def process_operacoes_stream(df_ops, df_titulos):
         sum("valor").alias("soma_valor_titulos_op"),
         sum("valor_vezes_prazo_original").alias("soma_valor_prazo_original_op"),
         min("vencimento").alias("menor_vencimento_titulos"),
-        max("vencimento").alias("maior_vencimento_titulos"),
-        avg("prazo").alias("prazo_medio_titulos_op")
+        max("vencimento").alias("maior_vencimento_titulos")
     )
 
     # Join Ops com Títulos Agg
@@ -185,7 +184,7 @@ def process_operacoes_stream(df_ops, df_titulos):
             count("cod_operacao").alias("qtd_eventos"),
             min(coalesce(col("menor_vencimento_titulos"), col("menor_vencimento"))).alias("menor_vencimento"),
             max(coalesce(col("maior_vencimento_titulos"), col("maior_vencimento"))).alias("maior_vencimento"),
-            max("prazo_medio_titulos_op").alias("prazo_medio_titulos")
+            sum("soma_valor_titulos_op").alias("total_valor_titulos_mes")
         ) \
         .withColumn("tipo_produto", lit("OPERACOES")) \
         .withColumn("prazo_medio",
@@ -193,12 +192,14 @@ def process_operacoes_stream(df_ops, df_titulos):
         .withColumn("prazo_medio_original",
                     when(col("volume") > 0, col("total_valor_prazo_original_mes") / col("volume")).otherwise(0)) \
         .withColumn("prazo_medio_total", col("prazo_medio") + coalesce(col("floating"), lit(0))) \
+        .withColumn("prazo_medio_titulos",
+                    when(col("total_valor_titulos_mes") > 0, col("total_valor_prazo_mes") / col("total_valor_titulos_mes")).otherwise(0)) \
         .withColumn("taxa_media",
                     when(col("total_valor_prazo_mes") > 0,
                         (col("receita") / (col("total_valor_prazo_mes") / 30)) * 100
                     ).otherwise(0)) \
         .withColumnRenamed("chave_produto", "sub_tipo_produto") \
-        .drop("total_valor_prazo_mes", "total_valor_prazo_original_mes")
+        .drop("total_valor_prazo_mes", "total_valor_prazo_original_mes", "total_valor_titulos_mes")
 
     return df_stream_ops
 
