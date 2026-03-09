@@ -17,3 +17,6 @@
 ## 2025-03-03 - [PySpark Memory Management: Unpersisting Cached DataFrames]
 **Learning:** In PySpark notebooks (especially long-running or interactive ones), explicitly caching DataFrames (`.cache()`) without later unpersisting them (`.unpersist()`) can lead to Out-Of-Memory (OOM) errors and performance degradation as cluster memory fills up.
 **Action:** Always verify that cached DataFrames are explicitly unpersisted at the end of the notebook or when they are no longer needed.
+## 2026-03-09 - [Optimize Pandas fillna]
+**Learning:** Iterating over Pandas objects column-by-column in Python using a for loop adds significant overhead compared to executing fully vectorized operations in C.
+**Action:** Use a single vectorized method (e.g., .fillna(value=dict)) instead of iterating column-by-column.
