@@ -873,6 +873,7 @@ def select_fato_operacoes_columns(df_fato_operacoes_joined):
         col("gestor_da_plataforma"),
         col("prazo_medio"),
         col("prazo_medio_total"),
+        col("prazo_medio_ponderado_dias"),
         col("menor_vencimento"),
         col("maior_vencimento")
     ).dropDuplicates(["cod_operacao"])
@@ -903,7 +904,7 @@ df_titulos_agg = df_titulos_prazo.groupBy("cod_operacao").agg(
 ).withColumn("prazo_medio", when(col("soma_valor_titulos_op") > 0, col("soma_valor_prazo_op") / col("soma_valor_titulos_op")).otherwise(0)).drop("soma_valor_prazo_op", "soma_valor_titulos_op")
 
 df_operacoes_enriquecida = df_operacoes_enriquecida.join(df_titulos_agg, "cod_operacao", "left") \
-    .withColumn("prazo_medio_total", col("prazo_medio") + coalesce(col("floating"), lit(0)))
+    .withColumn("prazo_medio_total", coalesce(col("prazo_medio_ponderado_dias"), col("prazo_medio") + coalesce(col("floating"), lit(0))))
 
 df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto).cache()
 

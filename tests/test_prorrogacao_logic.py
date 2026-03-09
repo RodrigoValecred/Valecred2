@@ -94,6 +94,7 @@ class TestProrrogacaoLogic(unittest.TestCase):
             'lit': mock_lit,
             'source_lakehouse': 'LH_Bronze',
             'target_lakehouse': 'LH_Silver',
+            'check_should_skip': MagicMock(return_value=False)
         }
 
         local_scope = {}
