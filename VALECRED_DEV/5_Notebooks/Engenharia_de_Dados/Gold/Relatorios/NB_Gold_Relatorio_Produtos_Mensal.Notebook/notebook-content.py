@@ -789,19 +789,11 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
         col("custo_financeiro_op").alias("custo_financeiro"),
         col("spread_op").alias("spread"),
         round(col("taxa_operacao"), 4).alias("taxa_operacao"),
-        # -------------------------------------------------------------------------
-        # INSTRUÇÃO PARA TRAZER O PRAZO MÉDIO TOTAL (PMP) DA TABELA OPERAÇÕES:
-        # Passo 3: Adicione a coluna ao relatório final aqui no "select".
-        # Basta inserir uma nova linha com: col("prazo_medio_ponderado_dias"),
-        # Logo abaixo desta instrução!
-        # -------------------------------------------------------------------------
         col("prazo_medio_ponderado_dias"),
         round(col("prazo_medio_operacao"), 2).alias("prazo_medio_operacao"),
         round(col("prazo_medio_prorrogado_op"), 2).alias("prazo_medio_prorrogado_op"),
         round(col("prazo_verdadeiro_real_medio_ponderado_op"), 2).alias("prazo_verdadeiro_real_medio_ponderado_op"),
-        round(col("prazo_medio_mora_op"), 2).alias("prazo_medio_mora"),
         round(col("taxa_media_real_mensal_op"), 4).alias("taxa_media_real_mensal_op"),
-        col("prazo_medio_total"),
         col("floating").cast("float").alias("floating"),
         # Métricas Agregadas do Cliente (Repetidas nas linhas)
         col("volume_operado_cliente"),
