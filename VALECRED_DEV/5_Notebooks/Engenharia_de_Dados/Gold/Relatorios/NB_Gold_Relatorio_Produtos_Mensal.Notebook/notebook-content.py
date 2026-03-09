@@ -161,7 +161,8 @@ def process_operacoes_stream(df_ops, df_titulos):
         sum("valor").alias("soma_valor_titulos_op"),
         sum("valor_vezes_prazo_original").alias("soma_valor_prazo_original_op"),
         min("vencimento").alias("menor_vencimento_titulos"),
-        max("vencimento").alias("maior_vencimento_titulos")
+        max("vencimento").alias("maior_vencimento_titulos"),
+        avg("prazo").alias("prazo_medio_titulos_op")
     )
 
     # Join Ops com Títulos Agg
@@ -183,7 +184,8 @@ def process_operacoes_stream(df_ops, df_titulos):
             sum("receita_total_op").alias("receita"),
             count("cod_operacao").alias("qtd_eventos"),
             min(coalesce(col("menor_vencimento_titulos"), col("menor_vencimento"))).alias("menor_vencimento"),
-            max(coalesce(col("maior_vencimento_titulos"), col("maior_vencimento"))).alias("maior_vencimento")
+            max(coalesce(col("maior_vencimento_titulos"), col("maior_vencimento"))).alias("maior_vencimento"),
+            max("prazo_medio_titulos_op").alias("prazo_medio_titulos")
         ) \
         .withColumn("tipo_produto", lit("OPERACOES")) \
         .withColumn("prazo_medio",
@@ -248,6 +250,7 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
                         (col("receita") / (col("total_valor_dias_mes") / 30)) * 100
                     ).otherwise(0)) \
         .withColumn("sub_tipo_produto", lit("PR")) \
+        .withColumn("prazo_medio_titulos", lit(None).cast("double")) \
         .drop("chave_produto", "total_valor_dias_mes")
 
     return df_stream_prorrog
@@ -317,6 +320,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
                         (col("receita") / (col("total_valor_atraso_mes") / 30)) * 100
                     ).otherwise(0)) \
         .withColumnRenamed("chave_produto", "sub_tipo_produto") \
+        .withColumn("prazo_medio_titulos", lit(None).cast("double")) \
         .drop("total_valor_atraso_mes")
 
     return df_stream_mora
@@ -362,6 +366,7 @@ df_final = df_union \
         round(col("prazo_medio_original"), 2).alias("prazo_medio_original_dias"),
         col("floating"),
         round(col("prazo_medio_total"), 2).alias("prazo_medio_total_dias"),
+        round(col("prazo_medio_titulos"), 0).cast("int").alias("prazo_medio_titulos"),
         col("menor_vencimento").alias("menor_vencimento_op"),
         col("maior_vencimento").alias("maior_vencimento_op"),
         round(col("taxa_media"), 4).alias("taxa_media_mensal_pct"),
