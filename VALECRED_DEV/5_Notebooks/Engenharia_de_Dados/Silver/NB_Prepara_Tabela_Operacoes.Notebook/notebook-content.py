@@ -173,7 +173,8 @@ def get_operacoes_schema(df):
         col("TARIFA").alias("tarifa"),
         col("NDOCS").alias("n_docs"),
         col("TARIFARECOMPRA").alias("tarifa_recompra"),
-        col("FLOATING").alias("floating")
+        col("FLOATING").alias("floating"),
+        col("PMP").alias("prazo_medio_ponderado_dias")
     )
 
 def transform_operacoes(df, key_columns_operacoes):

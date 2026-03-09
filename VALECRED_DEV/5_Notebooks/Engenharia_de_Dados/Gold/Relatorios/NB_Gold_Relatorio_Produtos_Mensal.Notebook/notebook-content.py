@@ -474,7 +474,8 @@ try:
     ).withColumn("desagio", lit(0.0)) \
      .withColumn("total_de_tarifas", lit(0.0)) \
      .withColumn("floating", lit(0.0)) \
-     .withColumn("data_aceite", to_date(col("data_deferimento")))
+     .withColumn("data_aceite", to_date(col("data_deferimento"))) \
+     .withColumn("prazo_medio_ponderado_dias", lit(0.0))
 
     # -------------------------------------------------------------------------
     # INSTRUÇÃO PARA TRAZER O PRAZO MÉDIO TOTAL (PMP) DA TABELA OPERAÇÕES:
@@ -489,7 +490,7 @@ try:
     common_cols = [
         "cod_operacao", "cod_cliente", "nbordero", "data_deferimento",
         "valor_de_face", "desagio", "total_de_tarifas", "tarifa_de_recompra",
-        "chave_produto", "nome_plataforma", "floating", "data_aceite"
+        "chave_produto", "nome_plataforma", "floating", "data_aceite", "prazo_medio_ponderado_dias"
     ]
 
     # Union
@@ -794,6 +795,7 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
         # Basta inserir uma nova linha com: col("prazo_medio_ponderado_dias"),
         # Logo abaixo desta instrução!
         # -------------------------------------------------------------------------
+        col("prazo_medio_ponderado_dias"),
         round(col("prazo_medio_operacao"), 2).alias("prazo_medio_operacao"),
         round(col("prazo_medio_prorrogado_op"), 2).alias("prazo_medio_prorrogado_op"),
         round(col("prazo_verdadeiro_real_medio_ponderado_op"), 2).alias("prazo_verdadeiro_real_medio_ponderado_op"),
