@@ -124,10 +124,11 @@ def load_and_prepare_data(spark):
         col("chave_produto").alias("chave_produto_op"),
         col("data_deferimento").alias("data_deferimento_op"),
         col("cod_cliente").alias("cod_cliente_op"),
-        col("floating").alias("floating_op")
+        col("floating").alias("floating_op"),
+        col("prazo_medio_ponderado_dias").alias("prazo_medio_ponderado_dias_op")
     ).dropDuplicates(["cod_operacao"])
 
-    granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente", "floating"]
+    granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente", "floating", "prazo_medio_ponderado_dias"]
 
     print("Dados carregados.")
 
@@ -175,7 +176,7 @@ def process_operacoes_stream(df_ops, df_titulos):
     # Agregar por Mês e Cliente e DETALHES
     df_stream_ops = df_ops_enrich \
         .withColumn("mes_ref", trunc(col("data_deferimento"), "MM")) \
-        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
+        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating", "prazo_medio_ponderado_dias") \
         .agg(
             sum("valor_de_face").alias("volume"),
             sum("soma_valor_prazo_op").alias("total_valor_prazo_mes"),
@@ -183,8 +184,7 @@ def process_operacoes_stream(df_ops, df_titulos):
             sum("receita_total_op").alias("receita"),
             count("cod_operacao").alias("qtd_eventos"),
             min(coalesce(col("menor_vencimento_titulos"), col("menor_vencimento"))).alias("menor_vencimento"),
-            max(coalesce(col("maior_vencimento_titulos"), col("maior_vencimento"))).alias("maior_vencimento"),
-            sum("soma_valor_titulos_op").alias("total_valor_titulos_mes")
+            max(coalesce(col("maior_vencimento_titulos"), col("maior_vencimento"))).alias("maior_vencimento")
         ) \
         .withColumn("tipo_produto", lit("OPERACOES")) \
         .withColumn("prazo_medio",
@@ -192,14 +192,12 @@ def process_operacoes_stream(df_ops, df_titulos):
         .withColumn("prazo_medio_original",
                     when(col("volume") > 0, col("total_valor_prazo_original_mes") / col("volume")).otherwise(0)) \
         .withColumn("prazo_medio_total", col("prazo_medio") + coalesce(col("floating"), lit(0))) \
-        .withColumn("prazo_medio_titulos",
-                    when(col("total_valor_titulos_mes") > 0, col("total_valor_prazo_mes") / col("total_valor_titulos_mes")).otherwise(0)) \
         .withColumn("taxa_media",
                     when(col("total_valor_prazo_mes") > 0,
                         (col("receita") / (col("total_valor_prazo_mes") / 30)) * 100
                     ).otherwise(0)) \
         .withColumnRenamed("chave_produto", "sub_tipo_produto") \
-        .drop("total_valor_prazo_mes", "total_valor_prazo_original_mes", "total_valor_titulos_mes")
+        .drop("total_valor_prazo_mes", "total_valor_prazo_original_mes")
 
     return df_stream_ops
 
@@ -232,7 +230,7 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
 
     df_stream_prorrog = df_prorrog_calc \
         .withColumn("mes_ref", trunc(col("data_inclusao"), "MM")) \
-        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
+        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating", "prazo_medio_ponderado_dias") \
         .agg(
             sum("valor").alias("volume"),
             sum("valor_vezes_dias").alias("total_valor_dias_mes"),
@@ -251,7 +249,6 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
                         (col("receita") / (col("total_valor_dias_mes") / 30)) * 100
                     ).otherwise(0)) \
         .withColumn("sub_tipo_produto", lit("PR")) \
-        .withColumn("prazo_medio_titulos", lit(None).cast("double")) \
         .drop("chave_produto", "total_valor_dias_mes")
 
     return df_stream_prorrog
@@ -302,7 +299,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
 
     df_stream_mora = df_mora_calc \
         .withColumn("mes_ref", trunc(col("data_baixa"), "MM")) \
-        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
+        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating", "prazo_medio_ponderado_dias") \
         .agg(
             sum("valor_pago").alias("volume"),
             sum("valor_vezes_atraso").alias("total_valor_atraso_mes"),
@@ -321,7 +318,6 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
                         (col("receita") / (col("total_valor_atraso_mes") / 30)) * 100
                     ).otherwise(0)) \
         .withColumnRenamed("chave_produto", "sub_tipo_produto") \
-        .withColumn("prazo_medio_titulos", lit(None).cast("double")) \
         .drop("total_valor_atraso_mes")
 
     return df_stream_mora
@@ -367,7 +363,7 @@ df_final = df_union \
         round(col("prazo_medio_original"), 2).alias("prazo_medio_original_dias"),
         col("floating"),
         round(col("prazo_medio_total"), 2).alias("prazo_medio_total_dias"),
-        round(col("prazo_medio_titulos"), 0).cast("int").alias("prazo_medio_titulos"),
+        col("prazo_medio_ponderado_dias").cast("float").alias("prazo_medio_ponderado_dias"),
         col("menor_vencimento").alias("menor_vencimento_op"),
         col("maior_vencimento").alias("maior_vencimento_op"),
         round(col("taxa_media"), 4).alias("taxa_media_mensal_pct"),
