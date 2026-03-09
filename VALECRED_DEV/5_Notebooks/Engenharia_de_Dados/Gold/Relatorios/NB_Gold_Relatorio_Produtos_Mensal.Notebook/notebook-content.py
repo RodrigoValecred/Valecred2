@@ -418,6 +418,14 @@ print("Carregando tabelas Fato e Dimensão...")
 # Operações (Base da Análise - Safra 2025)
 # Dedup by cod_operacao to be safe
 # Incluindo nbordero e cod_operacao na selecao
+# -------------------------------------------------------------------------
+# INSTRUÇÃO PARA TRAZER O PRAZO MÉDIO TOTAL (PMP) DA TABELA OPERAÇÕES:
+# Passo 1: A tabela "fato_operacoes" abaixo (que vem de tab_operacoes) já contém
+# todas as colunas. Ao usar "spark.read.table", o PySpark carrega a tabela inteira.
+# Se você quisesse selecionar apenas algumas colunas aqui, precisaria adicionar a
+# coluna "prazo_medio_ponderado_dias" no select (ou renomeá-la se preferir).
+# Como não há um ".select()" explícito nesta leitura, a coluna já está disponível!
+# -------------------------------------------------------------------------
 df_ops_normal = spark.read.table("LH_Gold.fato_operacoes") \
     .filter(col("data_deferimento") >= "2025-01-01") \
     .filter(col("data_deferimento") <= "2025-12-31") \
@@ -468,6 +476,15 @@ try:
      .withColumn("floating", lit(0.0)) \
      .withColumn("data_aceite", to_date(col("data_deferimento")))
 
+    # -------------------------------------------------------------------------
+    # INSTRUÇÃO PARA TRAZER O PRAZO MÉDIO TOTAL (PMP) DA TABELA OPERAÇÕES:
+    # Passo 2: Para as operações de recompra (df_ops_rc_agg) terem a mesma
+    # estrutura de colunas que as operações normais (df_ops_normal), você
+    # precisa adicionar a coluna "prazo_medio_ponderado_dias" na lista abaixo.
+    # Exemplo: "... "nome_plataforma", "floating", "data_aceite", "prazo_medio_ponderado_dias"]
+    # Lembre-se que você também precisará criar essa coluna com um valor padrão
+    # (ex: lit(0.0)) no dataframe df_ops_rc_agg ali em cima, já que recompra não tem PMP.
+    # -------------------------------------------------------------------------
     # Definir colunas comuns para o Union
     common_cols = [
         "cod_operacao", "cod_cliente", "nbordero", "data_deferimento",
@@ -771,6 +788,12 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
         col("custo_financeiro_op").alias("custo_financeiro"),
         col("spread_op").alias("spread"),
         round(col("taxa_operacao"), 4).alias("taxa_operacao"),
+        # -------------------------------------------------------------------------
+        # INSTRUÇÃO PARA TRAZER O PRAZO MÉDIO TOTAL (PMP) DA TABELA OPERAÇÕES:
+        # Passo 3: Adicione a coluna ao relatório final aqui no "select".
+        # Basta inserir uma nova linha com: col("prazo_medio_ponderado_dias"),
+        # Logo abaixo desta instrução!
+        # -------------------------------------------------------------------------
         round(col("prazo_medio_operacao"), 2).alias("prazo_medio_operacao"),
         round(col("prazo_medio_prorrogado_op"), 2).alias("prazo_medio_prorrogado_op"),
         round(col("prazo_verdadeiro_real_medio_ponderado_op"), 2).alias("prazo_verdadeiro_real_medio_ponderado_op"),
