@@ -43,6 +43,7 @@ silver_lh = "LH_Silver"
 
 # --- INÍCIO DO CÓDIGO ---
 import re
+
 from pyspark.sql.functions import col, count, lit
 from delta.tables import DeltaTable
 
@@ -188,6 +189,7 @@ if not table_input or not keys_input:
 
 # Security: Define allowed tables for this ingestor
 ALLOWED_TABLES = ["cad_empresas"]
+
 
 ingestor = SilverIngestor(spark, bronze_lh, silver_lh, table_input, keys_input, allowed_tables=ALLOWED_TABLES)
 ingestor.read_bronze().standardize_columns().quality_gate().execute_upsert()
