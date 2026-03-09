@@ -29,8 +29,7 @@ from pyspark.sql.functions import col, to_date, regexp_replace
 
 # --- Configurações ---
 MIRRORS = [
-    "https://dadosabertos.rfb.gov.br/CNPJ/",
-    "http://200.152.38.155/CNPJ/", # IP direto caso DNS falhe
+    "https://dadosabertos.rfb.gov.br/CNPJ/"
 ]
 
 # Diretórios no Lakehouse (Files API)
