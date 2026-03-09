@@ -175,7 +175,7 @@ def process_operacoes_stream(df_ops, df_titulos):
     # Agregar por Mês e Cliente e DETALHES
     df_stream_ops = df_ops_enrich \
         .withColumn("mes_ref", trunc(col("data_deferimento"), "MM")) \
-        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
+        .groupBy("mes_ref", "cod_operacao", "cod_cliente", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
         .agg(
             sum("valor_de_face").alias("volume"),
             sum("soma_valor_prazo_op").alias("total_valor_prazo_mes"),
@@ -229,7 +229,7 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
 
     df_stream_prorrog = df_prorrog_calc \
         .withColumn("mes_ref", trunc(col("data_inclusao"), "MM")) \
-        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
+        .groupBy("mes_ref", "cod_operacao", "cod_cliente", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
         .agg(
             sum("valor").alias("volume"),
             sum("valor_vezes_dias").alias("total_valor_dias_mes"),
@@ -298,7 +298,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
 
     df_stream_mora = df_mora_calc \
         .withColumn("mes_ref", trunc(col("data_baixa"), "MM")) \
-        .groupBy("mes_ref", "cod_operacao", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
+        .groupBy("mes_ref", "cod_operacao", "cod_cliente", "nbordero", "chave_produto", "nome_plataforma", "data_deferimento", "floating") \
         .agg(
             sum("valor_pago").alias("volume"),
             sum("valor_vezes_atraso").alias("total_valor_atraso_mes"),
@@ -348,9 +348,15 @@ print("Consolidando dados...")
 # Union dos Streams
 df_union = df_stream_ops.unionByName(df_stream_prorrog).unionByName(df_stream_mora)
 
-df_final = df_union \
+# Join com Dimensão Clientes para obter nome e grupo econômico
+df_union_clientes = df_union.join(df_clientes, "cod_cliente", "left")
+
+df_final = df_union_clientes \
     .select(
         col("mes_ref").alias("mes_referencia"),
+        col("cod_cliente"),
+        col("nome").alias("nome_cliente"),
+        col("grupo_economico"),
         col("cod_operacao"),
         col("nbordero"),
         col("sub_tipo_produto"),
