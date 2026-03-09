@@ -689,11 +689,7 @@ df_calcs = df_base_cliente \
     .withColumn("prazo_medio_total",
                 (when(col("valor_face_titulos_op") > 0,
                       col("soma_produto_valor_prazo_total") / col("valor_face_titulos_op")
-                 ).otherwise(0) + coalesce(col("floating"), lit(0))).cast("float")) \
-    .withColumn("prazo_medio_titulos",
-                when(col("valor_face_titulos_op") > 0,
-                     col("total_valor_prazo_op") / col("valor_face_titulos_op")
-                ).otherwise(0))
+                 ).otherwise(0) + coalesce(col("floating"), lit(0))).cast("float")) 
 
 # 4.2 Aggregation by Client
 df_cliente_agg = df_calcs.groupBy("cod_cliente").agg(
@@ -749,10 +745,6 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
                 when(col("total_valor_mora_op") > 0,
                      col("total_valor_atraso_op") / col("total_valor_mora_op")
                 ).otherwise(0)) \
-    .withColumn("prazo_medio_ponderado_cliente",
-                when(col("volume_operado_cliente") > 0,
-                     col("soma_valor_prazo_cliente") / col("volume_operado_cliente")
-                ).otherwise(0)) \
     .select(
         # Identificadores da Operação
         col("cod_operacao"),
@@ -782,17 +774,15 @@ df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
         round(col("prazo_medio_operacao"), 2).alias("prazo_medio_operacao"),
         round(col("prazo_medio_prorrogado_op"), 2).alias("prazo_medio_prorrogado_op"),
         round(col("prazo_verdadeiro_real_medio_ponderado_op"), 2).alias("prazo_verdadeiro_real_medio_ponderado_op"),
-        round(col("prazo_medio_mora_op"), 2).alias("prazo_medio_ponderado_dias_op"),
+        round(col("prazo_medio_mora_op"), 2).alias("prazo_medio_mora"),
         round(col("taxa_media_real_mensal_op"), 4).alias("taxa_media_real_mensal_op"),
         col("prazo_medio_total"),
-        round(col("prazo_medio_titulos"), 0).cast("int").alias("prazo_medio_titulos"),
         col("floating").cast("float").alias("floating"),
         # Métricas Agregadas do Cliente (Repetidas nas linhas)
         col("volume_operado_cliente"),
         col("qtd_operacoes_cliente"),
         round(col("taxa_media_ponderada_mensal_cliente"), 4).alias("taxa_media_pond_2025_cliente"),
         round(col("taxa_media_real_mensal_cliente"), 4).alias("taxa_media_real_mensal_cliente"),
-        round(col("prazo_medio_ponderado_cliente"), 2).alias("prazo_medio_ponderado_cliente"),
         round(col("prazo_medio_atraso_titulos_mora"), 2).alias("prazo_medio_atraso_titulos_mora"),
         round(col("rentabilidade_percentual_cliente"), 4).alias("rentabilidade_perc_cliente"),
         coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0)).alias("receita_tarifa_prorrogacao_cliente"),
