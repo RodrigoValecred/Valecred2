@@ -134,6 +134,24 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         res_bound4 = draw_risk_meter(0.40)
         self.assertIn("[RED]", res_bound4)
 
+    def test_draw_risk_meter_nan_edge_cases(self):
+        try:
+            draw_risk_meter = self.load_function("draw_risk_meter")
+        except ValueError:
+            return
+
+        import math
+
+        # Test np.nan
+        res_np_nan = draw_risk_meter(np.nan)
+        self.assertIn("[DADOS INSUFICIENTES]", res_np_nan)
+        self.assertIn("[YELLOW]", res_np_nan)
+
+        # Test math.nan
+        res_math_nan = draw_risk_meter(math.nan)
+        self.assertIn("[DADOS INSUFICIENTES]", res_math_nan)
+        self.assertIn("[YELLOW]", res_math_nan)
+
     def load_function(self, func_name):
         source = extract_function_from_file(NOTEBOOK_PATH, func_name)
         if not source:
