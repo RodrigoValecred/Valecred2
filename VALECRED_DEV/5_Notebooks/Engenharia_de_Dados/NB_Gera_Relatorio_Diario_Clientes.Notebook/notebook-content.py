@@ -351,6 +351,16 @@ def display_risk_dashboard(df, ref_date=None):
     n_alerts = len(df[df['utilizacao_pct'] > 100])
     summary_color = Colors.RED if n_alerts > 0 else Colors.GREEN
     print(f" Resumo: {n_groups} Grupos analisados. {summary_color}{n_alerts} Alertas.{Colors.RESET}")
+
+    # Categorized breakdown for better scannability
+    n_seguro = len(df[df['utilizacao_pct'] <= 80])
+    n_atencao = len(df[(df['utilizacao_pct'] > 80) & (df['utilizacao_pct'] <= 100)])
+    n_critico = len(df[df['utilizacao_pct'] > 100])
+    n_indisponivel = len(df[df['utilizacao_pct'].isna() | np.isinf(df['utilizacao_pct'])])
+
+    print(f"   ✅ Seguro: {n_seguro:<5} ⚠️ Atenção: {n_atencao:<5}")
+    print(f"   🚨 Crítico: {n_critico:<4} ⚠️ Indisponível: {n_indisponivel:<2}")
+
     print(Colors.CYAN + "─"*W + Colors.RESET)
 
     total_rows = len(view_data)

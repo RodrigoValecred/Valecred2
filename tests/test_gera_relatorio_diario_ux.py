@@ -117,6 +117,10 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("✅", full_output)
         self.assertIn("🚨", full_output)
 
+        # Dashboard Summary UX Checks
+        self.assertIn("✅ Seguro: 1    ", full_output)
+        self.assertIn("🚨 Crítico: 1   ", full_output)
+
         # UX Improvement Check: "Disponível" should be shown for safe groups
         self.assertIn("Disponível:", full_output)
         # "EXCESSO" should be shown for unsafe groups (already implicit in logic, but good to check)
