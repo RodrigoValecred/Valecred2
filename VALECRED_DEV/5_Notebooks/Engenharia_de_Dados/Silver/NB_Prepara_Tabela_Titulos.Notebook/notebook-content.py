@@ -173,14 +173,15 @@ if is_incremental_possible:
     delta_table = DeltaTable.forPath(spark, output_path_titulos)
     
     # 1. Obter Watermark (Maior Data de Alteração/Inclusão na Silver)
-    # Proteção contra tabela vazia ou nulos
+    # Proteção contra tabela vazia ou nulos. Usando first() em vez de collect()
+    # para evitar materializar a lista completa no driver e melhorar o tempo de resposta.
     watermark_row = spark.read.format("delta").load(output_path_titulos) \
         .select(greatest(max("data_inclusao"), max("data_alteracao")).alias("max_date")) \
-        .collect()
+        .first()
         
     last_watermark = "1900-01-01"
-    if watermark_row and watermark_row[0][0]:
-        last_watermark = watermark_row[0][0]
+    if watermark_row and watermark_row[0]:
+        last_watermark = watermark_row[0]
     
     print(f"Watermark aplicado: {last_watermark}")
     
@@ -312,11 +313,11 @@ if is_incremental_baixas:
     
     # Watermark baseada em DATAINCLUSAO (baixas geralmente são imutáveis/append)
     watermark_row_b = spark.read.format("delta").load(output_path_baixas) \
-        .agg(max("data_inclusao").alias("max_date")).collect()
+        .agg(max("data_inclusao").alias("max_date")).first()
     
     last_watermark_b = "1900-01-01"
-    if watermark_row_b and watermark_row_b[0][0]:
-        last_watermark_b = watermark_row_b[0][0]
+    if watermark_row_b and watermark_row_b[0]:
+        last_watermark_b = watermark_row_b[0]
         
     print(f"Watermark Baixas: {last_watermark_b}")
     
