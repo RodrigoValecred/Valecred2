@@ -14,6 +14,59 @@ NOTEBOOK_PATH = os.path.join(
     "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Titulos.Notebook/notebook-content.py"
 )
 
+class MockColumn:
+    def __init__(self, expr):
+        self.expr = str(expr)
+
+    def __str__(self):
+        return self.expr
+
+    def __repr__(self):
+        return self.expr
+
+    def alias(self, alias_name):
+        return MockColumn(f"{self.expr} AS {alias_name}")
+
+    def isNotNull(self):
+        return MockColumn(f"{self.expr}.isNotNull()")
+
+    def when(self, cond, val):
+        cond_str = str(cond) if isinstance(cond, MockColumn) else repr(cond)
+        val_str = str(val) if isinstance(val, MockColumn) else repr(val)
+        return MockColumn(f"{self.expr}.when({cond_str}, {val_str})")
+
+    def otherwise(self, val):
+        val_str = str(val) if isinstance(val, MockColumn) else repr(val)
+        return MockColumn(f"{self.expr}.otherwise({val_str})")
+
+    def __gt__(self, other):
+        other_str = str(other) if isinstance(other, MockColumn) else repr(other)
+        return MockColumn(f"({self.expr} > {other_str})")
+
+def mock_when(cond, val):
+    cond_str = str(cond) if isinstance(cond, MockColumn) else repr(cond)
+    val_str = str(val) if isinstance(val, MockColumn) else repr(val)
+    return MockColumn(f"when({cond_str}, {val_str})")
+
+def mock_col(name):
+    return MockColumn(f"col('{name}')")
+
+def mock_datediff(end, start):
+    end_str = str(end) if isinstance(end, MockColumn) else repr(end)
+    start_str = str(start) if isinstance(start, MockColumn) else repr(start)
+    return MockColumn(f"datediff({end_str}, {start_str})")
+
+def mock_current_date():
+    return MockColumn("current_date()")
+
+def mock_coalesce(*cols):
+    cols_str = ", ".join(str(c) if isinstance(c, MockColumn) else repr(c) for c in cols)
+    return MockColumn(f"coalesce({cols_str})")
+
+def mock_lit(val):
+    val_str = str(val) if isinstance(val, MockColumn) else repr(val)
+    return MockColumn(f"lit({val_str})")
+
 class TestSelectTitulos(unittest.TestCase):
 
     @classmethod
@@ -24,51 +77,18 @@ class TestSelectTitulos(unittest.TestCase):
              raise ValueError("Function select_titulos not found in notebook.")
 
     def test_select_titulos_structure(self):
-        # Mocks for PySpark functions
-        mock_col = MagicMock(name="col")
-        mock_when = MagicMock(name="when")
-        mock_datediff = MagicMock(name="datediff")
-        mock_current_date = MagicMock(name="current_date")
-        mock_coalesce = MagicMock(name="coalesce")
-        mock_lit = MagicMock(name="lit")
-
-        # Mock Column behavior
-        # col("name") returns a mock object that supports .alias(), .isNotNull(), etc.
-        def col_side_effect(name):
-            m = MagicMock(name=f"col('{name}')")
-            m.alias.return_value = m # Chain alias
-            m.isNotNull.return_value = MagicMock(name=f"col('{name}').isNotNull()")
-            return m
-
-        mock_col.side_effect = col_side_effect
-
-        # Mock datediff return to support > 0 comparison
-        mock_datediff_ret = MagicMock(name="datediff_ret")
-        # Mock the __gt__ operator so (datediff(...) > 0) doesn't raise TypeError
-        mock_datediff_ret.__gt__ = MagicMock(name="gt_mock")
-        mock_datediff.return_value = mock_datediff_ret
-
-        # Mock coalesce return to support alias
-        mock_coalesce_ret = MagicMock(name="coalesce_ret")
-        mock_coalesce_ret.alias.return_value = mock_coalesce_ret
-        mock_coalesce.return_value = mock_coalesce_ret
-
-        # Mock when chain
-        # when(cond, val) returns a Column which has .when() and .otherwise() methods
-        mock_when_ret = MagicMock(name="when_ret")
-        mock_when.return_value = mock_when_ret
-        mock_when_ret.when.return_value = mock_when_ret
-
-        # otherwise returns a mock that supports alias
-        mock_otherwise_ret = MagicMock(name="otherwise_ret")
-        mock_otherwise_ret.alias.return_value = mock_otherwise_ret
-        mock_when_ret.otherwise.return_value = mock_otherwise_ret
-
-
         # Mock DataFrame
         mock_df = MagicMock(name="df")
 
-        # Execution context
+        # We need to track the arguments passed to df.select
+        captured_args = []
+        def select_mock(*args):
+            captured_args.extend(args)
+            return "df_result"
+
+        mock_df.select.side_effect = select_mock
+
+        # Execution context using our MockColumn implementation
         exec_globals = {
             'col': mock_col,
             'when': mock_when,
@@ -84,71 +104,73 @@ class TestSelectTitulos(unittest.TestCase):
         select_titulos = local_scope['select_titulos']
 
         # Call the function
-        result_df = select_titulos(mock_df)
+        result = select_titulos(mock_df)
 
-        # Assertions
+        # Verify it returns the result of df.select
+        self.assertEqual(result, "df_result")
+
         # 1. Verify df.select was called
-        mock_df.select.assert_called_once()
-
-        # 2. Verify arguments passed to select
-        args, kwargs = mock_df.select.call_args
+        self.assertTrue(mock_df.select.called)
 
         # We expect 36 arguments (columns)
-        self.assertEqual(len(args), 36, f"Expected 36 columns, got {len(args)}")
+        self.assertEqual(len(captured_args), 36, f"Expected 36 columns, got {len(captured_args)}")
 
-        # Verify specific columns were accessed via col()
-        expected_cols = [
-            "CODTITULO", "CODOPERACAO", "NDOC", "TDOC", "VENCIMENTO",
-            "VENCPRORROGADO", "PRAZO", "CPFCNPJSACADO", "CPFCNPJCEDENTE",
-            "VALOR", "DESAGIO", "LIQUIDO", "AMORTIZACOES", "VALORDEVIDO",
-            "LIQUIDACAO", "ACEITO", "CODBANCOCOBR", "DATACONF", "USUACONF",
-            "DATAALTERACAO", "DATAINCLUSAO", "DOCCONFIRMADO", "MOTIVO",
-            "PRACA", "CHAVEDANFE", "NOSSONUMERO", "CODFUNDO", "TTO",
-            "FILIAL", "CODEMISSAO", "STATUSCONFIRMACAO", "SEUNUMERO", "CODREMESSA"
-        ]
+        # Convert all captured arguments to their string representations
+        args_str = [str(arg) for arg in captured_args]
 
-        # Get all calls to col()
-        calls = [c[0][0] for c in mock_col.call_args_list]
-        for col_name in expected_cols:
-            self.assertIn(col_name, calls, f"Column {col_name} was not accessed via col()")
-
-        # Verify calculated columns logic calls
-        # vencimento_efetivo uses coalesce
-        mock_coalesce.assert_called()
-
-        # dias_atraso uses datediff and when
-        mock_datediff.assert_called()
-        mock_when.assert_called()
-
-        # status_titulo uses when chain
-        # confirmed by mock_when.assert_called()
-
-        # Verify current_date was called (for dias_atraso and status_titulo logic)
-        mock_current_date.assert_called()
-
-        # Verify output aliases
-        expected_aliases = {
-            "cod_titulo", "cod_operacao", "n_doc", "t_doc", "vencimento",
-            "venc_prorrogado", "prazo", "cpf_cnpj_sacado", "cpf_cnpj_cedente",
-            "valor", "desagio", "liquido", "amortizacoes", "valor_devido",
-            "liquidacao", "aceito", "cod_banco_cobr", "data_conf", "usua_conf",
-            "data_alteracao", "data_inclusao", "doc_confirmado", "motivo",
-            "praca", "chave_danfe", "nosso_numero", "cod_fundo", "tipo_cobranca",
-            "raiz_cnpj", "cod_emissao", "status_confirmacao", "seu_numero_bancario", "cod_remessa",
-            "vencimento_efetivo", "dias_atraso", "status_titulo"
+        # 2. Verify all simple column aliases are present
+        expected_simple_aliases = {
+            "col('CODTITULO') AS cod_titulo",
+            "col('CODOPERACAO') AS cod_operacao",
+            "col('NDOC') AS n_doc",
+            "col('TDOC') AS t_doc",
+            "col('VENCIMENTO') AS vencimento",
+            "col('VENCPRORROGADO') AS venc_prorrogado",
+            "col('PRAZO') AS prazo",
+            "col('CPFCNPJSACADO') AS cpf_cnpj_sacado",
+            "col('CPFCNPJCEDENTE') AS cpf_cnpj_cedente",
+            "col('VALOR') AS valor",
+            "col('DESAGIO') AS desagio",
+            "col('LIQUIDO') AS liquido",
+            "col('AMORTIZACOES') AS amortizacoes",
+            "col('VALORDEVIDO') AS valor_devido",
+            "col('LIQUIDACAO') AS liquidacao",
+            "col('ACEITO') AS aceito",
+            "col('CODBANCOCOBR') AS cod_banco_cobr",
+            "col('DATACONF') AS data_conf",
+            "col('USUACONF') AS usua_conf",
+            "col('DATAALTERACAO') AS data_alteracao",
+            "col('DATAINCLUSAO') AS data_inclusao",
+            "col('DOCCONFIRMADO') AS doc_confirmado",
+            "col('MOTIVO') AS motivo",
+            "col('PRACA') AS praca",
+            "col('CHAVEDANFE') AS chave_danfe",
+            "col('NOSSONUMERO') AS nosso_numero",
+            "col('CODFUNDO') AS cod_fundo",
+            "col('TTO') AS tipo_cobranca",
+            "col('FILIAL') AS raiz_cnpj",
+            "col('CODEMISSAO') AS cod_emissao",
+            "col('STATUSCONFIRMACAO') AS status_confirmacao",
+            "col('SEUNUMERO') AS seu_numero_bancario",
+            "col('CODREMESSA') AS cod_remessa"
         }
 
-        found_aliases = set()
-        for arg in args:
-            # We mocked .alias() to return the same mock object, so we can check if it was called
-            if arg.alias.called:
-                # Check all calls to alias on this mock object
-                for c in arg.alias.call_args_list:
-                    alias_name = c[0][0]
-                    found_aliases.add(alias_name)
+        for expected_alias in expected_simple_aliases:
+            self.assertIn(expected_alias, args_str, f"Missing expected simple alias mapping: {expected_alias}")
 
-        missing_aliases = expected_aliases - found_aliases
-        self.assertFalse(missing_aliases, f"Missing output aliases: {missing_aliases}")
+        # 3. Verify complex calculated columns using their string representations
+
+        # vencimento_efetivo uses coalesce
+        expected_vencimento_efetivo = "coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')) AS vencimento_efetivo"
+        self.assertIn(expected_vencimento_efetivo, args_str, "Missing or incorrect vencimento_efetivo expression")
+
+        # dias_atraso uses datediff and when
+        expected_dias_atraso = "when(col('LIQUIDACAO').isNotNull(), datediff(col('LIQUIDACAO'), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')))).otherwise(datediff(current_date(), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')))) AS dias_atraso"
+        self.assertIn(expected_dias_atraso, args_str, "Missing or incorrect dias_atraso expression")
+
+        # status_titulo uses when chain
+        expected_status_titulo = "when(col('LIQUIDACAO').isNotNull(), 'LIQUIDADO').when((datediff(current_date(), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO'))) > 0), 'EM ATRASO').otherwise('EM DIA') AS status_titulo"
+        self.assertIn(expected_status_titulo, args_str, "Missing or incorrect status_titulo expression")
 
 class TestDeduplicateTitulos(unittest.TestCase):
     @classmethod
