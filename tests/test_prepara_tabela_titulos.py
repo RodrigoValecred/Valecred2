@@ -230,5 +230,55 @@ class TestDeduplicateTitulos(unittest.TestCase):
         self.assertNotIn("DATA_MAIS_RECENTE", df_result.columns)
         self.assertNotIn("row_num", df_result.columns)
 
+    def test_deduplicate_titulos_empty_keys(self):
+        from pyspark.sql.functions import col, greatest, row_number
+        from pyspark.sql.window import Window
+        from pyspark.sql.utils import AnalysisException
+
+        # Create execution context
+        exec_globals = {
+            'col': col,
+            'greatest': greatest,
+            'Window': Window,
+            'row_number': row_number,
+        }
+        local_scope = {}
+        exec(self.func_source, exec_globals, local_scope)
+        deduplicate_titulos = local_scope['deduplicate_titulos']
+
+        from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+
+        schema = StructType([
+            StructField("CODTITULO", IntegerType(), True),
+            StructField("DATAINCLUSAO", StringType(), True),
+            StructField("DATAALTERACAO", StringType(), True),
+            StructField("LIQUIDACAO", StringType(), True),
+        ])
+
+        data = [
+            (1, "2023-01-01", "2023-01-10", None),
+            (2, "2023-02-01", "2023-02-02", None),
+            (3, "2023-01-15", None, "2023-03-01"),
+        ]
+        df = self.spark.createDataFrame(data, schema=schema)
+
+        # 1. Test empty keys list
+        # An empty list for partitionBy acts as a global window.
+        # The window will only order by DATA_MAIS_RECENTE desc.
+        # So only 1 row (the one with the globally most recent date) should remain.
+        df_result_empty_keys = deduplicate_titulos(df, [])
+        results_empty = df_result_empty_keys.collect()
+
+        self.assertEqual(len(results_empty), 1, "Empty keys should result in a global window returning exactly 1 row")
+        # Row 3 has "2023-03-01" as LIQUIDACAO, which is the greatest date overall
+        self.assertEqual(results_empty[0].CODTITULO, 3)
+
+        # 2. Test invalid/non-existent keys
+        # Passing columns that don't exist should raise an AnalysisException from PySpark
+        with self.assertRaises(AnalysisException):
+            df_result_missing_keys = deduplicate_titulos(df, ["NON_EXISTENT_COL"])
+            df_result_missing_keys.collect()  # Action needed to trigger analysis in some cases
+
+
 if __name__ == '__main__':
     unittest.main()
