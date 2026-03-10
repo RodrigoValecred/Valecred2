@@ -10,5 +10,7 @@ CREATE TABLE [dbo].[dim_clientes] (
 	[data_inclusao] datetime2(6) NULL, 
 	[data_alteracao] datetime2(6) NULL, 
 	[recuperacao_judicial] varchar(8000) NULL, 
-	[nome_cliente] varchar(8000) NULL
+	[nome_cliente] varchar(8000) NULL,
+	[vencimento_limite] datetime2(6) NULL,
+	[status_validade_limite] varchar(8000) NULL
 );

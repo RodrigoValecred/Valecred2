@@ -1,0 +1,14 @@
+CREATE TABLE [dbo].[dim_clientes] (
+
+	[cod_cliente] int NULL,
+	[cpf_cnpj] varchar(8000) NULL,
+	[cnae] varchar(8000) NULL,
+	[data_status] datetime2(6) NULL,
+	[cod_status_cliente] int NULL,
+	[cod_rating] varchar(8000) NULL,
+	[cod_rating_sug] varchar(8000) NULL,
+	[data_inclusao] datetime2(6) NULL,
+	[data_alteracao] datetime2(6) NULL,
+	[recuperacao_judicial] varchar(8000) NULL,
+	[nome_cliente] varchar(8000) NULL
+);
