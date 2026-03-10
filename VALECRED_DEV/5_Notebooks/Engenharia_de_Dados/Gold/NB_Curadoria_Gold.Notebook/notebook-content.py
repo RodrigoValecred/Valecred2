@@ -448,7 +448,8 @@ df_limites_obs_silver = safe_read_table(spark, TableNames.SILVER_STG_LIMITES_CON
     StructField("limite_geral", DoubleType(), True),
     StructField("limite_intercompany", DoubleType(), True),
     StructField("limite_extra_desconto_formal", DoubleType(), True),
-    StructField("limite_extra_desconto_informal", DoubleType(), True)
+    StructField("limite_extra_desconto_informal", DoubleType(), True),
+    StructField("OBS_TRATADA", StringType(), True)
 ]))
 
 # Cad Clientes (Bronze) - Para Status
@@ -1463,7 +1464,8 @@ df_limites_obs_select = df_limites_obs_silver.select(
     coalesce(col("limite_geral"), lit(0)).alias("limite_geral_obs"),
     coalesce(col("limite_intercompany"), lit(0)).alias("limite_intercompany_obs"),
     coalesce(col("limite_extra_desconto_formal"), lit(0)).alias("limite_extra_desconto_formal_obs"),
-    coalesce(col("limite_extra_desconto_informal"), lit(0)).alias("limite_extra_desconto_informal_obs")
+    coalesce(col("limite_extra_desconto_informal"), lit(0)).alias("limite_extra_desconto_informal_obs"),
+    col("OBS_TRATADA").alias("observacoes_contrato_obs")
 )
 
 # Join Contratos + Obs
@@ -1476,7 +1478,8 @@ df_limites_base = df_contratos.join(df_limites_obs_select, "cod_cliente", "left"
         coalesce(col("limite_geral_obs"), lit(0)).alias("limite_geral"),
         coalesce(col("limite_intercompany_obs"), lit(0)).alias("limite_intercompany"),
         coalesce(col("limite_extra_desconto_formal_obs"), lit(0)).alias("limite_extra_desconto_formal"),
-        coalesce(col("limite_extra_desconto_informal_obs"), lit(0)).alias("limite_extra_desconto_informal")
+        coalesce(col("limite_extra_desconto_informal_obs"), lit(0)).alias("limite_extra_desconto_informal"),
+        col("observacoes_contrato_obs").alias("observacoes_contrato")
     )
 
 # 2. Join com Grupos (df_grupos_prep: cod_cliente, grupo_economico)
@@ -1495,7 +1498,8 @@ df_grupo_contract_agg = df_com_grupo.groupBy("grupo_economico").agg(
     max("limite_geral").alias("limite_geral_auto"),
     max("limite_intercompany").alias("limite_intercompany_auto"),
     max("limite_extra_desconto_formal").alias("limite_extra_desconto_formal_auto"),
-    max("limite_extra_desconto_informal").alias("limite_extra_desconto_informal_auto")
+    max("limite_extra_desconto_informal").alias("limite_extra_desconto_informal_auto"),
+    max("observacoes_contrato").alias("observacoes_contrato_auto")
 )
 
 # Passo 4.2: Join com Manual (df_limites_grupo_dedup já calculado na 6.4.2)
@@ -1514,7 +1518,8 @@ df_grupo_final = df_grupo_contract_agg.join(df_limites_grupo_dedup, "grupo_econo
         coalesce(col("limite_geral_auto"), lit(0)).alias("limite_geral"),
         coalesce(col("limite_intercompany_auto"), lit(0)).alias("limite_intercompany"),
         coalesce(col("limite_extra_desconto_formal_auto"), lit(0)).alias("limite_extra_desconto_formal"),
-        coalesce(col("limite_extra_desconto_informal_auto"), lit(0)).alias("limite_extra_desconto_informal")
+        coalesce(col("limite_extra_desconto_informal_auto"), lit(0)).alias("limite_extra_desconto_informal"),
+        col("observacoes_contrato_auto").alias("observacoes_contrato")
     ).filter(col("nome_entidade").isNotNull())
 
 # 5. Tratamento Clientes Individuais
@@ -1540,7 +1545,8 @@ df_cliente_final = df_sem_grupo_named.select(
     col("limite_geral"),
     col("limite_intercompany"),
     col("limite_extra_desconto_formal"),
-    col("limite_extra_desconto_informal")
+    col("limite_extra_desconto_informal"),
+    col("observacoes_contrato")
 )
 
 # 6. Union e Calculo Total
