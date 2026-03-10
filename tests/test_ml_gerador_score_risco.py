@@ -158,12 +158,14 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
             'STATUSACEITE': ['A'],
             'ACEITO': ['S'],
             'TTO_OPERACAO': ['NP'],
-            'VALOR': [1000],
-            'PRAZO': [30],
+            'VALOR': [1000.5], # Ensure it's float64
+            'PRAZO': [30],     # Ensure it's int64
             'CODRATING_CEDENTE': ['A'],
             'CODSTATUSCLIENTE': ['1']
         }
         mock_df_pandas = pd.DataFrame(data)
+        mock_df_pandas['VALOR'] = mock_df_pandas['VALOR'].astype('float64')
+        mock_df_pandas['PRAZO'] = mock_df_pandas['PRAZO'].astype('int64')
 
         mock_df_spark.filter.return_value = mock_df_spark # Chain filters
         mock_df_spark.toPandas.return_value = mock_df_pandas
@@ -178,6 +180,14 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIsInstance(result, pd.DataFrame)
         self.assertIn('SCORE_RISCO', result.columns)
         self.assertEqual(result['SCORE_RISCO'].iloc[0], 0.9)
+
+        # Verify data type downcasting float64 -> float32
+        args, kwargs = mock_model.predict_proba.call_args
+        X_cliente_passed = args[0]
+
+        self.assertEqual(X_cliente_passed['VALOR'].dtype, 'float32', "float64 should be downcasted to float32")
+        self.assertEqual(X_cliente_passed['PRAZO'].dtype, 'int64', "int64 should remain int64")
+
         # Verify filtering was called
         self.mock_col.assert_called()
 
