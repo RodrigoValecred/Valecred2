@@ -191,7 +191,8 @@ def process_operacoes_stream(df_ops, df_titulos):
                     when(col("volume") > 0, col("total_valor_prazo_mes") / col("volume")).otherwise(0)) \
         .withColumn("prazo_medio_original",
                     when(col("volume") > 0, col("total_valor_prazo_original_mes") / col("volume")).otherwise(0)) \
-        .withColumn("prazo_medio_total", col("prazo_medio") + coalesce(col("floating"), lit(0))) \
+        .withColumn("prazo_medio_total", col("prazo_medio_ponderado_dias")) \
+        .withColumn("floating", col("prazo_medio_total") - col("prazo_medio")) \
         .withColumn("taxa_media",
                     when(col("total_valor_prazo_mes") > 0,
                         (col("receita") / (col("total_valor_prazo_mes") / 30)) * 100
