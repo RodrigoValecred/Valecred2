@@ -36,3 +36,7 @@
 **Vulnerability:** The RFB data loader `NB_Extract_Bronze_Receita_Federal_Full.Notebook` used an unencrypted IP address (`http://200.152.38.155/CNPJ/`) as a fallback mirror in the `MIRRORS` list. If the primary site failed, the pipeline silently fell back to an insecure HTTP connection, exposing the download to Man-in-the-Middle (MitM) attacks.
 **Learning:** High availability workarounds (like fallback mirrors or direct IP addresses) often bypass standard security controls (like HTTPS/SSL) out of convenience or lack of infrastructure, silently introducing vulnerabilities when the primary system goes down.
 **Prevention:** Ensure that all fallback infrastructure, mirrors, and alternative endpoints adhere to the same security standards (HTTPS/TLS) as the primary endpoint. Remove insecure mirrors and replace them with secure alternatives (e.g., GitHub Releases).
+## 2026-03-10 - [Missing Timeout and SSL Verification in RFB URL Test]
+**Vulnerability:** `tests/test_verify_rfb_url.py` performed a `requests.get` call without a `timeout` and `verify=True` parameter. This could lead to indefinite hanging if the external server (GitHub) is unresponsive, and exposes the connection to Man-in-the-Middle (MitM) attacks.
+**Learning:** Default behavior of Python's `requests` library is to wait forever and sometimes SSL verification is forgotten. This is dangerous in CI/CD environments as it can freeze test pipelines.
+**Prevention:** Enforce a `timeout` (e.g., 30s) and `verify=True` on all external network calls, even in tests.

@@ -16,7 +16,7 @@ class TestRFBVerify(unittest.TestCase):
             url = f"{BASE_URL}{filename}"
             print(f"Verifying {url}...")
 
-            response = requests.get(url)
+            response = requests.get(url, timeout=30, verify=True)
             self.assertEqual(response.status_code, 200, f"Failed to download {filename}")
 
             file_hash = hashlib.sha256(response.content).hexdigest()
