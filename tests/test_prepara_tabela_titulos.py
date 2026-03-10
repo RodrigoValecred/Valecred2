@@ -230,5 +230,82 @@ class TestDeduplicateTitulos(unittest.TestCase):
         self.assertNotIn("DATA_MAIS_RECENTE", df_result.columns)
         self.assertNotIn("row_num", df_result.columns)
 
+class TestSelectBaixas(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting select_baixas from {NOTEBOOK_PATH}")
+        cls.func_source = extract_function_from_file(NOTEBOOK_PATH, "select_baixas")
+        if not cls.func_source:
+             raise ValueError("Function select_baixas not found in notebook.")
+
+    def test_select_baixas_structure(self):
+        # Mocks for PySpark functions
+        mock_col = MagicMock(name="col")
+
+        # Mock Column behavior
+        def col_side_effect(name):
+            m = MagicMock(name=f"col('{name}')")
+            m.alias.return_value = m # Chain alias
+            return m
+
+        mock_col.side_effect = col_side_effect
+
+        # Mock DataFrame
+        mock_df = MagicMock(name="df")
+
+        # Execution context
+        exec_globals = {
+            'col': mock_col,
+        }
+
+        # Execute the function definition
+        local_scope = {}
+        exec(self.func_source, exec_globals, local_scope)
+        select_baixas = local_scope['select_baixas']
+
+        # Call the function
+        result_df = select_baixas(mock_df)
+
+        # Assertions
+        # 1. Verify df.select was called
+        mock_df.select.assert_called_once()
+
+        # 2. Verify arguments passed to select
+        args, kwargs = mock_df.select.call_args
+
+        # Verify specific columns were accessed via col()
+        expected_cols = [
+            "CODTITULOBAIXAS", "CODTITULO", "DATAINCLUSAO", "DATAALTERACAO",
+            "VLPAGO", "DATABAIXA", "DATABAIXASIST", "DESCONTO", "JUROS",
+            "TARIFARECOMPRA", "DATAVENCIMENTO", "PAGOPELO", "FORMA",
+            "TIPOBAIXA", "MOTIVO", "CODOPERACAO"
+        ]
+
+        self.assertEqual(len(args), len(expected_cols), f"Expected {len(expected_cols)} columns, got {len(args)}")
+
+        # Get all calls to col()
+        calls = [c[0][0] for c in mock_col.call_args_list]
+        for col_name in expected_cols:
+            self.assertIn(col_name, calls, f"Column {col_name} was not accessed via col()")
+
+        # Verify output aliases
+        expected_aliases = {
+            "cod_titulo_baixas", "cod_titulo", "data_inclusao", "data_alteracao",
+            "valor_pago", "data_baixa", "data_baixa_sist", "desconto", "juros",
+            "tarifa_recompra", "data_vencimento", "pago_pelo", "forma",
+            "tipo_baixa", "motivo", "cod_operacao"
+        }
+
+        found_aliases = set()
+        for arg in args:
+            if arg.alias.called:
+                for c in arg.alias.call_args_list:
+                    alias_name = c[0][0]
+                    found_aliases.add(alias_name)
+
+        missing_aliases = expected_aliases - found_aliases
+        self.assertFalse(missing_aliases, f"Missing output aliases: {missing_aliases}")
+
 if __name__ == '__main__':
     unittest.main()
