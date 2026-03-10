@@ -24,7 +24,9 @@
 
 # # Relatório Mensal de Produtos por Cliente
 # **Objetivo:** Analisar a performance mensal de cada cliente segmentada por produto (Operações, Prorrogações, Mora).
+# 
 # **Métricas:** Volume, Prazo Médio, Taxa Média, Receita.
+# 
 # **Granularidade:** Detalhado por Operação/Bordero.
 
 # CELL ********************
