@@ -1720,6 +1720,11 @@ df_final = calculate_funnel_dates(df_funnel) \
         .when(col("risco") > col("limite"), "LIMITE EXCEDIDO")
         .otherwise("LIMITE DISPONIVEL")
     ) \
+    .withColumn("status_validade_limite",
+        when(col("vencimento_limite").isNull(), "INDETERMINADO")
+        .when(col("vencimento_limite") < today_date, "VENCIDO")
+        .otherwise("VÁLIDO")
+    ) \
     .withColumn("percentual_cm", col("limite_comissaria_contrato") / col("limite")) \
     .withColumn("falta_checar", greatest(
         (coalesce(col("percentual_exigido"), lit(0.5)) * (col("risco_exceto_comissaria") + col("risco_grupo") - col("risco_subtotal_comissaria")))
