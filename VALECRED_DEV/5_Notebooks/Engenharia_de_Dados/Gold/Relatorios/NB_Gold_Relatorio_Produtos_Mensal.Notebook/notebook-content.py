@@ -187,11 +187,9 @@ def process_operacoes_stream(df_ops, df_titulos):
             max(coalesce(col("maior_vencimento_titulos"), col("maior_vencimento"))).alias("maior_vencimento")
         ) \
         .withColumn("tipo_produto", lit("OPERACOES")) \
-        .withColumn("prazo_medio",
-                    when(col("volume") > 0, col("total_valor_prazo_mes") / col("volume")).otherwise(0)) \
-        .withColumn("prazo_medio_original",
-                    when(col("volume") > 0, col("total_valor_prazo_original_mes") / col("volume")).otherwise(0)) \
-        .withColumn("prazo_medio_total", col("prazo_medio") + coalesce(col("floating"), lit(0))) \
+        .withColumn("prazo_medio_total", col("prazo_medio_ponderado_dias")) \
+        .withColumn("prazo_medio", col("prazo_medio_total") - coalesce(col("floating"), lit(0))) \
+        .withColumn("prazo_medio_original", col("prazo_medio")) \
         .withColumn("taxa_media",
                     when(col("total_valor_prazo_mes") > 0,
                         (col("receita") / (col("total_valor_prazo_mes") / 30)) * 100
