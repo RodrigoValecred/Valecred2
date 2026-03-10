@@ -312,7 +312,9 @@ def process_limites():
 
 def process_empresas():
     print("Processando Empresas...")
-    spark.read.table(f"{source_lakehouse}.cad_empresas").filter(col("CODEMPRESA").isin([6, 14, 24, 25])).select(col("CODEMPRESA").alias("cod_empresa"), col("CNPJ").alias("cnpj")).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_empresas")
+    safe_source = validate_lakehouse(source_lakehouse)
+    safe_target = validate_lakehouse(target_lakehouse)
+    spark.read.table(f"{safe_source}.cad_empresas").filter(col("CODEMPRESA").isin([6, 14, 24, 25])).select(col("CODEMPRESA").alias("cod_empresa"), col("CNPJ").alias("cnpj")).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{safe_target}.staging_empresas")
 
 def process_gerentes():
     print("Processando Gerentes...")
