@@ -1306,7 +1306,17 @@ df_metrics_ops = df_ops_validas.groupBy("cod_cliente").agg(
     min(when((col("status_aceite") == "A") & (col("status_analise") == "D"), col("data_analise"))).alias("data_cliente_desde")
 )
 
-df_metrics_ops_final = df_metrics_ops.join(df_dia_semana_top, "cod_cliente", "left").join(df_dia_mes_top, "cod_cliente", "left")
+# Métricas: Operações em Análise (não Deferidas e não Indeferidas)
+df_ops_em_analise = df_fato_operacoes.filter(~col("status_analise").isin("D", "I")) \
+    .groupBy("cod_cliente").agg(
+        count("cod_operacao").alias("qtd_operacoes_em_analise"),
+        sum("valor_de_face").alias("volume_operacoes_em_analise")
+    )
+
+df_metrics_ops_final = df_metrics_ops.join(df_dia_semana_top, "cod_cliente", "left") \
+    .join(df_dia_mes_top, "cod_cliente", "left") \
+    .join(df_ops_em_analise, "cod_cliente", "left") \
+    .na.fill({"qtd_operacoes_em_analise": 0, "volume_operacoes_em_analise": 0})
 
 # 6.2: Métricas de Títulos (Risco)
 # --------------------------------
