@@ -203,6 +203,7 @@ class TableNames:
     GOLD_FATO_BAIXAS = "LH_Gold.fato_baixas"
     GOLD_FATO_LIMITES_CREDITO = "LH_Gold.fato_limites_credito"
     GOLD_FATO_OPERACOES = "LH_Gold.fato_operacoes"
+    GOLD_FATO_OPERACOES_ACESSORIAS = "LH_Gold.fato_operacoes_acessorias"
     GOLD_FATO_OPERACOES_PRORROGACAO = "LH_Gold.fato_operacoes_prorrogacao"
     GOLD_FATO_OPERACOES_RECOMPRA = "LH_Gold.fato_operacoes_recompra"
     GOLD_FATO_PRORROGACOES_DE_TITULOS = "LH_Gold.fato_prorrogacoes_de_titulos"
@@ -336,6 +337,33 @@ def check_incremental_gold(spark):
 # Execute Incremental Check
 check_incremental_gold(spark)
 
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 5.5: Construção da Fato Operações Acessórias
+# ---------------------------------------------------
+print("\nIniciando construção da fato_operacoes_acessorias...")
+
+df_ops_prep_acessorias = df_operacoes_enriquecida.withColumn(
+    "data_join_calendario",
+    to_date(col("data_inclusao"))
+).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
+
+df_ops_filtered_acessorias = df_ops_prep_acessorias.filter(col("chave_produto").isin(["AM", "AB", "LB", "PB"]))
+
+df_fato_acessorias_joined = join_operacoes_dimensions(df_ops_filtered_acessorias, df_dim_calendario, df_dim_produto)
+df_fato_operacoes_acessorias = select_fato_operacoes_columns(df_fato_acessorias_joined)
+
+target_fato_acessorias = TableNames.GOLD_FATO_OPERACOES_ACESSORIAS
+df_fato_operacoes_acessorias.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_acessorias)
+print(f"Tabela '{target_fato_acessorias}' salva em: {target_fato_acessorias}")
 
 # METADATA ********************
 
@@ -789,7 +817,10 @@ def prepare_operacoes_dataframe(df_operacoes_enriquecida):
     ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
 
     # ⚡ Bolt Optimization: Filter TTOs (PR, RC, RE) BEFORE joins to reduce data volume
-    return df_operacoes_prep.filter(~col("tto").isin(["PR", "RC", "RE"]))
+    return df_operacoes_prep.filter(
+        (~col("tto").isin(["PR", "RC", "RE"])) &
+        (~col("chave_produto").isin(["AM", "AB", "LB", "PB"]))
+    )
 
 def join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_produto):
     """
