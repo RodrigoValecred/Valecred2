@@ -262,8 +262,15 @@ print("4. Salvando resultados na tabela Gold...")
 df_final.write.mode("overwrite").option("overwriteSchema", "true").format("delta").saveAsTable("LH_Gold.Alertas_Risco_TV")
 
 # Calcular métricas para o dashboard antes de sair
-total_ops = df_final.count()
-risco_alto = df_final.filter(F.col("status_ia") == "ALTO RISCO").count()
+# ⚡ Tensor: Single-pass metric collection to avoid multiple full-table scans
+metrics_df = df_final.select(
+    F.count("*").alias("total_ops"),
+    F.sum(F.when(F.col("status_ia") == "ALTO RISCO", 1).otherwise(0)).alias("risco_alto")
+).collect()
+
+total_ops = metrics_df[0]["total_ops"] or 0
+risco_alto = metrics_df[0]["risco_alto"] or 0
+
 # Top 3 motivos
 top_motivos_rows = df_final.filter(F.col("status_ia") == "ALTO RISCO") \
     .groupBy("motivo_principal").count().orderBy(F.col("count").desc()).limit(3).collect()
