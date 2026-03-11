@@ -180,7 +180,10 @@ if buscar_novos_meses:
 
         try:
             # Head request para checar existência sem baixar
-            response = requests.head(url_check, timeout=60, verify=True)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.head(url_check, headers=headers, timeout=60, verify=True)
             if response.status_code == 200:
                 print(f"ENCONTRADO: {p_ano}{p_mes}")
                 periodos_para_processar.append(f"{p_ano}{p_mes}")
@@ -230,7 +233,10 @@ else:
             os.makedirs(unzip_path, exist_ok=True)
 
             print(f"Baixando arquivo de {url}...")
-            response = requests.get(url, timeout=60, stream=True, verify=True)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=60, stream=True, verify=True)
 
             if response.status_code != 200:
                 print(f"AVISO: Falha ao baixar o arquivo para {periodo}. Status code: {response.status_code}. Pulando...")
