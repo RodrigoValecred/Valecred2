@@ -5,6 +5,7 @@ import zipfile
 import shutil
 import tempfile
 from io import BytesIO
+from unittest.mock import patch, MagicMock
 
 # Ensure the tests directory is in the path to import notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -19,6 +20,10 @@ SERPRO_NOTEBOOK_PATH = os.path.join(
 CVM_NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
     "VALECRED_DEV/7_Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
+)
+RFB_NOTEBOOK_PATH = os.path.join(
+    REPO_ROOT,
+    "VALECRED_DEV/7_Dados_Externos/Receita Federal/NB_Extract_Bronze_Receita_Federal_Full.Notebook/notebook-content.py"
 )
 
 class TestSafeExtract(unittest.TestCase):
@@ -44,10 +49,39 @@ class TestSafeExtract(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_serpro_safe_extract(self):
+        if not os.path.exists(SERPRO_NOTEBOOK_PATH):
+            self.skipTest(f"File not found: {SERPRO_NOTEBOOK_PATH}")
         self._test_safe_extract(SERPRO_NOTEBOOK_PATH)
 
     def test_cvm_safe_extract(self):
         self._test_safe_extract(CVM_NOTEBOOK_PATH)
+
+    def test_rfb_safe_extract_error_handling(self):
+        self._test_safe_extract(RFB_NOTEBOOK_PATH)
+
+        func_source = extract_function_from_file(RFB_NOTEBOOK_PATH, "safe_extract")
+        if not func_source:
+             self.fail(f"Function safe_extract not found in {RFB_NOTEBOOK_PATH}")
+
+        # Compile the function
+        exec_globals = {
+            'os': os,
+            'zipfile': zipfile,
+            'Exception': Exception
+        }
+        exec(func_source, exec_globals)
+        safe_extract = exec_globals['safe_extract']
+
+        # Mock zip_ref to raise Exception on extractall
+        mock_zip_ref = MagicMock()
+        mock_zip_ref.namelist.return_value = ['file.txt']
+        mock_zip_ref.filename = "test_error.zip"
+        mock_zip_ref.extractall.side_effect = Exception("Mock extraction error")
+
+        with patch('builtins.print') as mock_print:
+            # Call safe_extract which should catch the exception and print it
+            safe_extract(mock_zip_ref, self.output_dir)
+            mock_print.assert_called_with("Erro ao extrair test_error.zip: Mock extraction error")
 
     def _test_safe_extract(self, notebook_path):
         print(f"Testing safe_extract from {notebook_path}")
@@ -71,8 +105,6 @@ class TestSafeExtract(unittest.TestCase):
             self.assertIn("Zip Slip vulnerability detected", str(cm.exception))
 
         # Verify nothing was extracted (fail-fast / atomic check behavior)
-        # Note: Depending on implementation, it might extract safe files if check is per-file and extraction is interleaved,
-        # BUT our fix collects members first, so it should extract NOTHING if exception is raised.
         self.assertFalse(os.path.exists(os.path.join(self.output_dir, "good.txt")), "good.txt should not be extracted if validation fails")
         self.assertFalse(os.path.exists(os.path.join(self.output_dir, "evil.txt")), "evil.txt should not be extracted")
         self.assertFalse(os.path.exists(os.path.join(self.test_dir, "evil.txt")), "evil.txt should not be extracted outside")
