@@ -1483,8 +1483,8 @@ df_limites_obs_select = df_limites_obs_silver.select(
     col("OBS_TRATADA").alias("observacoes_contrato_obs")
 )
 
-# Join Contratos + Obs
-df_limites_base = df_contratos.join(df_limites_obs_select, "cod_cliente", "left") \
+# Join Contratos + Obs (Apenas contratos ativos: status = 'A')
+df_limites_base = df_contratos.filter(col("status") == "A").join(df_limites_obs_select, "cod_cliente", "left") \
     .select(
         col("cod_cliente"),
         coalesce(col("limite_fomento"), lit(0)).alias("limite_fomento"),
