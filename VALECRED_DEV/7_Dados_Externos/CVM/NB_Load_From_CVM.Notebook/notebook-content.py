@@ -78,15 +78,14 @@ def safe_extract(zip_ref, path):
     zip_ref.extractall(path, members=safe_members)
 
 def validate_periodo(periodo):
-    """
-    Valida se o periodo é uma string de 6 dígitos (YYYYMM).
-    """
-    if not isinstance(periodo, str):
-        return False
     if len(periodo) != 6:
-        return False
-    if not periodo.isdigit():
-        return False
+        raise ValueError("Período deve ter o formato YYYYMM")
+    year = int(periodo[:4])
+    month = int(periodo[4:])
+    if year < 2010 or year > 2050:
+        raise ValueError("Ano inválido")
+    if month < 1 or month > 12:
+        raise ValueError("Mês inválido")
     return True
 
 # METADATA ********************
@@ -211,8 +210,10 @@ else:
     print(f"Iniciando processamento de {len(periodos_para_processar)} períodos...")
 
     for periodo in periodos_para_processar:
-        if not validate_periodo(periodo):
-            print(f"AVISO DE SEGURANÇA: Período inválido '{periodo}'. Deve conter apenas 6 dígitos (YYYYMM). Pulando...")
+        try:
+            validate_periodo(periodo)
+        except (ValueError, TypeError) as e:
+            print(f"AVISO DE SEGURANÇA: Período inválido '{periodo}'. {e}. Pulando...")
             continue
 
         current_ano = periodo[:4]
