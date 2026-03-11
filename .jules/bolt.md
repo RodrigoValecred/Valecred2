@@ -17,3 +17,7 @@
 ## 2025-03-03 - [PySpark Memory Management: Unpersisting Cached DataFrames]
 **Learning:** In PySpark notebooks (especially long-running or interactive ones), explicitly caching DataFrames (`.cache()`) without later unpersisting them (`.unpersist()`) can lead to Out-Of-Memory (OOM) errors and performance degradation as cluster memory fills up.
 **Action:** Always verify that cached DataFrames are explicitly unpersisted at the end of the notebook or when they are no longer needed.
+
+## 2026-03-11 - [Optimize PySpark DataFrame Metadata Access]
+**Learning:** Accessing `.columns` on a PySpark DataFrame inside a loop or list comprehension can be a significant bottleneck. This is because each access can trigger a call to the Spark driver or involve overhead between the Python and JVM processes.
+**Action:** Always capture `.columns` once into a `set` before performing multiple lookups. This provides O(1) membership testing and avoids repeated metadata access.
