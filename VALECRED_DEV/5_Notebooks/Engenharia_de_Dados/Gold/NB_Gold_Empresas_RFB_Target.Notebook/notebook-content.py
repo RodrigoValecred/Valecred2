@@ -157,17 +157,18 @@ try:
     # TAB_I2A12_PR_CEDENTE_1 até 9
 
     # Criamos um array de structs para desaninhar (unpivot) os cedentes
-    cedentes_cols = []
-    for i in range(1, 10):
-        cnpj_col = f"TAB_I2A12_CPF_CNPJ_CEDENTE_{i}"
-        perc_col = f"TAB_I2A12_PR_CEDENTE_{i}"
+    # Otimização: Capturamos as colunas uma única vez para evitar múltiplas chamadas ao driver/JVM
+    cols_existentes = set(df_cvm.columns)
 
-        # Verifica se as colunas existem no dataframe
-        if cnpj_col in df_cvm.columns and perc_col in df_cvm.columns:
-            cedentes_cols.append(struct(
-                col(cnpj_col).alias("cnpj_cedente"),
-                col(perc_col).cast("double").alias("percentual_concentracao")
-            ))
+    cedentes_cols = [
+        struct(
+            col(f"TAB_I2A12_CPF_CNPJ_CEDENTE_{i}").alias("cnpj_cedente"),
+            col(f"TAB_I2A12_PR_CEDENTE_{i}").cast("double").alias("percentual_concentracao")
+        )
+        for i in range(1, 10)
+        if f"TAB_I2A12_CPF_CNPJ_CEDENTE_{i}" in cols_existentes
+        and f"TAB_I2A12_PR_CEDENTE_{i}" in cols_existentes
+    ]
 
     if cedentes_cols:
         df_cvm_unpivoted = df_cvm.withColumn("cedentes", array(*cedentes_cols)) \
