@@ -278,14 +278,19 @@ def check_incremental_gold(spark):
         def get_max_date(table_name, col_name="data_inclusao"):
             try:
                 df = spark.read.table(table_name)
-                # Check column existence case-insensitive
-                cols = [c.lower() for c in df.columns]
-                if col_name.lower() not in cols:
+                # Cache df.columns to avoid repeated RPC calls
+                df_cols = df.columns
+                col_name_lower = col_name.lower()
+                # Create a map for case-insensitive lookup
+                lower_to_actual = {c.lower(): c for c in df_cols}
+
+                if col_name_lower not in lower_to_actual:
                     return None
-                # Use the actual column name from df.columns to avoid AnalysisException
-                actual_col = [c for c in df.columns if c.lower() == col_name.lower()][0]
-                row = df.agg(max(col(actual_col))).collect()[0]
-                return row[0]
+
+                # Use the actual column name to avoid AnalysisException
+                actual_col = lower_to_actual[col_name_lower]
+                row = df.agg(max(col(actual_col))).first()
+                return row[0] if row else None
             except Exception as e:
                 # print(f"Warning reading {table_name}: {e}")
                 return None
