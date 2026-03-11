@@ -89,6 +89,38 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("Crítico", item1['bar_display']) # Check for status text
         self.assertEqual(item1['excesso_fmt'], "R$ 50,00")
 
+    def test_prepare_dashboard_data_validity_errors(self):
+        # Test Case: Invalid date formats to trigger ValueError and TypeError
+        df = pd.DataFrame({
+            'grupo': ['Invalid String', 'Invalid Type None', 'Invalid Type Float'],
+            'valor_risco': [10.0, 10.0, 10.0],
+            'limite_global': [100.0, 100.0, 100.0],
+            'utilizacao_pct': [10.0, 10.0, 10.0],
+            'excesso_valor': [0, 0, 0],
+            'validade_limite': [
+                'not-a-date', # Should trigger ValueError
+                None,         # Should trigger TypeError (or ValueError depending on strptime behavior)
+                123.45        # Invalid type
+            ]
+        })
+
+        # Redirect stdout temporarily if we don't want the prints to clutter the test output
+        import io
+        import sys
+        captured_output = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = captured_output
+
+        try:
+            view_data = self.prepare_dashboard_data(df, self.data_hoje)
+        finally:
+            sys.stdout = old_stdout
+
+        # Verify Fallback to original string
+        self.assertEqual(view_data[0]['validade_display'], 'not-a-date')
+        self.assertEqual(view_data[1]['validade_display'], 'None')
+        self.assertEqual(view_data[2]['validade_display'], '123.45')
+
     @patch('builtins.print')
     def test_display_risk_dashboard_output_structure(self, mock_print):
         # Setup mock data
