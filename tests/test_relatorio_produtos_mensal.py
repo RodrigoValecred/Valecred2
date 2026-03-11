@@ -195,10 +195,9 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         # Should aggregate
         df_ops.groupBy.assert_called()
 
-    def test_mora_missing_client_fix_extracted(self):
+    def test_mora_data_deferimento_replacement_fix(self):
         """
-        Validates Mora stream logic (extracted) includes resolution and fix.
-        This effectively replaces test_mora_missing_client_fix and test_mora_data_deferimento_adjustment.
+        Confirms that data_deferimento is updated to use the value of data_baixa in process_mora_stream.
         """
         # Ensure functions were extracted
         self.assertIsNotNone(self.mora_code, "Failed to extract process_mora_stream")
@@ -217,22 +216,20 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         df_baixas.withColumn.return_value = df_baixas
         df_baixas.withColumnRenamed.return_value = df_baixas
 
-        granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente", "floating"]
+        # Must include all columns used in resolve_columns and groupBy
+        granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente", "floating", "prazo_medio_ponderado_dias"]
 
         process_mora_stream_func = globals()["process_mora_stream"]
         result_df = process_mora_stream_func(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, granular_cols)
 
         # Verify the FIX: .withColumn("data_deferimento", col("data_baixa"))
-        with_col_calls = df_baixas.withColumn.call_args_list
-        found_fix = False
-        for args, kwargs in with_col_calls:
-            col_name = args[0]
-            col_expr = args[1]
-            if col_name == "data_deferimento" and "col('data_baixa')" in str(col_expr):
-                found_fix = True
-                break
+        # We search specifically for the call where data_deferimento is set to data_baixa.
+        fix_call_found = any(
+            args[0] == "data_deferimento" and "col('data_baixa')" in str(args[1])
+            for args, kwargs in df_baixas.withColumn.call_args_list
+        )
 
-        self.assertTrue(found_fix, "Did not find withColumn('data_deferimento', col('data_baixa')) call in process_mora_stream")
+        self.assertTrue(fix_call_found, "The fix .withColumn('data_deferimento', col('data_baixa')) was not found in process_mora_stream.")
 
     def test_mora_date_logic_structure(self):
         """
