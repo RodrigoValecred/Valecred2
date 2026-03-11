@@ -22,11 +22,6 @@ sys.modules['notebookutils'] = MagicMock()
 
 # Test the RFB notebook logic (download/extract)
 def test_rfb_notebook_logic():
-    # Since the notebook code is script-based and not functions,
-    # we can't easily import it without refactoring it into functions.
-    # However, we can test the helper function we might have created
-    # if we had refactored, or we can just verify the file exists and has content.
-
     notebook_path = "VALECRED_DEV/7_Dados_Externos/NB_Load_Bronze_Receita_Federal_Full.Notebook/notebook-content.py"
     assert os.path.exists(notebook_path)
 
