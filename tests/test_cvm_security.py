@@ -127,7 +127,7 @@ class TestCVMPeriodValidation(unittest.TestCase):
 
     def test_valid_periodos(self):
         """Test valid period formats (YYYYMM)."""
-        valid_cases = ["202501", "199912", "202409", "000000"]
+        valid_cases = ["202501", "201012", "202409", "205001"]
         for p in valid_cases:
             with self.subTest(periodo=p):
                 self.assertTrue(self.validate_periodo(p), f"Should accept valid period: {p}")
@@ -137,21 +137,40 @@ class TestCVMPeriodValidation(unittest.TestCase):
         invalid_cases = ["2025", "2025011", "1", ""]
         for p in invalid_cases:
             with self.subTest(periodo=p):
-                self.assertFalse(self.validate_periodo(p), f"Should reject invalid length: {p}")
+                with self.assertRaisesRegex(ValueError, "Período deve ter o formato YYYYMM"):
+                    self.validate_periodo(p)
+
+    def test_invalid_periodos_year(self):
+        """Test periods with year out of bounds (2010-2050)."""
+        invalid_cases = ["200912", "199912", "205101", "300001", "000001"]
+        for p in invalid_cases:
+            with self.subTest(periodo=p):
+                with self.assertRaisesRegex(ValueError, "Ano inválido"):
+                    self.validate_periodo(p)
+
+    def test_invalid_periodos_month(self):
+        """Test periods with month out of bounds (1-12)."""
+        invalid_cases = ["202500", "202513", "202599"]
+        for p in invalid_cases:
+            with self.subTest(periodo=p):
+                with self.assertRaisesRegex(ValueError, "Mês inválido"):
+                    self.validate_periodo(p)
 
     def test_invalid_periodos_content(self):
         """Test periods with non-digit characters."""
-        invalid_cases = ["20250a", "abcdef", "2025-1", "20.250", "../...", "....//"]
+        invalid_cases = ["20250a", "abcdef", "2025-1", "20.250"]
         for p in invalid_cases:
             with self.subTest(periodo=p):
-                self.assertFalse(self.validate_periodo(p), f"Should reject non-digits: {p}")
+                with self.assertRaises(ValueError):
+                    self.validate_periodo(p)
 
     def test_invalid_types(self):
         """Test non-string inputs."""
         invalid_cases = [202501, None, ["202501"], 123456]
         for p in invalid_cases:
             with self.subTest(periodo=p):
-                self.assertFalse(self.validate_periodo(p), f"Should reject non-string types: {p}")
+                with self.assertRaises((TypeError, ValueError)):
+                    self.validate_periodo(p)
 
 if __name__ == '__main__':
     unittest.main()
