@@ -347,33 +347,6 @@ check_incremental_gold(spark)
 
 # CELL ********************
 
-# Célula 5.5: Construção da Fato Operações Acessórias
-# ---------------------------------------------------
-print("\nIniciando construção da fato_operacoes_acessorias...")
-
-df_ops_prep_acessorias = df_operacoes_enriquecida.withColumn(
-    "data_join_calendario",
-    to_date(col("data_inclusao"))
-).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
-
-df_ops_filtered_acessorias = df_ops_prep_acessorias.filter(col("chave_produto").isin(["AM", "AB", "LB", "PB"]))
-
-df_fato_acessorias_joined = join_operacoes_dimensions(df_ops_filtered_acessorias, df_dim_calendario, df_dim_produto)
-df_fato_operacoes_acessorias = select_fato_operacoes_columns(df_fato_acessorias_joined)
-
-target_fato_acessorias = TableNames.GOLD_FATO_OPERACOES_ACESSORIAS
-df_fato_operacoes_acessorias.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_acessorias)
-print(f"Tabela '{target_fato_acessorias}' salva em: {target_fato_acessorias}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
 # Célula 5.2: Construção da Fato Tarifas Esporádicas
 # ---------------------------------------------------
 print("\nIniciando construção da fato_tarifas_esporadicas...")
@@ -817,10 +790,7 @@ def prepare_operacoes_dataframe(df_operacoes_enriquecida):
     ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
 
     # ⚡ Bolt Optimization: Filter TTOs (PR, RC, RE) BEFORE joins to reduce data volume
-    return df_operacoes_prep.filter(
-        (~col("tto").isin(["PR", "RC", "RE"])) &
-        (~col("chave_produto").isin(["AM", "AB", "LB", "PB"]))
-    )
+    return df_operacoes_prep.filter(~col("tto").isin(["PR", "RC", "RE", "AM", "AB", "LB", "PB"]))
 
 def join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_produto):
     """
@@ -948,6 +918,33 @@ df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calen
 output_path_fato_operacoes = TableNames.GOLD_FATO_OPERACOES
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
 print(f"Tabela 'fato_operacoes' salva em: {output_path_fato_operacoes}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# Célula 2.1.1: Construção da Fato Operações Acessórias
+# ---------------------------------------------------
+print("\nIniciando construção da fato_operacoes_acessorias...")
+
+df_ops_prep_acessorias = df_operacoes_enriquecida.withColumn(
+    "data_join_calendario",
+    to_date(col("data_inclusao"))
+).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
+
+df_ops_filtered_acessorias = df_ops_prep_acessorias.filter(col("tto").isin(["AM", "AB", "LB", "PB"]))
+
+df_fato_acessorias_joined = join_operacoes_dimensions(df_ops_filtered_acessorias, df_dim_calendario, df_dim_produto)
+df_fato_operacoes_acessorias = select_fato_operacoes_columns(df_fato_acessorias_joined)
+
+target_fato_acessorias = TableNames.GOLD_FATO_OPERACOES_ACESSORIAS
+df_fato_operacoes_acessorias.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_fato_acessorias)
+print(f"Tabela '{target_fato_acessorias}' salva em: {target_fato_acessorias}")
 
 # METADATA ********************
 
