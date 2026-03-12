@@ -63,21 +63,23 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
 
         # Check source max
         df_source = spark.read.table(source_table)
-        cols_source = [c.lower() for c in df_source.columns]
-        if watermark_col.lower() not in cols_source:
+        # 🧠 Tensor: Cache columns metadata in O(1) dictionary to prevent multiple driver fetch calls
+        cols_source_map = {c.lower(): c for c in df_source.columns}
+        if watermark_col.lower() not in cols_source_map:
              return False # Cannot check, proceed
 
-        actual_col_source = [c for c in df_source.columns if c.lower() == watermark_col.lower()][0]
-        max_source = df_source.agg(max(col(actual_col_source))).collect()[0][0]
+        actual_col_source = cols_source_map[watermark_col.lower()]
+        # 🧠 Tensor: Replace .collect()[0][0] with .first()[0] to preserve predicate pushdown and avoid list materialization
+        max_source = df_source.agg(max(col(actual_col_source))).first()[0]
 
         # Check target max
         df_target = spark.read.format("delta").load(target_table_path)
-        cols_target = [c.lower() for c in df_target.columns]
-        if target_watermark_col.lower() not in cols_target:
+        cols_target_map = {c.lower(): c for c in df_target.columns}
+        if target_watermark_col.lower() not in cols_target_map:
              return False # Cannot check, proceed
 
-        actual_col_target = [c for c in df_target.columns if c.lower() == target_watermark_col.lower()][0]
-        max_target = df_target.agg(max(col(actual_col_target))).collect()[0][0]
+        actual_col_target = cols_target_map[target_watermark_col.lower()]
+        max_target = df_target.agg(max(col(actual_col_target))).first()[0]
 
         if max_source and max_target and max_source <= max_target:
             return True # Source is not newer than target
@@ -332,13 +334,14 @@ def process_gerentes():
         df_sup_ativos = spark.read.table(f"{target_lakehouse}.sup_gerentes_ativos")
 
         # Identificação dinâmica da chave de junção
-        sup_cols = [c.lower() for c in df_sup_ativos.columns]
+        # 🧠 Tensor: Cache columns metadata in O(1) dictionary to prevent multiple driver fetch calls
+        sup_cols_map = {c.lower(): c for c in df_sup_ativos.columns}
         join_key = None
         # Ordem de prioridade atualizada: cod_gerente (confirmado), seguido de fallbacks
-        if "cod_gerente" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("cod_gerente")]
-        elif "codgerente" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("codgerente")]
-        elif "cod_broker" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("cod_broker")]
-        elif "codbroker" in sup_cols: join_key = df_sup_ativos.columns[sup_cols.index("codbroker")]
+        if "cod_gerente" in sup_cols_map: join_key = sup_cols_map["cod_gerente"]
+        elif "codgerente" in sup_cols_map: join_key = sup_cols_map["codgerente"]
+        elif "cod_broker" in sup_cols_map: join_key = sup_cols_map["cod_broker"]
+        elif "codbroker" in sup_cols_map: join_key = sup_cols_map["codbroker"]
 
         if join_key:
             print(f"Chave de junção encontrada em sup_gerentes_ativos: {join_key}")
@@ -348,9 +351,9 @@ def process_gerentes():
 
             # Tenta encontrar 'comissao' ou similar
             col_comissao = None
-            if "comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("comissao")]
-            elif "taxa_comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("taxa_comissao")]
-            elif "percentual_comissao" in sup_cols: col_comissao = df_sup_ativos.columns[sup_cols.index("percentual_comissao")]
+            if "comissao" in sup_cols_map: col_comissao = sup_cols_map["comissao"]
+            elif "taxa_comissao" in sup_cols_map: col_comissao = sup_cols_map["taxa_comissao"]
+            elif "percentual_comissao" in sup_cols_map: col_comissao = sup_cols_map["percentual_comissao"]
 
             if col_comissao:
                 print(f"Coluna de comissão encontrada: {col_comissao}")
@@ -360,16 +363,16 @@ def process_gerentes():
 
             # Tenta encontrar 'data_contratacao' ou similar
             col_data_contratacao = None
-            if "data_contratacao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("data_contratacao")]
-            elif "datacontratacao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("datacontratacao")]
-            elif "admissao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("admissao")]
-            elif "data_admissao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("data_admissao")]
-            elif "dt_admissao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("dt_admissao")]
-            elif "dt_contratacao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("dt_contratacao")]
-            elif "contratacao" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("contratacao")]
-            elif "inicio" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("inicio")]
-            elif "data_inicio" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("data_inicio")]
-            elif "datainicio" in sup_cols: col_data_contratacao = df_sup_ativos.columns[sup_cols.index("datainicio")]
+            if "data_contratacao" in sup_cols_map: col_data_contratacao = sup_cols_map["data_contratacao"]
+            elif "datacontratacao" in sup_cols_map: col_data_contratacao = sup_cols_map["datacontratacao"]
+            elif "admissao" in sup_cols_map: col_data_contratacao = sup_cols_map["admissao"]
+            elif "data_admissao" in sup_cols_map: col_data_contratacao = sup_cols_map["data_admissao"]
+            elif "dt_admissao" in sup_cols_map: col_data_contratacao = sup_cols_map["dt_admissao"]
+            elif "dt_contratacao" in sup_cols_map: col_data_contratacao = sup_cols_map["dt_contratacao"]
+            elif "contratacao" in sup_cols_map: col_data_contratacao = sup_cols_map["contratacao"]
+            elif "inicio" in sup_cols_map: col_data_contratacao = sup_cols_map["inicio"]
+            elif "data_inicio" in sup_cols_map: col_data_contratacao = sup_cols_map["data_inicio"]
+            elif "datainicio" in sup_cols_map: col_data_contratacao = sup_cols_map["datainicio"]
 
             if col_data_contratacao:
                 print(f"Coluna de data_contratacao encontrada: {col_data_contratacao}")
@@ -379,9 +382,9 @@ def process_gerentes():
 
             # Tenta encontrar 'tipo' (Broker/Gerente de Negócio)
             col_tipo = None
-            if "tipo" in sup_cols: col_tipo = df_sup_ativos.columns[sup_cols.index("tipo")]
-            elif "tipogerente" in sup_cols: col_tipo = df_sup_ativos.columns[sup_cols.index("tipogerente")]
-            elif "tipo_gerente" in sup_cols: col_tipo = df_sup_ativos.columns[sup_cols.index("tipo_gerente")]
+            if "tipo" in sup_cols_map: col_tipo = sup_cols_map["tipo"]
+            elif "tipogerente" in sup_cols_map: col_tipo = sup_cols_map["tipogerente"]
+            elif "tipo_gerente" in sup_cols_map: col_tipo = sup_cols_map["tipo_gerente"]
 
             if col_tipo:
                 print(f"Coluna de tipo encontrada: {col_tipo}")
@@ -397,14 +400,15 @@ def process_gerentes():
                 .drop("cod_broker_join")
 
             # Aplica override de comissão se houver valor manual, senão mantém do sistema
-            if "taxa_comissao_manual" in df_brokers.columns:
+            broker_cols_set = set(df_brokers.columns)
+            if "taxa_comissao_manual" in broker_cols_set:
                  df_brokers = df_brokers.withColumn("taxa_comissao", coalesce(col("taxa_comissao_manual"), col("taxa_comissao"))) \
                                         .drop("taxa_comissao_manual")
 
-            if "data_contratacao" not in df_brokers.columns:
+            if "data_contratacao" not in broker_cols_set:
                  df_brokers = df_brokers.withColumn("data_contratacao", lit(None).cast("string"))
 
-            if "tipo_gerente" not in df_brokers.columns:
+            if "tipo_gerente" not in broker_cols_set:
                  df_brokers = df_brokers.withColumn("tipo_gerente", lit(None).cast("string"))
         else:
              print("AVISO: Chave de junção não encontrada em sup_gerentes_ativos. Definindo status_ativo como 'não'.")

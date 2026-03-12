@@ -96,21 +96,23 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
 
         # Check source max
         df_source = spark.read.table(source_table)
-        cols_source = [c.lower() for c in df_source.columns]
-        if watermark_col.lower() not in cols_source:
+        # 🧠 Tensor: Cache columns metadata in O(1) dictionary to prevent multiple driver fetch calls
+        cols_source_map = {c.lower(): c for c in df_source.columns}
+        if watermark_col.lower() not in cols_source_map:
              return False # Cannot check, proceed
 
-        actual_col_source = [c for c in df_source.columns if c.lower() == watermark_col.lower()][0]
-        max_source = df_source.agg(max(col(actual_col_source))).collect()[0][0]
+        actual_col_source = cols_source_map[watermark_col.lower()]
+        # 🧠 Tensor: Replace .collect()[0][0] with .first()[0] to preserve predicate pushdown and avoid list materialization
+        max_source = df_source.agg(max(col(actual_col_source))).first()[0]
 
         # Check target max
         df_target = spark.read.format("delta").load(target_table_path)
-        cols_target = [c.lower() for c in df_target.columns]
-        if target_watermark_col.lower() not in cols_target:
+        cols_target_map = {c.lower(): c for c in df_target.columns}
+        if target_watermark_col.lower() not in cols_target_map:
              return False # Cannot check, proceed
 
-        actual_col_target = [c for c in df_target.columns if c.lower() == target_watermark_col.lower()][0]
-        max_target = df_target.agg(max(col(actual_col_target))).collect()[0][0]
+        actual_col_target = cols_target_map[target_watermark_col.lower()]
+        max_target = df_target.agg(max(col(actual_col_target))).first()[0]
 
         # Debug
         # print(f"Check Skip {source_table} -> {target_table_path}: Source Max {max_source}, Target Max {max_target}")
