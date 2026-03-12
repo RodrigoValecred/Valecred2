@@ -44,6 +44,7 @@ print("Configurado!")
 
 # CELL ********************
 
+import pandas as pd
 from pyspark.sql.functions import col, lit, coalesce, sum, max, regexp_replace, concat, upper, trim, greatest
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType, DoubleType, DateType, BooleanType
 print("Funções Importadas!")
@@ -173,6 +174,29 @@ df_limites_base = df_contratos.filter(col("status") == "A").join(
     "cod_cliente",
     "left"
 )
+
+# Conta o total de linhas do DataFrame
+total_linhas = df_limites_base.count()
+
+# Conta quantos cod_cliente distintos existem
+clientes_unicos = df_limites_base.select("cod_cliente").distinct().count()
+
+# Se o total de linhas for maior que os únicos, tem duplicidade
+if total_linhas > clientes_unicos:
+    print("Sim, existe duplicidade na coluna cod_cliente.")
+else:
+    print("Não, todos os clientes são únicos.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+
 
 df_limites_cliente_agg = df_limites_base.groupBy("cod_cliente").agg(
     max("limite_fomento").alias("limite_fomento_auto"),
