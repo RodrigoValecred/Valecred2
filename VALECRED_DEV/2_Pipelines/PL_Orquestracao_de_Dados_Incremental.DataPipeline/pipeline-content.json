@@ -381,18 +381,6 @@
             "dependencyConditions": [
               "Succeeded"
             ]
-          },
-          {
-            "activity": "Esteira de Propostas",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "Verifica Titulos Enviados ao Juridico",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
           }
         ]
       },
@@ -452,7 +440,7 @@
       {
         "type": "TridentNotebook",
         "typeProperties": {
-          "notebookId": "508582b1-4e33-87a9-4785-8b882d886bb6",
+          "notebookId": "7fbd0765-4f23-beb5-4c73-911262514f08",
           "workspaceId": "00000000-0000-0000-0000-000000000000"
         },
         "policy": {
