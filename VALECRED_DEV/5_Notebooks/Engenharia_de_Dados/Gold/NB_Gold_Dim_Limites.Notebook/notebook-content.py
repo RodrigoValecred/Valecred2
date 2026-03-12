@@ -137,15 +137,6 @@ print("Preparo das bases grupo economico")
 #Grupos Economicos
 df_grupos_prep = df_grupos_economicos.withColumnRenamed("nomegrupo", "grupo_economico").withColumnRenamed("codcliente","cod_cliente")
 
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
 print("Preparo das bases limites Extra Plus")
 df_limites_ep_prep = df_limites_extra_plus.withColumn("cnpj_clean", regexp_replace(col("cnpj"), "[^0-9]", ""))
 

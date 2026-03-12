@@ -374,16 +374,22 @@
           "secureOutput": false
         },
         "name": "RelatorioLimitesVencendo",
-        "description": "Crédito",
+        "description": "Relatorio Limites Vencendo",
         "dependsOn": [
           {
-            "activity": "NB_Curadoria_Gold",
+            "activity": "Limites",
             "dependencyConditions": [
               "Succeeded"
             ]
           },
           {
-            "activity": "Limites",
+            "activity": "Esteira de Propostas",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Verifica Titulos Enviados ao Juridico",
             "dependencyConditions": [
               "Succeeded"
             ]
