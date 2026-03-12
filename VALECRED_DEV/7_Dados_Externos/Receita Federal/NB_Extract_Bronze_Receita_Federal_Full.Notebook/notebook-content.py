@@ -121,10 +121,7 @@ def safe_extract(zip_ref, path):
 
         safe_members.append(member)
 
-    try:
-        zip_ref.extractall(path, members=safe_members)
-    except Exception as e:
-        print(f"Erro ao extrair {zip_ref.filename}: {e}")
+    zip_ref.extractall(path, members=safe_members)
 
 def extract_file(filename, base_dir_download, base_dir_extract):
     local_zip_path = os.path.join(base_dir_download, filename)
