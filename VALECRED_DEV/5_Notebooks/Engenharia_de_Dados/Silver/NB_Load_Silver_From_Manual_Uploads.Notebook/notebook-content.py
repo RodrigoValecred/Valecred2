@@ -46,6 +46,7 @@
 # CELL ********************
 
 %pip install openpyxl
+python -m pip install --upgrade pip
 
 # METADATA ********************
 

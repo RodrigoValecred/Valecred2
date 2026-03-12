@@ -41,8 +41,6 @@ from pyspark.sql.functions import col, regexp_extract, regexp_replace, decode, c
 # CELL ********************
 
 # 2. Leitura da Camada Bronze
-# df_bronze = spark.read.format("delta").load("Tables/cad_contratos_clientes") 
-# ou via SQL como você fez:
 df_bronze = spark.sql("SELECT * FROM LH_Bronze.cad_contratos_clientes WHERE STATUS = 'A'")
 
 # METADATA ********************
@@ -142,9 +140,6 @@ df_final = df_silver.select(
     coalesce(converter_moeda_br("raw_limite_extra_formal"), lit(0.0)).alias("limite_extra_desconto_formal"),
     coalesce(converter_moeda_br("raw_limite_extra_informal"), lit(0.0)).alias("limite_extra_desconto_informal")
 ).withColumn("dt_processamento_silver", current_timestamp())
-
-# Exibir
-display(df_final)
 
 # METADATA ********************
 
