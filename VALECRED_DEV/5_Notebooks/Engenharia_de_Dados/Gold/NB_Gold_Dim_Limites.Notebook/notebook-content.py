@@ -146,18 +146,6 @@ df_limites_ep_clientes = df_limites_ep_prep.join(
     "inner"
 )
 
-df_limites_ep_grupo = df_limites_ep_clientes.join(
-    df_grupos_prep,
-    "cod_cliente",
-    "inner"
-)
-
-df_limites_grupo_dedup = df_limites_ep_grupo.groupBy("grupo_economico").agg(
-    max("limite").alias("limite_grupo_manual"),
-    max("limite_extra").alias("limite_extra_grupo"),
-    max("limite_plus").alias("limite_plus_grupo")
-)
-
 print("Bases Prontas")
 
 # METADATA ********************
@@ -176,7 +164,7 @@ df_limites_obs_select = df_limites_obs_silver.select(
     col("limite_geral").alias("limite_geral_obs"),
     col("limite_intercompany").alias("limite_intercompany_obs"),
     col("limite_extra_desconto_formal").alias("limite_extra_desconto_formal_obs"),
-    col("limite_extra_desconto_informal").alias("limite_Extra_desconto_informal_obs"),
+    col("limite_extra_desconto_informal").alias("limite_extra_desconto_informal_obs"),
     col("OBS_TRATADA").alias("observacoes_contrato_obs")
 )
 
@@ -184,57 +172,69 @@ df_limites_base = df_contratos.filter(col("status") == "A").join(
     df_limites_obs_select,
     "cod_cliente",
     "left"
-    ) \
-    .select(
-        col("cod_cliente"),
-        coalesce(col("limite_fomento"), lit(0)).alias("limite_fomento"),
-        coalesce(col("limite_comissaria"), lit(0)).alias("limite_comissaria"),
-        col("validade_limite"),
-        col("status").alias("status_ativo_contrato"),
-        coalesce(col("limite_geral_obs"), lit(0)).alias("limite_geral"),
-        coalesce(col("limite_intercompany_obs"), lit(0)).alias("limite_intercompany"),
-        coalesce(col("limite_extra_desconto_formal_obs"), lit(0)).alias("limite_extra_desconto_formal"),
-        coalesce(col("limite_extra_desconto_informal_obs"), lit(0)).alias("limite_extra_desconto_informal"),
-        col("observacoes_contrato_obs").alias("observacoes_contrato")
-    )
+)
 
-df_limites_base_grp = df_limites_base.join(df_grupos_prep, "cod_cliente", "left")
-
-df_com_grupo = df_limites_base_grp.filter(col("grupo_economico").isNotNull())
-df_sem_grupo = df_limites_base_grp.filter(col("grupo_economico").isNull())
-
-df_grupo_contract_agg = df_com_grupo.groupBy("grupo_economico").agg(
+df_limites_cliente_agg = df_limites_base.groupBy("cod_cliente").agg(
     max("limite_fomento").alias("limite_fomento_auto"),
     max("limite_comissaria").alias("limite_comissaria_auto"),
     max("validade_limite").alias("validade_limite_auto"),
-    max("limite_geral").alias("limite_geral_auto"),
-    max("limite_intercompany").alias("limite_intercompany_auto"),
-    max("limite_extra_desconto_formal").alias("limite_extra_desconto_formal_auto"),
-    max("limite_extra_desconto_informal").alias("limite_extra_desconto_informal_auto"),
-    max("observacoes_contrato").alias("observacoes_contrato_auto"),
-    max("status_ativo_contrato").alias("status_ativo_contrato_auto")
+    max("status").alias("status_ativo_contrato_auto"),
+    max("limite_geral_obs").alias("limite_geral_auto"),
+    max("limite_intercompany_obs").alias("limite_intercompany_auto"),
+    max("limite_extra_desconto_formal_obs").alias("limite_extra_desconto_formal_auto"),
+    max("limite_extra_desconto_informal_obs").alias("limite_extra_desconto_informal_auto"),
+    max("observacoes_contrato_obs").alias("observacoes_contrato_auto")
 )
 
-df_grupo_final = df_grupo_contract_agg.join(
-    df_limites_grupo_dedup,
-    "grupo_economico",
+df_cliente_all_limits = df_limites_cliente_agg.join(
+    df_limites_ep_clientes.select(
+        "cod_cliente",
+        col("limite").alias("limite_grupo_manual"),
+        col("limite_extra").alias("limite_extra_ep"),
+        col("limite_plus").alias("limite_plus_ep")
+    ),
+    "cod_cliente",
     "full_outer"
-) \
-    .select(
-        col("grupo_economico").alias("nome_entidade"),
-        lit("GRUPO").alias("tipo_entidade"),
-        concat(lit("G-"), upper(trim(col("grupo_economico")))).alias("id_limite_credito"),
-        greatest(coalesce(col("limite_fomento_auto"), lit(0)), coalesce(col("limite_grupo_manual"), lit(0))).alias("limite_fomento"),
-        coalesce(col("limite_comissaria_auto"), lit(0)).alias("limite_comissaria"),
-        coalesce(col("limite_extra_grupo"), lit(0)).alias("limite_extra"),
-        coalesce(col("limite_plus_grupo"), lit(0)).alias("limite_plus"),
-        col("validade_limite_auto").alias("validade_limite"),
-        coalesce(col("limite_geral_auto"), lit(0)).alias("limite_geral"),
-        coalesce(col("limite_intercompany_auto"), lit(0)).alias("limite_intercompany"),
-        coalesce(col("limite_extra_desconto_formal_auto"), lit(0)).alias("limite_extra_desconto_formal"),
-        coalesce(col("limite_extra_desconto_informal_auto"), lit(0)).alias("limite_extra_desconto_informal"),
-        col("observacoes_contrato_auto").alias("observacoes_contrato")
-    ).filter(col("nome_entidade").isNotNull())
+)
+
+df_cliente_com_grupo = df_cliente_all_limits.join(
+    df_grupos_prep,
+    "cod_cliente",
+    "left"
+)
+
+df_com_grupo = df_cliente_com_grupo.filter(col("grupo_economico").isNotNull())
+df_sem_grupo = df_cliente_com_grupo.filter(col("grupo_economico").isNull())
+
+df_grupo_contract_agg = df_com_grupo.groupBy("grupo_economico").agg(
+    max("limite_fomento_auto").alias("limite_fomento_auto"),
+    max("limite_comissaria_auto").alias("limite_comissaria"),
+    max("limite_grupo_manual").alias("limite_grupo_manual"),
+    max("limite_extra_ep").alias("limite_extra"),
+    max("limite_plus_ep").alias("limite_plus"),
+    max("validade_limite_auto").alias("validade_limite"),
+    max("limite_geral_auto").alias("limite_geral"),
+    max("limite_intercompany_auto").alias("limite_intercompany"),
+    max("limite_extra_desconto_formal_auto").alias("limite_extra_desconto_formal"),
+    max("limite_extra_desconto_informal_auto").alias("limite_extra_desconto_informal"),
+    max("observacoes_contrato_auto").alias("observacoes_contrato")
+)
+
+df_grupo_final = df_grupo_contract_agg.select(
+    col("grupo_economico").alias("nome_entidade"),
+    lit("GRUPO").alias("tipo_entidade"),
+    concat(lit("G-"), upper(trim(col("grupo_economico")))).alias("id_limite_credito"),
+    greatest(coalesce(col("limite_fomento_auto"), lit(0)), coalesce(col("limite_grupo_manual"), lit(0))).alias("limite_fomento"),
+    coalesce(col("limite_comissaria"), lit(0)).alias("limite_comissaria"),
+    coalesce(col("limite_extra"), lit(0)).alias("limite_extra"),
+    coalesce(col("limite_plus"), lit(0)).alias("limite_plus"),
+    col("validade_limite"),
+    coalesce(col("limite_geral"), lit(0)).alias("limite_geral"),
+    coalesce(col("limite_intercompany"), lit(0)).alias("limite_intercompany"),
+    coalesce(col("limite_extra_desconto_formal"), lit(0)).alias("limite_extra_desconto_formal"),
+    coalesce(col("limite_extra_desconto_informal"), lit(0)).alias("limite_extra_desconto_informal"),
+    col("observacoes_contrato")
+).filter(col("nome_entidade").isNotNull())
 
 df_nomes_clientes = df_clientes_staging.join(
     df_geral_pf_pj_limpa,
@@ -245,29 +245,28 @@ df_nomes_clientes = df_clientes_staging.join(
 df_sem_grupo_named = df_sem_grupo.join(
     df_nomes_clientes,
     "cod_cliente",
-    "inner")
+    "inner"
+)
 
 df_cliente_final = df_sem_grupo_named.select(
     coalesce(col("nome"), concat(lit("CLIENTE "), col("cod_cliente"))).alias("nome_entidade"),
     lit("CLIENTE").alias("tipo_entidade"),
     concat(lit("C-"), col("cod_cliente")).alias("id_limite_credito"),
-    col("limite_fomento"),
-    col("limite_comissaria"),
-    lit(0.0).alias("limite_extra"),
-    lit(0.0).alias("limite_plus"),
-    col("validade_limite"),
-    col("limite_geral"),
-    col("limite_intercompany"),
-    col("limite_extra_desconto_formal"),
-    col("limite_extra_desconto_informal"),
-    col("observacoes_contrato")
+    greatest(coalesce(col("limite_fomento_auto"), lit(0)), coalesce(col("limite_grupo_manual"), lit(0))).alias("limite_fomento"),
+    coalesce(col("limite_comissaria_auto"), lit(0)).alias("limite_comissaria"),
+    coalesce(col("limite_extra_ep"), lit(0)).alias("limite_extra"),
+    coalesce(col("limite_plus_ep"), lit(0)).alias("limite_plus"),
+    col("validade_limite_auto").alias("validade_limite"),
+    coalesce(col("limite_geral_auto"), lit(0)).alias("limite_geral"),
+    coalesce(col("limite_intercompany_auto"), lit(0)).alias("limite_intercompany"),
+    coalesce(col("limite_extra_desconto_formal_auto"), lit(0)).alias("limite_extra_desconto_formal"),
+    coalesce(col("limite_extra_desconto_informal_auto"), lit(0)).alias("limite_extra_desconto_informal"),
+    col("observacoes_contrato_auto").alias("observacoes_contrato")
 )
 
 df_fato_limites = df_grupo_final.unionByName(df_cliente_final, allowMissingColumns=True) \
     .withColumn("limite_total_calculado",
-        coalesce(col("limite_fomento"), lit(0)) +
-        coalesce(col("limite_extra"), lit(0)) +
-        coalesce(col("limite_plus"), lit(0))
+        col("limite_fomento") + col("limite_extra") + col("limite_plus")
     )
 
 print("Base Pronta")
