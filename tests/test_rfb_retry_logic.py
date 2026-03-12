@@ -20,9 +20,6 @@ sys.modules['pyspark.sql'] = MagicMock()
 sys.modules['pyspark.sql.functions'] = MagicMock()
 sys.modules['pyspark.sql.types'] = MagicMock()
 sys.modules['notebookutils'] = MagicMock()
-# Mock requests since it's missing in the test environment
-sys.modules['requests'] = MagicMock()
-import requests
 
 # Redefine logic here because importing from notebook content is tricky
 # Updated to match the refactored logic in the notebook (headers + HEAD check + new mirrors + zip check)
