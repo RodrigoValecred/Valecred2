@@ -471,30 +471,6 @@
             ]
           }
         ]
-      },
-      {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "0a187407-bc9c-92fe-4288-61e54700af22",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Empresas_Target",
-        "description": "NB_Gold_Empresas_RFB_Target",
-        "dependsOn": [
-          {
-            "activity": "Empresas",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
       }
     ]
   }
