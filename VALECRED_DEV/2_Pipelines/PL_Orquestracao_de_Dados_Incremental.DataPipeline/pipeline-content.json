@@ -377,7 +377,19 @@
         "description": "Crédito",
         "dependsOn": [
           {
-            "activity": "NB_Curadoria_Gold",
+            "activity": "Esteira de Propostas",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Verifica Titulos Enviados ao Juridico",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "Observacoes_Contratos",
             "dependencyConditions": [
               "Succeeded"
             ]
