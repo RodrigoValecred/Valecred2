@@ -78,7 +78,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
         transform_esteira_dates = local_scope['transform_esteira_dates']
 
         # Run the function
-        df_max_res, df_min_res = transform_esteira_dates(mock_df_esteira, status_mapping)
+        df_combined_res = transform_esteira_dates(mock_df_esteira, status_mapping)
 
         # Assertions
 
@@ -96,33 +96,24 @@ class TestTransformEsteiraDates(unittest.TestCase):
         self.assertEqual(agg_args[0], "max_aliased")
         self.assertEqual(agg_args[1], "min_aliased")
 
-        # 3. Verify Selection of Max DataFrame
-        # First call to select
-        self.assertEqual(mock_combined.select.call_count, 2)
-
-        call_args_max = mock_combined.select.call_args_list[0][0][0]
-        # Check if correct columns are selected
-        # We expect [col("cod_cliente")] + [col("PROPOSTA_max").alias("pivot_proposta"), ...]
+        # 3. Verify Selection of Combined DataFrame
+        self.assertEqual(mock_combined.select.call_count, 1)
 
         # Since we mocked col(), we need to verify the mocks
         self.assertIn("cod_cliente", col_mocks)
         self.assertIn("PROPOSTA_max", col_mocks)
         self.assertIn("DIR COMERCIAL_max", col_mocks)
+        self.assertIn("PROPOSTA_min", col_mocks)
+        self.assertIn("DIR COMERCIAL_min", col_mocks)
 
         # Verify alias calls on the mocks
         col_mocks["PROPOSTA_max"].alias.assert_called_with("pivot_proposta")
         col_mocks["DIR COMERCIAL_max"].alias.assert_called_with("pivot_dir_comercial")
+        col_mocks["PROPOSTA_min"].alias.assert_called_with("min_proposta")
+        col_mocks["DIR COMERCIAL_min"].alias.assert_called_with("min_dir_comercial")
 
-        # 4. Verify Selection of Min DataFrame
-        call_args_min = mock_combined.select.call_args_list[1][0][0]
-
-        self.assertIn("PROPOSTA_min", col_mocks)
-
-        col_mocks["PROPOSTA_min"].alias.assert_called_with("PROPOSTA")
-
-        # 5. Verify Returns
-        self.assertEqual(df_max_res, mock_df_max)
-        self.assertEqual(df_min_res, mock_df_min)
+        # 4. Verify Returns
+        self.assertEqual(df_combined_res, mock_df_max)
 
 if __name__ == '__main__':
     unittest.main()

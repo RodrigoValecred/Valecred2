@@ -653,7 +653,7 @@ df_titulos_candidates = df_operacoes_candidates.join(df_titulos_limpa, on="cod_o
 # Only join DANFE keys for relevant titles
 df_matches = df_titulos_candidates.join(df_chave_danfe, df_titulos_candidates.cod_titulo == df_chave_danfe.CODTITULO, how="inner")
 
-df_vcount = df_matches.groupBy("cod_operacao").count()
+df_vcount = df_matches.select("cod_operacao").distinct().withColumn("has_match", lit(True))
 df_com_vcount = df_operacoes_com_gerente.join(df_vcount, on="cod_operacao", how="left")
 
 
@@ -704,7 +704,7 @@ df_ops_enrich_step1 = df_ops \
 df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
     "operacao_informal",
     when(
-        ((col("count").isNull()) | (col("count") == 0)) & (col("cod_empresa") == 14) & (col("nota_servico") == 'N'),
+        col("has_match").isNull() & (col("cod_empresa") == 14) & (col("nota_servico") == 'N'),
         lit(True)
     ).otherwise(lit(False))
 ).withColumn("data_deferimento", to_date(col("data_analise"))) \
@@ -744,7 +744,7 @@ df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
  .withColumn("tarifa_de_recompra", col("tarifa_recompra") * col("n_docs_recompra")) \
  .withColumn("tarifa_de_titulos", col("n_docs") * col("tarifa")) \
  .na.fill(0, subset=["tac", "valor_taxa_adm", "valor_advalorem", "total_de_tarifas", "n_docs_recompra", "valor_pendencias"]) \
- .drop("count").cache()
+ .drop("has_match").cache()
 
 print("DataFrames intermediários criados e cacheados.")
 
@@ -1957,8 +1957,8 @@ df_carteira_ativa = df_titulos_carteira.filter(
 )
 
 # Valor Total da Carteira
-total_portfolio_row = df_carteira_ativa.agg(sum("valor_devido").alias("total")).collect()
-total_portfolio_value = total_portfolio_row[0]["total"] if total_portfolio_row else 0
+total_portfolio_row = df_carteira_ativa.agg(sum("valor_devido").alias("total")).first()
+total_portfolio_value = total_portfolio_row["total"] if total_portfolio_row and total_portfolio_row["total"] else 0
 
 if total_portfolio_value > 0:
     # --- HHI Cedente ---
@@ -1968,8 +1968,8 @@ if total_portfolio_value > 0:
         .withColumn("share_pct", (col("valor_cedente") / lit(total_portfolio_value)) * 100)
 
     # HHI = Sum(s^2)
-    hhi_cedente_row = df_cedente_shares.select(sum(col("share_pct") * col("share_pct"))).collect()
-    hhi_cedente = hhi_cedente_row[0][0] if hhi_cedente_row else 0.0
+    hhi_cedente_row = df_cedente_shares.select(sum(col("share_pct") * col("share_pct")).alias("hhi")).first()
+    hhi_cedente = hhi_cedente_row["hhi"] if hhi_cedente_row and hhi_cedente_row["hhi"] else 0.0
 
     # --- HHI Sacado ---
     # s_j = (Volume Sacado / Total) * 100
@@ -1977,8 +1977,8 @@ if total_portfolio_value > 0:
         .agg(sum("valor_devido").alias("valor_sacado")) \
         .withColumn("share_pct", (col("valor_sacado") / lit(total_portfolio_value)) * 100)
 
-    hhi_sacado_row = df_sacado_shares.select(sum(col("share_pct") * col("share_pct"))).collect()
-    hhi_sacado = hhi_sacado_row[0][0] if hhi_sacado_row else 0.0
+    hhi_sacado_row = df_sacado_shares.select(sum(col("share_pct") * col("share_pct")).alias("hhi")).first()
+    hhi_sacado = hhi_sacado_row["hhi"] if hhi_sacado_row and hhi_sacado_row["hhi"] else 0.0
 else:
     hhi_cedente = 0.0
     hhi_sacado = 0.0
