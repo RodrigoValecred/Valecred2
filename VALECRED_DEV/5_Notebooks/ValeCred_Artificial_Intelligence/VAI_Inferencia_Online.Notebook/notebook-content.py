@@ -129,9 +129,14 @@ print("2. Aplicando IA de forma distribuída...")
 
 # Lista de Features (Backup e Análise)
 features_backup = [
-    'vlr_total_sacado', 'prazo_medio_titulos', 'taxa', 
-    'exposicao_acumulada', 'concentracao_operacao', 'qtd_titulos',
-    'cod_produto_ia', 'ratio_cobertura_liquidez'
+    'vlr_total_sacado',
+    'prazo_medio_titulos',
+    'taxa',
+    'qtd_titulos',
+    'exposicao_acumulada',
+    'concentracao_operacao',
+    'cod_produto_ia',
+    'ratio_cobertura_liquidez'
 ]
 
 features_para_analisar = [
@@ -180,7 +185,7 @@ try:
     # MLflow spark_udf mapeia colunas por nome se passado como struct, ou args posicionais.
     # O uso comum é predict_udf(*cols). Vamos passar features_backup.
     cols_input = [F.col(c) for c in features_backup]
-    df_scored = df_scored.withColumn("anomaly_score", predict_udf(*cols_input))
+    df_scored = df_scored.withColumn("anomaly_score", predict_udf(F.struct(*cols_input)))
 
     print("🚀 V.A.I. aplicada com sucesso (Distribuído)!")
 
