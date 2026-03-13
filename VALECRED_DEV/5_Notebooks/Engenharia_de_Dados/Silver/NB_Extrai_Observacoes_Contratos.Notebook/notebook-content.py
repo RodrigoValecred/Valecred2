@@ -55,13 +55,24 @@ df_bronze = spark.sql("SELECT * FROM LH_Bronze.cad_contratos_clientes WHERE STAT
 # 3. Definição das Regex "Case Insensitive" ( Ignora Maiúscula/Minúscula)
 # O código (?i) no começo torna a busca insensível a caixa alta/baixa
 # ReDoS Mitigation: Use bounded quantifier .{0,200}? instead of unbounded .*? to prevent excessive backtracking
+#
+# --- Legenda dos Símbolos Regex Utilizados ---
+# (?i)       : Torna a busca insensível a maiúsculas/minúsculas (case insensitive).
+# \s+        : Corresponde a um ou mais espaços em branco (espaço, tabulação, quebra de linha).
+# (?:...|...) : Grupo de não-captura usado para alternativas (ex: "A" ou "B" sem salvar a correspondência separadamente).
+# .{0,200}?  : Corresponde a qualquer caractere (exceto quebras de linha) entre 0 e 200 vezes. O '?' o torna "preguiçoso" (captura o mínimo possível).
+# \b         : Fronteira de palavra (word boundary). Garante que a palavra seja exata (ex: "formal" e não "informal").
+# \s*        : Corresponde a zero ou mais espaços em branco.
+# ([\d\.,]+) : Grupo de captura principal. Captura um ou mais dígitos (\d), pontos (\.) ou vírgulas (,).
+# ---------------------------------------------
+
 pat_geral       = r"(?i)Limite\s+(?:Geral|Total).{0,200}?R\$\s*([\d\.,]+)"
 pat_comissaria  = r"(?i)Comiss.ria Simples.{0,200}?R\$\s*([\d\.,]+)"
 pat_inter       = r"(?i)Intercompany.{0,200}?R\$\s*([\d\.,]+)"
 pat_fomento     = r"(?i)Fomento.{0,200}?R\$\s*([\d\.,]+)"
 pat_plus        = r"(?i)Limite\s+EXTRA\s+PLUS.{0,200}?R\$\s*([\d\.,]+)"
-pat_extra_formal   = r"(?i)Limite\s+extra\s+desconto.{0,200}?\bformal.{0,200}?R\$\s*([\d\.,]+)"
-pat_extra_informal = r"(?i)Limite\s+extra\s+desconto.{0,200}?\binformal.{0,200}?R\$\s*([\d\.,]+)"
+pat_extra_formal   = r"(?i)Limite\s+(?:extra\s+desconto|NO).{0,200}?\bformal.{0,200}?R\$\s*([\d\.,]+)"
+pat_extra_informal = r"(?i)Limite\s+(?:extra\s+desconto|NO).{0,200}?\binformal.{0,200}?R\$\s*([\d\.,]+)"
 
 # METADATA ********************
 
