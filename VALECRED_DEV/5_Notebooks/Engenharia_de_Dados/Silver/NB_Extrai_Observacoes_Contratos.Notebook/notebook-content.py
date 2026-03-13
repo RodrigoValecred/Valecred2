@@ -79,8 +79,30 @@ df_silver = df_bronze.withColumn(
     "obs_decodificada", 
     decode(col("OBSERVACOES"), "ISO-8859-1") 
 ).withColumn(
+    # Passo Auxiliar: Criar um texto formatado para leitura humana no Power BI (OBS_TRATADA)
+    # Retém quebras de linha existentes e formata tópicos e seções
+    "texto_formatado",
+    trim(
+        regexp_replace(
+            regexp_replace(
+                regexp_replace(
+                    regexp_replace(
+                        regexp_replace(
+                            col("obs_decodificada"),
+                            "[\t\u00A0]+", " "
+                        ),
+                        r"\s+-\s+", "\n- "
+                    ),
+                    r"(?i)(OBSERVAÇÕES PARA AS OPERAÇÕES:)", "\n\n$1\n"
+                ),
+                r"(?i)(CONDIÇÕES PARA O GRUPO)", "\n\n$1\n"
+            ),
+            r"(?i)(#STATUSDIRETORIA)", "\n\n$1"
+        )
+    )
+).withColumn(
     # Passo B: Limpar (Igual ao REPLACE \r e \n por espaço)
-    # Adicionando replace para NBSP (\u00A0) e tabulações para garantir o match
+    # Adicionando replace para NBSP (\u00A0) e tabulações para garantir o match (Usado para Regex)
     "texto_limpo", 
     trim(regexp_replace(col("obs_decodificada"), "[\r\n\t\u00A0]+", " "))
 ).withColumn(
@@ -130,7 +152,7 @@ def converter_moeda_br(col_name):
 # 6. Seleção Final e Conversão
 df_final = df_silver.select(
     col("CODCLIENTE"),
-    col("texto_limpo").alias("OBS_TRATADA"), 
+    col("texto_formatado").alias("OBS_TRATADA"),
     # Se for nulo, coloca 0.0
     coalesce(converter_moeda_br("raw_limite_geral"), lit(0.0)).alias("limite_geral"),
     coalesce(converter_moeda_br("raw_limite_comissaria"), lit(0.0)).alias("limite_comissaria"),
