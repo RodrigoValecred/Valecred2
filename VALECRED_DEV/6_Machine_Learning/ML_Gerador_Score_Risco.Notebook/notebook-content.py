@@ -178,6 +178,12 @@ def calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_feat
     tipos_excluir = ['RE','RC','PR','AB','AM','LB','PB']
     df_cliente_spark = df_cliente_spark.filter(~col('TTO_OPERACAO').isin(tipos_excluir))
 
+    # ⚡ Bolt Optimization: Enable PyArrow for faster PySpark to Pandas conversion
+    # 💡 What: Sets spark.sql.execution.arrow.pyspark.enabled to true before calling .toPandas().
+    # 🎯 Why: Converting large DataFrames from Spark to Pandas without PyArrow requires serializing all data row-by-row in Python, which is extremely slow and memory intensive. PyArrow uses an efficient columnar memory format that drastically speeds up this conversion.
+    # 📊 Impact: Significantly speeds up the execution time of the .toPandas() operation and reduces driver memory pressure.
+    # 🔬 Measurement: Profiling will show a reduction in data serialization time during the collection phase on the driver.
+    spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
     df_cliente_pandas = df_cliente_spark.toPandas()
 
     if df_cliente_pandas.empty:
