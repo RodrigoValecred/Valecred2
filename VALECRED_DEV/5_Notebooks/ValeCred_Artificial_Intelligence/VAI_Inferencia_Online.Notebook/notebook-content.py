@@ -212,9 +212,21 @@ for c in features_para_analisar:
 stats_row = df_scored.select(*exprs).collect()[0]
 stats_dict = stats_row.asDict()
 
+def compute_reason_logic(inadimplencia, score):
+    if inadimplencia > 0:
+        return "Histórico de Inadimplência"
+    if score is not None and score < 500:
+        return "Score de Crédito Baixo"
+    return "Aprovado"
+
+@udf(returnType=StringType())
+def compute_reason_udf(*cols):
+    if len(cols) < 2: return "N/A"
+    return compute_reason_logic(cols[0], cols[1])
+
 # Definir Pandas UDF para lógica row-wise do XAI
 @pandas_udf(StringType())
-def compute_reason_udf(*cols):
+def compute_reason_xai_udf(*cols):
     # cols: features + anomaly_score
     features_data = cols[:-1]
     anomaly_score = cols[-1]
@@ -254,7 +266,7 @@ def compute_reason_udf(*cols):
 
 # Aplicar XAI UDF
 xai_input_cols = [F.col(c) for c in features_para_analisar] + [F.col("anomaly_score")]
-df_final = df_scored.withColumn("motivo_principal", compute_reason_udf(*xai_input_cols))
+df_final = df_scored.withColumn("motivo_principal", compute_reason_xai_udf(*xai_input_cols))
 
 # ==============================================================================
 # 3. SALVAR RESULTADO NA TV
