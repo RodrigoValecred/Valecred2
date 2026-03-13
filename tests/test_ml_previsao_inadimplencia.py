@@ -120,5 +120,83 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
         self.assertFalse(isinstance(call_args['feature_A'].dtype, pd.CategoricalDtype))
         self.assertFalse(isinstance(call_args['feature_B'].dtype, pd.CategoricalDtype))
 
+    def test_predict_proba_udf_feature_handling(self):
+        """
+        Tests how the UDF handles missing values in features (np.nan, None).
+        Ensures the data is correctly constructed, cast down, and passed to predict_proba.
+        """
+        # --- Mocks ---
+        mock_features = ['feature_A', 'CODSTATUSCLIENTE', 'CODRATING_CEDENTE', 'feature_B']
+        mock_features_broadcast = MagicMock()
+        mock_features_broadcast.value = mock_features
+
+        mock_model = MagicMock()
+        # Mock predict_proba to return array for 2 rows
+        mock_model.predict_proba.return_value = np.array([
+            [0.4, 0.6],  # Row 1 (all nans/none): prob_1 = 0.6
+            [0.9, 0.1]   # Row 2 (mixed): prob_1 = 0.1
+        ])
+        mock_model_broadcast = MagicMock()
+        mock_model_broadcast.value = mock_model
+
+        def mock_pandas_udf(*args, **kwargs):
+            def decorator(f):
+                return f
+            return decorator
+
+        mock_double_type = MagicMock()
+
+        # --- Execution Context ---
+        exec_globals = {
+            'pandas_udf': mock_pandas_udf,
+            'DoubleType': lambda: mock_double_type,
+            'pd': pd,
+            'features_broadcast': mock_features_broadcast,
+            'model_broadcast': mock_model_broadcast
+        }
+
+        local_scope = {}
+        try:
+            exec(self.func_source, exec_globals, local_scope)
+        except Exception as e:
+            self.fail(f"Failed to execute extracted function source: {e}")
+
+        predict_proba_udf = local_scope['predict_proba_udf']
+
+        # --- Prepare Input Data ---
+        # We test with rows containing missing values
+        # Row 1: Entirely np.nan or None
+        # Row 2: Mixed values with some missing
+        col_feature_A = pd.Series([np.nan, 20.0])
+        col_cod_status = pd.Series([None, 'Inactive'])
+        col_cod_rating = pd.Series([np.nan, None])
+        col_feature_B = pd.Series([None, np.nan])
+
+        # --- Run the UDF ---
+        result = predict_proba_udf(col_feature_A, col_cod_status, col_cod_rating, col_feature_B)
+
+        # --- Assertions ---
+        expected_probs = pd.Series([0.6, 0.1])
+        pd.testing.assert_series_equal(result, expected_probs)
+
+        # Verify Model Call
+        mock_model.predict_proba.assert_called_once()
+        call_args = mock_model.predict_proba.call_args[0][0] # First arg is X
+
+        self.assertIsInstance(call_args, pd.DataFrame)
+
+        # Downcasting check: Numeric columns containing nans could be cast to float32
+        self.assertEqual(call_args['feature_A'].dtype, 'float32', "float64 columns should be downcast to float32")
+        self.assertEqual(call_args['feature_B'].dtype, 'float32', "float64 columns should be downcast to float32")
+
+        # Missing values check
+        self.assertTrue(pd.isna(call_args.iloc[0, 0]), "np.nan should be preserved")
+        self.assertTrue(pd.isna(call_args.iloc[0, 1]), "None should be preserved as missing value")
+
+        # Categorical Conversion check
+        self.assertTrue(isinstance(call_args['CODSTATUSCLIENTE'].dtype, pd.CategoricalDtype))
+        self.assertTrue(isinstance(call_args['CODRATING_CEDENTE'].dtype, pd.CategoricalDtype))
+
+
 if __name__ == '__main__':
     unittest.main()
