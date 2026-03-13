@@ -78,10 +78,9 @@ class TestSafeExtract(unittest.TestCase):
         mock_zip_ref.filename = "test_error.zip"
         mock_zip_ref.extractall.side_effect = Exception("Mock extraction error")
 
-        with patch('builtins.print') as mock_print:
-            # Call safe_extract which should catch the exception and print it
+        # Call safe_extract which should bubble up the exception
+        with self.assertRaisesRegex(Exception, "Mock extraction error"):
             safe_extract(mock_zip_ref, self.output_dir)
-            mock_print.assert_called_with("Erro ao extrair test_error.zip: Mock extraction error")
 
     def _test_safe_extract(self, notebook_path):
         print(f"Testing safe_extract from {notebook_path}")
