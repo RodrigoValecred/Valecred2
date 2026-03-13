@@ -130,7 +130,7 @@ class Colors:
 def draw_risk_meter(score, width=30):
     """Draws an ASCII risk meter."""
     # Handle NaN (Not a Number)
-    if score != score:
+    if score is None or score != score:
         return f"{Colors.YELLOW}[DADOS INSUFICIENTES]{Colors.RESET}"
 
     score = max(0, min(1, score)) # Clamp between 0 and 1
