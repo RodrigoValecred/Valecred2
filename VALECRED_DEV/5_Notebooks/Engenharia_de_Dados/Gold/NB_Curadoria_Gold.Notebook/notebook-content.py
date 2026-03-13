@@ -1041,6 +1041,7 @@ except Exception as e:
 
 # Classificação de Risco e Atraso
 df_classificacao = df_dates_final.withColumn("dias_atraso", datediff(current_date(), col("data_vencimento_util"))) \
+    .withColumn("titulo_vencido", col("data_vencimento_util") < current_date()) \
     .withColumn("status_risco", get_status_risco_expr())
 
 df_status_1 = df_classificacao.withColumn("status_deferimento", when((col("aceito") == "S") & (col("status_aceite") == "A") & (col("status_analise") == "D"), "Sim").otherwise("Não"))
@@ -1068,7 +1069,7 @@ df_fato_titulos_final = df_ordem.select(
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany",
     col("liquidacao"), col("valor_devido"), col("motivo"),
-    col("status_risco"), col("dias_atraso"), col("status_enviado_juridico"),
+    col("status_risco"), col("dias_atraso"), col("titulo_vencido"), col("status_enviado_juridico"),
     col("custo_financeiro"),
     col("spread"), 
     col("comissao_spread"),
