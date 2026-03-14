@@ -57,9 +57,17 @@ def resolve_columns(df, target_cols):
     Se não existir, renomeia a '_op' para o nome alvo.
     """
     df_resolved = df
+
+    # ⚡ Bolt: Cache DataFrame columns to avoid repeated RPC calls in loop
+    # 💡 What: Cached `df.columns` into a Python set before looping over `target_cols`.
+    # 🎯 Why: Calling `.columns` on a PySpark DataFrame inside a loop is extremely inefficient due to repeated RPC calls to the driver. A set provides O(1) fast local lookups.
+    # 📊 Impact: Removing repeated metadata fetching prevents severe execution delays, especially for DataFrames with many columns.
+    # 🔬 Measurement: O(2 * len(target_cols)) remote fetches reduced to O(1) fetch and O(2 * len(target_cols)) local hash lookups.
+    df_cols = set(df.columns)
+
     for col_name in target_cols:
         col_op = f"{col_name}_op"
-        if col_name in df.columns:
+        if col_name in df_cols:
             # Se existe (ex: nbordero na fato prorrogacao), usamos coalesce para garantir preenchimento caso nulo,
             # mas priorizando o valor do evento.
 
@@ -67,7 +75,7 @@ def resolve_columns(df, target_cols):
             col_target = when(trim(col(col_name)) == "", None).otherwise(col(col_name))
 
             df_resolved = df_resolved.withColumn(col_name, coalesce(col_target, col(col_op)))
-        elif col_op in df.columns:
+        elif col_op in df_cols:
             # Se não existe na fato, pegamos do map (op)
             df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
     return df_resolved
