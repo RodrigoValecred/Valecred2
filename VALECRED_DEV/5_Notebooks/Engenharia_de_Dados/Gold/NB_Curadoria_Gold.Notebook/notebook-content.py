@@ -1721,8 +1721,6 @@ df_final = calculate_funnel_dates(df_funnel) \
 
 # Optimization: Cache df_final before splitting to avoid recomputing the massive join DAG multiple times
 df_final.cache()
-# Removed expensive count() action to avoid unnecessary eager evaluation
-# print(f"Total de registros na dim_clientes (Intermediário): {df_final.count()}")
 
 # -------------------------------------------------------------
 # Refatoração: Separação da Tabela de Score de Clientes
