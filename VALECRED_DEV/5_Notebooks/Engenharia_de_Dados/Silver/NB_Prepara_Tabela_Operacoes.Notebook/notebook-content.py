@@ -114,9 +114,6 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         actual_col_target = cols_target_map[target_watermark_col.lower()]
         max_target = df_target.agg(max(col(actual_col_target))).first()[0]
 
-        # Debug
-        # print(f"Check Skip {source_table} -> {target_table_path}: Source Max {max_source}, Target Max {max_target}")
-
         if max_source and max_target and max_source <= max_target:
             return True # Source is not newer than target
         return False
