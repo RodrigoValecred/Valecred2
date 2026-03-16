@@ -1,54 +1,9 @@
 # Fabric notebook source
 
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {
-# META     "lakehouse": {
-# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Bronze",
-# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
-# META       "known_lakehouses": [
-# META         {
-# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
-# META         },
-# META         {
-# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
-# META         }
-# META       ]
-# META     }
-# META   }
-# META }
 
 # CELL ********************
 
 # Fabric notebook source
-
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {
-# META     "lakehouse": {
-# META       "default_lakehouse": "385c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Gold",
-# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
-# META       "known_lakehouses": [
-# META         {
-# META           "id": "385c2931-573b-4db0-838d-a70a01306d32"
-# META         },
-# META         {
-# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
-# META         }
-# META       ]
-# META     }
-# META   }
-# META }
 
 # MARKDOWN ********************
 
@@ -167,8 +122,7 @@ print("Processo concluído com sucesso.")
 # MARKDOWN ********************
 
 # ## Cruzamento com Dados CVM (Concentração)
-#
-# Cruza a tabela gerada (`LH_Gold.dim_empresas_rfb_target`) com os dados de FIDCs da CVM (`LH_Bronze.cvm_fidc_informe_mensal`) para encontrar clientes com alta concentração.
+# # Cruza a tabela gerada (`LH_Gold.dim_empresas_rfb_target`) com os dados de FIDCs da CVM (`LH_Bronze.cvm_fidc_informe_mensal`) para encontrar clientes com alta concentração.
 
 # CELL ********************
 
@@ -254,13 +208,6 @@ try:
 
 except Exception as e:
     print(f"Erro ao processar o cruzamento com a CVM: {e}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
 
 # METADATA ********************
 
