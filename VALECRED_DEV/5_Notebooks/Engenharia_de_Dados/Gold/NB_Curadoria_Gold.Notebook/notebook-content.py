@@ -1768,7 +1768,14 @@ cols_esteira_prazos = [
 print("Criando tabela 'analise_prazos_esteira' e removendo colunas da dim_clientes...")
 # Selecionar apenas colunas de esteira + chave
 # Verificar quais colunas realmente existem no df_final para evitar erro
-existing_cols = [c for c in cols_esteira_prazos if c in df_final.columns]
+
+# ⚡ Bolt: Cache DataFrame columns to avoid repeated RPC calls during list comprehension
+# 💡 What: Cached `df_final.columns` into a Python set before using it in a list comprehension.
+# 🎯 Why: Accessing `.columns` on a PySpark DataFrame triggers an expensive RPC call to the JVM/driver. Inside a loop/comprehension, this causes severe performance degradation. A set provides O(1) local lookup.
+# 📊 Impact: Eliminates N repeated metadata fetches (where N = len(cols_esteira_prazos)), drastically speeding up the execution of this block.
+# 🔬 Measurement: O(N) remote calls reduced to O(1) remote call + O(N) local hash lookups.
+df_final_cols = set(df_final.columns)
+existing_cols = [c for c in cols_esteira_prazos if c in df_final_cols]
 missing_cols = set(cols_esteira_prazos) - set(existing_cols)
 if missing_cols:
     print(f"AVISO: As seguintes colunas de esteira não foram encontradas em df_final e serão ignoradas: {missing_cols}")
