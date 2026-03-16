@@ -198,7 +198,8 @@ else:
     ]
 
     # Filtrando colunas existentes no DataFrame
-    features_existentes = [f for f in features_modelo if f in df_cliente.columns]
+    cliente_cols = set(df_cliente.columns)
+    features_existentes = [f for f in features_modelo if f in cliente_cols]
 
     # Exibindo o resumo dos títulos do cliente
     print("\nResumo dos Títulos do Cliente (usando features do modelo):")

@@ -60,8 +60,9 @@ except:
 # Correção preventiva de tipos (Decimal -> Double)
 cols_numericas = ["valor_titulo", "taxa_aquisicao", "prazo_medio"]
 df_hoje_clean = df_hoje_raw
+hoje_raw_cols = set(df_hoje_raw.columns)
 for col_name in cols_numericas:
-    if col_name in df_hoje_raw.columns:
+    if col_name in hoje_raw_cols:
         df_hoje_clean = df_hoje_clean.withColumn(col_name, F.col(col_name).cast(DoubleType()))
 # df_hoje_clean.show(5)
 

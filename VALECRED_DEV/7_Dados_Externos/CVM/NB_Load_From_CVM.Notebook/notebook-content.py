@@ -276,7 +276,8 @@ else:
                   .csv(local_csv_path))
 
             # Forçar tipo String
-            for column in df.columns:
+            columns = df.columns
+            for column in columns:
                 df = df.withColumn(column, col(column).cast(StringType()))
 
             # Adicionar colunas de partição

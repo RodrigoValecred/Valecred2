@@ -185,12 +185,13 @@ try:
     
     # Criamos um array de structs para desaninhar (unpivot) os cedentes
     cedentes_cols = []
+    cvm_cols = set(df_cvm.columns)
     for i in range(1, 10):
         cnpj_col = f"TAB_I2A12_CPF_CNPJ_CEDENTE_{i}"
         perc_col = f"TAB_I2A12_PR_CEDENTE_{i}"
         
         # Verifica se as colunas existem no dataframe
-        if cnpj_col in df_cvm.columns and perc_col in df_cvm.columns:
+        if cnpj_col in cvm_cols and perc_col in cvm_cols:
             cedentes_cols.append(struct(
                 col(cnpj_col).alias("cnpj_cedente"),
                 col(perc_col).cast("double").alias("percentual_concentracao")
