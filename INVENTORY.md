@@ -12,25 +12,13 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 ### LH_Bronze.Lakehouse
 - **Description:** The landing zone for raw data from various sources.
 
-### LH_Silver.Lakehouse
-- **Description:** An intermediate layer that stores cleaned, standardized, and enriched data from the Bronze layer.
-
 ### LH_Gold.Lakehouse
 - **Description:** Stores curated data that has been modeled for specific business domains.
 
+### LH_Silver.Lakehouse
+- **Description:** An intermediate layer that stores cleaned, standardized, and enriched data from the Bronze layer.
+
 ## Dataflows
-
-### DF_LBFactor.Dataflow
-- **Description:** Ingests raw data from an external MySQL database.
-- **Source:** MySQL (`lbfactor.tab_titulos`)
-- **Destination:** `LH_Bronze`
-- **Transformations:** Basic data loading.
-
-### DF_Calendario_Gold.Dataflow
-- **Description:** Creates a calendar dimension table.
-- **Source:** None (generates data)
-- **Destination:** `WH_Gold` (`dim_calendario`)
-- **Transformations:** Generates a date range and extracts various date parts.
 
 ### DF_Dim_Clientes_Gold.Dataflow
 - **Description:** Creates the customer dimension table.
@@ -50,11 +38,47 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Destination:** `WH_Gold` (`dim_gerentes`)
 - **Transformations:** Joins manager, general registration, and platform data.
 
+### DF_Dim_Gerentes_Silver.Dataflow
+- **Description:** (Missing description)
+- **Source:** (Not specified)
+- **Destination:** (Not specified)
+- **Transformations:** (Not specified)
+
+### DF_Dim_Plataformas_Silver.Dataflow
+- **Description:** (Missing description)
+- **Source:** (Not specified)
+- **Destination:** (Not specified)
+- **Transformations:** (Not specified)
+
+### DF_Dim_Tipo_Cobranca.Dataflow
+- **Description:** (Missing description)
+- **Source:** (Not specified)
+- **Destination:** (Not specified)
+- **Transformations:** (Not specified)
+
+### DF_Dim_Usuarios_Silver.Dataflow
+- **Description:** (Missing description)
+- **Source:** (Not specified)
+- **Destination:** (Not specified)
+- **Transformations:** (Not specified)
+
+### DF_Fact_Checagem.Dataflow
+- **Description:** (Missing description)
+- **Source:** (Not specified)
+- **Destination:** (Not specified)
+- **Transformations:** (Not specified)
+
 ### DF_Fato_Operacoes_Gold.Dataflow
 - **Description:** Creates the main operations fact table.
 - **Source:** `LH_Silver` (`staging_titulos`, `staging_tac_m`, `staging_operacoes`)
 - **Destination:** `WH_Gold` (`fato_operacoes`, `fato_operacoes_recompra`)
 - **Transformations:** Aggregates title data, filters operations, and joins with other tables to create a comprehensive fact table.
+
+### DF_Fato_Operacoes_Silver.Dataflow
+- **Description:** (Missing description)
+- **Source:** (Not specified)
+- **Destination:** (Not specified)
+- **Transformations:** (Not specified)
 
 ### DF_Metas_Gold.Dataflow
 - **Description:** Creates the goals fact table.
@@ -68,11 +92,11 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Destination:** -
 - **Transformations:** -
 
-### DF_Produto_Gold.Dataflow
-- **Description:** Creates the product dimension table.
-- **Source:** `LH_Silver` (`staging_operacoes_limpa`), `LH_Bronze` (`tab_tipooperacao`, `tab_subtipooperacao`)
-- **Destination:** `WH_Gold` (`dim_produto`)
-- **Transformations:** Joins and standardizes product information.
+### DF_Preparacao_Silver.Dataflow
+- **Description:** A large dataflow that prepares multiple staging tables in the Silver layer.
+- **Source:** `LH_Bronze` (multiple tables)
+- **Destination:** `LH_Silver` (multiple staging tables)
+- **Transformations:** Cleans, filters, and standardizes a wide range of data from the Bronze layer.
 
 ### DF_Sacado_Gold.Dataflow
 - **Description:** Creates the "sacado" (drawee) dimension table.
@@ -98,19 +122,31 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Destination:** `LH_Gold` (`dim_usuario`)
 - **Transformations:** Cleans and prepares user data.
 
-### DF_Esteira_de_Propostas_Silver.Dataflow
-- **Description:** Loads title confirmation data.
-- **Source:** `LH_Bronze` (`tab_titulos_confirmacao`)
-- **Destination:** (Not specified)
-- **Transformations:** Basic data loading.
-
-### DF_Preparacao_Silver.Dataflow
-- **Description:** A large dataflow that prepares multiple staging tables in the Silver layer.
-- **Source:** `LH_Bronze` (multiple tables)
-- **Destination:** `LH_Silver` (multiple staging tables)
-- **Transformations:** Cleans, filters, and standardizes a wide range of data from the Bronze layer.
-
 ## Notebooks
+
+### 01-Treino_Risco_Semanal.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### KPI_DA_TV.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### ML_Gerador_Score_Risco.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### ML_Previsao_Inadimplencia_2025.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
 
 ### NB_Analise_Cliente_Especifico.Notebook
 - **Description:** Performs a historical analysis of a specific client.
@@ -118,17 +154,155 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** Ephemeral analysis (no output table)
 - **Processing Steps:** Joins several Silver tables, applies business filters, and creates a `TARGET` variable for analysis.
 
+### NB_Analise_Cluster_Clientes.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Analise_Safra_Gerentes.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Analise_Titulos_Juridicos.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
 ### NB_Analyze_FIDC_Performance.Notebook
 - **Description:** Analyzes the monthly performance of FIDCs.
 - **Input:** `LH_Bronze` (`cvm_fidc_informe_mensal`)
 - **Output:** `LH_Gold` (`analise_fidc_performance_mensal`)
 - **Processing Steps:** Filters data for a specific period, calculates the monthly variation in Net Equity, and saves the result.
 
-### NB_Build_Bridge_Cliente_Gerente.Notebook
-- **Description:** Creates a historical bridge table that maps the relationship between clients and managers.
-- **Input:** `LH_Bronze` (`rlc_brokers_clientes_historico`, `rlc_brokers_clientes`)
-- **Output:** `LH_Silver` (`bridge_cliente_gerente`)
-- **Processing Steps:** Unifies historical and current data, cleans it, and calculates the start and end dates for each relationship.
+### NB_Calendario_Gold.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Curadoria_Gold.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Diagnostico_Juridico.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Extract_Bronze_Receita_Federal_Full.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Extrai_Observacoes_Contratos.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Fechamento_Prorrogacao_Mensal.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Generic_Silver.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gera_Relatorio_Diario_Clientes.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Carteira_Valor_Diario.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Cockpit_KPIs.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Dim_Danfe.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Dim_Empresas.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Dim_Gerentes.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Dim_Limites.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Dim_Produtos.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Dim_Sacados.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Empresas_RFB_Target.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Empresas_RFB_Target.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Esteira_Propostas.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Relatorio_Novos_Clientes.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Gold_Relatorio_Produtos_Mensal.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
 
 ### NB_Gold_Risco_Cliente.Notebook
 - **Description:** Aggregates risk data by client and product.
@@ -136,11 +310,65 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** `LH_Gold` (`risco_cliente_produto`)
 - **Processing Steps:** Joins Silver tables, applies risk rules, and aggregates the data by client and product.
 
+### NB_Inadimplencia_Mensal.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Load_Bronze_Receita_Federal_Full.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Load_From_CVM.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
 ### NB_Load_Silver_From_Manual_Uploads.Notebook
 - **Description:** Processes manually uploaded files and saves them as dimension/support tables in the Silver layer.
 - **Input:** `Files/manual_uploads` (various Excel and CSV files)
 - **Output:** `LH_Silver` (multiple `sup_*` tables)
 - **Processing Steps:** Reads, standardizes column names, and saves each file as a Delta table.
+
+### NB_PERFIL_RISCO_SACADO.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Prepara_Tabela_Cadastros.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Prepara_Tabela_Contabil.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Prepara_Tabela_Operacoes.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Prepara_Tabela_Produtos.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Prepara_Tabela_Titulos.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
 
 ### NB_Preparacao_Silver.Notebook
 - **Description:** A comprehensive notebook for preparing the Silver layer.
@@ -154,6 +382,18 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** `LH_Silver` (`staging_email_limpa`, `staging_telefones_limpa`, `staging_enderecos_limpa`)
 - **Processing Steps:** Splits concatenated contact information into individual records, cleans them, and removes duplicates.
 
+### NB_Relatorio_Limites_Vencendo.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Report_Novos_Registros_CVM.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
 ### NB_Risk_Aggregation.Notebook
 - **Description:** Aggregates risk metrics for each client.
 - **Input:** `LH_Silver` (`staging_titulos_limpa`, `staging_operacoes_limpa`, `dim_cliente`, `staging_cad_geral_limpa`)
@@ -165,3 +405,39 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Input:** `LH_Bronze` (`ctrl_*` tables)
 - **Output:** `LH_Silver` (`carteira_pdd`)
 - **Processing Steps:** Unifies multiple source files, calculates PDD ranges, enriches the data, and saves the final table.
+
+### NB_Silver_Fato_Devolucoes_Cadastro.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Silver_Fato_Devolucoes_Cadastros.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Silver_Pareceres_Keyword.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Silver_Pareceres_Keywords.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### Processamento_Completo_Clientes.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### VAI_Inferencia_Online.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
