@@ -1208,8 +1208,6 @@ print("\nIniciando construção da fato_operacoes_recompra...")
 
 # Fonte = stg_operacoes
 # Optimization: Reuse dataframe loaded in Section 0.2 or 5.3
-# if "df_operacoes_source" not in locals():
-#     df_operacoes_source = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_LIMPA)
 df_operacoes_source = df_operacoes_limpa
 
 # Filter TTO = 'RC' or 'RE' AND status_analise = 'D' AND status_aceite = 'A'
