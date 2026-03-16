@@ -38,6 +38,8 @@
 from pyspark.sql.functions import col, current_date, expr, when, lit, months_between
 from pyspark.sql.types import IntegerType
 
+spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "CORRECTED")
+
 # --- Configurações e Constantes ---
 STATUS_ATIVA = '02'
 UFS_ALVO = ['SP', 'MG']
