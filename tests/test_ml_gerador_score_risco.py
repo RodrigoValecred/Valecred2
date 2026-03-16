@@ -152,6 +152,11 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn("[DADOS INSUFICIENTES]", res_math_nan)
         self.assertIn("[YELLOW]", res_math_nan)
 
+        # Test None
+        res_none = draw_risk_meter(None)
+        self.assertIn("[DADOS INSUFICIENTES]", res_none)
+        self.assertIn("[YELLOW]", res_none)
+
     def load_function(self, func_name):
         source = extract_function_from_file(NOTEBOOK_PATH, func_name)
         if not source:
