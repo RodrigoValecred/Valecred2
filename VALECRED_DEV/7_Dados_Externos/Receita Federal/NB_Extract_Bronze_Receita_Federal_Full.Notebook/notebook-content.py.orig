@@ -125,11 +125,11 @@ def safe_extract(zip_ref, path):
 
 def extract_file(filename, base_dir_download, base_dir_extract):
     local_zip_path = os.path.join(base_dir_download, filename)
-    
+
     if not os.path.exists(local_zip_path):
         print(f"Arquivo não encontrado para extração: {local_zip_path}")
         return False
-        
+
     try:
         print(f"Extraindo {filename}...")
         with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
@@ -137,8 +137,6 @@ def extract_file(filename, base_dir_download, base_dir_extract):
         print(f"Sucesso: {filename} extraído corretamente.")
         return True
     except Exception as e:
-        if "Zip Slip" in str(e):
-            raise RuntimeError("Security Check Failed: Extraction stopped due to path traversal violation.") from None
         print(f"ERRO: Falha na extração de {filename}. Erro: {e}")
         return False
 
