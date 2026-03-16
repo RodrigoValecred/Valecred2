@@ -203,8 +203,9 @@ def calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_feat
     if len(float64_cols) > 0:
         X_cliente[float64_cols] = X_cliente[float64_cols].astype('float32')
 
+    x_cliente_cols = set(X_cliente.columns)
     for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
-        if col_name in X_cliente.columns:
+        if col_name in x_cliente_cols:
             X_cliente[col_name] = X_cliente[col_name].astype('category')
 
     # 3. Executar a previsão

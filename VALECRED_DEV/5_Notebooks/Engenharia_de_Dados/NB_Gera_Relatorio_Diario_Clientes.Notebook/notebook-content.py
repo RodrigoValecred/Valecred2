@@ -192,7 +192,8 @@ def style_risk_dataframe(df):
 
     # 1. Format Currency Columns
     currency_cols = ['valor_risco', 'limite_global', 'excesso_valor']
-    existing_cols = [c for c in currency_cols if c in df.columns]
+    df_cols = set(df.columns)
+    existing_cols = [c for c in currency_cols if c in df_cols]
 
     format_dict = {c: format_currency_br for c in existing_cols}
     format_dict['utilizacao_pct'] = "{:.2f}%"

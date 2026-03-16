@@ -253,8 +253,9 @@ def predict_proba_udf(*cols):
         X[float64_cols] = X[float64_cols].astype('float32')
 
     # Tratando colunas categóricas como no treinamento
+    x_cols = set(X.columns)
     for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
-        if col_name in X.columns:
+        if col_name in x_cols:
             X[col_name] = X[col_name].astype('category')
 
     # O pipeline já lida com valores nulos, mas podemos logar se necessário
