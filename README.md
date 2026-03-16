@@ -204,7 +204,7 @@ Em resumo, o `LH_Gold` funciona como um "laboratório" para data scientists e an
 
 ## Componentes do Projeto
 
-Todos os componentes da plataforma são organizados em pastas numeradas para refletir o fluxo de dados e facilitar a navegação.
+Todos os componentes da plataforma são organizados em pastas numeradas para refletir o fluxo de dados e facilitar a navegação. Veja [INVENTORY.md](INVENTORY.md) para um inventário detalhado de todos os arquivos do projeto.
 
 ### 1. Dataflows (`1_Dataflows`)
 
