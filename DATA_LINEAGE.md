@@ -2,6 +2,9 @@
 
 This document outlines the data lineage of the VALECRED project, tracing the flow of data from its sources to its final destinations.
 
+**Nota:** No Microsoft Fabric, a linhagem de dados (Data Lineage) é uma funcionalidade nativa.
+**Diretriz:** Mapear a linhagem automática desde a Base até o Indicador Final no catálogo de dados. Isso dá confiança ao usuário quando ele questiona o número.
+
 ## 1. Bronze Layer Ingestion
 
 ### DF_LBFactor.Dataflow
