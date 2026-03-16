@@ -447,17 +447,12 @@ def process_estudo_op():
 # 1. Função Pandas UDF para decodificar entidades HTML (&Ccedil; -> Ç, &nbsp; -> espaço)
 # Isso substitui aquele dicionário manual gigante e cobre TODOS os casos possíveis com melhor performance (Arrow).
 
-def decode_html_entities(text):
-    import html
-    if text and isinstance(text, str):
-        return html.unescape(text)
-    return text
-
 @pandas_udf(StringType())
 def unescape_udf(text: pd.Series) -> pd.Series:
-    # Usa Arrow (Pandas UDF) para evitar overhead de serialização Python/JVM linha a linha.
-    # Aplica html.unescape apenas se o valor for string (preserva None/NaN).
-    return text.apply(decode_html_entities)
+    import html
+    # Usa Arrow (Pandas UDF) e métodos vetorizados do Pandas para evitar overhead de serialização Python linha a linha.
+    # Aplica html.unescape apenas nas entidades encontradas (preserva None/NaN de forma nativa).
+    return text.str.replace(r'&[a-zA-Z0-9#]+;', lambda m: html.unescape(m.group(0)), regex=True)
 
 # Registra a função para o Spark usar (já feito pelo decorator)
 # unescape_udf já é invocável no contexto do Spark
