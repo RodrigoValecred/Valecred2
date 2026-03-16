@@ -193,18 +193,18 @@ def process_incremental_operacoes(source_table, output_path, key_columns_operaco
     print("Modo Incremental: Operações")
     delta_table_ops = DeltaTable.forPath(spark, output_path)
 
-    # 1. Watermark (Optimized: Avoid collect())
+    # 1. Watermark (Optimized: Avoid collect() by using first())
     df_watermark = spark.read.format("delta").load(output_path) \
         .select(greatest(max("data_inclusao"), max("data_alteracao")).alias("max_date")) \
         .select(coalesce(col("max_date"), lit("1900-01-01")).alias("last_watermark"))
 
-    print("Calculando Watermark Operações distribuído...")
+    last_watermark = df_watermark.first()[0]
+
+    print(f"Calculando Watermark Operações distribuído... (Watermark: {last_watermark})")
 
     # 2. Read Bronze Filtered
     df_bronze_ops = spark.read.table(source_table) \
-        .crossJoin(df_watermark) \
-        .filter((col("DATAINCLUSAO") >= col("last_watermark")) | (col("DATAALTERACAO") >= col("last_watermark"))) \
-        .drop("last_watermark")
+        .filter((col("DATAINCLUSAO") >= lit(last_watermark)) | (col("DATAALTERACAO") >= lit(last_watermark)))
 
     # 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
     if not df_bronze_ops.isEmpty():
@@ -277,16 +277,16 @@ def process_incremental_devolucoes(source_table, output_path):
     print("Modo Incremental: Devoluções")
     delta_table_dev = DeltaTable.forPath(spark, output_path)
 
-    # 🧠 Tensor Optimization: Avoid collect() by using crossJoin
+    # 🧠 Tensor Optimization: Avoid collect() by using first()
     df_watermark = spark.read.format("delta").load(output_path) \
         .agg(coalesce(max("data_inclusao"), lit("1900-01-01")).alias("last_watermark"))
 
-    print("Calculando Watermark Devoluções distribuído...")
+    last_watermark = df_watermark.first()[0]
+
+    print(f"Calculando Watermark Devoluções distribuído... (Watermark: {last_watermark})")
 
     df_bronze_dev = spark.read.table(source_table) \
-        .crossJoin(df_watermark) \
-        .filter((col("DATAINCLUSAO") >= col("last_watermark")) | (col("DATAALTERACAO") >= col("last_watermark"))) \
-        .drop("last_watermark")
+        .filter((col("DATAINCLUSAO") >= lit(last_watermark)) | (col("DATAALTERACAO") >= lit(last_watermark)))
 
     # 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
     if not df_bronze_dev.isEmpty():

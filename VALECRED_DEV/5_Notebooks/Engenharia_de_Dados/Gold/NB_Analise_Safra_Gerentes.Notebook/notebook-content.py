@@ -98,12 +98,12 @@ print("Calculando Carteira e Risco (Histórico)...")
 # 3.1 Expandir Bridge de Clientes no Tempo
 # Join Calendar com Bridge
 # Cliente C foi atendido por Gerente G no Mês M se [Inicio, Fim] engloba Mês M
-df_bridge_hist = df_bridge.crossJoin(F.broadcast(df_calendar_months)) \
-    .filter(
-        (F.col("data_referencia") >= F.trunc("data_inicio_vigencia", "MM")) &
-        (F.col("data_referencia") <= F.col("data_fim_vigencia"))
-    ) \
-    .select("cod_cliente", "cod_gerente", "data_referencia", "ultimo_dia_mes")
+df_bridge_hist = df_bridge.join(
+    F.broadcast(df_calendar_months),
+    (F.col("data_referencia") >= F.trunc("data_inicio_vigencia", "MM")) &
+    (F.col("data_referencia") <= F.col("data_fim_vigencia")),
+    "inner"
+).select("cod_cliente", "cod_gerente", "data_referencia", "ultimo_dia_mes")
 
 # 3.2 Títulos Abertos no Mês
 # Titulo T do Cliente C estava aberto em M se:
@@ -111,10 +111,11 @@ df_bridge_hist = df_bridge.crossJoin(F.broadcast(df_calendar_months)) \
 # E Status != Cancelado/Recusado (status_deferimento='Sim')
 df_titulos_hist = df_titulos.filter(F.col("status_deferimento") == "Sim") \
     .select("cod_titulo", "cod_operacao", "valor_devido", "venc_prorrogado", "data_inclusao", "liquidacao", "cod_cliente") \
-    .crossJoin(F.broadcast(df_calendar_months)) \
-    .filter(
+    .join(
+        F.broadcast(df_calendar_months),
         (F.col("data_inclusao") <= F.col("ultimo_dia_mes")) &
-        ((F.col("liquidacao") > F.col("ultimo_dia_mes")) | (F.col("liquidacao").isNull()))
+        ((F.col("liquidacao") > F.col("ultimo_dia_mes")) | (F.col("liquidacao").isNull())),
+        "inner"
     )
 
 # 3.3 Calcular Atraso e PDD do Título naquele Mês
