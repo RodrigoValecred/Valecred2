@@ -89,7 +89,7 @@ df_ops_preparada = df_hoje_ajustado.fillna("", subset=["STTO"])
 print("🔄 Cruzando com Dimensão Produto...")
 df_enrich_produto = df_ops_preparada.join(
     df_dim_produto,
-    on=["TTO", "STTO"], 
+    on=["TTO", "STTO"],
     how="left"
 )
 
@@ -102,14 +102,14 @@ df_enrich_produto = df_enrich_produto.fillna(0, subset=["cod_produto_ia"])
 
 if df_perfil:
     df_enrich = df_enrich_produto.join(df_perfil, on="cpf_cnpj_sacado", how="left")
-    
+
     # Preencher nulos para clientes novos (Sem histórico)
     df_enrich = df_enrich.fillna(0, subset=["exposicao_maxima_historica", "prazo_medio_historico"])
     df_enrich = df_enrich.fillna(1.0, subset=["media_pagamento_mensal"])
-    
+
     # Calcular as features na hora (Usando os dados que vieram do perfil)
     df_enrich = df_enrich.withColumn(
-        "exposicao_acumulada", 
+        "exposicao_acumulada",
         F.col("exposicao_maxima_historica") + F.col("vlr_total_sacado")
     ).withColumn(
         "concentracao_operacao",
@@ -146,21 +146,11 @@ features_para_analisar = [
 
 # 1. Garantir que colunas existem e tratar nulos (Spark)
 df_scored = df_enrich
-
-# 🧠 Tensor: Cache DataFrame columns into a dictionary for O(1) case-insensitive lookups
-# 💡 What: Replaced repeated `df_scored.columns` calls inside a loop with a single pre-computed dictionary mapping lowercase column names to their actual names.
-# 🎯 Why: Accessing `.columns` on an evolving PySpark DataFrame inside a loop triggers expensive RPC calls to the JVM and driver schema metadata on each iteration, becoming a massive bottleneck. A dictionary lookup is O(1) and strictly local to the Python process.
-# 📊 Impact: Drastically improves the execution speed of PySpark DataFrame plan construction, particularly for loops iterating over many features or when the DataFrame lineage is deep.
-# 🔬 Measurement: Profiling typically shows execution time for the DAG construction dropping by orders of magnitude (e.g., from seconds to milliseconds).
-existing_cols = {c.lower(): c for c in df_scored.columns}
-
 for col_name in features_backup + features_para_analisar:
-    if col_name.lower() not in existing_cols:
+    if col_name not in df_scored.columns:
         df_scored = df_scored.withColumn(col_name, F.lit(0.0))
-        existing_cols[col_name.lower()] = col_name
     else:
-        actual_col_name = existing_cols[col_name.lower()]
-        df_scored = df_scored.fillna(0.0, subset=[actual_col_name])
+        df_scored = df_scored.fillna(0.0, subset=[col_name])
 
 # ==============================================================================
 # 2. BUSCA DINÂMICA DO CÉREBRO DA V.A.I. (MLflow)
@@ -171,22 +161,22 @@ ID_EXPERIMENTO_NOVO = "8a9354d9-f2de-4a36-b684-9785a8462997"
 
 try:
     print(f"3. Buscando inteligência mais recente em: {NOME_EXPERIMENTO}...")
-    
+
     runs = mlflow.search_runs(
         experiment_ids=[ID_EXPERIMENTO_NOVO],
         filter_string="status = 'FINISHED'",
         order_by=["start_time DESC"],
         max_results=1
     )
-    
+
     if len(runs) == 0:
         raise Exception("Nenhum modelo treinado encontrado.")
-        
+
     latest_run_id = runs.iloc[0].run_id
     print(f"✅ Cérebro encontrado! Usando Run ID: {latest_run_id}")
-    
+
     model_uri = f"runs:/{latest_run_id}/Modelo_Risco_FIDC"
-    
+
     # Criar UDF do Spark para inferência distribuída
     predict_udf = mlflow.pyfunc.spark_udf(spark, model_uri, result_type=DoubleType())
 
@@ -231,16 +221,16 @@ def compute_reason_udf(*cols):
 
     # Reconstruir DataFrame pandas do batch
     df_chunk = pd.DataFrame({c: s for c, s in zip(features_para_analisar, features_data)})
-    
+
     # Z-Scores usando stats globais
     means = pd.Series({c: stats_dict[f"mean_{c}"] for c in features_para_analisar})
     stds = pd.Series({c: stats_dict[f"std_{c}"] for c in features_para_analisar}).replace(0, 1)
 
     z_scores = ((df_chunk - means) / stds).abs()
-    
+
     culpados_cols = z_scores.idxmax(axis=1)
     max_z_scores = z_scores.max(axis=1)
-    
+
     mapa_nomes = {
         'vlr_total_sacado': 'Valor Muito Alto',
         'prazo_medio_titulos': 'Prazo Fora do Comum',
@@ -248,7 +238,7 @@ def compute_reason_udf(*cols):
         'concentracao_operacao': 'Concentração Excessiva',
         'ratio_alavancagem_interna': 'Alavancagem (Liquidez)'
     }
-    
+
     culpados_friendly = culpados_cols.map(mapa_nomes).fillna(culpados_cols)
 
     reasons = pd.Series("Normal", index=df_chunk.index)
