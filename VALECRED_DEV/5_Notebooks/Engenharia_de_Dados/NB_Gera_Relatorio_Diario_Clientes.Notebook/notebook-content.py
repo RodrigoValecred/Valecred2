@@ -28,34 +28,34 @@ except ImportError as e:
 
 def get_production_data(spark):
     """
-    Reads production data from Gold layer (fato_titulos, dim_clientes).
-    Returns (df_ops, df_limites) as Pandas DataFrames matching the mock schema.
+    Lê dados de produção da camada Gold (fato_titulos, dim_clientes).
+    Retorna (df_ops, df_limites) como Pandas DataFrames correspondentes ao esquema mock.
 
-    Note: We use LH_Gold tables (NB_Curadoria_Gold output) as they contain the
-    curated risk and limit data, rather than raw Silver tables mentioned in
-    older comments (silver_operacoes).
+    Nota: Usamos as tabelas LH_Gold (saída do NB_Curadoria_Gold) pois elas contêm os
+    dados curados de risco e limite, em vez de tabelas Silver brutas mencionadas em
+    comentários mais antigos (silver_operacoes).
     """
-    print("Reading production data from Gold Layer...")
+    print("Lendo dados de produção da camada Gold...")
 
-    # 1. Read Tables
+    # 1. Ler Tabelas
     df_titulos = spark.read.table("LH_Gold.fato_titulos")
     df_clientes = spark.read.table("LH_Gold.dim_clientes")
 
-    # 2. Filter Active Risk (Accepted and Not Liquidated)
+    # 2. Filtrar Risco Ativo (Aceito e Não Liquidado)
     df_risk_active = df_titulos.filter(
         (col("status_deferimento") == "Sim") &
         (col("liquidacao").isNull())
     )
 
-    # 3. Join with Client Data to get Group info
-    # We join on cod_cliente.
+    # 3. Join com Dados de Cliente para obter info do Grupo
+    # Fazemos join em cod_cliente.
     df_joined = df_risk_active.join(df_clientes, "cod_cliente", "left")
 
-    # 4. Prepare df_ops (Granular Operations/Titles)
-    # Schema: grupo, cedente, produto, valor_risco, data_vencimento
-    # Logic:
-    # - grupo: nome_do_grupo (fallback to 'Sem Grupo')
-    # - cedente: nome (fallback to cod_cliente)
+    # 4. Preparar df_ops (Operações Granulares/Títulos)
+    # Esquema: grupo, cedente, produto, valor_risco, data_vencimento
+    # Lógica:
+    # - grupo: nome_do_grupo (fallback para 'Sem Grupo')
+    # - cedente: nome (fallback para cod_cliente)
     # - produto: chave_produto
     # - valor_risco: valor_devido
     # - data_vencimento: data_vencimento_util
@@ -68,9 +68,9 @@ def get_production_data(spark):
         col("data_vencimento_util").alias("data_vencimento")
     )
 
-    # 5. Prepare df_limites (Aggregated by Group)
-    # Schema: grupo, limite_global, validade_limite
-    # We use MAX logic for limits assuming group limits are projected to clients in dim_clientes.
+    # 5. Preparar df_limites (Agregado por Grupo)
+    # Esquema: grupo, limite_global, validade_limite
+    # Usamos a lógica MAX para limites assumindo que os limites do grupo são projetados para clientes em dim_clientes.
     df_limites_spark = df_clientes.groupBy(
         coalesce(col("nome_do_grupo"), lit("Sem Grupo")).alias("grupo")
     ).agg(
@@ -82,7 +82,7 @@ def get_production_data(spark):
         col("validade_limite")
     )
 
-    # Check if we should use spark.sql.execution.arrow.pyspark.enabled
+    # Verifica se devemos usar spark.sql.execution.arrow.pyspark.enabled
     try:
         spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
     except Exception as e:
@@ -115,32 +115,32 @@ def get_mock_data():
 
     return df_ops, df_limites
 
-# Main Data Loading Logic
-# In production (Synapse/Fabric), 'spark' is available globally.
+# Lógica Principal de Carregamento de Dados
+# Em produção (Synapse/Fabric), 'spark' está disponível globalmente.
 if 'spark' in locals() or 'spark' in globals():
-    print("Spark session detected. Loading production data from Gold Layer...")
-    # Intentionally letting exceptions propagate here to fail the job if production data is missing/invalid.
+    print("Sessão Spark detectada. Carregando dados de produção da camada Gold...")
+    # Intencionalmente deixando as exceções propagarem aqui para falhar o job se os dados de produção estiverem ausentes/inválidos.
     df_ops_spark, df_limites_spark = get_production_data(spark)
 
-    # Use current date for production report
+    # Usa a data atual para o relatório de produção
     data_hoje = datetime.now().date()
-    print("Successfully loaded production data.")
+    print("Dados de produção carregados com sucesso.")
 
-    # 🧠 TENSOR OPTIMIZATION: Spark distributed aggregation and join before collecting to driver memory.
+    # 🧠 TENSOR OPTIMIZATION: Agregação distribuída no Spark e join antes de coletar para a memória do driver.
     df_risco_total_spark = df_ops_spark.groupBy('grupo').agg(
         spark_sum('valor_risco').alias('valor_risco')
     )
     df_consolidado_spark = df_risco_total_spark.join(df_limites_spark, on='grupo', how='left')
 
-    # Finally, convert the much smaller, aggregated DataFrame to Pandas
+    # Finalmente, converte o DataFrame agregado muito menor para Pandas
     df_consolidado = df_consolidado_spark.toPandas()
 
 else:
-    print("Spark session not found. Using mock data for simulation/testing.")
+    print("Sessão Spark não encontrada. Usando dados mock para simulação/teste.")
     df_ops, df_limites = get_mock_data()
 
-    # Use simulation date to match mock data scenario (e.g. limit expiry check)
-    # Mock data has limit expiring in Dec 2025, so we simulate Dec 2025 context.
+    # Usa a data de simulação para corresponder ao cenário de dados mock (ex: verificação de expiração de limite)
+    # Os dados mock têm um limite expirando em Dezembro de 2025, então simulamos o contexto de Dezembro de 2025.
     data_hoje = datetime(2025, 12, 23).date()
 
     # 1. Agregação de Risco por Grupo
@@ -154,11 +154,11 @@ data_semana_passada = data_hoje - timedelta(days=7)
 # 3. Cálculo de KPIs de Negócio
 df_consolidado['excesso_valor'] = df_consolidado['valor_risco'] - df_consolidado['limite_global']
 # Se negativo (dentro do limite), zeramos o excesso visual
-# 🧠 Tensor: Replace df.apply() with vectorized np.where()
-# 💡 What: Replaced a slow row-by-row lambda apply with a vectorized NumPy where operation.
-# 🎯 Why: Pandas .apply() forces a Python loop under the hood, whereas np.where executes purely in C.
-# 📊 Impact: Significant reduction in computational overhead for this KPI calculation, easily 40x faster for larger DataFrames.
-# 🔬 Measurement: Profiling showed execution time dropped from ~5.08s to ~0.12s per 10 runs on 1M rows.
+# 🧠 Tensor: Substituir df.apply() com np.where() vetorizado
+# 💡 What: Substituída uma aplicação lenta lambda linha a linha por uma operação where do NumPy vetorizada.
+# 🎯 Why: Pandas .apply() força um loop Python por baixo dos panos, enquanto np.where executa puramente em C.
+# 📊 Impact: Redução significativa no overhead computacional para este cálculo de KPI, facilmente 40x mais rápido para DataFrames grandes.
+# 🔬 Measurement: Profiling mostrou que o tempo de execução caiu de ~5.08s para ~0.12s por 10 execuções em 1M de linhas.
 df_consolidado['excesso_valor'] = np.where(df_consolidado['excesso_valor'] > 0, df_consolidado['excesso_valor'], 0)
 
 df_consolidado['utilizacao_pct'] = (df_consolidado['valor_risco'] / df_consolidado['limite_global']) * 100
@@ -167,7 +167,7 @@ df_consolidado['utilizacao_pct'] = (df_consolidado['valor_risco'] / df_consolida
 # DASHBOARD RÁPIDO DE RISCO (UX)
 # ==============================================================================
 
-# Color constants for ANSI terminal output
+# Constantes de cor para saída de terminal ANSI
 class Colors:
     HEADER = '\033[95m'
     BLUE = '\033[94m'
@@ -179,18 +179,18 @@ class Colors:
     BOLD = '\033[1m'
 
 def format_currency_br(value):
-    """Formats float to Brazilian currency string (R$ 1.234,56)."""
+    """Formata float para string de moeda brasileira (R$ 1.234,56)."""
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 def style_risk_dataframe(df):
     """
-    Applies visual styling to the risk dataframe for better readability.
-    - Formats currency columns
-    - Color codes utilization percentage
+    Aplica estilo visual ao dataframe de risco para melhor legibilidade.
+    - Formata colunas de moeda
+    - Colore a porcentagem de utilização
     """
     styler = df.style
 
-    # 1. Format Currency Columns
+    # 1. Formatar Colunas de Moeda
     currency_cols = ['valor_risco', 'limite_global', 'excesso_valor']
     df_cols = set(df.columns)
     existing_cols = [c for c in currency_cols if c in df_cols]
@@ -200,21 +200,21 @@ def style_risk_dataframe(df):
 
     styler = styler.format(format_dict)
 
-    # 2. Color Code 'utilizacao_pct'
+    # 2. Código de Cor 'utilizacao_pct'
     def color_utilization(val):
         color = 'white'
         if pd.isna(val) or np.isinf(val):
              color = 'white'
         elif val > 100:
-            color = '#ffcccc' # Light Red
+            color = '#ffcccc' # Vermelho Claro
         elif val > 80:
-            color = '#fff4cc' # Light Yellow
+            color = '#fff4cc' # Amarelo Claro
         else:
-            color = '#ccffcc' # Light Green
+            color = '#ccffcc' # Verde Claro
         return f'background-color: {color}; color: black'
 
     if 'utilizacao_pct' in df.columns:
-        # Use map (Pandas 1.3+) or applymap (older)
+        # Usa map (Pandas 1.3+) ou applymap (mais antigo)
         if hasattr(styler, 'map'):
             styler = styler.map(color_utilization, subset=['utilizacao_pct'])
         else:
@@ -225,22 +225,22 @@ def style_risk_dataframe(df):
 
 def prepare_dashboard_data(df, ref_date):
     """
-    Prepares the risk dashboard data for display.
-    Returns a list of dictionaries containing formatted strings and display properties.
+    Prepara os dados do dashboard de risco para exibição.
+    Retorna uma lista de dicionários contendo strings formatadas e propriedades de exibição.
     """
     view_data = []
 
     for row in df.itertuples(index=False):
         item = {}
 
-        # 1. Group Name Truncation
+        # 1. Truncamento de Nome do Grupo
         grupo = str(row.grupo)
         if len(grupo) > 50:
              item['grupo_display'] = grupo[:47] + "..."
         else:
              item['grupo_display'] = grupo
 
-        # 2. Extract Values
+        # 2. Extrair Valores
         utilizacao = row.utilizacao_pct
         risco = row.valor_risco
         limite = row.limite_global
@@ -251,13 +251,13 @@ def prepare_dashboard_data(df, ref_date):
         item['limite_fmt'] = format_currency_br(limite)
         item['excesso_fmt'] = format_currency_br(excesso)
 
-        # 3. Validity Logic
+        # 3. Lógica de Validade
         validade_display = str(validade)
         try:
              val_date = datetime.strptime(str(validade), '%Y-%m-%d').date()
              days_remaining = (val_date - ref_date).days
 
-             # Format date as DD/MM/YYYY for better UX consistency
+             # Formata a data como DD/MM/AAAA para melhor consistência de UX
              val_date_str = val_date.strftime('%d/%m/%Y')
 
              if days_remaining < 0:
@@ -271,11 +271,11 @@ def prepare_dashboard_data(df, ref_date):
                  print(f"Aviso: Não foi possível formatar a data de validade '{validade}': {e}")
         item['validade_display'] = validade_display
 
-        # 4. Available Amount
+        # 4. Valor Disponível
         disponivel = max(0, limite - risco)
         item['disponivel_fmt'] = format_currency_br(disponivel)
 
-        # 5. Progress Bar Logic
+        # 5. Lógica da Barra de Progresso
         bar_length = 25
         color = Colors.RESET
         status_icon = ""
@@ -309,7 +309,7 @@ def prepare_dashboard_data(df, ref_date):
             bar = color + '█' * filled_length + Colors.RESET + '░' * (bar_length - filled_length)
             util_str = f"{utilizacao:.1f}%"
 
-        # Improved UX: Add status text for clarity
+        # UX Melhorada: Adiciona texto de status para clareza
         item['bar_display'] = f"[{bar}] {color}{util_str:>6}{Colors.RESET} {status_icon} {color}({status_text}){Colors.RESET}"
         item['utilizacao_val'] = utilizacao
         item['is_excess'] = (not (pd.isna(utilizacao) or np.isinf(utilizacao))) and (utilizacao > 100)
@@ -321,7 +321,7 @@ def prepare_dashboard_data(df, ref_date):
 def display_risk_dashboard(df, ref_date=None):
     W = 60
 
-    # Handle optional ref_date with backward compatibility for global 'data_hoje'
+    # Lida com ref_date opcional com compatibilidade retroativa para 'data_hoje' global
     if ref_date is None:
         if 'data_hoje' in globals():
             ref_date = globals()['data_hoje']
@@ -334,26 +334,26 @@ def display_risk_dashboard(df, ref_date=None):
     print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
     print(Colors.BOLD + Colors.CYAN + f"{' 📊 PAINEL DE RISCO - RELATÓRIO DIÁRIO':^{W}}" + Colors.RESET)
 
-    # Improved UX: Show reference date clearly
+    # UX Melhorada: Mostra a data de referência claramente
     date_str = ref_date.strftime('%d/%m/%Y') if ref_date else "N/A"
     print(Colors.BOLD + Colors.CYAN + f"{f'📅 Data de Referência: {date_str}':^{W}}" + Colors.RESET)
 
     print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
 
-    # Empty State UX
+    # UX de Estado Vazio
     if df.empty:
         print(f"{'⚠️ NENHUM GRUPO COM RISCO ATIVO ENCONTRADO':^{W}}")
         print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
         print("\n")
         return
 
-    # Summary
+    # Resumo
     n_groups = len(df)
     n_alerts = len(df[df['utilizacao_pct'] > 100])
     summary_color = Colors.RED if n_alerts > 0 else Colors.GREEN
     print(f" Resumo: {n_groups} Grupos analisados. {summary_color}{n_alerts} Alertas.{Colors.RESET}")
 
-    # Categorized breakdown for better scannability
+    # Quebra categorizada para melhor escaneabilidade
     n_seguro = len(df[df['utilizacao_pct'] <= 80])
     n_atencao = len(df[(df['utilizacao_pct'] > 80) & (df['utilizacao_pct'] <= 100)])
     n_critico = len(df[df['utilizacao_pct'] > 100])
@@ -368,7 +368,7 @@ def display_risk_dashboard(df, ref_date=None):
     for i, item in enumerate(view_data):
         print(f" {Colors.BOLD}🏢 {item['grupo_display']}{Colors.RESET}")
 
-        # Metrics
+        # Métricas
         print(f"    Utilização: {item['bar_display']}")
         print(f"    Risco:      {item['risco_fmt']:>15}")
         print(f"    Limite:     {item['limite_fmt']:>15}")
@@ -380,13 +380,13 @@ def display_risk_dashboard(df, ref_date=None):
             else:
                 print(f"    {Colors.GREEN}Disponível: {item['disponivel_fmt']:>15}{Colors.RESET}")
 
-        # Separator
+        # Separador
         if i < total_rows - 1:
             print(" " + Colors.CYAN + "─"*(W-2) + Colors.RESET)
 
     print(Colors.BOLD + Colors.CYAN + "═"*W + Colors.RESET)
 
-    # Legend for UX
+    # Legenda para UX
     print(Colors.CYAN + f"{'Legenda: ✅ Seguro (<=80%) | ⚠️ Atenção (80-100%) | 🚨 Crítico (>100%)':^{W}}" + Colors.RESET)
 
     print("\n")
