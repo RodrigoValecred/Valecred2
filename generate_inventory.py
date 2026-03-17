@@ -45,7 +45,7 @@ def find_assets():
 assets = find_assets()
 
 def generate_markdown(assets, inventory):
-    md = "# Inventory of Data Assets\n\nThis document provides a detailed inventory of all data assets in the VALECRED project, including Dataflows, Notebooks, Lakehouses, and Warehouses.\n\n"
+    md = "# Inventário de Ativos de Dados\n\nEste documento fornece um inventário detalhado de todos os ativos de dados no projeto VALECRED, incluindo Dataflows, Notebooks, Lakehouses e Warehouses.\n\n"
     for section_name in ['Data Warehouses', 'Lakehouses', 'Dataflows', 'Notebooks']:
         md += f"## {section_name}\n\n"
 
@@ -56,15 +56,15 @@ def generate_markdown(assets, inventory):
                 for line in inventory[section_name][asset]:
                     md += f"{line}\n"
             else:
-                md += "- **Description:** (Missing description)\n"
+                md += "- **Descrição:** (Descrição ausente)\n"
                 if section_name == 'Notebooks':
-                    md += "- **Input:** (Not specified)\n"
-                    md += "- **Output:** (Not specified)\n"
-                    md += "- **Processing Steps:** (Not specified)\n"
+                    md += "- **Entrada:** (Não especificado)\n"
+                    md += "- **Saída:** (Não especificado)\n"
+                    md += "- **Passos de Processamento:** (Não especificado)\n"
                 elif section_name == 'Dataflows':
-                    md += "- **Source:** (Not specified)\n"
-                    md += "- **Destination:** (Not specified)\n"
-                    md += "- **Transformations:** (Not specified)\n"
+                    md += "- **Origem:** (Não especificado)\n"
+                    md += "- **Destino:** (Não especificado)\n"
+                    md += "- **Transformações:** (Não especificado)\n"
                 elif section_name == 'Lakehouses' or section_name == 'Data Warehouses':
                     pass # already has description placeholder
             md += "\n"
