@@ -71,7 +71,7 @@ def safe_extract(zip_ref, path):
         # Check if the member path starts with the target path
         # We append os.sep to ensure we match directory boundaries (e.g. /tmp/foo vs /tmp/foobar)
         if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
-             raise Exception(f"Zip Slip vulnerability detected: {member}")
+             raise Exception("Zip Slip vulnerability detected")
 
         safe_members.append(member)
 
@@ -296,6 +296,8 @@ else:
             print(f"SUCESSO: Dados de {periodo} salvos!")
 
         except Exception as e:
+            if "Zip Slip" in str(e):
+                raise RuntimeError("Security Check Failed: Extraction stopped due to path traversal violation.") from None
             print(f"ERRO CRÍTICO ao processar {periodo}: {e}")
             # Opcional: raise e se quiser parar tudo, mas num loop geralmente queremos tentar o próximo
 
