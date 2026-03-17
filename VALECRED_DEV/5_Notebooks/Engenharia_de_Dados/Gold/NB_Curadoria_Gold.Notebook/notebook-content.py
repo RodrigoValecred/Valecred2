@@ -1389,11 +1389,18 @@ df_esteira = spark.read.table(TableNames.GOLD_ESTEIRA_DE_PROPOSTAS)
 # Normalização de colunas (Compatibilidade com Legado/Schema antigo)
 # Se a tabela não foi regerada (incremental = 0), ela pode estar com colunas em UpperCase.
 # Forçamos o rename para snake_case esperado.
-if "CODCLIENTE" in df_esteira.columns:
+# ⚡ Bolt: Cache DataFrame columns to avoid repeated RPC calls during sequential checks
+# 💡 What: Cached `df_esteira.columns` into a Python set before performing multiple `in` checks.
+# 🎯 Why: Accessing `.columns` on a PySpark DataFrame triggers an expensive RPC call to the driver. Caching it eliminates 3 repeated network calls.
+# 📊 Impact: Eliminates redundant RPC driver calls, especially for DataFrames with many columns.
+# 🔬 Measurement: O(3) remote calls reduced to O(1) remote call + O(3) local hash lookups.
+df_esteira_cols = set(df_esteira.columns)
+
+if "CODCLIENTE" in df_esteira_cols:
     df_esteira = df_esteira.withColumnRenamed("CODCLIENTE", "cod_cliente")
-if "STATUS_DO_CLIENTE" in df_esteira.columns:
+if "STATUS_DO_CLIENTE" in df_esteira_cols:
     df_esteira = df_esteira.withColumnRenamed("STATUS_DO_CLIENTE", "status_do_cliente")
-if "DATALOG" in df_esteira.columns:
+if "DATALOG" in df_esteira_cols:
     df_esteira = df_esteira.withColumnRenamed("DATALOG", "datalog")
 
 # Status esperados para o Pivot (para evitar erros de coluna inexistente)
