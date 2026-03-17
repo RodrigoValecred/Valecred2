@@ -450,17 +450,24 @@ df_ops_normal = spark.read.table("LH_Gold.fato_operacoes") \
 # Agregado por Operação
 
 # Garantir que tarifa_de_recompra exista em df_ops_normal antes do select
-if "tarifa_de_recompra" not in df_ops_normal.columns:
+# ⚡ Bolt: Cache df.columns to avoid repeated RPC calls during sequential checks
+# 💡 What: Cached `df_ops_normal.columns` into a Python set before performing multiple `in` checks.
+# 🎯 Why: Accessing `.columns` on a PySpark DataFrame triggers an expensive RPC call. Caching it eliminates 4 repeated network calls, reducing execution time.
+# 📊 Impact: Eliminates redundant RPC driver calls, especially for DataFrames with many columns.
+# 🔬 Measurement: O(4) remote calls reduced to O(1) remote call + O(4) local hash lookups.
+df_ops_normal_cols = set(df_ops_normal.columns)
+
+if "tarifa_de_recompra" not in df_ops_normal_cols:
     print("Aviso: tarifa_de_recompra não encontrada em fato_operacoes. Criando com 0.")
     df_ops_normal = df_ops_normal.withColumn("tarifa_de_recompra", lit(0.0))
 
-if "floating" not in df_ops_normal.columns:
-    if "float" in df_ops_normal.columns:
+if "floating" not in df_ops_normal_cols:
+    if "float" in df_ops_normal_cols:
         df_ops_normal = df_ops_normal.withColumnRenamed("float", "floating")
     else:
         df_ops_normal = df_ops_normal.withColumn("floating", lit(0.0))
 
-if "data_aceite" not in df_ops_normal.columns:
+if "data_aceite" not in df_ops_normal_cols:
     df_ops_normal = df_ops_normal.withColumn("data_aceite", to_date(col("data_deferimento")))
 
 try:
