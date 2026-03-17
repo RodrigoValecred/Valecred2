@@ -1,9 +1,38 @@
 # Fabric notebook source
 
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {
+# META     "lakehouse": {
+# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
+# META       "default_lakehouse_name": "LH_Bronze",
+# META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
+# META       "known_lakehouses": [
+# META         {
+# META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
+# META         },
+# META         {
+# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
+# META         }
+# META       ]
+# META     }
+# META   }
+# META }
 
 # CELL ********************
 
 # Fabric notebook source
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # MARKDOWN ********************
 
@@ -37,6 +66,13 @@ TABLE_TARGET = "LH_Gold.dim_empresas_rfb_target"
 print("Carregando tabelas Bronze...")
 df_empresas = spark.read.table(TABLE_EMPRESAS)
 df_estab = spark.read.table(TABLE_ESTABELECIMENTOS)
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -72,6 +108,13 @@ df_filtered = df_filtered.withColumn("setor",
 df_filtered = df_filtered.filter(col("setor").isNotNull())
 
 print(f"Estabelecimentos filtrados (Ativos, SP/MG, >2 anos, Ind/Serv): {df_filtered.count()}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # CELL ********************
 
@@ -111,6 +154,13 @@ cols_to_select = [
 
 df_target = df_final.select(cols_to_select)
 
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
 # CELL ********************
 
 # --- Salvamento ---
@@ -120,6 +170,13 @@ print(f"Salvando {df_target.count()} registros na tabela Gold: {TABLE_TARGET}")
 df_target.write.format("delta").mode("overwrite").saveAsTable(TABLE_TARGET)
 
 print("Processo concluído com sucesso.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
 
 # MARKDOWN ********************
 
