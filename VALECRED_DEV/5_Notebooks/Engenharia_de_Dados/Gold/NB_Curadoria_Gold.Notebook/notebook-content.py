@@ -292,7 +292,6 @@ def check_incremental_gold(spark):
                 row = df.agg(max(col(actual_col))).first()
                 return row[0] if row else None
             except Exception as e:
-                # print(f"Warning reading {table_name}: {e}")
                 return None
 
         # Check Ops
