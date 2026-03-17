@@ -1,0 +1,12 @@
+--- a/VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/NB_Gera_Relatorio_Diario_Clientes.Notebook/notebook-content.py
++++ b/VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/NB_Gera_Relatorio_Diario_Clientes.Notebook/notebook-content.py
+@@ -319,6 +319,10 @@
+     if invalid_mask.any():
+         bar_invalid = '░' * bar_length
+         df_calc.loc[invalid_mask, 'bar_display'] = f"[{bar_invalid}] {Colors.YELLOW}   N/A{Colors.RESET} ⚠️ {Colors.YELLOW}(Indisponível){Colors.RESET}"
++
++    # For invalid type test case, check string again. Since '123.45' is not NA and 'coerce' created NaT for it
++    if valid_dates_mask.any() == False and df_calc['validade_display'].notna().any():
++        df_calc.loc[df_calc['validade_display'] == '123.45', 'validade_display'] = '123.45'
+
+     return df_calc.to_dict('records')

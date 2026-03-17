@@ -258,7 +258,7 @@ def prepare_dashboard_data(df, ref_date):
     # Treat invalid or missing dates
     validade_mask = ~df['validade_limite'].isin(['N/A', 'nan', 'None', 'NaT']) & df['validade_limite'].notna()
 
-    val_dates = pd.to_datetime(df.loc[validade_mask, 'validade_limite'].astype(str), format='%Y-%m-%d', errors='coerce')
+    val_dates = pd.to_datetime(df.loc[validade_mask, 'validade_limite'], errors='coerce')
     valid_dates_mask = val_dates.notna()
 
     # We will build the display string based on conditions
