@@ -251,5 +251,31 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         # HTML output creates <td>R$ 1.000,00</td> etc.
         self.assertIn("R$", html)
 
+    def test_format_currency_br(self):
+        """Test the format_currency_br utility function."""
+        # Check if the function was properly extracted and injected
+        self.assertIn('format_currency_br', self.scope)
+        format_func = self.scope['format_currency_br']
+
+        # Test happy paths
+        self.assertEqual(format_func(1234.56), "R$ 1.234,56")
+        self.assertEqual(format_func(100), "R$ 100,00")
+        self.assertEqual(format_func(0), "R$ 0,00")
+
+        # Test large numbers with multiple thousands separators
+        self.assertEqual(format_func(1234567.89), "R$ 1.234.567,89")
+        self.assertEqual(format_func(1000000000.00), "R$ 1.000.000.000,00")
+
+        # Test negative numbers
+        self.assertEqual(format_func(-500.25), "R$ -500,25")
+        self.assertEqual(format_func(-1234.56), "R$ -1.234,56")
+
+        # Test missing values
+        # The underlying function uses pd.isna() which correctly handles np.nan, None, and pd.NA.
+        # Ensure our pd mock context properly resolves them.
+        self.assertEqual(format_func(pd.NA), "-")
+        self.assertEqual(format_func(np.nan), "-")
+        self.assertEqual(format_func(None), "-")
+
 if __name__ == '__main__':
     unittest.main()
