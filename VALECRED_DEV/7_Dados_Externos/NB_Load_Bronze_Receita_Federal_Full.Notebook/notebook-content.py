@@ -137,31 +137,7 @@ def safe_extract(zip_ref, path):
         # Verificar se o caminho do membro começa com o caminho de destino
         # Adicionamos os.sep para garantir que correspondemos aos limites do diretório (ex: /tmp/foo vs /tmp/foobar)
         if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
-             raise Exception(f"Zip Slip vulnerability detected: {member}")
-
-        safe_members.append(member)
-
-    zip_ref.extractall(path, members=safe_members)
-
-def safe_extract(zip_ref, path):
-    """
-    Extracts a zip file to the specified path, preventing Zip Slip vulnerability.
-    """
-    # Normalize the target path to an absolute path
-    target_path = os.path.abspath(path)
-    safe_members = []
-
-    for member in zip_ref.namelist():
-        # Resolve the full path of the member
-        # Note: os.path.join will discard 'target_path' if 'member' is absolute
-        member_path = os.path.join(target_path, member)
-        # Normalize the member path to resolve '..' and '.'
-        abs_member_path = os.path.abspath(member_path)
-
-        # Check if the member path starts with the target path
-        # We append os.sep to ensure we match directory boundaries (e.g. /tmp/foo vs /tmp/foobar)
-        if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
-             raise Exception(f"Zip Slip vulnerability detected: {member}")
+             raise Exception("Zip Slip vulnerability detected")
 
         safe_members.append(member)
 
@@ -228,6 +204,8 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
             print(f"Erro: O arquivo baixado {filename} não é um ZIP válido.")
             return False
         except Exception as e:
+            if "Zip Slip" in str(e):
+                raise RuntimeError("Security Check Failed: Extraction stopped due to path traversal violation.") from None
             print(f"Erro durante a extração de {filename}: {e}")
             return False
     else:

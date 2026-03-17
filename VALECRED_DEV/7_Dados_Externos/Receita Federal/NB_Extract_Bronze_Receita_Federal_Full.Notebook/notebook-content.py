@@ -143,7 +143,7 @@ def safe_extract(zip_ref, path):
         abs_member_path = os.path.abspath(member_path)
 
         if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
-             raise Exception(f"Zip Slip vulnerability detected: {member}")
+             raise Exception("Zip Slip vulnerability detected")
 
         safe_members.append(member)
 
