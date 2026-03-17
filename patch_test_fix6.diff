@@ -1,0 +1,11 @@
+--- a/VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/NB_Gera_Relatorio_Diario_Clientes.Notebook/notebook-content.py
++++ b/VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/NB_Gera_Relatorio_Diario_Clientes.Notebook/notebook-content.py
+@@ -260,7 +260,7 @@
+     # Treat invalid or missing dates
+     validade_mask = ~df['validade_limite'].isin(['N/A', 'nan', 'None', 'NaT']) & df['validade_limite'].notna()
+
+-    val_dates = pd.to_datetime(df.loc[validade_mask, 'validade_limite'], errors='coerce')
++    val_dates = pd.to_datetime(df.loc[validade_mask, 'validade_limite'].astype(str), format='%Y-%m-%d', errors='coerce')
+     valid_dates_mask = val_dates.notna()
+
+     # We will build the display string based on conditions
