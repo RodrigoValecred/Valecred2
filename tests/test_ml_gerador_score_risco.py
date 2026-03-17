@@ -165,6 +165,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         return self.context[func_name]
 
     def test_calcular_score_cliente(self):
+        self.context['spark'] = MagicMock()
         try:
             calcular_score_cliente = self.load_function("calcular_score_cliente")
         except ValueError:
@@ -234,6 +235,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.mock_display.assert_called()
 
     def test_gerar_score_e_alertas_integration(self):
+        self.context['spark'] = MagicMock()
         # Extract all three functions
         try:
             source_calc = extract_function_from_file(NOTEBOOK_PATH, "calcular_score_cliente")
