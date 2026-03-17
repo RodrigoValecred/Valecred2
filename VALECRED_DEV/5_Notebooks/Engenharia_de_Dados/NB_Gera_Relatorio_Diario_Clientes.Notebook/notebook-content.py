@@ -180,6 +180,8 @@ class Colors:
 
 def format_currency_br(value):
     """Formata float para string de moeda brasileira (R$ 1.234,56)."""
+    if pd.isna(value):
+        return "-"
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 def style_risk_dataframe(df):
