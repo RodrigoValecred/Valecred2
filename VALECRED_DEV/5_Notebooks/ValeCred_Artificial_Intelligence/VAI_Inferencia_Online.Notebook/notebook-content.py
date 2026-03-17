@@ -274,6 +274,11 @@ df_final = df_scored.withColumn("motivo_principal", compute_reason_udf(*xai_inpu
 df_final = df_final.withColumn("status_ia", F.when(F.col("anomaly_score") == -1, "ALTO RISCO").otherwise("NORMAL"))
 df_final = df_final.withColumn("data_processamento", F.current_timestamp())
 
+from pyspark.sql.window import Window
+w = Window.partitionBy("id_operacao")
+df_final = df_final.withColumn("_risco_motivos", F.when(F.col("status_ia") == "ALTO RISCO", F.col("motivo_principal")))
+df_final = df_final.withColumn("pontos_observacao", F.concat_ws(", ", F.collect_set("_risco_motivos").over(w))).drop("_risco_motivos")
+
 print("4. Salvando resultados na tabela Gold...")
 df_final.write.mode("overwrite").option("overwriteSchema", "true").format("delta").saveAsTable("LH_Gold.Alertas_Risco_TV")
 
