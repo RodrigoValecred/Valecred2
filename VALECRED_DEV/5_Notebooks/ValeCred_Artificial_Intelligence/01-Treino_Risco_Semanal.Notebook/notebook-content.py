@@ -130,11 +130,11 @@ feature_cols = [
 ]
 
 print("🧹 Limpando dados (Removendo NaNs)...")
-# 🧠 Tensor: Replace column-wise .fillna() loop with a vectorized dictionary fillna()
-# 💡 What: Replaced a slow for-loop over columns with a single vectorized Pandas .fillna() operation using a dictionary.
-# 🎯 Why: Iterating over DataFrame columns in Python incurs overhead and creates intermediate copies. A single vectorized operation is executed in C, which is much faster.
-# 📊 Impact: Significantly speeds up NaN filling, particularly for DataFrames with many columns and rows.
-# 🔬 Measurement: Profiling showed a speedup of ~3x (e.g. from ~0.23s to ~0.07s on 1M rows for 5 columns).
+# 🧠 Tensor: Substituir loop .fillna() por coluna com um .fillna() vetorizado por dicionário
+# 💡 What: Substituiu um for-loop lento sobre as colunas por uma única operação vetorizada .fillna() do Pandas usando um dicionário.
+# 🎯 Why: Iterar sobre colunas do DataFrame em Python gera overhead e cria cópias intermediárias. Uma única operação vetorizada é executada em C, o que é muito mais rápido.
+# 📊 Impact: Acelera significativamente o preenchimento de NaN, especialmente para DataFrames com muitas colunas e linhas.
+# 🔬 Measurement: O profiling mostrou uma aceleração de ~3x (ex. de ~0.23s para ~0.07s em 1M de linhas para 5 colunas).
 fill_dict = {col: 0 for col in feature_cols if col in df_pandas.columns}
 df_pandas.fillna(value=fill_dict, inplace=True)
 
@@ -142,12 +142,12 @@ import numpy as np
 df_pandas[feature_cols] = df_pandas[feature_cols].replace([np.inf, -np.inf], 0)
 
 # 🧠 Tensor: Downcast numeric columns (float64 -> float32)
-# 💡 What: Converts all float64 columns in the Pandas DataFrame to float32 before model training.
-# 🎯 Why: Scikit-learn models natively use float32 or float64. Downcasting prevents implicit data
-#         copying overhead inside scikit-learn, and significantly reduces the DataFrame's memory
-#         footprint during execution.
-# 📊 Impact: Halves the memory usage for numerical features.
-# 🔬 Measurement: Profiling shows RAM reduction by ~50% for numeric columns with negligible impact on latency.
+# 💡 What: Converte todas as colunas float64 no DataFrame Pandas para float32 antes do treinamento do modelo.
+# 🎯 Why: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita o overhead
+#         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória
+#         do DataFrame durante a execução.
+# 📊 Impact: Reduz pela metade o uso de memória para features numéricas.
+# 🔬 Measurement: O profiling mostra uma redução de RAM de ~50% para colunas numéricas com impacto insignificante na latência.
 float64_cols = df_pandas.select_dtypes(include=['float64']).columns
 if len(float64_cols) > 0:
     df_pandas[float64_cols] = df_pandas[float64_cols].astype('float32')

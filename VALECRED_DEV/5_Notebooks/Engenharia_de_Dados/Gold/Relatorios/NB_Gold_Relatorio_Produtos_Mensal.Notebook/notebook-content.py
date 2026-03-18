@@ -49,7 +49,7 @@ from notebookutils import mssparkutils
 
 # CELL ********************
 
-# Helper Function para Resolver Ambiguidade Dinamicamente
+# Função utilitária (Helper Function) para Resolver Ambiguidade Dinamicamente
 def resolve_columns(df, target_cols):
     """
     Para cada coluna alvo, verifica se existe no DF.
@@ -58,11 +58,11 @@ def resolve_columns(df, target_cols):
     """
     df_resolved = df
 
-    # ⚡ Bolt: Cache DataFrame columns to avoid repeated RPC calls in loop
+    # ⚡ Bolt: Fazer cache das colunas do DataFrame para evitar chamadas RPC repetidas no loop
     # 💡 What: Cached `df.columns` into a Python set before looping over `target_cols`.
-    # 🎯 Why: Calling `.columns` on a PySpark DataFrame inside a loop is extremely inefficient due to repeated RPC calls to the driver. A set provides O(1) fast local lookups.
-    # 📊 Impact: Removing repeated metadata fetching prevents severe execution delays, especially for DataFrames with many columns.
-    # 🔬 Measurement: O(2 * len(target_cols)) remote fetches reduced to O(1) fetch and O(2 * len(target_cols)) local hash lookups.
+    # 🎯 Why: Chamar `.columns` em um PySpark DataFrame dentro de um loop é extremamente ineficiente devido a chamadas RPC repetidas ao driver. Um set fornece buscas locais rápidas O(1).
+    # 📊 Impact: Remover a busca repetida de metadados previne atrasos severos na execução, especialmente para DataFrames com muitas colunas.
+    # 🔬 Measurement: O(2 * len(target_cols)) buscas remotas reduzidas para O(1) busca e O(2 * len(target_cols)) buscas hash locais.
     df_cols = set(df.columns)
 
     for col_name in target_cols:
@@ -435,7 +435,7 @@ print("Iniciando Análise de Rentabilidade 2025...")
 print("Carregando tabelas Fato e Dimensão...")
 
 # Operações (Base da Análise - Safra 2025)
-# Dedup by cod_operacao to be safe
+# Desduplicar por cod_operacao por segurança
 # Incluindo nbordero e cod_operacao na selecao
 
 df_ops_normal = spark.read.table("LH_Gold.fato_operacoes") \
@@ -450,11 +450,11 @@ df_ops_normal = spark.read.table("LH_Gold.fato_operacoes") \
 # Agregado por Operação
 
 # Garantir que tarifa_de_recompra exista em df_ops_normal antes do select
-# ⚡ Bolt: Cache df.columns to avoid repeated RPC calls during sequential checks
+# ⚡ Bolt: Fazer cache de df.columns para evitar chamadas RPC repetidas durante checagens sequenciais
 # 💡 What: Cached `df_ops_normal.columns` into a Python set before performing multiple `in` checks.
-# 🎯 Why: Accessing `.columns` on a PySpark DataFrame triggers an expensive RPC call. Caching it eliminates 4 repeated network calls, reducing execution time.
-# 📊 Impact: Eliminates redundant RPC driver calls, especially for DataFrames with many columns.
-# 🔬 Measurement: O(4) remote calls reduced to O(1) remote call + O(4) local hash lookups.
+# 🎯 Why: Acessar `.columns` em um PySpark DataFrame aciona uma chamada RPC custosa. Fazer cache disso elimina 4 chamadas de rede repetidas, reduzindo o tempo de execução.
+# 📊 Impact: Elimina chamadas RPC redundantes ao driver, especialmente para DataFrames com muitas colunas.
+# 🔬 Measurement: O(4) chamadas remotas reduzidas para O(1) chamada remota + O(4) buscas hash locais.
 df_ops_normal_cols = set(df_ops_normal.columns)
 
 if "tarifa_de_recompra" not in df_ops_normal_cols:
@@ -471,14 +471,14 @@ if "data_aceite" not in df_ops_normal_cols:
     df_ops_normal = df_ops_normal.withColumn("data_aceite", to_date(col("data_deferimento")))
 
 try:
-    # Load Dim Gerentes for Platform Info
+    # Carregar Dim Gerentes para informações da plataforma (Platform Info)
     df_gerentes = spark.read.table("LH_Gold.dim_gerentes").select("cod_broker", "nome_plataforma")
 
     df_ops_rc = spark.read.table("LH_Gold.fato_operacoes_recompra") \
         .filter(to_date(col("data_analise")) >= "2025-01-01") \
         .filter(to_date(col("data_analise")) <= "2025-12-31")
 
-    # Join with Dim Gerentes
+    # Fazer join com Dim Gerentes
     df_ops_rc = df_ops_rc.join(df_gerentes, "cod_broker", "left")
 
     # Deduplicar/Agregar por Operação
@@ -512,28 +512,28 @@ except Exception as e:
     print(f"Aviso: Não foi possível carregar fato_operacoes_recompra ({e}). Usando apenas operações normais.")
     df_ops = df_ops_normal
 
-# Prorrogações (Silver - Source of Truth for Revenue per Title)
-# Join by cod_titulo requested by user
+# Prorrogações (Silver - Fonte da Verdade para Receita por Título)
+# Fazer join por cod_titulo solicitado pelo usuário
 try:
     df_prorrogacao_silver = spark.read.table("LH_Silver.staging_operacoes_prorrogacao_limpa")
 
-    # Check column name (codtitulo vs cod_titulo) - Standardizing to cod_titulo
+    # Checar nome da coluna (codtitulo vs cod_titulo) - Padronizando para cod_titulo
     if "codtitulo" in df_prorrogacao_silver.columns:
         df_prorrogacao_silver = df_prorrogacao_silver.withColumnRenamed("codtitulo", "cod_titulo")
 
-    # Deduplicate rows (exact full row duplication from Source)
+    # Desduplicar linhas (duplicação exata da linha inteira a partir da fonte)
     df_prorrogacao_silver = df_prorrogacao_silver.dropDuplicates()
 
     # Filter Valid Prorogations (Only 'D' - Deferido)
-    # Removing 'I' (Indeferido) which causes inflated revenue
+    # Removendo 'I' (Indeferido) que causa receita inflacionada
     if "status_analise" in df_prorrogacao_silver.columns:
         df_prorrogacao_silver = df_prorrogacao_silver.filter(col("status_analise") == "D")
     else:
         print("Aviso: status_analise não encontrada em staging_operacoes_prorrogacao_limpa. Filtro não aplicado.")
 
-    # Aggregate by Title (to avoid exploding rows in Title join)
+    # Agregar por Título (para evitar explosão de linhas no join de Título)
     # 1. Total Revenue per Title
-    # 2. 2025 Revenue per Title (for Client Deduction Logic)
+    # 2. Receita de 2025 por Título (para Lógica de Dedução do Cliente)
     df_prorrogacao_silver_agg = df_prorrogacao_silver.groupBy("cod_titulo").agg(
         sum("juros").alias("receita_prorrogacao_titulo"),
         sum(when(year(col("data_inclusao")) == 2025, col("juros")).otherwise(0)).alias("receita_prorrogacao_titulo_2025")
@@ -644,7 +644,7 @@ except:
     df_score = None
 
 # Dimensão Produtos (Para Nome Amigável e Categorização)
-# Force Dedup on chave_produto to prevent join explosion
+# Forçar desduplicação (Dedup) em chave_produto para evitar explosão no join
 df_produtos = spark.read.table("LH_Gold.dim_produtos") \
     .select("chave_produto", "produto_informacao_de_mercado") \
     .dropDuplicates(["chave_produto"])
@@ -692,8 +692,8 @@ else:
 
 # 4. Cálculo de Indicadores Finais (Granularidade: Operação)
 
-# Optimization (Bolt ⚡): Replace Window functions with GroupBy + Join for client aggregations
-# This avoids expensive window shuffling across all operations of a client (O(N*W) -> O(N)).
+# Otimização (Bolt ⚡): Substituir funções de Window por GroupBy + Join para agregações de clientes
+# Isso evita o embaralhamento (shuffling) custoso de window em todas as operações de um cliente (O(N*W) -> O(N)).
 
 # 4.1 Pre-aggregation calculations (Row-level)
 df_calcs = df_base_cliente \
@@ -719,7 +719,7 @@ df_calcs = df_base_cliente \
                       col("soma_produto_valor_prazo_total") / col("valor_face_titulos_op")
                  ).otherwise(0) + coalesce(col("floating"), lit(0))).cast("float")) 
 
-# 4.2 Aggregation by Client
+# 4.2 Agregação por Cliente
 df_cliente_agg = df_calcs.groupBy("cod_cliente").agg(
     sum("total_valor_prazo_op").alias("soma_valor_prazo_cliente"),
     sum("desagio").alias("receita_desagio_cliente"),
@@ -734,7 +734,7 @@ df_cliente_agg = df_calcs.groupBy("cod_cliente").agg(
     count("cod_operacao").alias("qtd_operacoes_cliente")
 )
 
-# 4.3 Join and Final Calculations
+# 4.3 Join e Cálculos Finais
 df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
     .withColumn("receita_total_cliente", col("soma_receita_total_op") + (coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0)) - coalesce(col("soma_prorrogacao_op_2025_cliente"), lit(0)))) \
     .withColumn("custo_financeiro_cliente", coalesce(col("custo_financeiro_cliente_sum"), lit(0))) \

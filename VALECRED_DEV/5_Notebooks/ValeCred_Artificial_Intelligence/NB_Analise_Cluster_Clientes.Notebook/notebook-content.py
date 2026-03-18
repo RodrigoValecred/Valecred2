@@ -135,7 +135,7 @@ df_features_final = df_features.withColumn("tendencia_atraso", col("media_atraso
     )
 
 # 🧠 TENSOR OPTIMIZATION: Cache reuse of heavy feature engineering
-# This dataframe is used for both 'df_critical' and 'df_to_cluster', and subsequent KMeans
+# Este dataframe é usado tanto para 'df_critical' quanto para 'df_to_cluster', e subsequentemente no KMeans
 print("⚡ Tensor: Caching df_features_final to prevent re-computation...")
 start_cache = time.time()
 df_features_final.cache()
@@ -157,8 +157,8 @@ print("Executando K-Means...")
 
 # 2.1 Preparação (Assembler + Scaler)
 # 🧠 TENSOR OPTIMIZATION: Removed redundant K=3 training block.
-# The logic below uses a hybrid approach (Hard Rules + K=2) starting from df_features_final.
-# The previous K=3 model was trained but its results were never used.
+# A lógica abaixo usa uma abordagem híbrida (Regras Rígidas + K=2) começando a partir de df_features_final.
+# O modelo K=3 anterior foi treinado mas seus resultados nunca foram usados.
 print("⚡ Tensor: Skipped redundant K=3 Model Training.")
 
 # METADATA ********************
@@ -189,7 +189,7 @@ df_to_cluster = df_features_final.join(df_critical.select("cod_cliente"), "cod_c
 print(f"Clientes restantes para Clusterização: {df_to_cluster.count()}")
 
 # 2.2 K-Means nos Restantes
-# 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
+# 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
 if not df_to_cluster.isEmpty():
     print("Executando K-Means nos clientes restantes...")
 

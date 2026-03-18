@@ -233,11 +233,11 @@ def prepare_dashboard_data(df, ref_date):
     if df.empty:
         return []
 
-    # 🧠 Tensor: Replace iterrows/itertuples with vectorized operations
-    # 💡 What: Replaced a slow row-by-row Python loop (`itertuples`) used for dashboard string formatting and logic with purely vectorized Pandas/NumPy operations.
-    # 🎯 Why: Iterating over a DataFrame row-by-row invokes severe Python overhead and prevents the C-level performance of Pandas/NumPy. Vectorizing the computations and string manipulations accelerates this process by orders of magnitude.
-    # 📊 Impact: Substantially reduces the latency of generating the daily risk report, particularly noticeable as the number of clients and groups scales up.
-    # 🔬 Measurement: Local profiling shows that replacing `itertuples` with vectorized formatting and `np.where`/`np.select` reduces execution time by roughly 10-20x for large DataFrames.
+    # 🧠 Tensor: Substituir iterrows/itertuples com operações vetorizadas
+    # 💡 What: Substituiu um loop Python lento linha a linha (`itertuples`) usado para formatação de string de dashboard e lógica com operações Pandas/NumPy puramente vetorizadas.
+    # 🎯 Why: Iterar sobre um DataFrame linha a linha invoca overhead severo de Python e impede a performance em nível C de Pandas/NumPy. Vetorizar as computações e manipulações de string acelera este processo em ordens de magnitude.
+    # 📊 Impact: Reduz substancialmente a latência de geração do relatório de risco diário, particularmente notável conforme o número de clientes e grupos escala.
+    # 🔬 Measurement: O profiling local mostra que substituir `itertuples` por formatação vetorizada e `np.where`/`np.select` reduz o tempo de execução em cerca de 10-20x para DataFrames grandes.
     df_calc = pd.DataFrame(index=df.index)
 
     # 1. Truncamento de Nome do Grupo
@@ -255,13 +255,13 @@ def prepare_dashboard_data(df, ref_date):
     df_calc['excesso_fmt'] = df['excesso_valor'].apply(format_currency_br)
 
     # 3. Lógica de Validade
-    # Treat invalid or missing dates
+    # Tratar datas inválidas ou ausentes
     validade_mask = ~df['validade_limite'].isin(['N/A', 'nan', 'None', 'NaT']) & df['validade_limite'].notna()
 
     val_dates = pd.to_datetime(df.loc[validade_mask, 'validade_limite'].astype(str), format='%Y-%m-%d', errors='coerce')
     valid_dates_mask = val_dates.notna()
 
-    # We will build the display string based on conditions
+    # Nós vamos construir a string de exibição com base nas condições
     df_calc['validade_display'] = df['validade_limite'].fillna("None").astype(str)
 
     # Restore exact test case strings
@@ -271,7 +271,7 @@ def prepare_dashboard_data(df, ref_date):
     if valid_dates_mask.any():
         val_dates_valid = val_dates[valid_dates_mask]
 
-        # We need to compute days difference using pandas datetime format. ref_date is datetime.date
+        # Nós precisamos computar a diferença de dias usando formato datetime do pandas. ref_date é datetime.date
         ref_date_dt = pd.to_datetime(ref_date)
         days_remaining = (val_dates_valid - ref_date_dt).dt.days
         val_date_str = val_dates_valid.dt.strftime('%d/%m/%Y')
@@ -334,11 +334,11 @@ def prepare_dashboard_data(df, ref_date):
             default=""
         )
 
-        util_strs = pct_clamped.apply(lambda x: f"{x:.1f}%").values # can use simple string formatting
+        util_strs = pct_clamped.apply(lambda x: f"{x:.1f}%").values # pode usar formatação de string simples
 
         bars = [color + '█' * fl + Colors.RESET + '░' * (bar_length - fl) for color, fl in zip(colors, filled_length)]
 
-        # Build bar display using vectorized string concatenation but doing it locally
+        # Construir exibição de barra usando concatenação de string vetorizada mas fazendo isso localmente
         bar_displays = [
             f"[{b}] {c}{u:>6}{Colors.RESET} {si} {c}({st}){Colors.RESET}"
             for b, c, u, si, st in zip(bars, colors, util_strs, status_icons, status_texts)
@@ -351,7 +351,7 @@ def prepare_dashboard_data(df, ref_date):
         bar_invalid = '░' * bar_length
         df_calc.loc[invalid_mask, 'bar_display'] = f"[{bar_invalid}] {Colors.YELLOW}   N/A{Colors.RESET} ⚠️ {Colors.YELLOW}(Indisponível){Colors.RESET}"
 
-    # For invalid type test case, check string again. Since '123.45' is not NA and 'coerce' created NaT for it
+    # Para caso de teste de tipo inválido, checar string novamente. Já que '123.45' não é NA e 'coerce' criou NaT para ele
     if valid_dates_mask.any() == False and df_calc['validade_display'].notna().any():
         df_calc.loc[df_calc['validade_display'] == '123.45', 'validade_display'] = '123.45'
 

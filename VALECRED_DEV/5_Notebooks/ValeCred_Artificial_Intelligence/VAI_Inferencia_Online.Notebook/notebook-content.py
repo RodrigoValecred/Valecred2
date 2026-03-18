@@ -148,11 +148,11 @@ features_para_analisar = [
 # 1. Garantir que colunas existem e tratar nulos (Spark)
 df_scored = df_enrich
 
-# 🧠 Tensor: Cache DataFrame columns into a dictionary for O(1) case-insensitive lookups
-# 💡 What: Replaced repeated `df_scored.columns` calls inside a loop with a single pre-computed dictionary mapping lowercase column names to their actual names.
-# 🎯 Why: Accessing `.columns` on an evolving PySpark DataFrame inside a loop triggers expensive RPC calls to the JVM and driver schema metadata on each iteration, becoming a massive bottleneck. A dictionary lookup is O(1) and strictly local to the Python process.
-# 📊 Impact: Drastically improves the execution speed of PySpark DataFrame plan construction, particularly for loops iterating over many features or when the DataFrame lineage is deep.
-# 🔬 Measurement: Profiling typically shows execution time for the DAG construction dropping by orders of magnitude (e.g., from seconds to milliseconds).
+# 🧠 Tensor: Fazer cache das colunas do DataFrame em um dicionário para buscas O(1) case-insensitive
+# 💡 What: Substituiu chamadas repetidas de `df_scored.columns` dentro de um loop por um único dicionário pré-computado mapeando nomes de colunas em letras minúsculas para seus nomes reais.
+# 🎯 Why: Acessar `.columns` em um PySpark DataFrame em evolução dentro de um loop aciona chamadas RPC custosas para a JVM e metadados de schema do driver a cada iteração, tornando-se um overhead enorme. Uma busca em dicionário é O(1) e estritamente local ao processo Python.
+# 📊 Impact: Melhora drasticamente a velocidade de execução da construção do plano do PySpark DataFrame, particularmente para loops iterando sobre muitas features ou quando a linhagem do DataFrame é profunda.
+# 🔬 Measurement: O profiling tipicamente mostra o tempo de execução para a construção do DAG caindo em ordens de magnitude (ex., de segundos para milissegundos).
 existing_cols = {c.lower(): c for c in df_scored.columns}
 
 for col_name in features_backup + features_para_analisar:
@@ -283,7 +283,7 @@ print("4. Salvando resultados na tabela Gold...")
 df_final.write.mode("overwrite").option("overwriteSchema", "true").format("delta").saveAsTable("LH_Gold.Alertas_Risco_TV")
 
 # Calcular métricas para o dashboard antes de sair
-# ⚡ Tensor: Single-pass metric collection to avoid multiple full-table scans
+# ⚡ Tensor: Coleta de métricas em passagem única para evitar múltiplas varreduras completas da tabela
 metrics_df = df_final.select(
     F.count("*").alias("total_ops"),
     F.sum(F.when(F.col("status_ia") == "ALTO RISCO", 1).otherwise(0)).alias("risco_alto")
@@ -304,7 +304,7 @@ metrics = {
 }
 
 print(f"✅ Processo Finalizado! {total_ops} operações enviadas para a TV.")
-# display(df_final.select("id_operacao", "status_ia","motivo_principal")) # Keep commented or remove
+# display(df_final.select("id_operacao", "status_ia", "motivo_principal")) # Manter comentado ou remover
 
 # ==============================================================================
 # 4. DASHBOARD RÁPIDO DE SAÍDA (UX)
@@ -314,7 +314,7 @@ print("📊 RESUMO DO PROCESSAMENTO")
 print("="*40)
 
 def create_progress_bar(percentage, width=20):
-    # Clamps the filled value to ensure the progress bar width is consistent
+    # Limita o valor preenchido para garantir que a largura da barra de progresso seja consistente
     clamped_pct = float(percentage)
     if clamped_pct < 0.0:
         clamped_pct = 0.0
