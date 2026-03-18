@@ -15,9 +15,36 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     from notebook_utils import extract_function_from_file
 
+class MockColumn:
+    def __init__(self, name):
+        self.name = name
+        self.alias_name = None
+
+    def alias(self, alias_name):
+        self.alias_name = alias_name
+        return self
+
+def mock_col(name):
+    return MockColumn(name)
+
 class MockDataFrame:
     def __init__(self, columns):
         self.columns = columns
+
+    def select(self, *cols):
+        new_columns = []
+        for c in cols:
+            if isinstance(c, MockColumn):
+                if c.name not in self.columns:
+                    raise ValueError(f"Column '{c.name}' not found in DataFrame")
+                new_columns.append(c.alias_name if c.alias_name else c.name)
+            elif isinstance(c, str):
+                if c not in self.columns:
+                    raise ValueError(f"Column '{c}' not found in DataFrame")
+                new_columns.append(c)
+            else:
+                new_columns.append(str(c))
+        return MockDataFrame(new_columns)
 
     def withColumnRenamed(self, existing, new):
         if existing in self.columns:
@@ -312,6 +339,75 @@ class TestStandardizeEstudoColumns(unittest.TestCase):
         new_df = self.standardize_estudo_columns(df)
 
         self.assertEqual(new_df.columns, ["valor_risco_estudo", "valor_limite_estudo"])
+
+class TestGetOperacoesSchema(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting get_operacoes_schema from {NOTEBOOK_PATH}")
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "get_operacoes_schema")
+
+        if func_source:
+            local_scope = {}
+            global_scope = {"col": mock_col}
+            try:
+                exec(func_source, global_scope, local_scope)
+                cls.get_operacoes_schema = staticmethod(local_scope["get_operacoes_schema"])
+            except Exception as e:
+                print(f"Error executing extracted function: {e}")
+                cls.get_operacoes_schema = None
+        else:
+            cls.get_operacoes_schema = None
+            print("WARNING: get_operacoes_schema function not found in file.")
+
+    def test_function_exists(self):
+        """Test that the function was successfully extracted."""
+        self.assertIsNotNone(self.get_operacoes_schema, "Function get_operacoes_schema not found or failed to load.")
+
+    def test_get_operacoes_schema_happy_path(self):
+        """Test that the function correctly aliases columns when all are present."""
+        if not self.get_operacoes_schema:
+            self.skipTest("Function not found")
+
+        input_columns = [
+            "CODOPERACAO", "CODCLIENTE", "CODEMPRESA", "DATAINCLUSAO", "DATAALTERACAO",
+            "DATAANALISE", "STATUSACEITE", "STATUSANALISE", "CODBROKER", "NBORDERO",
+            "NOTASERVICO", "TTO", "STTO", "chave_produto", "TOTRETENCAO",
+            "TOTDES", "TOTFAC", "TOTDCP", "TOTTAR", "TOTPENDENCIAS",
+            "TOTRECOMPRA", "FATOR", "CODINDEFERIMENTO", "USUAINCLUSAO", "USUASTANALISE",
+            "USUATRAVA", "TAC", "TOTTAXAADM", "TOTADVAL", "NDOCSRECOMPRA",
+            "TARIFA", "NDOCS", "TARIFARECOMPRA", "FLOATING", "PMP"
+        ]
+        df = MockDataFrame(input_columns)
+
+        result_df = self.get_operacoes_schema(df)
+
+        expected_columns = [
+            "cod_operacao", "cod_cliente", "cod_empresa", "data_inclusao", "data_alteracao",
+            "data_analise", "status_aceite", "status_analise", "cod_broker", "nbordero",
+            "nota_servico", "tto", "stto", "chave_produto", "valor_retido",
+            "valor_desembolsado", "valor_de_face", "desagio", "total_de_tarifas", "valor_pendencias",
+            "valor_recomprado", "taxa", "cod_indeferimento", "usua_inclusao", "usua_st_analise",
+            "usua_trava", "tac", "valor_taxa_adm", "valor_advalorem", "n_docs_recompra",
+            "tarifa", "n_docs", "tarifa_recompra", "floating", "prazo_medio_ponderado_dias"
+        ]
+
+        self.assertEqual(len(result_df.columns), len(expected_columns))
+        for col in expected_columns:
+            self.assertIn(col, result_df.columns)
+
+    def test_get_operacoes_schema_missing_column(self):
+        """Test that the function raises an error when a required column is missing."""
+        if not self.get_operacoes_schema:
+            self.skipTest("Function not found")
+
+        # Missing "CODOPERACAO"
+        input_columns = ["CODCLIENTE", "CODEMPRESA"]
+        df = MockDataFrame(input_columns)
+
+        with self.assertRaises(ValueError) as cm:
+            self.get_operacoes_schema(df)
+
+        self.assertIn("Column 'CODOPERACAO' not found in DataFrame", str(cm.exception))
 
 if __name__ == '__main__':
     unittest.main()
