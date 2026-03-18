@@ -66,7 +66,7 @@ def load_and_prepare_data(spark):
         .groupBy("cod_operacao") \
         .agg(max("bordero_referencia_indeferido").alias("bordero_referencia_indeferido"))
 
-    # Join Prorrog with Pareceres Ref
+    # Fazer join Prorrog com Pareceres Ref
     df_prorrog_enriched = df_prorrog.join(df_pareceres_ref, "cod_operacao", "left")
 
     # Normalizar datas e status

@@ -75,7 +75,7 @@ df_apelidos = spark.read.table("LH_Silver.sup_apelido_empresas")
 # Limpar CNPJ da tabela de empresas para garantir match numérico
 df_empresas_clean = df_empresas.withColumn("cnpj_clean", regexp_replace(col("cnpj"), "[^0-9]", ""))
 
-# Join with aliases to avoid ambiguity on 'nome' column
+# Fazer join com aliases para evitar ambiguidade na coluna 'nome'
 df_joined = df_empresas_clean.alias("e").join(
     df_cadastros.alias("c"),
     col("e.cnpj_clean") == col("c.cpf_cnpj"),

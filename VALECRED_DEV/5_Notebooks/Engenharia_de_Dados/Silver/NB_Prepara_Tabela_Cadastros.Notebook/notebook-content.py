@@ -63,13 +63,13 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
 
         # Check source max
         df_source = spark.read.table(source_table)
-        # 🧠 Tensor: Cache columns metadata in O(1) dictionary to prevent multiple driver fetch calls
+        # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         cols_source_map = {c.lower(): c for c in df_source.columns}
         if watermark_col.lower() not in cols_source_map:
              return False # Cannot check, proceed
 
         actual_col_source = cols_source_map[watermark_col.lower()]
-        # 🧠 Tensor: Replace .collect()[0][0] with .first()[0] to preserve predicate pushdown and avoid list materialization
+        # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
         max_source = df_source.agg(max(col(actual_col_source))).first()[0]
 
         # Check target max
@@ -82,7 +82,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         max_target = df_target.agg(max(col(actual_col_target))).first()[0]
 
         if max_source and max_target and max_source <= max_target:
-            return True # Source is not newer than target
+            return True # Fonte não é mais nova que o destino
         return False
     except Exception as e:
         print(f"Warning in check_should_skip: {e}")
@@ -334,7 +334,7 @@ def process_gerentes():
         df_sup_ativos = spark.read.table(f"{target_lakehouse}.sup_gerentes_ativos")
 
         # Identificação dinâmica da chave de junção
-        # 🧠 Tensor: Cache columns metadata in O(1) dictionary to prevent multiple driver fetch calls
+        # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         sup_cols_map = {c.lower(): c for c in df_sup_ativos.columns}
         join_key = None
         # Ordem de prioridade atualizada: cod_gerente (confirmado), seguido de fallbacks
@@ -424,7 +424,7 @@ def process_plataformas():
     print("Processando Plataformas...")
     df_agencias = spark.read.table(f"{source_lakehouse}.cad_agencias").select(col("CODAGENCIA").alias("cod_agencia"), col("NOME").alias("nome_plataforma"))
 
-    # Hardcoded Logic requested by User (matches Power Query logic)
+    # Lógica fixada (Hardcoded) solicitada pelo Usuário (combina com lógica do Power Query)
     df_calc = df_agencias.withColumn("plataforma", regexp_replace(col("nome_plataforma"), "^.*? ", "")) \
         .withColumn("gestor_hardcoded",
             when(col("nome_plataforma") == "PLATAFORMA CONTENCIOSO", "VINICIUS")
@@ -437,7 +437,7 @@ def process_plataformas():
 
     # Support Table Fallback
     try:
-        # Select only necessary columns to avoid ambiguity with 'plataforma' column
+        # Selecionar apenas as colunas necessárias para evitar ambiguidade com a coluna 'plataforma'
         df_sup_gestor = spark.read.table(f"{target_lakehouse}.sup_gestor_de_plataforma") \
             .select(col("cod_agencia"), col("gestor_da_plataforma"))
 
@@ -481,7 +481,7 @@ def process_usuarios():
         (5, "OPERADOR"), (6, "SEM ACESSO"), (7, "CONSULTA"), (8, "JURIDICO"),
         (9, "COMERCIAL"), (10, "BACKOFFICE")
     ]
-    # Rename column to avoid ambiguity with 'nivel' in df_usuarios
+    # Renomear coluna para evitar ambiguidade com 'nivel' em df_usuarios
     df_nivel = spark.createDataFrame(data_nivel, ["id_nivel", "descricao_nivel"])
 
     df_usuarios = spark.read.table(f"{source_lakehouse}.cad_usuarios") \
@@ -496,7 +496,7 @@ def process_usuarios():
         .withColumn("nome", upper(col("nome"))) \
         .withColumn("funcao", upper(col("funcao")))
 
-    # Update join condition to use new column name
+    # Atualizar condição de join para usar o novo nome de coluna
     df_usuarios_final = df_usuarios.join(df_nivel, col("nivel") == df_nivel.id_nivel, "left") \
         .drop("id_nivel") \
         .select("cod_usuario", "nome", "funcao", "nivel", "descricao_nivel", "cpf_cnpj", "apelido")
@@ -533,11 +533,11 @@ def process_pareceres_clientes_esteira():
     # Extração de Status
     df_extracted = df_pareceres_cli.withColumn(
         "status_cliente",
-        substring(col("OBS"), 22, 100) # Length arbitrary large to get rest of string
+        substring(col("OBS"), 22, 100) # Tamanho (Length) arbitrariamente grande para pegar o resto da string
     ).withColumn("data_log", col("DATAINCLUSAO"))
 
     # Join com Clientes (para pegar CODCLIENTE)
-    # Fixed Ambiguous Reference for USUAINCLUSAO by using aliases and explicit selection
+    # Corrigida Referência Ambígua para USUAINCLUSAO usando aliases e seleção explícita
     df_joined = df_extracted.alias("p").join(df_clientes.alias("c"), "CPFCNPJ", "left") \
         .select(
             col("c.CODCLIENTE"),
@@ -588,12 +588,12 @@ def process_pareceres_clientes_esteira():
 
 def process_sacados_enriquecida(df_geral=None, df_enderecos=None, df_emails=None, df_telefones=None):
     print("Processando Sacados Enriquecida...")
-    # Distinct Sacados from Titulos
+    # Sacados Distintos de Títulos
     df_titulos_sacados = spark.read.table(f"{source_lakehouse}.tab_titulos") \
         .filter(year(col("DATAINCLUSAO")) >= 2021) \
         .select(col("CPFCNPJSACADO").alias("cpf_cnpj")).distinct()
 
-    # Joins - Fallback to table read if DFs not provided
+    # Joins - Fallback (Contingência) para leitura de tabela se DFs não forem fornecidos
     if df_geral is None: df_geral = spark.read.table(f"{target_lakehouse}.staging_cad_geral_pf_pj_limpa")
     if df_enderecos is None: df_enderecos = spark.read.table(f"{target_lakehouse}.staging_enderecos_limpa")
     if df_emails is None: df_emails = spark.read.table(f"{target_lakehouse}.staging_emails_agg")

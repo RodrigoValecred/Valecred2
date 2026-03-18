@@ -79,7 +79,7 @@ def transform_esteira_dates(df_esteira, status_mapping):
     """
     expected_status = list(status_mapping.keys())
 
-    # Combined Pivot (Max and Min)
+    # Pivot Combinado (Max e Min)
     df_combined = df_esteira \
         .groupBy("cod_cliente") \
         .pivot("status_do_cliente", expected_status) \
@@ -88,7 +88,7 @@ def transform_esteira_dates(df_esteira, status_mapping):
             min("datalog").alias("min")
         )
 
-    # Single Select with Renaming
+    # Select único com renomeação
     # Expected cols: cod_cliente, pivot_{clean_name}, min_{clean_name}
     select_exprs = [col("cod_cliente")]
 
@@ -118,8 +118,8 @@ def calculate_vop_metrics(df_ops_validas):
     """
     # VOP por Dia da Semana (Top 1)
     # Reusing 'dia_da_semana_da_operacao' (1=Sun, 2=Mon...) calculated in Section 1.2
-    # Note: 'dia_da_semana_da_operacao' is derived from 'data_deferimento' which is to_date('data_analise').
-    # So it is functionally equivalent to dayofweek('data_analise').
+    # Nota: 'dia_da_semana_da_operacao' é derivado de 'data_deferimento' que é to_date('data_analise').
+    # Então é funcionalmente equivalente a dayofweek('data_analise').
     df_vop_semana = df_ops_validas.groupBy("cod_cliente", col("dia_da_semana_da_operacao").alias("dia_semana")) \
         .agg(sum("valor_de_face").alias("vop"))
 
@@ -129,7 +129,7 @@ def calculate_vop_metrics(df_ops_validas):
 
     # VOP por Dia do Mês (Top 1)
     # Reusing 'dia_da_operacao' (Day of Month) calculated in Section 1.2
-    # Note: 'dia_da_operacao' is derived from 'data_deferimento' (to_date('data_analise')).
+    # Nota: 'dia_da_operacao' é derivado de 'data_deferimento' (to_date('data_analise')).
     df_vop_mes = df_ops_validas.groupBy("cod_cliente", col("dia_da_operacao").alias("dia_mes")) \
         .agg(sum("valor_de_face").alias("vop"))
 
@@ -278,16 +278,16 @@ def check_incremental_gold(spark):
         def get_max_date(table_name, col_name="data_inclusao"):
             try:
                 df = spark.read.table(table_name)
-                # Cache df.columns to avoid repeated RPC calls
+                # Fazer cache de df.columns para evitar chamadas RPC repetidas
                 df_cols = df.columns
                 col_name_lower = col_name.lower()
-                # Create a map for case-insensitive lookup
+                # Criar um mapa para busca case-insensitive
                 lower_to_actual = {c.lower(): c for c in df_cols}
 
                 if col_name_lower not in lower_to_actual:
                     return None
 
-                # Use the actual column name to avoid AnalysisException
+                # Usar o nome real da coluna para evitar AnalysisException
                 actual_col = lower_to_actual[col_name_lower]
                 row = df.agg(max(col(actual_col))).first()
                 return row[0] if row else None
@@ -307,7 +307,7 @@ def check_incremental_gold(spark):
 
         new_ops = False
         if max_silver_ops:
-            # If Gold is None (First Run) or Silver > Gold, we have new data
+            # Se Gold for nulo (Primeira Execução) ou Silver > Gold, temos novos dados
             if not max_gold_ops or max_silver_ops > max_gold_ops:
                 new_ops = True
 
@@ -316,11 +316,11 @@ def check_incremental_gold(spark):
             if not max_gold_titulos or max_silver_titulos > max_gold_titulos:
                 new_titulos = True
 
-        # If both checks failed to find new data (and sources exist), skip.
-        # If sources don't exist (max_silver is None), we probably can't run anyway, but let's be safe and proceed (it will likely fail later or handle empty).
-        # Actually, if sources are None, we should probably SKIP or Proceed?
-        # If Proceed, we hit errors later. If Skip, we save time.
-        # Let's assume if source exists and no new data, we SKIP.
+        # Se ambas as checagens falharem em encontrar novos dados (e as fontes existirem), pular (skip).
+        # Se as fontes não existirem (max_silver for None), provavelmente não podemos executar de qualquer forma, mas por segurança vamos prosseguir (provavelmente falhará depois ou lidará com vazio).
+        # Na verdade, se as fontes forem None, deveríamos provavelmente Pular (SKIP) ou Prosseguir?
+        # Se Prosseguir, teremos erros depois. Se Pular, economizamos tempo.
+        # Vamos assumir que se a fonte existe e não há novos dados, nós Pulamos (SKIP).
 
         if (max_silver_ops or max_silver_titulos) and (not new_ops and not new_titulos):
             print("Nenhum dado novo detectado em Operações ou Títulos (Silver vs Gold). Pulando execução Gold.")
@@ -555,7 +555,7 @@ df_first_op = df_operacoes_limpa.filter(col("status_aceite") == 'A') \
     .groupBy("cod_cliente").agg(min("data_analise").alias("data_primeira_operacao_calc"))
 
 # PRE-CALCULO: Taxa Cadastro do Cliente (do Contrato Ativo)
-# ⚡ Bolt Optimization: Cache this dataframe to reuse it later (in Section 6.5) avoiding a redundant scan.
+# ⚡ Otimização Bolt: Fazer cache deste dataframe para reusá-lo depois (na Seção 6.5) evitando uma varredura redundante.
 df_client_rate = df_contratos.filter(col("status") == 'A') \
     .groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro_cliente")).cache()
 
@@ -570,7 +570,7 @@ df_geral_alias = df_geral_pf_pj_limpa.alias("cad")
 # Join com Usuarios
 df_join_users = df_gerentes_alias.join(df_usuarios_alias, col("g.cod_usuario") == col("u.cod_usuario"), "left")
 
-# Clean CPF/CNPJ for Join
+# Limpar CPF/CNPJ para o Join
 df_join_users_clean = df_join_users.withColumn("cpf_cnpj_clean", regexp_replace(col("g.cpf_cnpj"), "[^0-9]", ""))
 df_geral_clean = df_geral_alias.withColumn("cpf_cnpj_clean", regexp_replace(col("cad.cpf_cnpj"), "[^0-9]", ""))
 
@@ -581,7 +581,7 @@ df_gerentes_full = df_join_users_clean.join(
     "left"
 )
 
-# Join with Plataformas to get Platform Info
+# Fazer join com Plataformas para obter informações da Plataforma (Platform Info)
 df_plataformas_alias = df_plataformas.alias("plat")
 
 df_gerentes_plat = df_gerentes_full.join(df_plataformas_alias, col("g.cod_agencia") == col("plat.cod_agencia"), "left")
@@ -594,7 +594,7 @@ df_gerentes_enrich = df_gerentes_plat.select(
     col("plat.gestor_da_plataforma")
 ).dropDuplicates(["cod_broker"]).alias("gerentes")
 
-# Aliasing other tables for join safety
+# Usando aliases em outras tabelas para segurança no join
 df_escrow = df_escrow.alias("escrow")
 df_first_op = df_first_op.alias("first_op")
 df_client_rate = df_client_rate.alias("client_rate")
@@ -636,8 +636,8 @@ df_operacoes_com_gerente = df_operacoes_com_fallback.withColumn(
 # Identificação de Operações Informais
 df_chave_danfe = df_cad_geral_arquivos.filter(col("DESCRICAO") == 'CHAVEDANFE')
 
-# ⚡ Bolt Optimization: Filter operations first to reduce join volume (Filter -> Join) instead of (Join -> Filter)
-# This avoids joining millions of non-candidate operations/titles with the DANFE table.
+# ⚡ Otimização Bolt: Filtrar operações primeiro para reduzir o volume do join (Filter -> Join) em vez de (Join -> Filter)
+# Isso evita fazer join de milhões de operações/títulos não-candidatos com a tabela DANFE.
 df_operacoes_candidates = df_operacoes_com_gerente.filter(
     (col("nota_servico") == 'N') &
     (col("status_analise") == 'D') &
@@ -646,10 +646,10 @@ df_operacoes_candidates = df_operacoes_com_gerente.filter(
     (col("tto").isin(['NO','CM','FC']))
 )
 
-# Only join titles for relevant operations
+# Fazer join apenas dos títulos para operações relevantes
 df_titulos_candidates = df_operacoes_candidates.join(df_titulos_limpa, on="cod_operacao", how="inner")
 
-# Only join DANFE keys for relevant titles
+# Fazer join apenas das chaves DANFE para títulos relevantes
 df_matches = df_titulos_candidates.join(df_chave_danfe, df_titulos_candidates.cod_titulo == df_chave_danfe.CODTITULO, how="inner")
 
 df_vcount = df_matches.groupBy("cod_operacao").count()
@@ -787,7 +787,7 @@ def prepare_operacoes_dataframe(df_operacoes_enriquecida):
         to_date(col("data_inclusao"))
     ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
 
-    # ⚡ Bolt Optimization: Filter TTOs (PR, RC, RE) BEFORE joins to reduce data volume
+    # ⚡ Otimização Bolt: Filtrar TTOs (PR, RC, RE) ANTES dos joins para reduzir o volume de dados
     return df_operacoes_prep.filter(~col("tto").isin(["PR", "RC", "RE"]))
 
 def join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_produto):
@@ -1046,7 +1046,7 @@ df_classificacao = df_dates_final.withColumn("dias_atraso", datediff(current_dat
 df_status_1 = df_classificacao.withColumn("status_deferimento", when((col("aceito") == "S") & (col("status_aceite") == "A") & (col("status_analise") == "D"), "Sim").otherwise("Não"))
 df_status_2 = df_status_1.withColumn("status_clean", when(col("produto_com_intercia") == "DESCONTO", "NORMAL").otherwise("CLEAN"))
 
-# Confirmacao Logic using Bronze column or Fallback
+# Lógica de Confirmacao usando coluna Bronze ou Fallback (Alternativa)
 df_conf = df_status_2.withColumn("confirmacao", when(col("doc_confirmado") == "N", "Atenção").when(col("doc_confirmado") == "S", None).when(col("doc_confirmado") == "C", "Positivo").when(col("doc_confirmado") == "P", "Problema").when(col("doc_confirmado") == "A", "Alerta").when(col("doc_confirmado").isNull(), "Não Contatado").when(col("doc_confirmado").isin("E", "AZ"), "Eletrônico").otherwise(col("doc_confirmado")))
 df_ordem = df_conf.withColumn("ordem_confirmacao", when(col("confirmacao") == "Não Contatado", 5).when(col("confirmacao") == "Atenção", 2).when(col("confirmacao") == "Eletrônico", 0).when(col("confirmacao") == "Positivo", 1).when(col("confirmacao") == "Alerta", 3).when(col("confirmacao") == "Problema", 4).otherwise(None))
 
@@ -1206,10 +1206,10 @@ print(f"Tabela '{target_nova_fato_prorrogacao}' criada com sucesso.")
 print("\nIniciando construção da fato_operacoes_recompra...")
 
 # Fonte = stg_operacoes
-# Optimization: Reuse dataframe loaded in Section 0.2 or 5.3
+# Otimização: Reutilizar dataframe carregado na Seção 0.2 ou 5.3
 df_operacoes_source = df_operacoes_limpa
 
-# Filter TTO = 'RC' or 'RE' AND status_analise = 'D' AND status_aceite = 'A'
+# Filtrar TTO = 'RC' ou 'RE' AND status_analise = 'D' AND status_aceite = 'A'
 df_ops_rc = df_operacoes_source.filter(
     (col("tto").isin(["RC", "RE"])) &
     (col("status_analise") == "D") &
@@ -1263,7 +1263,7 @@ df_sup_status = spark.read.table(TableNames.SILVER_SUP_STATUS_DE_CLIENTES_DA_EST
 
 # Prepare Cad Clientes Status
 # Bronze: CODSTATUSCLIENTE
-# Silver: codstatuscliente (normalized from CODSTATUSCLIENTE by manual upload loader)
+# Silver: codstatuscliente (normalizado de CODSTATUSCLIENTE pelo loader de upload manual)
 df_status_cad_prep = df_cad_clientes_bronze.join(
     df_sup_status,
     df_cad_clientes_bronze.CODSTATUSCLIENTE == df_sup_status.codstatuscliente,
@@ -1295,7 +1295,7 @@ df_info_gestor = df_bridge_atual \
 # 6.1: Métricas de Operações
 # --------------------------
 # Usamos df_fato_operacoes criada na Seção 2.1
-# Optimization: Reuse cached DataFrame to avoid I/O and deserialization overhead
+# Otimização: Reutilizar DataFrame em cache para evitar overhead de I/O e desserialização
 df_ops_validas = df_fato_operacoes.filter(col("status_analise") == "D")
 
 # ⚡ Bolt Optimization: Calculate VOP metrics reusing existing columns
@@ -1326,7 +1326,7 @@ df_metrics_ops_final = df_metrics_ops.join(df_dia_semana_top, "cod_cliente", "le
 # Usamos df_fato_titulos_final criada na Seção 3.3
 # Join com Operações para pegar cod_cliente
 # OTIMIZAÇÃO: cod_cliente foi adicionado à fato_titulos na Seção 3.3, evitando este join.
-# Optimization: Reuse cached DataFrame to avoid I/O and deserialization overhead
+# Otimização: Reutilizar DataFrame em cache para evitar overhead de I/O e desserialização
 df_titulos_cliente = df_fato_titulos_final
 
 today_date = current_date()
@@ -1356,14 +1356,14 @@ df_metrics_titulos = df_risco_base.groupBy("cod_cliente").agg(
     sum(when(col("data_vencimento_util") < today_date, col("valor_devido")).otherwise(0)).alias("vencidos")
 )
 
-# Perdas (VOP - VlrPagoLiquido) where Motivo='PR' (Assume proxy for LIQUIDEZ='L5')
-# Need a separate aggregation from Fato Baixas or Titulos if column exists
-# Assuming 'motivo' in fato_titulos (from previous steps) can be used.
+# Perdas (VOP - VlrPagoLiquido) onde Motivo='PR' (Assumir proxy para LIQUIDEZ='L5')
+# Necessário uma agregação separada de Fato Baixas ou Títulos se a coluna existir
+# Assumindo que 'motivo' em fato_titulos (dos passos anteriores) pode ser usado.
 # Logic: sum(valor) - sum(liquidacao value? No, liquidacao is date).
-# We need `valor_pago` from somewhere. `fato_titulos` usually has `valor` and `valor_pago` comes from `baixas`.
-# But `fato_titulos` in Seção 3 doesn't explicitly have `valor_pago`. It has `amortizacoes`.
-# Let's use `amortizacoes` as proxy for `valor_pago_liquido` if strict. Or better, check if we joined Baixas.
-# In `Seção 3`, `df_fato_titulos_final` has `amortizacoes`. Let's use that.
+# Nós precisamos de `valor_pago` de algum lugar. `fato_titulos` geralmente tem `valor` e `valor_pago` vem de `baixas`.
+# Mas `fato_titulos` na Seção 3 não tem explicitamente `valor_pago`. Ele tem `amortizacoes`.
+# Vamos usar `amortizacoes` como proxy para `valor_pago_liquido` se estrito. Ou melhor, checar se fizemos join com Baixas.
+# Na `Seção 3`, `df_fato_titulos_final` tem `amortizacoes`. Vamos usar isso.
 # Perdas = (Valor - Amortizacoes) where motivo='PR'.
 df_perdas_agg = df_titulos_cliente.filter(col("motivo") == "PR") \
     .groupBy("cod_cliente").agg(
@@ -1388,11 +1388,11 @@ df_esteira = spark.read.table(TableNames.GOLD_ESTEIRA_DE_PROPOSTAS)
 # Normalização de colunas (Compatibilidade com Legado/Schema antigo)
 # Se a tabela não foi regerada (incremental = 0), ela pode estar com colunas em UpperCase.
 # Forçamos o rename para snake_case esperado.
-# ⚡ Bolt: Cache DataFrame columns to avoid repeated RPC calls during sequential checks
+# ⚡ Bolt: Fazer cache de colunas de DataFrame para evitar chamadas RPC repetidas durante checagens sequenciais
 # 💡 What: Cached `df_esteira.columns` into a Python set before performing multiple `in` checks.
-# 🎯 Why: Accessing `.columns` on a PySpark DataFrame triggers an expensive RPC call to the driver. Caching it eliminates 3 repeated network calls.
-# 📊 Impact: Eliminates redundant RPC driver calls, especially for DataFrames with many columns.
-# 🔬 Measurement: O(3) remote calls reduced to O(1) remote call + O(3) local hash lookups.
+# 🎯 Why: Acessar `.columns` em um PySpark DataFrame aciona uma chamada RPC custosa para o driver. Fazer cache disso elimina 3 chamadas de rede repetidas.
+# 📊 Impact: Elimina chamadas RPC redundantes ao driver, especialmente para DataFrames com muitas colunas.
+# 🔬 Measurement: O(3) chamadas remotas reduzidas para O(1) chamada remota + O(3) buscas hash locais.
 df_esteira_cols = set(df_esteira.columns)
 
 if "CODCLIENTE" in df_esteira_cols:
@@ -1407,7 +1407,7 @@ if "DATALOG" in df_esteira_cols:
 expected_status = list(STATUS_ESTEIRA_MAPPING.keys())
 
 # Pivot Simples das Datas Maximas e Minimas por Status (Otimizado - Single Pass)
-# ⚡ Bolt Optimization: Use single pass pivot for both Max and Min dates. Returns single combined DF.
+# ⚡ Otimização Bolt: Usar pivot de passagem única para as datas Máx e Mín. Retorna um único DF combinado.
 df_esteira_combined = transform_esteira_dates(df_esteira, STATUS_ESTEIRA_MAPPING)
 
 
@@ -1474,7 +1474,7 @@ df_base_raw = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclus
 # Verificação e Remoção de Duplicados (CNPJ)
 # Objetivo: Garantir que a dim_clientes tenha chave única por CPF/CNPJ.
 # Regra: Se houver duplicidade, mantemos o cadastro com data_inclusao mais recente (ou cod_cliente maior).
-# Optimization: Always apply deduplication to avoid expensive count() action.
+# Otimização: Sempre aplicar desduplicação para evitar ação count() custosa.
 df_base = deduplicate_clientes_staging(df_base_raw)
 
 # Renomeando chaves para evitar ambiguidade nos joins
@@ -1484,14 +1484,14 @@ df_esteira_pivot_prep = df_esteira_combined.withColumnRenamed("cod_cliente", "co
 # Join Chain
 
 # Taxa Cadastro (Power BI Requirement)
-# ⚡ Bolt Optimization: Reuse cached df_client_rate from Section 1.2 to avoid scanning df_contratos again.
+# ⚡ Otimização Bolt: Reutilizar df_client_rate em cache da Seção 1.2 para evitar escanear df_contratos novamente.
 if "df_client_rate" in locals():
     df_client_rate_gold = df_client_rate.select(
         col("cod_cliente").alias("cod_cliente_rate"),
         col("taxa_cadastro_cliente").alias("taxa_cadastro")
     )
 else:
-    # Fallback if run interactively out of order
+    # Fallback (Contingência) se executado interativamente fora de ordem
     df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
 
 def join_cliente_dimensions(
@@ -1519,7 +1519,7 @@ def join_cliente_dimensions(
         .join(df_metrics_titulos_final, "cod_cliente", "left")
 
     # 2. Informações de Esteira (Pivoted, Min Dates, Latest Status)
-    # ⚡ Bolt Optimization: Removed redundant join for df_esteira_min_prep as it is now combined in df_esteira_pivot_prep
+    # ⚡ Otimização Bolt: Removido join redundante para df_esteira_min_prep já que agora está combinado em df_esteira_pivot_prep
     df_esteira = df_metrics \
         .join(df_esteira_pivot_prep, df_base.cod_cliente == df_esteira_pivot_prep.cod_cliente_pivot, "left").drop("cod_cliente_pivot") \
         .join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest")
@@ -1667,7 +1667,7 @@ df_final = calculate_funnel_dates(df_funnel) \
     ) \
     .withColumn("taxa_minima_exigida",
         (when(col("faixa_pdd") == 0.05, 0.0025) # Rating A (0.05 PDD)
-         .when(col("faixa_pdd") == 0.7, 0.0075) # Rating C (0.7 PDD?) - DAX Logic vague on ratingPdd mapping, using best guess from PDD
+         .when(col("faixa_pdd") == 0.7, 0.0075) # Rating C (0.7 PDD?) - Lógica DAX vaga no mapeamento ratingPdd, usando o melhor palpite a partir de PDD
          .otherwise(0.0050) # Rating B
         ) + 0.0150 + 0.0010
     ) \
@@ -1725,7 +1725,7 @@ df_final = calculate_funnel_dates(df_funnel) \
         )
     )
 
-# Optimization: Cache df_final before splitting to avoid recomputing the massive join DAG multiple times
+# Otimização: Fazer cache de df_final antes de separar para evitar recomputar o DAG massivo de join múltiplas vezes
 df_final.cache()
 
 # -------------------------------------------------------------
@@ -1771,11 +1771,11 @@ print("Criando tabela 'analise_prazos_esteira' e removendo colunas da dim_client
 # Selecionar apenas colunas de esteira + chave
 # Verificar quais colunas realmente existem no df_final para evitar erro
 
-# ⚡ Bolt: Cache DataFrame columns to avoid repeated RPC calls during list comprehension
+# ⚡ Bolt: Fazer cache de colunas do DataFrame para evitar chamadas RPC repetidas durante list comprehension
 # 💡 What: Cached `df_final.columns` into a Python set before using it in a list comprehension.
-# 🎯 Why: Accessing `.columns` on a PySpark DataFrame triggers an expensive RPC call to the JVM/driver. Inside a loop/comprehension, this causes severe performance degradation. A set provides O(1) local lookup.
-# 📊 Impact: Eliminates N repeated metadata fetches (where N = len(cols_esteira_prazos)), drastically speeding up the execution of this block.
-# 🔬 Measurement: O(N) remote calls reduced to O(1) remote call + O(N) local hash lookups.
+# 🎯 Why: Acessar `.columns` em um PySpark DataFrame aciona uma chamada RPC custosa para a JVM/driver. Dentro de um loop/comprehension, isso causa uma degradação severa de performance. Um set fornece busca local O(1).
+# 📊 Impact: Elimina N buscas repetidas de metadados (onde N = len(cols_esteira_prazos)), acelerando drasticamente a execução deste bloco.
+# 🔬 Measurement: O(N) chamadas remotas reduzidas para O(1) chamada remota + O(N) buscas hash locais.
 df_final_cols = set(df_final.columns)
 existing_cols = [c for c in cols_esteira_prazos if c in df_final_cols]
 missing_cols = set(cols_esteira_prazos) - set(existing_cols)
@@ -1832,10 +1832,10 @@ print("\nIniciando cálculo do HHI da Carteira...")
 
 # Garantindo acesso aos DataFrames base (caso a execução não seja sequencial na sessão interativa)
 if "df_fato_titulos_final" not in locals():
-    # Fallback only if run interactively/out of order
+    # Fallback (Contingência) apenas se executado interativamente/fora de ordem
     df_fato_titulos_final = spark.read.table(TableNames.GOLD_FATO_TITULOS)
 if "df_fato_operacoes" not in locals():
-    # Fallback only if run interactively/out of order
+    # Fallback (Contingência) apenas se executado interativamente/fora de ordem
     df_fato_operacoes = spark.read.table(TableNames.GOLD_FATO_OPERACOES)
 
 # Join para obter cod_cliente para cada título

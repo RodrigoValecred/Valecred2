@@ -84,9 +84,9 @@ df_operacoes = df_operacoes.withColumnRenamed("TTO", "TTO_OPERACAO")
 df_operacoes = df_operacoes.withColumnRenamed("CODRATING", "CODRATING_OPERACAO")
 df_cedentes = df_cedentes.withColumnRenamed("CODRATING", "CODRATING_CEDENTE")
 
-# 🧠 TENSOR OPTIMIZATION: Predicate Pushdown and Inner Joins
-# Applying filters directly to source tables BEFORE joining to drastically reduce the data footprint.
-# Using INNER JOINs means filtering df_cedentes by CPFCNPJ automatically filters operations and titles.
+# 🧠 TENSOR OPTIMIZATION: Predicate Pushdown e Inner Joins
+# Aplicando filtros diretamente nas tabelas fonte ANTES do join para reduzir drasticamente o volume de dados.
+# Usar INNER JOINs significa que filtrar df_cedentes por CPFCNPJ automaticamente filtra as operações e títulos.
 print(f"Filtrando dados para o cliente {CLIENTE_CPFCNPJ} e aplicando regras de negócio em Spark antes dos joins...")
 
 df_cedentes_filtered = df_cedentes.filter(col("CPFCNPJ") == CLIENTE_CPFCNPJ)
@@ -105,13 +105,13 @@ df_cad_geral_filtered = df_cad_geral.select("CPFCNPJ", "CIDADE", "UF").dropDupli
 # Realizando os joins otimizados
 print("Criando tabela mestra com joins INNER otimizados...")
 
-# First, join operations with the specific client to filter operations
+# Primeiro, fazer join das operações com o cliente específico para filtrar as operações
 df_op_ced = df_operacoes_filtered.join(df_cedentes_filtered, on="CODCLIENTE", how="inner")
 
-# Then, join filtered titles with the specific client's operations
+# Então, fazer join dos títulos filtrados com as operações do cliente específico
 df_mestra_spark = df_titulos_filtered.join(df_op_ced, on="CODOPERACAO", how="inner")
 
-# Finally, add the general registry data
+# Finalmente, adicionar os dados de cadastro geral
 df_mestra_spark = df_mestra_spark.join(
     df_cad_geral_filtered,
     on="CPFCNPJ",
@@ -138,7 +138,7 @@ print("Tabela mestra filtrada e carregada com sucesso.")
 
 # CELL ********************
 
-# count() on Spark DataFrame is expensive, so omitting exact count in regular runs to save time
+# count() no Spark DataFrame é custoso, então omitindo o count exato em execuções regulares para economizar tempo
 print(f"Universo de análise carregado para o cliente {CLIENTE_CPFCNPJ}.")
 
 # Criando a variável Target
@@ -184,7 +184,7 @@ print(f"Analisando o cliente com CPF/CNPJ: {CLIENTE_CPFCNPJ}")
 # O DataFrame df_filtrado já contém apenas os dados do cliente específico
 df_cliente = df_filtrado
 
-# 🧠 Tensor Optimization: Replace df_cliente.limit(1).count() == 0 with df_cliente.isEmpty() for cleaner and more efficient syntax
+# 🧠 Tensor Optimization: Substituir df_cliente.limit(1).count() == 0 por df_cliente.isEmpty() para uma sintaxe mais limpa e eficiente
 if df_cliente.isEmpty():
     print("ALERTA: Nenhum título encontrado para este cliente com os filtros aplicados.")
 else:

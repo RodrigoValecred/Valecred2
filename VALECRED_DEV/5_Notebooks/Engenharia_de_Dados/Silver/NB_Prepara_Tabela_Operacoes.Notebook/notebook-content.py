@@ -40,7 +40,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
 
 # --- CONFIGURATION ---
-# Set to True to force a Full Load (useful for cleaning up deleted records from source)
+# Definir como True para forçar Full Load (útil para limpar registros deletados da fonte)
 FULL_LOAD = True
 # ---------------------
 
@@ -96,13 +96,13 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
 
         # Check source max
         df_source = spark.read.table(source_table)
-        # 🧠 Tensor: Cache columns metadata in O(1) dictionary to prevent multiple driver fetch calls
+        # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         cols_source_map = {c.lower(): c for c in df_source.columns}
         if watermark_col.lower() not in cols_source_map:
              return False # Cannot check, proceed
 
         actual_col_source = cols_source_map[watermark_col.lower()]
-        # 🧠 Tensor: Replace .collect()[0][0] with .first()[0] to preserve predicate pushdown and avoid list materialization
+        # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
         max_source = df_source.agg(max(col(actual_col_source))).first()[0]
 
         # Check target max
@@ -118,7 +118,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         # print(f"Check Skip {source_table} -> {target_table_path}: Source Max {max_source}, Target Max {max_target}")
 
         if max_source and max_target and max_source <= max_target:
-            return True # Source is not newer than target
+            return True # Fonte não é mais nova que o destino
         return False
     except Exception as e:
         print(f"Warning in check_should_skip: {e}")
@@ -206,13 +206,13 @@ def process_incremental_operacoes(source_table, output_path, key_columns_operaco
         .filter((col("DATAINCLUSAO") >= col("last_watermark")) | (col("DATAALTERACAO") >= col("last_watermark"))) \
         .drop("last_watermark")
 
-    # 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
+    # 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_ops.isEmpty():
         # 3. Transform & Deduplicate Batch
         df_final_batch = transform_operacoes(df_bronze_ops, key_columns_operacoes)
 
         # 4. Merge
-        # Compatibility check for merge condition (handles schema migration if target is still old schema)
+        # Checagem de compatibilidade para condição de merge (lida com migração de schema se o destino ainda for o schema antigo)
         merge_condition = "t.cod_operacao = s.cod_operacao"
 
         delta_table_ops.alias("t").merge(
@@ -277,7 +277,7 @@ def process_incremental_devolucoes(source_table, output_path):
     print("Modo Incremental: Devoluções")
     delta_table_dev = DeltaTable.forPath(spark, output_path)
 
-    # 🧠 Tensor Optimization: Avoid collect() by using crossJoin
+    # 🧠 Tensor Optimization: Evitar collect() usando crossJoin
     df_watermark = spark.read.format("delta").load(output_path) \
         .agg(coalesce(max("data_inclusao"), lit("1900-01-01")).alias("last_watermark"))
 
@@ -288,7 +288,7 @@ def process_incremental_devolucoes(source_table, output_path):
         .filter((col("DATAINCLUSAO") >= col("last_watermark")) | (col("DATAALTERACAO") >= col("last_watermark"))) \
         .drop("last_watermark")
 
-    # 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
+    # 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_dev.isEmpty():
         df_final = transform_devolucoes(df_bronze_dev)
 
@@ -341,7 +341,7 @@ def get_tac_variations():
     return ["TAC  M", "TAC MOP", "TAC M.", "TACM", "TACA M", "TAC M 300,00", "TAC"]
 
 def transform_tac_m(df, tac_variations):
-    # Optimize: Use native trim instead of regex, and filter with isin instead of conditional replace
+    # Otimizar: Usar trim nativo em vez de regex, e filtrar com isin em vez de replace condicional
     df = df.withColumn("descricao", trim(upper(col("descricao"))))
     df = df.filter(col("descricao").isin(tac_variations + ["TAC M"]))
     df = df.withColumn("descricao", lit("TAC M"))
@@ -388,13 +388,13 @@ def standardize_estudo_columns(df):
     Padroniza as colunas de Risco e Limite da tabela de estudo de operações.
     Procura por candidatos conhecidos e renomeia para um padrão único.
     """
-    # Candidates must be in snake_case (normalized)
+    # Candidatos devem estar em snake_case (normalizado)
     risk_candidates = ["valoremabertort", "risco", "vl_risco", "valor_risco", "total_risco", "risco_total", "saldo_devedor", "tot_risco"]
     limit_candidates = ["limitefomento", "limite", "vl_limite", "valor_limite", "total_limite", "limite_total", "limite_global", "tot_limite", "limite_credito"]
 
     def rename_first_match(df, candidates, target_name):
         existing_cols = df.columns
-        # Check if target already exists (e.g. if source already has 'valor_risco_estudo')
+        # Checar se o destino (target) já existe (ex. se a fonte já tem 'valor_risco_estudo')
         if target_name in existing_cols:
              return df
 
@@ -402,7 +402,7 @@ def standardize_estudo_columns(df):
             if cand in existing_cols:
                 return df.withColumnRenamed(cand, target_name)
 
-        # If not found, create with 0
+        # Se não encontrado, criar com 0
         print(f"AVISO: Coluna padrão '{target_name}' não encontrada nos candidatos {candidates}. Criando com 0.")
         return df.withColumn(target_name, lit(0))
 
@@ -588,7 +588,7 @@ def process_prorrogacoes():
         print("Skipping Prorrogações (No new data)")
         return
 
-    # Removed try-except to ensure fail-fast if dependencies are missing
+    # Removido try-except para garantir fail-fast se dependências estiverem ausentes
     df_boletos = spark.read.table(f"{target_lakehouse}.staging_boletos_titulos")
     df_ops_pr = spark.read.table(source_table).filter(col("TTO") == "PR")
 
@@ -613,18 +613,18 @@ def process_tab_operacoes_prorrogacao():
     df_prorrogacao = spark.read.table(source_table)
 
     # 2. Dependencies (Silver)
-    # Using Silver tables for enrichment as they are cleaner
-    # Get VALOR from titulos
+    # Usando tabelas Silver para enriquecimento já que são mais limpas
+    # Obter VALOR de títulos
     df_titulos = spark.read.table(f"{target_lakehouse}.staging_titulos_limpa") \
         .select(col("cod_titulo"), col("valor"))
 
-    # Get STATUS from operacoes
+    # Obter STATUS de operações
     df_operacoes = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa") \
         .select(col("cod_operacao"), col("status_analise"), col("status_aceite"))
 
-    # 3. Standardize Source to match Silver keys
-    # Normalize source columns to snake_case first for consistency
-    # (Assuming the source has CamelCase or UPPERCASE columns as per usual Bronze)
+    # 3. Padronizar Fonte para corresponder às chaves Silver
+    # Normalizar colunas da fonte para snake_case primeiro para consistência
+    # (Assumindo que a fonte tem colunas CamelCase ou UPPERCASE como usual no Bronze)
     df_prorrogacao_norm = df_prorrogacao.select(
         [col(c).alias(c.lower()) for c in df_prorrogacao.columns]
     ).withColumnRenamed("codtitulo", "cod_titulo") \
@@ -632,19 +632,19 @@ def process_tab_operacoes_prorrogacao():
      .withColumnRenamed("datainclusao", "data_inclusao")
 
     # 4. Joins
-    # Left Join with Titulos
+    # Left Join com Títulos
     df_joined_1 = df_prorrogacao_norm.join(df_titulos, "cod_titulo", "left_outer")
 
-    # Left Join with Operacoes
+    # Left Join com Operacoes
     df_joined_2 = df_joined_1.join(df_operacoes, "cod_operacao", "left_outer")
 
     # 5. Transformations
     # Extract Data (Date part of data_inclusao)
     df_transformed = df_joined_2.withColumn("data", to_date(col("data_inclusao")))
 
-    # 6. Select and Drop Columns
-    # User requested to remove: TARIFA, USUAINCLUSAO, DATAALTERACAO, USUAALTERACAO, VALORDEVIDO, VALORPROR, VALORBOLETO
-    # Columns are lowercased (but not snake_cased with underscores) by step 3: tarifa, usuainclusao, dataalteracao, usuaalteracao, valordevido, valorpror, valorboleto
+    # 6. Select e Drop (Remover) Colunas
+    # O usuário solicitou remover: TARIFA, USUAINCLUSAO, DATAALTERACAO, USUAALTERACAO, VALORDEVIDO, VALORPROR, VALORBOLETO
+    # Colunas estão em lowercase (mas não snake_case com underscores) pelo passo 3: tarifa, usuainclusao, dataalteracao, usuaalteracao, valordevido, valorpror, valorboleto
     columns_to_drop = [
         "tarifa", "usuainclusao", "dataalteracao", "usuaalteracao",
         "valordevido", "valorpror", "valorboleto"
@@ -679,7 +679,7 @@ def process_recompras():
         print("Skipping Recompras (No new data)")
         return
 
-    # Removed try-except to ensure fail-fast if dependencies are missing
+    # Removido try-except para garantir fail-fast se dependências estiverem ausentes
     df_boletos = spark.read.table(f"{target_lakehouse}.staging_boletos_titulos")
     df_ops_rc = spark.read.table(source_table) \
         .filter(col("TTO").isin(["RC", "RE"])) \
@@ -704,7 +704,7 @@ def process_tarifas_esporadicas():
     df_filtered = df_tarifas.filter(year(col("DATAINCLUSAO")) >= 2024)
 
     # Join Users (Left) & Filter Analyst
-    # Note: Using aliases to avoid ambiguity if USUAINCLUSAO exists in both (though here we join on it)
+    # Nota: Usando aliases para evitar ambiguidade se USUAINCLUSAO existe em ambos (embora aqui façamos join nela)
     df_joined = df_filtered.alias("t").join(df_usuarios.alias("u"), col("t.USUAINCLUSAO") == col("u.CODUSUARIO"), "left") \
         .filter((col("u.NOME") != "RONALDO DANILO UREI GOBBI") | col("u.NOME").isNull())
 

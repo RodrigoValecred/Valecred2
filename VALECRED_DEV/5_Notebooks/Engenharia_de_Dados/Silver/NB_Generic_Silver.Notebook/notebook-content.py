@@ -114,11 +114,11 @@ class SilverIngestor:
         
         try:
             bad_records_df = self.df_source.filter(condition)
-            # 🧠 Tensor: Replace .count() with .isEmpty()
-            # 💡 What: Swapped a full-table DataFrame.count() evaluation for DataFrame.isEmpty().
-            # 🎯 Why: Calculating the exact number of bad records triggers a full scan of the dataset. Using .isEmpty() evaluates only until the first match is found, executing early-exit logic.
-            # 📊 Impact: Significantly speeds up the Quality Gate step for very large tables when the table has few or zero bad records, reducing job time and cluster compute cost.
-            # 🔬 Measurement: Profiling indicates this avoids triggering full shuffle exchanges, dropping evaluation time from O(N) to O(1) in the best/average cases.
+            # 🧠 Tensor: Substituir .count() por .isEmpty()
+            # 💡 What: Trocou uma avaliação DataFrame.count() de tabela completa por DataFrame.isEmpty().
+            # 🎯 Why: Calcular o número exato de registros ruins aciona uma varredura completa do dataset. Usar .isEmpty() avalia apenas até que a primeira correspondência seja encontrada, executando lógica de early-exit.
+            # 📊 Impact: Acelera significativamente o passo do Quality Gate para tabelas muito grandes quando a tabela tem poucos ou zero registros ruins, reduzindo o tempo do job e custo de computação do cluster.
+            # 🔬 Measurement: O profiling indica que isso evita acionar shuffle exchanges completos, caindo o tempo de avaliação de O(N) para O(1) nos melhores/casos médios.
             has_errors = not bad_records_df.isEmpty()
         except Exception as e:
             print(f"Erro ao filtrar colunas: {normalized_keys}. Colunas disponíveis: {self.df_source.columns}")
@@ -192,7 +192,7 @@ class SilverIngestor:
 if not table_input or not keys_input:
     raise ValueError("Parâmetros obrigatórios ausentes.")
 
-# Security: Define allowed tables for this ingestor
+# Segurança: Definir tabelas permitidas para este ingestor
 ALLOWED_TABLES = ["cad_empresas"]
 
 

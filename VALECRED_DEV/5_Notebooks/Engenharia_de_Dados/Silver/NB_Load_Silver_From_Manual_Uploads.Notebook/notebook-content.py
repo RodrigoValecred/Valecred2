@@ -135,17 +135,17 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
             if col_name.isupper():
                 col_name = col_name.lower()
             else:
-                # 3. Convert CamelCase to snake_case
+                # 3. Converter CamelCase para snake_case
                 s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', col_name)
                 col_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
 
             # 4. Lowercase
             col_name = col_name.lower()
 
-            # 5. Replace non-alphanumeric (except underscore) with underscore
+            # 5. Substituir caracteres não-alfanuméricos (exceto underscore) por underscore
             col_name = re.sub(r'[^a-z0-9_]+', '_', col_name)
 
-            # 6. Clean up multiple underscores and leading/trailing
+            # 6. Limpar múltiplos underscores e espaços/caracteres no início/fim
             col_name = re.sub(r'_+', '_', col_name)
             return col_name.strip('_')
 

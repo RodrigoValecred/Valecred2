@@ -154,7 +154,7 @@ key_columns_titulos = ["CODTITULO"]
 is_incremental_possible = False
 if DeltaTable.isDeltaTable(spark, output_path_titulos):
     try:
-        # Check for new snake_case column and data_alteracao
+        # Checar se há nova coluna snake_case e data_alteracao
         target_cols = spark.read.format("delta").load(output_path_titulos).columns
         if "cod_titulo" in target_cols and "data_alteracao" in target_cols:
             is_incremental_possible = True
@@ -188,7 +188,7 @@ if is_incremental_possible:
     df_bronze_titulos = spark.read.table(f"{source_lakehouse}.{source_table_titulos}") \
         .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
     
-    # 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
+    # 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_titulos.isEmpty():
         # 3. Desduplicar o batch incremental
         df_dedup = deduplicate_titulos(df_bronze_titulos, key_columns_titulos)
@@ -300,7 +300,7 @@ def select_baixas(df):
 
 is_incremental_baixas = False
 if DeltaTable.isDeltaTable(spark, output_path_baixas):
-    # Check if snake_case column exists
+    # Checar se coluna snake_case existe
     if "cod_titulo_baixas" in spark.read.format("delta").load(output_path_baixas).columns:
         is_incremental_baixas = True
     else:
@@ -323,7 +323,7 @@ if is_incremental_baixas:
     df_bronze_baixas = spark.read.table(f"{source_lakehouse}.{source_table_baixas}") \
         .filter(col("DATAINCLUSAO") >= last_watermark_b)
         
-    # 🧠 Tensor Optimization: Replace count() > 0 with not df.isEmpty() to avoid full data scan
+    # 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_baixas.isEmpty():
         key_cols_baixa = ["CODTITULOBAIXAS"]
         window_baixa = Window.partitionBy([col(c) for c in key_cols_baixa]).orderBy(col("DATAINCLUSAO").desc())

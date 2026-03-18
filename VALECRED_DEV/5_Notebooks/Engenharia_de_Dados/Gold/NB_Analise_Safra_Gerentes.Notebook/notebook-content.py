@@ -70,7 +70,7 @@ months = []
 curr = max_date.replace(day=1)
 for i in range(36):
     months.append(curr)
-    # Go to previous month
+    # Ir para o mês anterior
     first_of_month = curr.replace(day=1)
     prev_month = first_of_month - timedelta(days=1)
     curr = prev_month.replace(day=1)
@@ -211,7 +211,7 @@ df_perf_12m = df_final_metrics.filter(F.col("mes_ref") >= mes_corte) \
 # Quantil 0.75
 try:
     corte_top = df_perf_12m.approxQuantile("res_acum", [0.75], 0.01)[0]
-    # Perform join instead of collect for scalability
+    # Realizar join em vez de collect para escalabilidade
     df_top_performers = df_perf_12m.filter(F.col("res_acum") >= corte_top).select("id_gerente").withColumn("is_top_flag", F.lit(True))
 
     df_final_metrics = df_final_metrics.join(
@@ -240,7 +240,7 @@ df_with_bench = df_final_metrics.join(df_curve_avg, "mob", "left").join(df_curve
 # Para cada gerente ativo (MOB < 24), projetar próximo mês
 print("Calculando Projeções...")
 
-# Optimized: Use applyInPandas for parallel processing instead of collecting to driver
+# Otimizado: Usar applyInPandas para processamento paralelo em vez de coletar (collect) para o driver
 result_schema = StructType([
     StructField("id_gerente", StringType(), True),
     StructField("mob_projecao", IntegerType(), True),
@@ -248,21 +248,21 @@ result_schema = StructType([
 ])
 
 def train_model(pdf):
-    # pdf is a pandas DataFrame for one group
+    # pdf é um DataFrame pandas para um grupo
     if len(pdf) <= 2:
         return pd.DataFrame(columns=["id_gerente", "mob_projecao", "rogm_projetado"])
 
-    # Taking the first ID found. Groupby ensures all rows are for same manager.
+    # Pegando o primeiro ID encontrado. Groupby garante que todas as linhas são para o mesmo gerente.
     manager_id = str(pdf["id_gerente"].iloc[0])
 
     X = pdf["mob"].values
     y = pdf["rogm"].values
 
-    # 🧠 Tensor: Replace Scikit-Learn LinearRegression with NumPy polyfit
-    # 💡 What: Replaced the heavyweight sklearn LinearRegression with np.polyfit for projecting the next month's return.
-    # 🎯 Why: Instantiating and fitting a Scikit-Learn model per group (e.g., thousands of groups with only ~24 rows each) introduces massive overhead. np.polyfit is a lightweight C-level alternative.
-    # 📊 Impact: Speeds up the PySpark applyInPandas execution significantly by removing object creation and validation overhead.
-    # 🔬 Measurement: Local profiling shows a speedup of ~2.2x (from 1.61s to 0.73s for 1000 groups).
+    # 🧠 Tensor: Substituir Scikit-Learn LinearRegression por NumPy polyfit
+    # 💡 What: Substituiu o pesado sklearn LinearRegression por np.polyfit para projetar o retorno do próximo mês.
+    # 🎯 Why: Instanciar e ajustar um modelo Scikit-Learn por grupo (ex., milhares de grupos com apenas ~24 linhas cada) introduz um overhead massivo. np.polyfit é uma alternativa leve em nível C.
+    # 📊 Impact: Acelera significativamente a execução do PySpark applyInPandas ao remover a criação de objetos e o overhead de validação.
+    # 🔬 Measurement: O profiling local mostra uma aceleração de ~2.2x (de 1.61s para 0.73s para 1000 grupos).
     slope, intercept = np.polyfit(X, y, 1)
 
     last_mob = pdf["mob"].max()

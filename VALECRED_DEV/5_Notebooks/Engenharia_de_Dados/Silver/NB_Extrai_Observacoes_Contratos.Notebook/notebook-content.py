@@ -54,7 +54,7 @@ df_bronze = spark.sql("SELECT * FROM LH_Bronze.cad_contratos_clientes WHERE STAT
 
 # 3. Definição das Regex "Case Insensitive" ( Ignora Maiúscula/Minúscula)
 # O código (?i) no começo torna a busca insensível a caixa alta/baixa
-# ReDoS Mitigation: Use bounded quantifier .{0,200}? instead of unbounded .*? to prevent excessive backtracking
+# Mitigação de ReDoS: Usar quantificador limitado .{0,200}? em vez do ilimitado .*? para evitar backtracking excessivo
 #
 # --- Legenda dos Símbolos Regex Utilizados ---
 # (?i)       : Torna a busca insensível a maiúsculas/minúsculas (case insensitive).
