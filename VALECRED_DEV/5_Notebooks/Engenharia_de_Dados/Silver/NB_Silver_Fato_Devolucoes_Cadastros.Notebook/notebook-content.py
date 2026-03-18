@@ -150,12 +150,12 @@ motivos = {
     "motivo_documentos_pendentes": "DOCUMENTOS PENDENTES"
 }
 
-df_flags = df_devolucoes
-for col_name, search_term in motivos.items():
-    df_flags = df_flags.withColumn(
-        col_name,
-        when(col("obs_normalized").contains(search_term), 1).otherwise(0)
-    )
+# Otimização Bolt: Substituição de withColumn iterativo por um único select para achatar o plano lógico
+motivo_exprs = [
+    when(col("obs_normalized").contains(search_term), 1).otherwise(0).alias(col_name)
+    for col_name, search_term in motivos.items()
+]
+df_flags = df_devolucoes.select("*", *motivo_exprs)
 
 # METADATA ********************
 
