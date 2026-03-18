@@ -60,7 +60,11 @@ def mock_when(condition, value):
     return m
 def round(c, scale): return MagicMock()
 def datediff(end, start): return MagicMock()
-def coalesce(*cols): return MagicMock()
+def coalesce(*cols):
+    m = MagicMock()
+    m.__repr__ = lambda x: f"coalesce({', '.join(str(c) for c in cols)})"
+    m.__str__ = lambda x: f"coalesce({', '.join(str(c) for c in cols)})"
+    return m
 def year(c):
     m = MagicMock()
     m.__eq__ = lambda self, other: MagicMock()

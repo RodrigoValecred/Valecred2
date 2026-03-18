@@ -285,7 +285,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
     # Aplicar também fallback de plataforma
     df_mora_enrich = df_mora_enrich \
         .join(df_cli_plat_map, "cod_cliente", "left") \
-        .withColumn("data_deferimento", col("data_baixa")) \
+        .withColumn("data_deferimento", coalesce(col("data_deferimento"), col("data_baixa"))) \
         .withColumn("nome_plataforma", coalesce(col("nome_plataforma"), col("nome_plataforma_cli"), lit("N/D"))) \
         .drop("nome_plataforma_cli")
 
