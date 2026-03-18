@@ -1,7 +1,9 @@
 import unittest
 import sys
 import os
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
+from pyspark.sql import SparkSession
+from pyspark.sql import Row
 
 # Ensure the tests directory is in the path to import notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -16,75 +18,96 @@ NOTEBOOK_PATH = os.path.join(
 
 class TestVOPMetrics(unittest.TestCase):
 
-    def test_calculate_vop_metrics(self):
+    @classmethod
+    def setUpClass(cls):
+        # We start a spark session for testing
+        cls.spark = SparkSession.builder.master("local[1]").appName("TestVOPMetrics").getOrCreate()
+
         func_source = extract_function_from_file(NOTEBOOK_PATH, "calculate_vop_metrics")
-        if not func_source:
-             self.fail("Function calculate_vop_metrics not found in notebook.")
 
-        # Mocks
-        mock_df_ops = MagicMock(name="df_ops_validas")
-        mock_df_grouped = MagicMock(name="df_grouped")
-        mock_df_agg = MagicMock(name="df_agg")
-        mock_window_spec = MagicMock(name="window_spec")
+        from pyspark.sql.functions import col, sum, row_number
+        from pyspark.sql.window import Window
 
-        # Setup chain for groupBy(...).agg(...)
-        mock_df_ops.groupBy.return_value = mock_df_grouped
-        mock_df_grouped.agg.return_value = mock_df_agg
-
-        # Setup chain for withColumn(...).filter(...).select(...)
-        mock_df_with_rn = MagicMock(name="df_with_rn")
-        mock_df_filtered = MagicMock(name="df_filtered")
-        mock_df_final = MagicMock(name="df_final")
-
-        mock_df_agg.withColumn.return_value = mock_df_with_rn
-        mock_df_with_rn.filter.return_value = mock_df_filtered
-        mock_df_filtered.select.return_value = mock_df_final
-
-        # Mock PySpark functions
-        mock_col = MagicMock(name="col")
-        mock_sum = MagicMock(name="sum")
-        mock_row_number = MagicMock(name="row_number")
-        mock_window = MagicMock(name="Window")
-
-        # Mock Window.partitionBy(...).orderBy(...)
-        mock_window.partitionBy.return_value.orderBy.return_value = mock_window_spec
-
-        # Execution Context
         exec_globals = {
-            'col': mock_col,
-            'sum': mock_sum,
-            'row_number': mock_row_number,
-            'Window': mock_window,
+            'col': col,
+            'sum': sum,
+            'row_number': row_number,
+            'Window': Window,
         }
 
         local_scope = {}
         exec(func_source, exec_globals, local_scope)
-        calculate_vop_metrics = local_scope['calculate_vop_metrics']
+        cls.calculate_vop_metrics = staticmethod(local_scope['calculate_vop_metrics'])
 
-        # Run function
-        result_week, result_month = calculate_vop_metrics(mock_df_ops)
+    @classmethod
+    def tearDownClass(cls):
+        cls.spark.stop()
 
-        # Assertions
-        # 1. Check groupBy calls using existing columns
-        # Expected: groupBy("cod_cliente", col("dia_da_semana_da_operacao").alias("dia_semana"))
-        # and groupBy("cod_cliente", col("dia_da_operacao").alias("dia_mes"))
+    def test_calculate_vop_metrics_edge_cases(self):
+        # Edge cases:
+        # 1. Ties in VOP (should pick one based on internal sorting, but deterministic is better, though row_number().over(orderBy(desc)) handles it)
+        # 2. Multiple clients
+        # 3. Multiple entries for the same day
+        data = [
+            # Client 1: Clear winner
+            Row(cod_cliente=1, dia_da_semana_da_operacao=2, dia_da_operacao=10, valor_de_face=100.0),
+            Row(cod_cliente=1, dia_da_semana_da_operacao=3, dia_da_operacao=15, valor_de_face=200.0), # max week 3, max month 15
 
-        self.assertEqual(mock_df_ops.groupBy.call_count, 2)
+            # Client 2: Multiple entries for the same day should aggregate
+            Row(cod_cliente=2, dia_da_semana_da_operacao=4, dia_da_operacao=20, valor_de_face=50.0),
+            Row(cod_cliente=2, dia_da_semana_da_operacao=4, dia_da_operacao=20, valor_de_face=50.0), # sum = 100
+            Row(cod_cliente=2, dia_da_semana_da_operacao=5, dia_da_operacao=21, valor_de_face=60.0), # max week 4 (100 > 60)
 
-        # Inspect args for first groupBy (Day of Week)
-        args_week, _ = mock_df_ops.groupBy.call_args_list[0]
-        self.assertEqual(args_week[0], "cod_cliente")
-        # Verify alias usage
-        mock_col.assert_any_call("dia_da_semana_da_operacao")
+            # Client 3: Tie in sums (week 1=100, week 2=100), row_number picks one (non-deterministic which one without tie breaker, but we ensure one is picked)
+            Row(cod_cliente=3, dia_da_semana_da_operacao=1, dia_da_operacao=1, valor_de_face=100.0),
+            Row(cod_cliente=3, dia_da_semana_da_operacao=2, dia_da_operacao=2, valor_de_face=100.0),
+        ]
 
-        # Inspect args for second groupBy (Day of Month)
-        args_month, _ = mock_df_ops.groupBy.call_args_list[1]
-        self.assertEqual(args_month[0], "cod_cliente")
-        mock_col.assert_any_call("dia_da_operacao")
+        df = self.spark.createDataFrame(data)
 
-        # 2. Check returns
-        self.assertEqual(result_week, mock_df_final)
-        self.assertEqual(result_month, mock_df_final)
+        df_semana, df_mes = self.calculate_vop_metrics(df)
+
+        res_semana = df_semana.collect()
+        res_mes = df_mes.collect()
+
+        res_semana.sort(key=lambda x: x.cod_cliente)
+        res_mes.sort(key=lambda x: x.cod_cliente)
+
+        self.assertEqual(len(res_semana), 3)
+        self.assertEqual(len(res_mes), 3)
+
+        # Client 1
+        self.assertEqual(res_semana[0].cod_cliente, 1)
+        self.assertEqual(res_semana[0].dia_semana_mais_vop, 3)
+
+        self.assertEqual(res_mes[0].cod_cliente, 1)
+        self.assertEqual(res_mes[0].dia_mes_mais_vop, 15)
+
+        # Client 2 (Aggregation Check)
+        self.assertEqual(res_semana[1].cod_cliente, 2)
+        self.assertEqual(res_semana[1].dia_semana_mais_vop, 4) # 100 > 60
+
+        self.assertEqual(res_mes[1].cod_cliente, 2)
+        self.assertEqual(res_mes[1].dia_mes_mais_vop, 20)
+
+        # Client 3 (Tie Check)
+        self.assertEqual(res_semana[2].cod_cliente, 3)
+        self.assertIn(res_semana[2].dia_semana_mais_vop, [1, 2])
+
+    def test_calculate_vop_metrics_empty(self):
+        # Edge case: Empty dataframe
+        from pyspark.sql.types import StructType, StructField, IntegerType, DoubleType
+        schema = StructType([
+            StructField("cod_cliente", IntegerType(), True),
+            StructField("dia_da_semana_da_operacao", IntegerType(), True),
+            StructField("dia_da_operacao", IntegerType(), True),
+            StructField("valor_de_face", DoubleType(), True)
+        ])
+        df = self.spark.createDataFrame([], schema)
+        df_semana, df_mes = self.calculate_vop_metrics(df)
+
+        self.assertEqual(df_semana.count(), 0)
+        self.assertEqual(df_mes.count(), 0)
 
 if __name__ == '__main__':
     unittest.main()
