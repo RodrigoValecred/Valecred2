@@ -13,7 +13,6 @@ A V.A.I. é a inteligência artificial da ValeCred, desenvolvida para potenciali
 
 Com base nesse estudo, a V.A.I. monitora as novas operações, identificando anomalias que desviem do padrão estabelecido e classificando-as como **Alto Risco**, permitindo uma atuação proativa da equipe de gestão de risco.
 
-
 ## 📋 Sobre o Projeto
 A V.A.I. é uma inteligência artificial desenvolvida para atuar como "Sentinela Digital" nas operações de crédito da ValeCred. Diferente de sistemas tradicionais baseados apenas em regras fixas (ex: "valor > 50k"), a V.A.I. utiliza Machine Learning (Aprendizado Não Supervisionado) para detectar anomalias estatísticas em tempo real.
 
@@ -66,7 +65,6 @@ Status V.A.I.:
 
 <img width="1202" height="661" alt="Dashboard V.A.I. exibindo lista de operações com indicadores de risco e explicações da IA" src="https://github.com/user-attachments/assets/1b844dfe-ec9d-4211-aef8-e8b2c22fb52b" />
 
-
 ## 🛠️ Stack Tecnológica
 Orquestração: Azure Data Factory (Pipelines).
 
@@ -108,7 +106,7 @@ A plataforma passou por um ciclo intensivo de refatoração e melhorias técnica
 
 ### 3. Segurança e Governança
 *   **Gestão de Segredos**: Remoção de credenciais *hardcoded* (ex: API Keys) e substituição por variáveis de ambiente e cofres seguros.
-*   **Sanitização de Logs**: Implementação de filtros em logs de execução (ex: `NB_CERC_Consulta_API`) para evitar vazamento de PII (Informações Pessoais Identificáveis).
+*   **Sanitização de Logs**: Implementação de filtros em logs de execução para evitar vazamento de PII (Informações Pessoais Identificáveis).
 *   **Gerenciamento de Dependências**: Substituição de instalações inseguras via subprocessos (`pip install`) por arquivos de requisitos padronizados.
 
 ### 4. Lógica de Negócio e Analytics Avançado
@@ -288,8 +286,6 @@ Responsável por aplicar regras de negócio complexas, joins e agregações para
 
 #### `Utilitarios/` - Ferramentas de Suporte
 
--   **`NB_CERC_Consulta_API`**: Notebook para integração e consulta de dados da API da CERC.
-
 ### 6. Machine Learning (`6_Machine_Learning`)
 
 Esta seção detalha os modelos de machine learning da plataforma e os notebooks associados.
@@ -317,8 +313,6 @@ Atualmente, o notebook `NB_Gold_Risco_Cliente` é responsável por criar as agre
 
 Notebooks responsáveis por ingerir dados de fontes externas para a camada Bronze.
 
--   **`NB_Load_Bronze_From_BrasilIO`**: Dados de empresas e sócios do Brasil.IO.
--   **`NB_Load_Bronze_From_SERPRO`**: Dados de licitações do Portal da Transparência (filtro SERPRO).
 -   **`NB_Load_From_CVM`**: Ingestão dos informes mensais de FIDC da CVM (substitui referência antiga).
 -   **`NB_Report_Novos_Registros_CVM`**: Gera relatórios de novos registros FIDC na CVM.
 -   **`NB_Load_Bronze_Receita_Federal_Full`**: Processamento dos dados públicos de CNPJ da Receita Federal.
@@ -398,7 +392,7 @@ Utilize o notebook genérico `NB_Load_Silver_From_Manual_Uploads` para carregar 
 
 ## Boas Práticas para Ingestão de Dados Externos
 
-Ao desenvolver notebooks para ingestão de dados de fontes externas (como CVM, Receita Federal, Brasil.IO), siga as diretrizes abaixo para garantir segurança, performance e robustez.
+Ao desenvolver notebooks para ingestão de dados de fontes externas (como CVM e Receita Federal), siga as diretrizes abaixo para garantir segurança, performance e robustez.
 
 ### 1. Segurança (Zip Slip e Path Traversal)
 
