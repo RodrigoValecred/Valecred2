@@ -71,19 +71,57 @@ haversine_udf = F.udf(haversine, FloatType())
 
 # CELL ********************
 
-# Supondo que você tenha uma tabela 'pontos_crise' com lat/long dos bloqueios
+# Criar tabela provisória para pontos de crise logística
+from pyspark.sql.types import StructType, StructField, StringType, FloatType
+
+# Lista de focos de crise (Exemplos reais de pontos críticos em greves)
+data = [
+    ("Bloqueio - Marginal Tietê (SP)", -23.518, -46.618, "Crítico"),
+    ("Protesto - Rod. Fernão Dias (MG)", -19.951, -44.015, "Alto"),
+    ("Greve - Porto de Santos (SP)", -23.951, -46.333, "Crítico"),
+    ("Barricada - BR-116 (PR)", -25.428, -49.273, "Moderado")
+]
+
+schema = StructType([
+    StructField("local_crise", StringType(), True),
+    StructField("lat_crise", FloatType(), True),
+    StructField("lon_crise", FloatType(), True),
+    StructField("severidade", StringType(), True)
+])
+
+df_pontos_crise = spark.createDataFrame(data, schema)
+df_pontos_crise.write.format("delta").mode("overwrite").saveAsTable("LH_Silver.pontos_crise")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 # Carregar as tabelas
-df_titulos = spark.read.table("LH_Silver.staging_titulos_limpa")
-df_ceps = spark.read.table("LH_Bronze.cep_coordenadas")
-# df_crise = spark.read.table("silver_fidc.tbl_pontos_bloqueio")
+df_titulos = spark.read.table("LH_Gold.fato_titulos")
+df_crise = spark.read.table("LH_Silver.pontos_crise")
 
-# Limpeza rápida (remover traços de CEP se houver: 01001-000 -> 01001000)
-from pyspark.sql.functions import regexp_replace, col
+# METADATA ********************
 
-df_titulos = df_titulos.withColumn("cep_limpo", regexp_replace(col("cep_sacado"), "[^0-9]", ""))
-df_ceps = df_ceps \
-    .withColumn("cep_inicial_limpo", regexp_replace(col("cep_inicial"), "[^0-9]", "")) \
-    .withColumn("cep_final_limpo", regexp_replace(col("cep_final"), "[^0-9]", ""))
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+df_titulos_limpos = df_titulos.filter(
+    F.col("lat_sacado").isNotNull() &
+    F.col("long_sacado").isNotNull()
+)
+df_crise_limpa = df_crise.filter(
+    F.col("lat_crise").isNotNull() &
+    F.col("lon_crise").isNotNull()
+)
 
 # METADATA ********************
 
@@ -95,8 +133,8 @@ df_ceps = df_ceps \
 # CELL ********************
 
 # Cruzamento (Cross Join para testar cada título contra cada bloqueio)
-df_analise = df_titulos.crossJoin(df_crise) \
-    .withColumn("distancia_km", haversine_udf("lat_sacado", "long_sacado", "lat_bloqueio", "long_bloqueio"))
+df_analise = df_titulos_limpos.crossJoin(df_crise_limpa) \
+    .withColumn("distancia_km", haversine_udf("lat_sacado", "long_sacado", "lat_crise", "lon_crise"))
 
 # METADATA ********************
 
@@ -108,8 +146,10 @@ df_analise = df_titulos.crossJoin(df_crise) \
 # CELL ********************
 
 # Filtrar apenas o que está a menos de 50km de um bloqueio (Sua Geofence)
-df_risco = df_analise.filter(F.col("distancia_km") <= 50) \
-    .select("id_titulo", "valor", "sacado", "distancia_km").distinct()
+df_war_room = df_analise.filter(F.col("distancia_km") <= 50) \
+    .groupBy("cod_titulo", "valor", "cpf_cnpj_sacado", "distancia_km") \
+    .agg(F.min("distancia_km").alias("distancia_minita"),
+        F.first("severidade").alias("risco_logistico"))
 
 # METADATA ********************
 
@@ -120,7 +160,7 @@ df_risco = df_analise.filter(F.col("distancia_km") <= 50) \
 
 # CELL ********************
 
-df_risco.write.format("delta").mode("overwrite").saveAsTable("gold_fidc.titulos_em_risco")
+df_war_room.write.format("delta").mode("overwrite").saveAsTable("LH_Gold.titulos_em_risco_logistico")
 
 # METADATA ********************
 
