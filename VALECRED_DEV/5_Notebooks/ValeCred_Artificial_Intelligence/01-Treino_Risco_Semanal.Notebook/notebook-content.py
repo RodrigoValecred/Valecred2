@@ -114,7 +114,7 @@ print("2. Iniciando Treinamento da IA...")
 # Limitamos a 500k linhas ou 50% dos dados, o que for menor.
 print("📉 Gerando amostra para treinamento (Performance)...")
 spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
-# Convert to Pandas (Com Amostragem para Performance)
+# Converter para Pandas (Com Amostragem para Performance)
 df_pandas = df_features_spark.sample(fraction=0.5, seed=42).limit(500000).toPandas()
 
 # Definir as Features
@@ -131,10 +131,10 @@ feature_cols = [
 
 print("🧹 Limpando dados (Removendo NaNs)...")
 # 🧠 Tensor: Substituir loop .fillna() por coluna com um .fillna() vetorizado por dicionário
-# 💡 What: Substituiu um for-loop lento sobre as colunas por uma única operação vetorizada .fillna() do Pandas usando um dicionário.
-# 🎯 Why: Iterar sobre colunas do DataFrame em Python gera overhead e cria cópias intermediárias. Uma única operação vetorizada é executada em C, o que é muito mais rápido.
-# 📊 Impact: Acelera significativamente o preenchimento de NaN, especialmente para DataFrames com muitas colunas e linhas.
-# 🔬 Measurement: O profiling mostrou uma aceleração de ~3x (ex. de ~0.23s para ~0.07s em 1M de linhas para 5 colunas).
+# 💡 O que: Substituiu um for-loop lento sobre as colunas por uma única operação vetorizada .fillna() do Pandas usando um dicionário.
+# 🎯 Por que: Iterar sobre colunas do DataFrame em Python gera overhead e cria cópias intermediárias. Uma única operação vetorizada é executada em C, o que é muito mais rápido.
+# 📊 Impacto: Acelera significativamente o preenchimento de NaN, especialmente para DataFrames com muitas colunas e linhas.
+# 🔬 Medição: O profiling mostrou uma aceleração de ~3x (ex. de ~0.23s para ~0.07s em 1M de linhas para 5 colunas).
 fill_dict = {col: 0 for col in feature_cols if col in df_pandas.columns}
 df_pandas.fillna(value=fill_dict, inplace=True)
 
@@ -142,12 +142,12 @@ import numpy as np
 df_pandas[feature_cols] = df_pandas[feature_cols].replace([np.inf, -np.inf], 0)
 
 # 🧠 Tensor: Downcast numeric columns (float64 -> float32)
-# 💡 What: Converte todas as colunas float64 no DataFrame Pandas para float32 antes do treinamento do modelo.
-# 🎯 Why: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita o overhead
+# 💡 O que: Converte todas as colunas float64 no DataFrame Pandas para float32 antes do treinamento do modelo.
+# 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita o overhead
 #         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória
 #         do DataFrame durante a execução.
-# 📊 Impact: Reduz pela metade o uso de memória para features numéricas.
-# 🔬 Measurement: O profiling mostra uma redução de RAM de ~50% para colunas numéricas com impacto insignificante na latência.
+# 📊 Impacto: Reduz pela metade o uso de memória para features numéricas.
+# 🔬 Medição: O profiling mostra uma redução de RAM de ~50% para colunas numéricas com impacto insignificante na latência.
 float64_cols = df_pandas.select_dtypes(include=['float64']).columns
 if len(float64_cols) > 0:
     df_pandas[float64_cols] = df_pandas[float64_cols].astype('float32')

@@ -129,7 +129,7 @@ class Colors:
 
 def draw_risk_meter(score, width=30):
     """Draws an ASCII risk meter."""
-    # Tratar NaN (Not a Number)
+    # Tratar NaN
     if score is None or score != score:
         return f"{Colors.YELLOW}[DADOS INSUFICIENTES]{Colors.RESET}"
 
@@ -179,10 +179,10 @@ def calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_feat
     df_cliente_spark = df_cliente_spark.filter(~col('TTO_OPERACAO').isin(tipos_excluir))
 
     # ⚡ Otimização Bolt: Habilitar PyArrow para conversão mais rápida de PySpark para Pandas
-    # 💡 What: Define spark.sql.execution.arrow.pyspark.enabled como true antes de chamar .toPandas().
-    # 🎯 Why: Converter grandes DataFrames do Spark para Pandas sem PyArrow requer serializar todos os dados linha a linha em Python, o que é extremamente lento e intenso em memória. PyArrow usa um formato de memória colunar eficiente que acelera drasticamente essa conversão.
-    # 📊 Impact: Acelera significativamente o tempo de execução da operação .toPandas() e reduz a pressão de memória do driver.
-    # 🔬 Measurement: O profiling mostrará uma redução no tempo de serialização de dados durante a fase de coleta (collection) no driver.
+    # 💡 O que: Define spark.sql.execution.arrow.pyspark.enabled como true antes de chamar .toPandas().
+    # 🎯 Por que: Converter grandes DataFrames do Spark para Pandas sem PyArrow requer serializar todos os dados linha a linha em Python, o que é extremamente lento e intenso em memória. PyArrow usa um formato de memória colunar eficiente que acelera drasticamente essa conversão.
+    # 📊 Impacto: Acelera significativamente o tempo de execução da operação .toPandas() e reduz a pressão de memória do driver.
+    # 🔬 Medição: O profiling mostrará uma redução no tempo de serialização de dados durante a fase de coleta (collection) no driver.
     spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
     df_cliente_pandas = df_cliente_spark.toPandas()
 
@@ -193,12 +193,12 @@ def calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_feat
     X_cliente = df_cliente_pandas[model_features].copy()
 
     # 🧠 Tensor: Downcast numeric columns (float64 -> float32)
-    # 💡 What: Converte todas as colunas float64 no DataFrame Pandas para float32 antes da inferência do modelo.
-    # 🎯 Why: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita o overhead
+    # 💡 O que: Converte todas as colunas float64 no DataFrame Pandas para float32 antes da inferência do modelo.
+    # 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita o overhead
     #         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória
     #         do DataFrame durante a execução.
-    # 📊 Impact: Reduz pela metade o uso de memória para features numéricas.
-    # 🔬 Measurement: O profiling mostra uma redução de RAM de ~50% para colunas numéricas com impacto insignificante na latência.
+    # 📊 Impacto: Reduz pela metade o uso de memória para features numéricas.
+    # 🔬 Medição: O profiling mostra uma redução de RAM de ~50% para colunas numéricas com impacto insignificante na latência.
     float64_cols = X_cliente.select_dtypes(include=['float64']).columns
     if len(float64_cols) > 0:
         X_cliente[float64_cols] = X_cliente[float64_cols].astype('float32')

@@ -188,7 +188,7 @@ if is_incremental_possible:
     df_bronze_titulos = spark.read.table(f"{source_lakehouse}.{source_table_titulos}") \
         .filter((col("DATAINCLUSAO") >= last_watermark) | (col("DATAALTERACAO") >= last_watermark))
     
-    # 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
+    # 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_titulos.isEmpty():
         # 3. Desduplicar o batch incremental
         df_dedup = deduplicate_titulos(df_bronze_titulos, key_columns_titulos)
@@ -323,7 +323,7 @@ if is_incremental_baixas:
     df_bronze_baixas = spark.read.table(f"{source_lakehouse}.{source_table_baixas}") \
         .filter(col("DATAINCLUSAO") >= last_watermark_b)
         
-    # 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
+    # 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_baixas.isEmpty():
         key_cols_baixa = ["CODTITULOBAIXAS"]
         window_baixa = Window.partitionBy([col(c) for c in key_cols_baixa]).orderBy(col("DATAINCLUSAO").desc())

@@ -41,7 +41,7 @@ shared staging_operacoes = let
     // Extrai a data do campo DATAANALISE.
     dataDeferimentoExtraida = Table.AddColumn(chaveProdutoAdicionada, "Data deferimento", each Date.From([DATAANALISE]), type date),
     // Classifica operações em "VALE S" ou "VALE N".
-    eraClassificada = Table.AddColumn(dataDeferimentoExtraida, "ERA", each if [Data deferimento] <> null and [Data deferimento] > #date(2023, 8, 31) then "VALE S" else "VALE N"),
+    eraClassificada = Table.AddColumn(dataDeferimentoExtraida, "ERA", each if [Data deferimento] <> null and [Data deferimento] > #date(2023, 8, 31) então "VALE S" senão "VALE N"),
 
     // Substitui valores nulos por 0 nas colunas numéricas.
     nulosNumericosSubstituidos = Table.ReplaceValue(eraClassificada, null, 0, Replacer.ReplaceValue, {"TAC", "TOTTAXAADM", "TOTADVAL", "TOTTAR", "NDOCSRECOMPRA"}),

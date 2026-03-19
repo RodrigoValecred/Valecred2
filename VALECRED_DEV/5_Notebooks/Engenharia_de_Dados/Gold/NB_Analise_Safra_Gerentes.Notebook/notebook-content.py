@@ -107,7 +107,7 @@ df_bridge_hist = df_bridge.crossJoin(F.broadcast(df_calendar_months)) \
 
 # 3.2 Títulos Abertos no Mês
 # Titulo T do Cliente C estava aberto em M se:
-# Inclusao <= UltimoDiaMes AND (Liquidacao > UltimoDiaMes OR Liquidacao IS NULL)
+# Inclusao <= UltimoDiaMes E (Liquidacao > UltimoDiaMes OU Liquidacao É NULO)
 # E Status != Cancelado/Recusado (status_deferimento='Sim')
 df_titulos_hist = df_titulos.filter(F.col("status_deferimento") == "Sim") \
     .select("cod_titulo", "cod_operacao", "valor_devido", "venc_prorrogado", "data_inclusao", "liquidacao", "cod_cliente") \
@@ -259,10 +259,10 @@ def train_model(pdf):
     y = pdf["rogm"].values
 
     # 🧠 Tensor: Substituir Scikit-Learn LinearRegression por NumPy polyfit
-    # 💡 What: Substituiu o pesado sklearn LinearRegression por np.polyfit para projetar o retorno do próximo mês.
-    # 🎯 Why: Instanciar e ajustar um modelo Scikit-Learn por grupo (ex., milhares de grupos com apenas ~24 linhas cada) introduz um overhead massivo. np.polyfit é uma alternativa leve em nível C.
-    # 📊 Impact: Acelera significativamente a execução do PySpark applyInPandas ao remover a criação de objetos e o overhead de validação.
-    # 🔬 Measurement: O profiling local mostra uma aceleração de ~2.2x (de 1.61s para 0.73s para 1000 grupos).
+    # 💡 O que: Substituiu o pesado sklearn LinearRegression por np.polyfit para projetar o retorno do próximo mês.
+    # 🎯 Por que: Instanciar e ajustar um modelo Scikit-Learn por grupo (ex., milhares de grupos com apenas ~24 linhas cada) introduz um overhead massivo. np.polyfit é uma alternativa leve em nível C.
+    # 📊 Impacto: Acelera significativamente a execução do PySpark applyInPandas ao remover a criação de objetos e o overhead de validação.
+    # 🔬 Medição: O profiling local mostra uma aceleração de ~2.2x (de 1.61s para 0.73s para 1000 grupos).
     slope, intercept = np.polyfit(X, y, 1)
 
     last_mob = pdf["mob"].max()

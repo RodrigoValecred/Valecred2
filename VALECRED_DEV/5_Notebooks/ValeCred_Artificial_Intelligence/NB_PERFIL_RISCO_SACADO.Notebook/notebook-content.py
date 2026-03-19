@@ -32,7 +32,7 @@ from pyspark.sql.functions import col, datediff, current_date, coalesce, when
 # 2. Carregar a tabela de Títulos
 df_titulos = spark.table("LH_Silver.staging_titulos_limpa")
 
-# 3. Filtrar e Calcular o Atraso "On the Fly"
+# 3. Filtrar e Calcular o Atraso na hora
 # IMPORTANTE: Calculamos o atraso AGORA para ter o dado fresco, 
 # em vez de confiar em coluna velha gravada na tabela.
 df_aberto = df_titulos.filter("liquidacao IS NULL") \

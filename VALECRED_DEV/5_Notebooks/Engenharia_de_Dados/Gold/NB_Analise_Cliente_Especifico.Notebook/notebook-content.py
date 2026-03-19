@@ -184,7 +184,7 @@ print(f"Analisando o cliente com CPF/CNPJ: {CLIENTE_CPFCNPJ}")
 # O DataFrame df_filtrado já contém apenas os dados do cliente específico
 df_cliente = df_filtrado
 
-# 🧠 Tensor Optimization: Substituir df_cliente.limit(1).count() == 0 por df_cliente.isEmpty() para uma sintaxe mais limpa e eficiente
+# 🧠 Otimização Tensor: Substituir df_cliente.limit(1).count() == 0 por df_cliente.isEmpty() para uma sintaxe mais limpa e eficiente
 if df_cliente.isEmpty():
     print("ALERTA: Nenhum título encontrado para este cliente com os filtros aplicados.")
 else:

@@ -117,7 +117,7 @@ def calculate_vop_metrics(df_ops_validas):
     Optimized to reuse existing date columns in df_ops_validas.
     """
     # VOP por Dia da Semana (Top 1)
-    # Reusing 'dia_da_semana_da_operacao' (1=Sun, 2=Mon...) calculated in Section 1.2
+    # Reutilizando 'dia_da_semana_da_operacao' (1=Dom, 2=Seg...) calculado na Seção 1.2
     # Nota: 'dia_da_semana_da_operacao' é derivado de 'data_deferimento' que é to_date('data_analise').
     # Então é funcionalmente equivalente a dayofweek('data_analise').
     df_vop_semana = df_ops_validas.groupBy("cod_cliente", col("dia_da_semana_da_operacao").alias("dia_semana")) \
@@ -128,7 +128,7 @@ def calculate_vop_metrics(df_ops_validas):
         .select(col("cod_cliente"), col("dia_semana").alias("dia_semana_mais_vop"))
 
     # VOP por Dia do Mês (Top 1)
-    # Reusing 'dia_da_operacao' (Day of Month) calculated in Section 1.2
+    # Reutilizando 'dia_da_operacao' (Dia do Mês) calculado na Seção 1.2
     # Nota: 'dia_da_operacao' é derivado de 'data_deferimento' (to_date('data_analise')).
     df_vop_mes = df_ops_validas.groupBy("cod_cliente", col("dia_da_operacao").alias("dia_mes")) \
         .agg(sum("valor_de_face").alias("vop"))
@@ -415,7 +415,7 @@ df_dim_forma_pagamento = spark.read.table(TableNames.SILVER_SUP_FORMA_DE_PAGAMEN
 df_dim_tipo_taxa = spark.read.table(TableNames.SILVER_SUP_TIPO_DE_BAIXA)
 df_dim_motivo_baixa = spark.read.table(TableNames.SILVER_SUP_MOTIVO_BAIXA)
 
-# --- 6. Other Lookups ---
+# --- 6. Outras Buscas ---
 print("Carregando Lookups (Bronze)...")
 df_cad_geral_arquivos = spark.read.table(TableNames.BRONZE_CAD_GERAL_ARQUIVOS)
 df_tipo_op_bronze = spark.read.table(TableNames.BRONZE_TAB_TIPOOPERACAO)
@@ -560,7 +560,7 @@ df_client_rate = df_contratos.filter(col("status") == 'A') \
     .groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro_cliente")).cache()
 
 # PRE-CALCULO: Gerente Enriquecido (Nome e Comissão)
-# df_gerentes tem cod_broker, cod_usuario, taxa_comissao (added in Silver Prep)
+# df_gerentes tem cod_broker, cod_usuario, taxa_comissao (adicionado na Preparação Silver)
 # df_usuarios tem cod_usuario, nome
 # Refatorado para incluir fallback de nome via Cadastro Geral (Fix Broker 7/71)
 df_gerentes_alias = df_gerentes.alias("g")
@@ -1150,7 +1150,7 @@ print(f"Tabela '{target_fato_prorrogacao}' criada com sucesso.")
 print("\nIniciando construção da fato_operacoes_prorrogacao (NOVA)...")
 
 # Fonte = stg_operacoes (df_operacoes_limpa)
-# ⚡ Bolt Optimization: Reuse dataframe loaded in Section 0.2
+# ⚡ Otimização Bolt: Reutilizar dataframe carregado na Seção 0.2
 # df_operacoes_source = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_LIMPA)
 df_operacoes_source = df_operacoes_limpa
 
@@ -1209,7 +1209,7 @@ print("\nIniciando construção da fato_operacoes_recompra...")
 # Otimização: Reutilizar dataframe carregado na Seção 0.2 ou 5.3
 df_operacoes_source = df_operacoes_limpa
 
-# Filtrar TTO = 'RC' ou 'RE' AND status_analise = 'D' AND status_aceite = 'A'
+# Filtrar TTO = 'RC' ou 'RE' E status_analise = 'D' E status_aceite = 'A'
 df_ops_rc = df_operacoes_source.filter(
     (col("tto").isin(["RC", "RE"])) &
     (col("status_analise") == "D") &
@@ -1359,12 +1359,12 @@ df_metrics_titulos = df_risco_base.groupBy("cod_cliente").agg(
 # Perdas (VOP - VlrPagoLiquido) onde Motivo='PR' (Assumir proxy para LIQUIDEZ='L5')
 # Necessário uma agregação separada de Fato Baixas ou Títulos se a coluna existir
 # Assumindo que 'motivo' em fato_titulos (dos passos anteriores) pode ser usado.
-# Logic: sum(valor) - sum(liquidacao value? No, liquidacao is date).
+# Lógica: sum(valor) - sum(liquidacao valor? Não, liquidacao é data).
 # Nós precisamos de `valor_pago` de algum lugar. `fato_titulos` geralmente tem `valor` e `valor_pago` vem de `baixas`.
 # Mas `fato_titulos` na Seção 3 não tem explicitamente `valor_pago`. Ele tem `amortizacoes`.
 # Vamos usar `amortizacoes` como proxy para `valor_pago_liquido` se estrito. Ou melhor, checar se fizemos join com Baixas.
 # Na `Seção 3`, `df_fato_titulos_final` tem `amortizacoes`. Vamos usar isso.
-# Perdas = (Valor - Amortizacoes) where motivo='PR'.
+# Perdas = (Valor - Amortizacoes) onde motivo='PR'.
 df_perdas_agg = df_titulos_cliente.filter(col("motivo") == "PR") \
     .groupBy("cod_cliente").agg(
         (sum("valor") - sum("amortizacoes")).alias("perdas")
@@ -1389,10 +1389,10 @@ df_esteira = spark.read.table(TableNames.GOLD_ESTEIRA_DE_PROPOSTAS)
 # Se a tabela não foi regerada (incremental = 0), ela pode estar com colunas em UpperCase.
 # Forçamos o rename para snake_case esperado.
 # ⚡ Bolt: Fazer cache de colunas de DataFrame para evitar chamadas RPC repetidas durante checagens sequenciais
-# 💡 What: Cached `df_esteira.columns` into a Python set before performing multiple `in` checks.
-# 🎯 Why: Acessar `.columns` em um PySpark DataFrame aciona uma chamada RPC custosa para o driver. Fazer cache disso elimina 3 chamadas de rede repetidas.
-# 📊 Impact: Elimina chamadas RPC redundantes ao driver, especialmente para DataFrames com muitas colunas.
-# 🔬 Measurement: O(3) chamadas remotas reduzidas para O(1) chamada remota + O(3) buscas hash locais.
+# 💡 O que: Fez cache de `df_esteira.columns` em um set do Python antes de realizar múltiplas checagens `in`.
+# 🎯 Por que: Acessar `.columns` em um PySpark DataFrame aciona uma chamada RPC custosa para o driver. Fazer cache disso elimina 3 chamadas de rede repetidas.
+# 📊 Impacto: Elimina chamadas RPC redundantes ao driver, especialmente para DataFrames com muitas colunas.
+# 🔬 Medição: O(3) chamadas remotas reduzidas para O(1) chamada remota + O(3) buscas hash locais.
 df_esteira_cols = set(df_esteira.columns)
 
 if "CODCLIENTE" in df_esteira_cols:
@@ -1478,7 +1478,7 @@ df_base_raw = df_clientes_staging.select("cod_cliente", "cpf_cnpj", "data_inclus
 df_base = deduplicate_clientes_staging(df_base_raw)
 
 # Renomeando chaves para evitar ambiguidade nos joins
-# ⚡ Bolt Optimization: Using single combined DF instead of split max/min DFs
+# ⚡ Otimização Bolt: Usando DF único combinado em vez de DFs divididos max/min
 df_esteira_pivot_prep = df_esteira_combined.withColumnRenamed("cod_cliente", "cod_cliente_pivot")
 
 # Join Chain
@@ -1772,10 +1772,10 @@ print("Criando tabela 'analise_prazos_esteira' e removendo colunas da dim_client
 # Verificar quais colunas realmente existem no df_final para evitar erro
 
 # ⚡ Bolt: Fazer cache de colunas do DataFrame para evitar chamadas RPC repetidas durante list comprehension
-# 💡 What: Cached `df_final.columns` into a Python set before using it in a list comprehension.
-# 🎯 Why: Acessar `.columns` em um PySpark DataFrame aciona uma chamada RPC custosa para a JVM/driver. Dentro de um loop/comprehension, isso causa uma degradação severa de performance. Um set fornece busca local O(1).
-# 📊 Impact: Elimina N buscas repetidas de metadados (onde N = len(cols_esteira_prazos)), acelerando drasticamente a execução deste bloco.
-# 🔬 Measurement: O(N) chamadas remotas reduzidas para O(1) chamada remota + O(N) buscas hash locais.
+# 💡 O que: Fez cache de `df_final.columns` em um set do Python antes de usá-lo em uma list comprehension.
+# 🎯 Por que: Acessar `.columns` em um PySpark DataFrame aciona uma chamada RPC custosa para a JVM/driver. Dentro de um loop/comprehension, isso causa uma degradação severa de performance. Um set fornece busca local O(1).
+# 📊 Impacto: Elimina N buscas repetidas de metadados (onde N = len(cols_esteira_prazos)), acelerando drasticamente a execução deste bloco.
+# 🔬 Medição: O(N) chamadas remotas reduzidas para O(1) chamada remota + O(N) buscas hash locais.
 df_final_cols = set(df_final.columns)
 existing_cols = [c for c in cols_esteira_prazos if c in df_final_cols]
 missing_cols = set(cols_esteira_prazos) - set(existing_cols)
@@ -1792,7 +1792,7 @@ df_final = df_final.drop(*existing_cols)
 # Salvar
 output_path_dim_clientes = TableNames.GOLD_DIM_CLIENTES
 
-# Apply Power BI Adjustments (New Columns Only)
+# Aplicar Ajustes do Power BI (Apenas Novas Colunas)
 df_final_adjusted = df_final \
     .withColumn("desconsiderar_pdd", lit(False)) \
     .withColumn("status_risco",

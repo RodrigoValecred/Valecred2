@@ -206,7 +206,7 @@ def process_incremental_operacoes(source_table, output_path, key_columns_operaco
         .filter((col("DATAINCLUSAO") >= col("last_watermark")) | (col("DATAALTERACAO") >= col("last_watermark"))) \
         .drop("last_watermark")
 
-    # 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
+    # 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_ops.isEmpty():
         # 3. Transform & Deduplicate Batch
         df_final_batch = transform_operacoes(df_bronze_ops, key_columns_operacoes)
@@ -277,7 +277,7 @@ def process_incremental_devolucoes(source_table, output_path):
     print("Modo Incremental: Devoluções")
     delta_table_dev = DeltaTable.forPath(spark, output_path)
 
-    # 🧠 Tensor Optimization: Evitar collect() usando crossJoin
+    # 🧠 Otimização Tensor: Evitar collect() usando crossJoin
     df_watermark = spark.read.format("delta").load(output_path) \
         .agg(coalesce(max("data_inclusao"), lit("1900-01-01")).alias("last_watermark"))
 
@@ -288,7 +288,7 @@ def process_incremental_devolucoes(source_table, output_path):
         .filter((col("DATAINCLUSAO") >= col("last_watermark")) | (col("DATAALTERACAO") >= col("last_watermark"))) \
         .drop("last_watermark")
 
-    # 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
+    # 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_dev.isEmpty():
         df_final = transform_devolucoes(df_bronze_dev)
 
@@ -639,7 +639,7 @@ def process_tab_operacoes_prorrogacao():
     df_joined_2 = df_joined_1.join(df_operacoes, "cod_operacao", "left_outer")
 
     # 5. Transformations
-    # Extract Data (Date part of data_inclusao)
+    # Extrair Dados (Parte de data de data_inclusao)
     df_transformed = df_joined_2.withColumn("data", to_date(col("data_inclusao")))
 
     # 6. Select e Drop (Remover) Colunas

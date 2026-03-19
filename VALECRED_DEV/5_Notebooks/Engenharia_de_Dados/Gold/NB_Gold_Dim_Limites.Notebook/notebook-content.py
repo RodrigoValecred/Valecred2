@@ -178,10 +178,10 @@ df_limites_base = df_contratos.filter(col("status") == "A").join(
 import pyspark.sql.functions as F
 
 # 🧠 Tensor: Otimizar verificação de duplicidade
-# 💡 What: Combinou duas ações de count separadas em uma única query agregada.
-# 🎯 Why: Calcular `total_linhas` e `clientes_unicos` separadamente aciona duas varreduras completas sobre o DataFrame, dobrando o tempo de execução. Combiná-las em um `.select()` computa ambas as métricas simultaneamente.
-# 📊 Impact: Reduz jobs do Spark de 2 para 1 e corta o tempo de execução pela metade ao evitar shuffles redundantes.
-# 🔬 Measurement: O profiling local mostra ~40% de redução no tempo de execução para o bloco de validação.
+# 💡 O que: Combinou duas ações de count separadas em uma única query agregada.
+# 🎯 Por que: Calcular `total_linhas` e `clientes_unicos` separadamente aciona duas varreduras completas sobre o DataFrame, dobrando o tempo de execução. Combiná-las em um `.select()` computa ambas as métricas simultaneamente.
+# 📊 Impacto: Reduz jobs do Spark de 2 para 1 e corta o tempo de execução pela metade ao evitar shuffles redundantes.
+# 🔬 Medição: O profiling local mostra ~40% de redução no tempo de execução para o bloco de validação.
 counts_df = df_limites_base.select(
     F.count('*').alias('total_linhas'),
     F.countDistinct('cod_cliente').alias('clientes_unicos')

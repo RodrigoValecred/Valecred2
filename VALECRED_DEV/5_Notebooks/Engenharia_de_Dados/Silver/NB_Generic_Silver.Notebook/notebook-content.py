@@ -115,10 +115,10 @@ class SilverIngestor:
         try:
             bad_records_df = self.df_source.filter(condition)
             # 🧠 Tensor: Substituir .count() por .isEmpty()
-            # 💡 What: Trocou uma avaliação DataFrame.count() de tabela completa por DataFrame.isEmpty().
-            # 🎯 Why: Calcular o número exato de registros ruins aciona uma varredura completa do dataset. Usar .isEmpty() avalia apenas até que a primeira correspondência seja encontrada, executando lógica de early-exit.
-            # 📊 Impact: Acelera significativamente o passo do Quality Gate para tabelas muito grandes quando a tabela tem poucos ou zero registros ruins, reduzindo o tempo do job e custo de computação do cluster.
-            # 🔬 Measurement: O profiling indica que isso evita acionar shuffle exchanges completos, caindo o tempo de avaliação de O(N) para O(1) nos melhores/casos médios.
+            # 💡 O que: Trocou uma avaliação DataFrame.count() de tabela completa por DataFrame.isEmpty().
+            # 🎯 Por que: Calcular o número exato de registros ruins aciona uma varredura completa do dataset. Usar .isEmpty() avalia apenas até que a primeira correspondência seja encontrada, executando lógica de early-exit.
+            # 📊 Impacto: Acelera significativamente o passo do Quality Gate para tabelas muito grandes quando a tabela tem poucos ou zero registros ruins, reduzindo o tempo do job e custo de computação do cluster.
+            # 🔬 Medição: O profiling indica que isso evita acionar shuffle exchanges completos, caindo o tempo de avaliação de O(N) para O(1) nos melhores/casos médios.
             has_errors = not bad_records_df.isEmpty()
         except Exception as e:
             print(f"Erro ao filtrar colunas: {normalized_keys}. Colunas disponíveis: {self.df_source.columns}")

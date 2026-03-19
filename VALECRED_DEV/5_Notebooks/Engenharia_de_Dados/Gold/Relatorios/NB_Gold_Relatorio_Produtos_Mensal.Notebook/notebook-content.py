@@ -59,10 +59,10 @@ def resolve_columns(df, target_cols):
     df_resolved = df
 
     # ⚡ Bolt: Fazer cache das colunas do DataFrame para evitar chamadas RPC repetidas no loop
-    # 💡 What: Cached `df.columns` into a Python set before looping over `target_cols`.
-    # 🎯 Why: Chamar `.columns` em um PySpark DataFrame dentro de um loop é extremamente ineficiente devido a chamadas RPC repetidas ao driver. Um set fornece buscas locais rápidas O(1).
-    # 📊 Impact: Remover a busca repetida de metadados previne atrasos severos na execução, especialmente para DataFrames com muitas colunas.
-    # 🔬 Measurement: O(2 * len(target_cols)) buscas remotas reduzidas para O(1) busca e O(2 * len(target_cols)) buscas hash locais.
+    # 💡 O que: Fez cache de `df.columns` em um set do Python antes de iterar sobre `target_cols`.
+    # 🎯 Por que: Chamar `.columns` em um PySpark DataFrame dentro de um loop é extremamente ineficiente devido a chamadas RPC repetidas ao driver. Um set fornece buscas locais rápidas O(1).
+    # 📊 Impacto: Remover a busca repetida de metadados previne atrasos severos na execução, especialmente para DataFrames com muitas colunas.
+    # 🔬 Medição: O(2 * len(target_cols)) buscas remotas reduzidas para O(1) busca e O(2 * len(target_cols)) buscas hash locais.
     df_cols = set(df.columns)
 
     for col_name in target_cols:
@@ -451,10 +451,10 @@ df_ops_normal = spark.read.table("LH_Gold.fato_operacoes") \
 
 # Garantir que tarifa_de_recompra exista em df_ops_normal antes do select
 # ⚡ Bolt: Fazer cache de df.columns para evitar chamadas RPC repetidas durante checagens sequenciais
-# 💡 What: Cached `df_ops_normal.columns` into a Python set before performing multiple `in` checks.
-# 🎯 Why: Acessar `.columns` em um PySpark DataFrame aciona uma chamada RPC custosa. Fazer cache disso elimina 4 chamadas de rede repetidas, reduzindo o tempo de execução.
-# 📊 Impact: Elimina chamadas RPC redundantes ao driver, especialmente para DataFrames com muitas colunas.
-# 🔬 Measurement: O(4) chamadas remotas reduzidas para O(1) chamada remota + O(4) buscas hash locais.
+# 💡 O que: Fez cache de `df_ops_normal.columns` em um set do Python antes de realizar múltiplas checagens `in`.
+# 🎯 Por que: Acessar `.columns` em um PySpark DataFrame aciona uma chamada RPC custosa. Fazer cache disso elimina 4 chamadas de rede repetidas, reduzindo o tempo de execução.
+# 📊 Impacto: Elimina chamadas RPC redundantes ao driver, especialmente para DataFrames com muitas colunas.
+# 🔬 Medição: O(4) chamadas remotas reduzidas para O(1) chamada remota + O(4) buscas hash locais.
 df_ops_normal_cols = set(df_ops_normal.columns)
 
 if "tarifa_de_recompra" not in df_ops_normal_cols:
@@ -524,7 +524,7 @@ try:
     # Desduplicar linhas (duplicação exata da linha inteira a partir da fonte)
     df_prorrogacao_silver = df_prorrogacao_silver.dropDuplicates()
 
-    # Filter Valid Prorogations (Only 'D' - Deferido)
+    # Filtrar Prorrogações Válidas (Somente 'D' - Deferido)
     # Removendo 'I' (Indeferido) que causa receita inflacionada
     if "status_analise" in df_prorrogacao_silver.columns:
         df_prorrogacao_silver = df_prorrogacao_silver.filter(col("status_analise") == "D")

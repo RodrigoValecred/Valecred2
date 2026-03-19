@@ -19,18 +19,18 @@ shared fato_metas = let
     // Source from sup_metas, assuming columns 'data' and 'valor'
     FonteMetas = sup_metas,
 
-    // Transform data column to date type for join
+    // Transformar coluna data para tipo de data para join
     AlterarTipoData = Table.TransformColumnTypes(FonteMetas,{{"mes", type date}}),
 
-    // Join with dim_calendario to get sk_data
+    // Join com dim_calendario para obter sk_data
     JuntarDimCalendario = Table.NestedJoin(AlterarTipoData, {"mes"}, dim_calendario, {"data"}, "dim_calendario", JoinKind.LeftOuter),
     ExpandirDimCalendario = Table.ExpandTableColumn(JuntarDimCalendario, "dim_calendario", {"sk_data"}, {"sk_data"}),
 
-    // Add placeholder SKs for future dimensions
+    // Adicionar SKs placeholder para dimensões futuras
     AdicionarSKsEmpresa = Table.AddColumn(ExpandirDimCalendario, "sk_empresa", each -1, Int64.Type),
     AdicionarSKsPlataforma = Table.AddColumn(AdicionarSKsEmpresa, "sk_plataforma", each -1, Int64.Type),
 
-    // Select and rename final columns
+    // Selecionar e renomear colunas finais
     ColunasFinais = Table.SelectColumns(AdicionarSKsPlataforma, {"sk_data", "sk_empresa", "sk_plataforma", "vop"}),
     RenomearColunas = Table.RenameColumns(ColunasFinais,{{"vop", "vop_meta"}})
 in
