@@ -153,6 +153,7 @@ def calculate_vop_metrics(df_ops_validas):
 
 class TableNames:
     # Bronze
+    BRONZE_CEP_COORDENADAS = "LH_Bronze.cep_coordenadas"
     BRONZE_CAD_CLIENTES = "LH_Bronze.cad_clientes"
     BRONZE_CAD_GERAL_ARQUIVOS = "LH_Bronze.cad_geral_arquivos"
     BRONZE_TAB_FERIADOS = "LH_Bronze.tab_feriados"
@@ -1065,10 +1066,31 @@ df_ordem = df_conf.withColumn("ordem_confirmacao", when(col("confirmacao") == "N
 
 # 3.3 Seleção Final e Persistência
 # ---------------------------------
-df_fato_titulos_final = df_ordem.select(
+df_titulos_pre_geo = df_ordem.withColumn("cep_int", regexp_replace(col("cep_sacado"), "[^0-9]", "").cast("int"))
+
+# Carrega e prepara a tabela de coordenadas
+try:
+    df_ceps = spark.read.table(TableNames.BRONZE_CEP_COORDENADAS)
+    df_ceps = df_ceps \
+        .withColumn("cep_inicial_int", regexp_replace(col("cep_inicial"), "[^0-9]", "").cast("int")) \
+        .withColumn("cep_final_int", regexp_replace(col("cep_final"), "[^0-9]", "").cast("int"))
+
+    # Join de intervalo de cep
+    df_titulos_geo = df_titulos_pre_geo.join(
+        broadcast(df_ceps),
+        (df_titulos_pre_geo.cep_int >= df_ceps.cep_inicial_int) &
+        (df_titulos_pre_geo.cep_int <= df_ceps.cep_final_int),
+        "left"
+    ).withColumn("lat_sacado", col("latitude")).withColumn("long_sacado", col("longitude"))
+except Exception as e:
+    print(f"AVISO: Erro ao ler ou juntar com cep_coordenadas: {e}.")
+    df_titulos_geo = df_titulos_pre_geo.withColumn("lat_sacado", lit(None).cast("double")).withColumn("long_sacado", lit(None).cast("double"))
+
+df_fato_titulos_final = df_titulos_geo.select(
     col("sk_operacao"), col("cod_titulo"), col("cod_operacao"), col("t_doc"), col("n_doc"), col("cpf_cnpj_sacado"), col("vencimento"), col("venc_prorrogado"), col("valor"),
     col("prazo"), col("aceito"), col("data_inclusao"), col("usua_conf").alias("usua_inclusao"), col("data_alteracao"), col("amortizacoes"),
     "chave_produto", "status_protesto", "tipo_documento_sacado", "raiz_cnpj", "valor_vezes_prazo", "cep_sacado",
+    "lat_sacado", "long_sacado",
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany",
     col("liquidacao"), col("valor_devido"), col("motivo"),
