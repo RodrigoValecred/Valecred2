@@ -192,6 +192,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         mock_df_pandas['PRAZO'] = mock_df_pandas['PRAZO'].astype('int64')
 
         mock_df_spark.filter.return_value = mock_df_spark # Chain filters
+        mock_df_spark.select.return_value = mock_df_spark # Chain select
         mock_df_spark.toPandas.return_value = mock_df_pandas
 
         mock_model = MagicMock()
@@ -271,6 +272,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         })
 
         mock_df_spark.filter.return_value = mock_df_spark
+        mock_df_spark.select.return_value = mock_df_spark
         mock_df_spark.toPandas.return_value = mock_df_pandas
 
         mock_model = MagicMock()
