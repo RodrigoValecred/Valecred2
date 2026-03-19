@@ -149,10 +149,10 @@ features_para_analisar = [
 df_scored = df_enrich
 
 # 🧠 Tensor: Fazer cache das colunas do DataFrame em um dicionário para buscas O(1) case-insensitive
-# 💡 What: Substituiu chamadas repetidas de `df_scored.columns` dentro de um loop por um único dicionário pré-computado mapeando nomes de colunas em letras minúsculas para seus nomes reais.
-# 🎯 Why: Acessar `.columns` em um PySpark DataFrame em evolução dentro de um loop aciona chamadas RPC custosas para a JVM e metadados de schema do driver a cada iteração, tornando-se um overhead enorme. Uma busca em dicionário é O(1) e estritamente local ao processo Python.
-# 📊 Impact: Melhora drasticamente a velocidade de execução da construção do plano do PySpark DataFrame, particularmente para loops iterando sobre muitas features ou quando a linhagem do DataFrame é profunda.
-# 🔬 Measurement: O profiling tipicamente mostra o tempo de execução para a construção do DAG caindo em ordens de magnitude (ex., de segundos para milissegundos).
+# 💡 O que: Substituiu chamadas repetidas de `df_scored.columns` dentro de um loop por um único dicionário pré-computado mapeando nomes de colunas em letras minúsculas para seus nomes reais.
+# 🎯 Por que: Acessar `.columns` em um PySpark DataFrame em evolução dentro de um loop aciona chamadas RPC custosas para a JVM e metadados de schema do driver a cada iteração, tornando-se um overhead enorme. Uma busca em dicionário é O(1) e estritamente local ao processo Python.
+# 📊 Impacto: Melhora drasticamente a velocidade de execução da construção do plano do PySpark DataFrame, particularmente para loops iterando sobre muitas features ou quando a linhagem do DataFrame é profunda.
+# 🔬 Medição: O profiling tipicamente mostra o tempo de execução para a construção do DAG caindo em ordens de magnitude (ex., de segundos para milissegundos).
 existing_cols = {c.lower(): c for c in df_scored.columns}
 
 for col_name in features_backup + features_para_analisar:

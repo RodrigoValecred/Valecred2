@@ -155,10 +155,10 @@ data_semana_passada = data_hoje - timedelta(days=7)
 df_consolidado['excesso_valor'] = df_consolidado['valor_risco'] - df_consolidado['limite_global']
 # Se negativo (dentro do limite), zeramos o excesso visual
 # 🧠 Tensor: Substituir df.apply() com np.where() vetorizado
-# 💡 What: Substituída uma aplicação lenta lambda linha a linha por uma operação where do NumPy vetorizada.
-# 🎯 Why: Pandas .apply() força um loop Python por baixo dos panos, enquanto np.where executa puramente em C.
-# 📊 Impact: Redução significativa no overhead computacional para este cálculo de KPI, facilmente 40x mais rápido para DataFrames grandes.
-# 🔬 Measurement: Profiling mostrou que o tempo de execução caiu de ~5.08s para ~0.12s por 10 execuções em 1M de linhas.
+# 💡 O que: Substituída uma aplicação lenta lambda linha a linha por uma operação where do NumPy vetorizada.
+# 🎯 Por que: Pandas .apply() força um loop Python por baixo dos panos, enquanto np.where executa puramente em C.
+# 📊 Impacto: Redução significativa no overhead computacional para este cálculo de KPI, facilmente 40x mais rápido para DataFrames grandes.
+# 🔬 Medição: Profiling mostrou que o tempo de execução caiu de ~5.08s para ~0.12s por 10 execuções em 1M de linhas.
 df_consolidado['excesso_valor'] = np.where(df_consolidado['excesso_valor'] > 0, df_consolidado['excesso_valor'], 0)
 
 df_consolidado['utilizacao_pct'] = (df_consolidado['valor_risco'] / df_consolidado['limite_global']) * 100
@@ -234,10 +234,10 @@ def prepare_dashboard_data(df, ref_date):
         return []
 
     # 🧠 Tensor: Substituir iterrows/itertuples com operações vetorizadas
-    # 💡 What: Substituiu um loop Python lento linha a linha (`itertuples`) usado para formatação de string de dashboard e lógica com operações Pandas/NumPy puramente vetorizadas.
-    # 🎯 Why: Iterar sobre um DataFrame linha a linha invoca overhead severo de Python e impede a performance em nível C de Pandas/NumPy. Vetorizar as computações e manipulações de string acelera este processo em ordens de magnitude.
-    # 📊 Impact: Reduz substancialmente a latência de geração do relatório de risco diário, particularmente notável conforme o número de clientes e grupos escala.
-    # 🔬 Measurement: O profiling local mostra que substituir `itertuples` por formatação vetorizada e `np.where`/`np.select` reduz o tempo de execução em cerca de 10-20x para DataFrames grandes.
+    # 💡 O que: Substituiu um loop Python lento linha a linha (`itertuples`) usado para formatação de string de dashboard e lógica com operações Pandas/NumPy puramente vetorizadas.
+    # 🎯 Por que: Iterar sobre um DataFrame linha a linha invoca overhead severo de Python e impede a performance em nível C de Pandas/NumPy. Vetorizar as computações e manipulações de string acelera este processo em ordens de magnitude.
+    # 📊 Impacto: Reduz substancialmente a latência de geração do relatório de risco diário, particularmente notável conforme o número de clientes e grupos escala.
+    # 🔬 Medição: O profiling local mostra que substituir `itertuples` por formatação vetorizada e `np.where`/`np.select` reduz o tempo de execução em cerca de 10-20x para DataFrames grandes.
     df_calc = pd.DataFrame(index=df.index)
 
     # 1. Truncamento de Nome do Grupo

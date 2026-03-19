@@ -1,6 +1,6 @@
 section Section1;
 
-// ---------------- SOURCES (from Bronze/Silver Lakehouse) ----------------
+// ---------------- FONTES (do Lakehouse Bronze/Silver) ----------------
 shared source_tab_titulos = let
     Origem = Lakehouse.Contents([]),
     Workspace = Origem{[workspaceId="41ae19db-f71d-471f-9ac7-ccbc2c75ce11"]}[Data],

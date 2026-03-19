@@ -134,7 +134,7 @@ df_features_final = df_features.withColumn("tendencia_atraso", col("media_atraso
         "flag_renegociacao"
     )
 
-# 🧠 TENSOR OPTIMIZATION: Cache reuse of heavy feature engineering
+# 🧠 OTIMIZAÇÃO TENSOR: Reuso do cache de engenharia de features pesada
 # Este dataframe é usado tanto para 'df_critical' quanto para 'df_to_cluster', e subsequentemente no KMeans
 print("⚡ Tensor: Caching df_features_final to prevent re-computation...")
 start_cache = time.time()
@@ -156,7 +156,7 @@ print(f"⚡ Tensor: Feature store cached. Count: {count_features}. Time: {time.t
 print("Executando K-Means...")
 
 # 2.1 Preparação (Assembler + Scaler)
-# 🧠 TENSOR OPTIMIZATION: Removed redundant K=3 training block.
+# 🧠 OTIMIZAÇÃO TENSOR: Removido bloco de treinamento redundante de K=3.
 # A lógica abaixo usa uma abordagem híbrida (Regras Rígidas + K=2) começando a partir de df_features_final.
 # O modelo K=3 anterior foi treinado mas seus resultados nunca foram usados.
 print("⚡ Tensor: Skipped redundant K=3 Model Training.")
@@ -189,7 +189,7 @@ df_to_cluster = df_features_final.join(df_critical.select("cod_cliente"), "cod_c
 print(f"Clientes restantes para Clusterização: {df_to_cluster.count()}")
 
 # 2.2 K-Means nos Restantes
-# 🧠 Tensor Optimization: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
+# 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
 if not df_to_cluster.isEmpty():
     print("Executando K-Means nos clientes restantes...")
 
@@ -278,7 +278,7 @@ print(f"Tabela {table_name} salva com sucesso!")
 print("Amostra dos dados:")
 df_output.show(10, truncate=False)
 
-# 🧠 TENSOR OPTIMIZATION: Free memory
+# 🧠 OTIMIZAÇÃO TENSOR: Liberar memória
 df_features_final.unpersist()
 print("⚡ Tensor: Cache cleared.")
 

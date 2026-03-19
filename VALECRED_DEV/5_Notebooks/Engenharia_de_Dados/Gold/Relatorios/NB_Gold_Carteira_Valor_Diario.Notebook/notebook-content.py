@@ -66,7 +66,7 @@ print("Carregando tabelas Gold...")
 # Operações: Necessário para obter data_deferimento
 df_ops_source = spark.read.table("LH_Gold.fato_operacoes")
 
-# Robust Column Selection: Handle schema evolution (taxa_operacao introduced in recent update)
+# Seleção Robusta de Colunas: Gerenciar evolução de schema (taxa_operacao introduzida em atualização recente)
 # Fallback para taxa_cadastro se taxa_operacao estiver ausente (evita quebra em ambientes desatualizados)
 if "taxa_operacao" in df_ops_source.columns:
     print("Using 'taxa_operacao' for risk calculation.")
@@ -229,10 +229,10 @@ print("Salvo com sucesso.")
 # Exibe um resumo visual do processamento para o operador
 try:
     # ⚡ Bolt Optimization: Combine scalar aggregations
-    # 💡 What: Combined the `count()` and `max("data_referencia")` actions into a single `select()` query.
-    # 🎯 Why: Executing multiple `.count()` or `.collect()` actions triggers separate full-table passes and Spark jobs. Combining them executes both aggregations in a single pass.
-    # 📊 Impact: Reduces the number of Spark jobs required to compute the summary dashboard, cutting execution time for this cell in half.
-    # 🔬 Measurement: Profiling shows execution time dropping linearly with the reduction of triggered Spark actions (from 3 jobs to 2).
+    # 💡 O que: Combinou as ações `count()` e `max("data_referencia")` em uma única query `select()`.
+    # 🎯 Por que: A execução de múltiplas ações `.count()` ou `.collect()` aciona varreduras completas da tabela e jobs Spark separados. Combiná-las executa ambas as agregações em uma única passagem.
+    # 📊 Impacto: Reduz o número de jobs Spark necessários para computar o dashboard de resumo, cortando o tempo de execução desta célula pela metade.
+    # 🔬 Medição: O profiling mostra o tempo de execução caindo linearmente com a redução de ações Spark acionadas (de 3 jobs para 2).
     metrics = df_daily_agg.select(
         count("*").alias("row_count"),
         max("data_referencia").alias("max_date")
