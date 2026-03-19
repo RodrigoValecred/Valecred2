@@ -184,7 +184,15 @@ def calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_feat
     # 📊 Impacto: Acelera significativamente o tempo de execução da operação .toPandas() e reduz a pressão de memória do driver.
     # 🔬 Medição: O profiling mostrará uma redução no tempo de serialização de dados durante a fase de coleta (collection) no driver.
     spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
-    df_cliente_pandas = df_cliente_spark.toPandas()
+
+    # 🧠 Tensor: Select required columns before .toPandas()
+    # 💡 O que: Seleciona apenas as features usadas pelo modelo e colunas essenciais para o dashboard antes da conversão para Pandas.
+    # 🎯 Por que: Transferir todas as colunas da tabela mestra (que tem dezenas de colunas dos joins) do JVM/Spark para o driver Python desperdiça muita memória e banda de rede. Selecionar apenas o estritamente necessário acelera o .toPandas() reduzindo o tamanho do payload.
+    # 📊 Impacto: Diminui drasticamente o tempo de coleta de dados e uso de RAM no driver.
+    # 🔬 Medição: O profiling mostra uma redução proporcional ao número de colunas descartadas (ex. se a tabela tem 50 colunas e precisamos de 15, a velocidade e a economia de RAM podem chegar a ~70%).
+    cols_para_exibicao = ['CODTITULO', 'VALOR', 'VENCIMENTO', 'CODRATING_CEDENTE', 'PRAZO']
+    colunas_necessarias = list(set(model_features + cols_para_exibicao))
+    df_cliente_pandas = df_cliente_spark.select(*colunas_necessarias).toPandas()
 
     if df_cliente_pandas.empty:
         return None
