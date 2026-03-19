@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "NB_Modelo_Risco_Logistico"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "be605866-194d-b965-4542-ada1b7cebfd2"
+  }
+}
