@@ -226,6 +226,12 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** (Not specified)
 - **Processing Steps:** (Not specified)
 
+### NB_Gold_Carteira_Titulos.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
 ### NB_Gold_Carteira_Valor_Diario.Notebook
 - **Description:** (Missing description)
 - **Input:** (Not specified)
@@ -316,6 +322,12 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** (Not specified)
 - **Processing Steps:** (Not specified)
 
+### NB_Load_Bronze_CEPs_Coords.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
 ### NB_Load_Bronze_Receita_Federal_Full.Notebook
 - **Description:** (Missing description)
 - **Input:** (Not specified)
@@ -333,6 +345,12 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Input:** `Files/manual_uploads` (various Excel and CSV files)
 - **Output:** `LH_Silver` (multiple `sup_*` tables)
 - **Processing Steps:** Reads, standardizes column names, and saves each file as a Delta table.
+
+### NB_Modelo_Risco_Logistico.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
 
 ### NB_PERFIL_RISCO_SACADO.Notebook
 - **Description:** (Missing description)
