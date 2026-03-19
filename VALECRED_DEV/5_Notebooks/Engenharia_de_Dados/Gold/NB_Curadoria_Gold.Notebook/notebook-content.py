@@ -996,6 +996,9 @@ df_protestos_small = df_protestos.select("cod_titulo", "status_protesto").dropDu
 # Flag Juridico
 df_juridico_flag = df_relatorio_juridico.select("cod_titulo").distinct().withColumn("status_enviado_juridico", lit(True))
 
+# Extrair CEP do sacado
+df_enderecos_sacado_small = df_enderecos_limpa.select(col("cpf_cnpj").alias("cpf_cnpj_sacado"), col("cep").alias("cep_sacado")).dropDuplicates(["cpf_cnpj_sacado"])
+
 df_titulos_com_chave_sacado = df_titulos_base.join(broadcast(df_operacoes_small), "cod_operacao", "left") \
     .withColumn("chave_cliente_sacado", concat(col("cod_cliente").cast("string"), lit("-"), col("raiz_cnpj"))) \
     .withColumn("prazo", datediff(col("vencimento"), col("data_deferimento")))
@@ -1007,6 +1010,7 @@ df_enriquecido = df_titulos_com_chave_sacado \
     .join(broadcast(df_ultima_conf_small), "cod_titulo", "left") \
     .join(broadcast(df_protestos_small), "cod_titulo", "left") \
     .join(broadcast(df_juridico_flag), "cod_titulo", "left") \
+    .join(broadcast(df_enderecos_sacado_small), "cpf_cnpj_sacado", "left") \
     .na.fill({"amortizacoes": 0}) \
     .withColumn("status_enviado_juridico", coalesce(col("status_enviado_juridico"), lit(False)))
 
@@ -1064,7 +1068,7 @@ df_ordem = df_conf.withColumn("ordem_confirmacao", when(col("confirmacao") == "N
 df_fato_titulos_final = df_ordem.select(
     col("sk_operacao"), col("cod_titulo"), col("cod_operacao"), col("t_doc"), col("n_doc"), col("cpf_cnpj_sacado"), col("vencimento"), col("venc_prorrogado"), col("valor"),
     col("prazo"), col("aceito"), col("data_inclusao"), col("usua_conf").alias("usua_inclusao"), col("data_alteracao"), col("amortizacoes"),
-    "chave_produto", "status_protesto", "tipo_documento_sacado", "raiz_cnpj", "valor_vezes_prazo",
+    "chave_produto", "status_protesto", "tipo_documento_sacado", "raiz_cnpj", "valor_vezes_prazo", "cep_sacado",
     "produto_com_intercia", "data_vencimento_util", "status_deferimento", "status_clean",
     "confirmacao", "ordem_confirmacao", "cod_operacao_recompra", "confirmado_por", "intercompany",
     col("liquidacao"), col("valor_devido"), col("motivo"),
