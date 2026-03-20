@@ -87,7 +87,7 @@ schema = StructType([
     StructField("lat_crise", FloatType(), True),
     StructField("lon_crise", FloatType(), True),
     StructField("severidade", StringType(), True),
-    StructField("status_ativo", IntegerType(), True)
+    StructField("status_ativo", FloatType(), True)
 ])
 
 df_pontos_crise = spark.createDataFrame(data, schema)
