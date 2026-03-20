@@ -31,7 +31,6 @@
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 from sklearn.ensemble import IsolationForest
-import pandas as pd
 import mlflow
 import mlflow.sklearn
 
