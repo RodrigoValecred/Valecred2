@@ -385,30 +385,6 @@
         ]
       },
       {
-        "type": "TridentNotebook",
-        "typeProperties": {
-          "notebookId": "d724b5e9-2be8-a846-4882-4433c7fe28b0",
-          "workspaceId": "00000000-0000-0000-0000-000000000000"
-        },
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureInput": false,
-          "secureOutput": false
-        },
-        "name": "Processamento_Clientes_Gold",
-        "description": "NB_Gera_Relatorio_Diario_Clientes",
-        "dependsOn": [
-          {
-            "activity": "NB_Curadoria_Gold",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ]
-      },
-      {
         "type": "InvokePipeline",
         "typeProperties": {
           "parameters": {},
