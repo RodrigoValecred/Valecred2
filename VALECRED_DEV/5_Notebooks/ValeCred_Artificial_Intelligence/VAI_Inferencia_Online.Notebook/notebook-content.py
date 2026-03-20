@@ -34,7 +34,7 @@ import pandas as pd
 import numpy as np
 from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType, StringType
-from pyspark.sql.functions import col, lit, when, pandas_udf, PandasUDFType
+from pyspark.sql.functions import col, lit, pandas_udf, PandasUDFType
 
 # ==============================================================================
 # 1. LEITURA E PREPARAÇÃO DOS DADOS (Spark)
