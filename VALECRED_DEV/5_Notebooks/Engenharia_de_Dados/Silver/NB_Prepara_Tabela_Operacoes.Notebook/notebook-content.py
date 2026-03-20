@@ -393,7 +393,7 @@ def standardize_estudo_columns(df):
     limit_candidates = ["limitefomento", "limite", "vl_limite", "valor_limite", "total_limite", "limite_total", "limite_global", "tot_limite", "limite_credito"]
 
     def rename_first_match(df, candidates, target_name):
-        existing_cols = df.columns
+        existing_cols = set(df.columns)
         # Checar se o destino (target) já existe (ex. se a fonte já tem 'valor_risco_estudo')
         if target_name in existing_cols:
              return df
