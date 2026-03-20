@@ -41,14 +41,14 @@ class TestConverterMoedaBr(unittest.TestCase):
             context = {
                 "col": mock_col,
                 "regexp_replace": mock_regexp_replace,
-                # 'lit' is imported in the notebook but not used in this specific function,
-                # but good to have if future changes use it.
+                # 'lit' é importado no notebook mas não é usado nesta função específica,
+                # mas é bom ter se mudanças futuras o usarem.
                 "lit": lambda x: MockColumn(expr=f"lit({x})")
             }
             local_scope = {}
-            # Execute the function definition. The function body is NOT executed here.
-            # The function object is created and bound to 'converter_moeda_br' in local_scope.
-            # It captures 'context' as its global scope because we passed it as 'globals'.
+            # Executa a definição da função. O corpo da função NÃO é executado aqui.
+            # O objeto da função é criado e vinculado a 'converter_moeda_br' no local_scope.
+            # Captura 'context' como seu escopo global porque passamos como 'globals'.
             exec(func_source, context, local_scope)
             cls.converter_moeda_br = staticmethod(local_scope["converter_moeda_br"])
         else:
@@ -63,18 +63,18 @@ class TestConverterMoedaBr(unittest.TestCase):
 
         result = self.converter_moeda_br("valor_br")
 
-        # The function logic:
+        # A lógica da função:
         # 1. regexp_replace(col(col_name), "\.", "")  -> remove thousands separator
-        # 2. regexp_replace(..., ",", ".")            -> replace decimal comma with dot
-        # 3. .cast("double")                          -> cast to double
+        # 2. regexp_replace(..., ",", ".")            -> substitui vírgula decimal por ponto
+        # 3. .cast("double")                          -> converte para double
 
-        # Expected string representation from our mocks:
+        # Representação de string esperada de nossas simulações:
         # cast(regexp_replace(regexp_replace(col(valor_br), '\.', ''), ',', '.') as double)
 
-        # Note on backslashes:
-        # In the source code: "\." (backslash + dot).
-        # In our mock: it becomes the string literal '\.'.
-        # In expected string below: we need to escape the backslash for the python string literal.
+        # Nota sobre barras invertidas:
+        # No código fonte: "\." (barra invertida + ponto).
+        # Em nossa simulação: isso se torna o literal de string '\.'.
+        # Na string esperada abaixo: precisamos escapar a barra invertida para o literal de string do python.
         expected_expr = "cast(regexp_replace(regexp_replace(col(valor_br), '\\.', ''), ',', '.') as double)"
 
         self.assertIsInstance(result, MockColumn)

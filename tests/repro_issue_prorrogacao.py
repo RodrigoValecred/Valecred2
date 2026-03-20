@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import MagicMock, call
 
-# Mock PySpark classes and functions since pyspark is not installed
+# Simula as classes e funções do PySpark já que pyspark não está instalado
 class MockColumn:
     def __init__(self, name):
         self.name = name
@@ -17,7 +17,7 @@ class MockDataFrame:
     def __init__(self, name, columns, data):
         self.name = name
         self.columns = columns
-        self.data = data # List of dicts
+        self.data = data # Lista de dicionários
 
     def select(self, *cols):
         # Very basic select simulation
@@ -37,7 +37,7 @@ class MockDataFrame:
         return MockDataFrame(f"filtered_{self.name}", self.columns, [d for d in self.data if self._eval(condition, d)])
 
     def _eval(self, condition, row):
-        # Basic evaluation for "col == val"
+        # Avaliação básica para "col == val"
         if isinstance(condition, MockColumn):
             parts = condition.name.split(" == ")
             if len(parts) == 2:
@@ -56,7 +56,7 @@ class MockDataFrame:
                 joined_data.append(new_row)
             elif how == 'left':
                 new_row = {**row}
-                # Add None for other columns
+                # Adiciona None para outras colunas
                 for col in other.columns:
                     if col != on:
                         new_row[col] = None
@@ -67,7 +67,7 @@ class MockDataFrame:
 
     def withColumn(self, name, col_expr):
         # Simulate adding a column. Since we can't evaluate complex expressions easily,
-        # we'll just add the column name to the schema.
+        # vamos apenas adicionar o nome da coluna ao esquema.
         new_cols = self.columns + [name]
         return MockDataFrame(f"with_col_{self.name}", new_cols, self.data)
 
@@ -99,13 +99,13 @@ def trim(col):
 def when(condition, value):
     return MockColumn(f"when({condition}, {value})")
 
-# Test Class
+# Classe de Teste
 class TestRelatorioProdutos(unittest.TestCase):
 
     def test_repro_issue_platform_missing(self):
-        # Mock Data
+        # Simulação de Dados
         # Operation 1: Accepted (A) and Deferido (D) -> Should be in map
-        # Operation 2: Rejected (R) -> Should NOT be in filtered map, but might have Prorrogacao
+        # Operação 2: Rejeitada (R) -> NÃO deve estar no mapa filtrado, mas pode ter Prorrogação
 
         ops_data = [
             {"cod_operacao": "1", "status_aceite": "A", "status_analise": "D", "nome_plataforma": "Platform A", "nbordero": "100", "chave_produto": "NO", "data_deferimento": "2025-01-01"},
@@ -114,18 +114,18 @@ class TestRelatorioProdutos(unittest.TestCase):
 
         df_ops_raw = MockDataFrame("fato_operacoes", ["cod_operacao", "status_aceite", "status_analise", "nome_plataforma", "nbordero", "chave_produto", "data_deferimento"], ops_data)
 
-        # Reproduce current logic: No Filtering
+        # Reproduz a lógica atual: Sem Filtragem
         df_ops_unfiltered = df_ops_raw
 
         # Create Map
         df_map_ops = df_ops_unfiltered.select("cod_operacao", "nome_plataforma")
-        # In mock select, we just keep columns. Real code aliases them.
-        # Let's simulate alias manually for the test check
+        # Na simulação do select, apenas mantemos as colunas. O código real as renomeia (alias).
+        # Vamos simular o alias manualmente para a verificação do teste
         map_data = [{"cod_operacao": d["cod_operacao"], "nome_plataforma_op": d["nome_plataforma"]} for d in df_ops_unfiltered.data]
         df_map_ops_mock = MockDataFrame("map_ops", ["cod_operacao", "nome_plataforma_op"], map_data)
 
-        # Mock Prorrogacao (Fact Table)
-        # Prorrogacao for Op 2 (The rejected one)
+        # Simula Prorrogação (Fact Table)
+        # Prorrogação para Op 2 (A rejeitada)
         prorrog_data = [
             {"cod_operacao": "2", "valor": 1000, "data_inclusao": "2025-02-01"}
         ]
@@ -134,7 +134,7 @@ class TestRelatorioProdutos(unittest.TestCase):
         # Join
         df_joined = df_prorrog.join(df_map_ops_mock, "cod_operacao", "left")
 
-        # Assertions
+        # Asserções
         print("Joined Data (Fixed Logic):", df_joined.data)
         # Op 2 should have "Platform B"
         row_op2 = next(r for r in df_joined.data if r["cod_operacao"] == "2")

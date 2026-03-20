@@ -10,14 +10,14 @@ NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/NB_Gera_Relatorio_
 
 class TestRelatorioDiarioUX(unittest.TestCase):
     def setUp(self):
-        # 1. Prepare Scope with Dependencies
+        # 1. Prepara Escopo com Dependências
         self.scope = {'pd': pd, 'np': np, 'datetime': datetime}
 
         # Inject data_hoje
         self.data_hoje = datetime(2025, 12, 23).date()
         self.scope['data_hoje'] = self.data_hoje
 
-        # Mock Colors class since we can't easily extract classes with current util
+        # Simula a classe Colors pois não podemos extrair classes facilmente com a util atual
         class MockColors:
             HEADER = ''
             BLUE = ''
@@ -34,7 +34,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         if format_source:
             exec(format_source, self.scope, self.scope)
         else:
-            # Fallback mock if not found (though it should be there)
+            # Simulação de contingência (fallback) se não encontrado (embora devesse estar lá)
             self.scope['format_currency_br'] = lambda x: f"R$ {x:.2f}"
 
         # Extract prepare_dashboard_data
@@ -53,7 +53,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             self.fail("Function display_risk_dashboard not found in notebook")
 
         try:
-            # Use self.scope as both globals and locals to ensure closures (like Colors) work
+            # Usa self.scope tanto como globals quanto locals para garantir que closures (como Colors) funcionem
             exec(source, self.scope, self.scope)
             self.display_risk_dashboard = self.scope['display_risk_dashboard']
         except Exception as e:
@@ -79,18 +79,18 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertEqual(item0['grupo_display'], 'Safe Group')
         self.assertTrue(item0['is_valid_utilization'])
         self.assertFalse(item0['is_excess'])
-        self.assertIn("✅", item0['bar_display']) # Check for icon (mock Colors are empty strings but icon is literal)
-        self.assertIn("Seguro", item0['bar_display']) # Check for status text
+        self.assertIn("✅", item0['bar_display']) # Verifica o ícone (Colors simuladas são strings vazias mas o ícone é literal)
+        self.assertIn("Seguro", item0['bar_display']) # Verifica o texto de status
 
         # Risky Group
         item1 = view_data[1]
         self.assertTrue(item1['is_excess'])
         self.assertIn("🚨", item1['bar_display'])
-        self.assertIn("Crítico", item1['bar_display']) # Check for status text
+        self.assertIn("Crítico", item1['bar_display']) # Verifica o texto de status
         self.assertEqual(item1['excesso_fmt'], "R$ 50,00")
 
     def test_prepare_dashboard_data_validity_errors(self):
-        # Test Case: Invalid date formats to trigger ValueError and TypeError
+        # Caso de Teste: Formatos de data inválidos para acionar ValueError e TypeError
         df = pd.DataFrame({
             'grupo': ['Invalid String', 'Invalid Type None', 'Invalid Type Float'],
             'valor_risco': [10.0, 10.0, 10.0],
@@ -99,12 +99,12 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             'excesso_valor': [0, 0, 0],
             'validade_limite': [
                 'not-a-date', # Should trigger ValueError
-                None,         # Should trigger TypeError (or ValueError depending on strptime behavior)
+                None,         # Deve acionar TypeError (ou ValueError dependendo do comportamento de strptime)
                 123.45        # Invalid type
             ]
         })
 
-        # Redirect stdout temporarily if we don't want the prints to clutter the test output
+        # Redireciona stdout temporariamente se não quisermos que as impressões poluam a saída do teste
         import io
         import sys
         captured_output = io.StringIO()
@@ -116,14 +116,14 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         finally:
             sys.stdout = old_stdout
 
-        # Verify Fallback to original string
+        # Verifica contingência para a string original
         self.assertEqual(view_data[0]['validade_display'], 'not-a-date')
         self.assertEqual(view_data[1]['validade_display'], 'None')
         self.assertEqual(view_data[2]['validade_display'], '123.45')
 
     @patch('builtins.print')
     def test_display_risk_dashboard_output_structure(self, mock_print):
-        # Setup mock data
+        # Configura dados simulados
         df = pd.DataFrame({
             'grupo': ['Test Group A', 'Test Group B'],
             'valor_risco': [100.0, 500.0],
@@ -132,20 +132,20 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             'excesso_valor': [0.0, 100.0]
         })
 
-        # Run the function
+        # Executa a função
         self.display_risk_dashboard(df)
 
         # Collect all print outputs
         calls = [args[0] for args, _ in mock_print.call_args_list if args]
         full_output = "\n".join(calls)
 
-        # Assertions
+        # Asserções
         self.assertIn("PAINEL DE RISCO", full_output)
         self.assertIn("Data de Referência", full_output)
         self.assertIn("Test Group A", full_output)
         self.assertIn("50.0%", full_output)
-        # Note: Colors are empty strings in mock, so we won't see ANSI codes, but text structure remains
-        # We can check for icons if they are hardcoded strings, which they are in the notebook
+        # Nota: Colors são strings vazias na simulação, então não veremos códigos ANSI, mas a estrutura de texto permanece
+        # Podemos verificar ícones se forem strings fixas, que é o que são no notebook
         self.assertIn("✅", full_output)
         self.assertIn("🚨", full_output)
 
@@ -153,9 +153,9 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("✅ Seguro: 1    ", full_output)
         self.assertIn("🚨 Crítico: 1   ", full_output)
 
-        # UX Improvement Check: "Disponível" should be shown for safe groups
+        # Verificação de Melhoria UX: "Disponível" deve ser mostrado para grupos seguros
         self.assertIn("Disponível:", full_output)
-        # "EXCESSO" should be shown for unsafe groups (already implicit in logic, but good to check)
+        # "EXCESSO" deve ser mostrado para grupos inseguros (já implícito na lógica, mas bom verificar)
         self.assertIn("EXCESSO:", full_output)
 
     @patch('builtins.print')
@@ -193,7 +193,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
 
     @patch('builtins.print')
     def test_display_risk_dashboard_validity(self, mock_print):
-        # Test Case: Expired, Near Expiry, Safe
+        # Caso de Teste: Expirado, Quase Expirado, Seguro
         df = pd.DataFrame({
             'grupo': ['Expired', 'Near', 'Safe'],
             'valor_risco': [10.0, 10.0, 10.0],
@@ -201,7 +201,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             'utilizacao_pct': [10.0, 10.0, 10.0],
             'excesso_valor': [0, 0, 0],
             'validade_limite': [
-                '2025-12-01', # Expired (Assuming self.data_hoje is 2025-12-23)
+                '2025-12-01', # Expirado (Assumindo que self.data_hoje é 2025-12-23)
                 '2025-12-30', # Near (7 days)
                 '2026-06-01'  # Safe
             ]
@@ -217,18 +217,18 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("01/06/2026", full_output)
 
     def test_style_risk_dataframe(self):
-        # This function is what we are adding.
-        # We extract it to verify logic.
+        # Esta função é o que estamos adicionando.
+        # Nós a extraímos para verificar a lógica.
         style_source = extract_function_from_file(NOTEBOOK_PATH, "style_risk_dataframe")
 
         if not style_source:
              self.fail("Function style_risk_dataframe not found in notebook. Implement it!")
 
-        # Execute
+        # Executa
         exec(style_source, self.scope, self.scope)
         style_func = self.scope['style_risk_dataframe']
 
-        # Test Data
+        # Dados de Teste
         df = pd.DataFrame({
             'grupo': ['A', 'B'],
             'valor_risco': [1000.0, 2000.0],
@@ -240,39 +240,39 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         styler = style_func(df)
         html = styler.to_html()
 
-        # Verify CSS Logic
+        # Verifica a Lógica CSS
         # 20% -> Green (#ccffcc)
         self.assertIn("#ccffcc", html)
         # 200% -> Red (#ffcccc)
         self.assertIn("#ffcccc", html)
 
-        # Verify Currency Logic
-        # Just check if R$ appears roughly correct.
+        # Verifica a Lógica de Moeda
+        # Apenas verifica se R$ parece aproximadamente correto.
         # HTML output creates <td>R$ 1.000,00</td> etc.
         self.assertIn("R$", html)
 
     def test_format_currency_br(self):
         """Test the format_currency_br utility function."""
-        # Check if the function was properly extracted and injected
+        # Verifica se a função foi devidamente extraída e injetada
         self.assertIn('format_currency_br', self.scope)
         format_func = self.scope['format_currency_br']
 
-        # Test happy paths
+        # Testa caminhos felizes (happy paths)
         self.assertEqual(format_func(1234.56), "R$ 1.234,56")
         self.assertEqual(format_func(100), "R$ 100,00")
         self.assertEqual(format_func(0), "R$ 0,00")
 
-        # Test large numbers with multiple thousands separators
+        # Testa números grandes com múltiplos separadores de milhares
         self.assertEqual(format_func(1234567.89), "R$ 1.234.567,89")
         self.assertEqual(format_func(1000000000.00), "R$ 1.000.000.000,00")
 
-        # Test negative numbers
+        # Testa números negativos
         self.assertEqual(format_func(-500.25), "R$ -500,25")
         self.assertEqual(format_func(-1234.56), "R$ -1.234,56")
 
-        # Test missing values
-        # The underlying function uses pd.isna() which correctly handles np.nan, None, and pd.NA.
-        # Ensure our pd mock context properly resolves them.
+        # Testa valores ausentes
+        # A função subjacente usa pd.isna() que gerencia corretamente np.nan, None e pd.NA.
+        # Garante que nosso contexto de simulação pd os resolva corretamente.
         self.assertEqual(format_func(pd.NA), "-")
         self.assertEqual(format_func(np.nan), "-")
         self.assertEqual(format_func(None), "-")

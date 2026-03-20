@@ -3,23 +3,23 @@ from unittest.mock import MagicMock, call
 import sys
 import os
 
-# Ensure tests package is in path
+# Garante que o pacote tests está no path
 sys.path.append(os.getcwd())
 
 from tests.notebook_utils import extract_function_from_file
 
-# 1. Mock PySpark modules BEFORE imports
+# 1. Simula módulos PySpark ANTES das importações
 sys.modules["pyspark"] = MagicMock()
 sys.modules["pyspark.sql"] = MagicMock()
 sys.modules["pyspark.sql.functions"] = MagicMock()
 sys.modules["pyspark.sql.types"] = MagicMock()
 sys.modules["pyspark.sql.window"] = MagicMock()
-sys.modules["notebookutils"] = MagicMock() # For mssparkutils
+sys.modules["notebookutils"] = MagicMock() # Para mssparkutils
 
-# 2. Define Mock Functions to mimic PySpark behavior
+# 2. Define Funções de Simulação para imitar o comportamento do PySpark
 def col(name):
     m = MagicMock()
-    # Define explicit repr and str for easier debugging and assertions
+    # Define repr e str explícitos para depuração e asserções mais fáceis
     m.__repr__ = lambda x: f"col('{name}')"
     m.__str__ = lambda x: f"col('{name}')"
     # Implement arithmetic
@@ -33,7 +33,7 @@ def col(name):
     m.__lt__ = lambda self, other: MagicMock()
     m.__le__ = lambda self, other: MagicMock()
     m.__eq__ = lambda self, other: MagicMock()
-    m.__or__ = lambda self, other: MagicMock() # bitwise OR for filter
+    m.__or__ = lambda self, other: MagicMock() # OU bitwise para filtro
     m.alias = MagicMock(return_value=m)
     m.isNull = MagicMock(return_value=MagicMock())
     m.isNotNull = MagicMock(return_value=MagicMock())
@@ -80,7 +80,7 @@ def concat(*cols): return MagicMock()
 def broadcast(df): return MagicMock()
 def trim(c): return MagicMock()
 
-# 3. Patch the modules with our functions
+# 3. Patch os módulos com nossas funções
 sys.modules["pyspark.sql.functions"].col = col
 sys.modules["pyspark.sql.functions"].sum = sum
 sys.modules["pyspark.sql.functions"].avg = avg
@@ -88,7 +88,7 @@ sys.modules["pyspark.sql.functions"].count = count
 sys.modules["pyspark.sql.functions"].max = max
 sys.modules["pyspark.sql.functions"].min = min
 sys.modules["pyspark.sql.functions"].lit = lit
-sys.modules["pyspark.sql.functions"].when = mock_when # Use the mock
+sys.modules["pyspark.sql.functions"].when = mock_when # Usa a simulação (mock)
 sys.modules["pyspark.sql.functions"].round = round
 sys.modules["pyspark.sql.functions"].datediff = datediff
 sys.modules["pyspark.sql.functions"].coalesce = coalesce
@@ -100,7 +100,7 @@ sys.modules["pyspark.sql.functions"].concat = concat
 sys.modules["pyspark.sql.functions"].broadcast = broadcast
 sys.modules["pyspark.sql.functions"].trim = trim
 
-# Constants for test
+# Constantes para teste
 NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py"
 
 class TestRelatorioProdutosMensal(unittest.TestCase):
@@ -113,10 +113,10 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         cls.prorrog_code = extract_function_from_file(NOTEBOOK_PATH, "process_prorrogacoes_stream")
         cls.mora_code = extract_function_from_file(NOTEBOOK_PATH, "process_mora_stream")
 
-        # Execute in global scope
+        # Executa in global scope
         for code in [cls.resolve_code, cls.load_code, cls.ops_code, cls.prorrog_code, cls.mora_code]:
             if code:
-                # Add mock_when as 'when' to the execution context
+                # Adiciona mock_when como 'when' ao contexto de execução
                 globals()['when'] = mock_when
                 exec(code, globals())
 
@@ -129,7 +129,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         while df_ops (Stream 1) is restricted to 2025+.
         Uses extracted load_and_prepare_data.
         """
-        # Mocks for tables
+        # Simulações para tabelas
         df_ops_raw = MagicMock(name="df_ops_raw")
         df_clients = MagicMock(name="df_clients")
         df_titulos = MagicMock(name="df_titulos")
@@ -139,15 +139,15 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         df_gerentes = MagicMock(name="df_gerentes")
         df_plataformas = MagicMock(name="df_plataformas")
 
-        # Mock behavior for ops filtering
+        # Simula comportamento para filtragem de operações
         df_ops_full = MagicMock(name="df_ops_full")
         df_ops_2025 = MagicMock(name="df_ops_2025")
 
-        # Chain for ops
+        # Encadeamento para operações
         df_ops_raw.filter.return_value.filter.return_value = df_ops_full
-        df_ops_full.filter.return_value = df_ops_2025 # This is the year filter
+        df_ops_full.filter.return_value = df_ops_2025 # Este é o filtro de ano
 
-        # Setup side_effect for spark.read.table
+        # Configura side_effect para spark.read.table
         def side_effect(table_name):
             if table_name == "LH_Gold.fato_operacoes": return df_ops_raw
             if table_name == "LH_Gold.dim_clientes": return df_clients
@@ -165,17 +165,17 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         load_and_prepare_data_func = globals()["load_and_prepare_data"]
         result = load_and_prepare_data_func(self.spark)
 
-        # Assertions
-        # 1. df_map_ops should come from df_ops_raw directly (select called on raw)
-        # In the function: df_map_ops = df_ops_raw.select(...)
+        # Asserções
+        # 1. df_map_ops deve vir de df_ops_raw diretamente (select chamado no raw)
+        # Na função: df_map_ops = df_ops_raw.select(...)
         df_ops_raw.select.assert_called()
 
-        # 2. df_ops (result["df_ops"]) should be filtered by year
-        # The function does: df_ops = df_ops_full.filter(year >= 2025)
-        # So df_ops_full.filter should be called
+        # 2. df_ops (result["df_ops"]) deve ser filtrado por ano
+        # A função faz: df_ops = df_ops_full.filter(year >= 2025)
+        # Então df_ops_full.filter deve ser chamado
         df_ops_full.filter.assert_called()
 
-        # And the result in dictionary should be df_ops_2025
+        # E o resultado no dicionário deve ser df_ops_2025
         self.assertEqual(result["df_ops"], df_ops_2025)
 
     def test_operations_granularity(self):
@@ -185,7 +185,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         df_ops = MagicMock(name="df_ops")
         df_titulos = MagicMock(name="df_titulos")
 
-        # Mocks for join/agg
+        # Simulações para join/agg
         df_ops.join.return_value = df_ops
         df_ops.withColumn.return_value = df_ops
         df_ops.groupBy.return_value.agg.return_value = df_ops
@@ -193,8 +193,8 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         process_operacoes_stream_func = globals()["process_operacoes_stream"]
         result_df = process_operacoes_stream_func(df_ops, df_titulos)
 
-        # Verify structure
-        # Should join with titles
+        # Verifica structure
+        # Deve juntar com os títulos
         df_ops.join.assert_called()
         # Should aggregate
         df_ops.groupBy.assert_called()
@@ -203,10 +203,10 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         """
         Confirms that data_deferimento is updated to use the value of data_baixa in process_mora_stream.
         """
-        # Ensure functions were extracted
+        # Garante que as funções foram extraídas
         self.assertIsNotNone(self.mora_code, "Failed to extract process_mora_stream")
 
-        # Mock Inputs
+        # Simula Entradas
         df_baixas = MagicMock(name="df_baixas")
         df_map_ops = MagicMock(name="df_map_ops")
         df_cli_plat_map = MagicMock(name="df_cli_plat_map")
@@ -220,14 +220,14 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         df_baixas.withColumn.return_value = df_baixas
         df_baixas.withColumnRenamed.return_value = df_baixas
 
-        # Must include all columns used in resolve_columns and groupBy
+        # Deve incluir todas as colunas usadas em resolve_columns e groupBy
         granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente", "floating", "prazo_medio_ponderado_dias"]
 
         process_mora_stream_func = globals()["process_mora_stream"]
         result_df = process_mora_stream_func(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, granular_cols)
 
-        # Verify the FIX: .withColumn("data_deferimento", col("data_baixa"))
-        # We search specifically for the call where data_deferimento is set to data_baixa.
+        # Verifica a CORREÇÃO: .withColumn("data_deferimento", col("data_baixa"))
+        # Buscamos especificamente pela chamada onde data_deferimento é definido como data_baixa.
         fix_call_found = any(
             args[0] == "data_deferimento" and "col('data_baixa')" in str(args[1])
             for args, kwargs in df_baixas.withColumn.call_args_list
@@ -247,8 +247,8 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         df_mora.join.return_value = df_mora
         df_mora.withColumn.return_value = df_mora
 
-        # --- LOGIC UNDER TEST ---
-        # Replicates the improved notebook logic
+        # --- LÓGICA SOB TESTE ---
+        # Replica a lógica melhorada do notebook
         df_mora_enrich_venc = df_mora.join(df_titulos_dates, "cod_titulo", "left")
 
         df_mora_calc = df_mora_enrich_venc \
@@ -264,20 +264,20 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
             )
 
         # --- ASSERTIONS ---
-        # Verify withColumn was called for 'data_referencia_mora'
-        # And verify that 'when' was called.
+        # Verifica se withColumn foi chamado para 'data_referencia_mora'
+        # E verifica se 'when' foi chamado.
         self.assertTrue(mock_when_tracker.called)
 
-        # We can inspect the arguments passed to mock_when
-        # call_args_list[0] should be the 'year(venc_prorrogado) > 1900' check
+        # Podemos inspecionar os argumentos passados para mock_when
+        # call_args_list[0] deve ser a verificação 'year(venc_prorrogado) > 1900'
         first_call_args = mock_when_tracker.call_args_list[0]
-        condition_arg = first_call_args[0][0] # The condition object (Mock)
+        condition_arg = first_call_args[0][0] # O objeto de condição (Simulação)
 
-        # We can't easily assert the mock structure of the condition without deep inspection,
-        # but we can verify that the test code (which mirrors the notebook code) executed without error
-        # and called our mocked functions.
+        # Não podemos afirmar facilmente a estrutura de simulação da condição sem inspeção profunda,
+        # mas podemos verificar se o código de teste (que reflete o código do notebook) foi executado sem erro
+        # e chamou nossas funções simuladas.
 
-        # This confirms that the logic flow is valid python and uses the Spark API mocks correctly.
+        # Isso confirma que o fluxo lógico é python válido e usa corretamente as simulações da API Spark.
         pass
 
 if __name__ == "__main__":

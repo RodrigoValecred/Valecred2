@@ -6,7 +6,7 @@ class TestKPISecurity(unittest.TestCase):
     def test_no_hardcoded_passwords(self):
         filepath = "VALECRED_DEV/8_RealTime/KPI_DA_TV.Notebook/notebook-content.py"
         if not os.path.exists(filepath):
-            # Try finding it relative to test dir if running from root
+            # Tenta encontrar em relação ao diretório de testes se executado a partir da raiz
             filepath = os.path.join(os.getcwd(), filepath)
 
         if not os.path.exists(filepath):
@@ -15,7 +15,7 @@ class TestKPISecurity(unittest.TestCase):
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Clean magic commands if any (though this file looks clean)
+        # Limpa comandos mágicos se houver (embora este arquivo pareça limpo)
         lines = content.splitlines()
         clean_lines = []
         for line in lines:
@@ -33,28 +33,28 @@ class TestKPISecurity(unittest.TestCase):
         option_calls = []
         for node in ast.walk(tree):
             if isinstance(node, ast.Call):
-                # Check for .option() calls
+                # Verifica chamadas para .option()
                 if isinstance(node.func, ast.Attribute) and node.func.attr == 'option':
                     option_calls.append(node)
 
         found_password_option = False
         for call in option_calls:
-            # Check args
+            # Verifica args
             if len(call.args) >= 2:
                 key_arg = call.args[0]
                 value_arg = call.args[1]
 
-                # Check if first arg is "password" literal
+                # Verifica se o primeiro argumento é o literal "password"
                 if isinstance(key_arg, ast.Constant) and key_arg.value == "password":
                     found_password_option = True
                     # Assert second arg is NOT a string literal
                     if isinstance(value_arg, ast.Constant) and isinstance(value_arg.value, str):
                         self.fail(f"CRITICAL: Hardcoded password detected! Found: .option('password', '{value_arg.value}')")
 
-            # Check kwargs (unlikely for spark .option but possible in python)
+            # Verifica kwargs (improvável para spark .option mas possível em python)
             # Spark .option(key, value) usually positional
 
-        # Ensure we actually found the option call (so the test isn't passing falsely because it missed the code)
+        # Garante que encontramos a chamada option (para o teste não passar falsamente por perder o código)
         self.assertTrue(found_password_option, "Did not find any .option('password', ...) call. Code structure might have changed.")
 
 if __name__ == '__main__':

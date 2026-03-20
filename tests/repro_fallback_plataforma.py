@@ -2,7 +2,7 @@
 import unittest
 import re
 
-# Mock PySpark classes
+# Simula classes do PySpark
 class MockColumn:
     def __init__(self, name):
         self.name = name
@@ -20,7 +20,7 @@ class MockDataFrame:
     def __init__(self, name, columns, data):
         self.name = name
         self.columns = columns
-        self.data = data # List of dicts
+        self.data = data # Lista de dicionários
 
     def select(self, *cols):
         # Simplistic Select
@@ -31,28 +31,28 @@ class MockDataFrame:
             elif isinstance(c, MockColumn):
                 selected_cols.append(c.name)
 
-        # New data with selected columns
+        # Novos dados com colunas selecionadas
         new_data = []
         for row in self.data:
             new_row = {}
             for c in selected_cols:
                 # Handle aliasing roughly (e.g., "col.alias" -> col)
-                # But here we assume simple names or just keep existing keys if present
+                # Mas aqui assumimos nomes simples ou apenas mantemos as chaves existentes se presentes
                 clean_c = c.split(" as ")[0] # extremely basic
 
-                # Check directly
+                # Verifica diretamente
                 if clean_c in row:
                     new_row[clean_c] = row[clean_c]
                 else:
-                     # Try to find by splitting "."
+                     # Tenta encontrar dividindo "."
                      parts = clean_c.split(".")
                      if len(parts) > 1 and parts[1] in row:
                          new_row[clean_c] = row[parts[1]] # keep alias key?
-                         # Actually for "select(col(p.nome).alias(name))", we rely on the caller structure
+                         # Na verdade, para "select(col(p.nome).alias(name))", dependemos da estrutura do chamador
                          pass
 
-            # For this test, we just pass all data if select is complex, or fix the test to be simple
-            # Let's just return row restricted to existing keys for simplicity
+            # Para este teste, apenas passamos todos os dados se o select for complexo, ou corrigimos o teste para ser simples
+            # Vamos apenas retornar a linha restrita às chaves existentes por simplicidade
             filtered_row = {k: v for k, v in row.items()}
             new_data.append(filtered_row)
 
@@ -60,7 +60,7 @@ class MockDataFrame:
 
     def filter(self, condition):
         print(f"Filtering {self.name} with {condition}")
-        # Simplistic Filter for `data_fim_vigencia == '9999-12-31'`
+        # Filtro simplista para `data_fim_vigencia == '9999-12-31'`
         # Condition str: "data_fim_vigencia == 9999-12-31"
         cond_str = str(condition)
         if "data_fim_vigencia" in cond_str and "9999-12-31" in cond_str:
@@ -126,7 +126,7 @@ class MockDataFrame:
                 # Extract args
                 # Expected format: coalesce(col(nome_plataforma), col(nome_plataforma_cli), lit(N/D))
 
-                # Check cols
+                # Verifica cols
                 if row.get("nome_plataforma") is not None:
                     val = row.get("nome_plataforma")
                 elif row.get("nome_plataforma_cli") is not None:
@@ -164,14 +164,14 @@ def lit(val):
     return MockColumn(f"lit({val})")
 
 def coalesce(*cols):
-    # Determine the string representation
+    # Determina a representação em string
     args_str = ", ".join([f"col({c.name})" if isinstance(c, MockColumn) and "lit" not in c.name else c.name for c in cols])
     return MockColumn(f"coalesce({args_str})")
 
 class TestFallbackPlataforma(unittest.TestCase):
 
     def test_fallback_logic(self):
-        # 1. Mock Data for Bridge, Gerentes, Plataformas (Silver)
+        # 1. Simula dados para Bridge, Gerentes, Plataformas (Silver)
         bridge_data = [{"cod_cliente": "1", "cod_gerente": "10", "data_fim_vigencia": "9999-12-31"}]
         df_bridge = MockDataFrame("bridge", ["cod_cliente", "cod_gerente", "data_fim_vigencia"], bridge_data)
 
@@ -189,12 +189,12 @@ class TestFallbackPlataforma(unittest.TestCase):
 
         df_cli_plat = df_bg.join(df_plataformas, col("cod_agencia") == col("cod_agencia")) \
             .withColumnRenamed("nome_plataforma", "nome_plataforma_cli") \
-            # .select("cod_cliente", "nome_plataforma_cli") # Skip select for mock simplicity
+            # .select("cod_cliente", "nome_plataforma_cli") # Pula o select para simplicidade da simulação
 
         print("Client Platform Map:", df_cli_plat.data)
         self.assertEqual(df_cli_plat.data[0]["nome_plataforma_cli"], "Platform Correct")
 
-        # 3. Mock Prorrogacao Data
+        # 3. Simula Dados de Prorrogação
         print("\n--- Mocking Prorrog ---")
         prorrog_data = [
             {"cod_operacao": "101", "cod_cliente": "1", "nome_plataforma": "Platform Original"}, # Case A
@@ -206,14 +206,14 @@ class TestFallbackPlataforma(unittest.TestCase):
         print("\n--- Joining Final ---")
         df_final = df_prorrog_enrich.join(df_cli_plat, "cod_cliente", "left")
 
-        # 5. Apply Coalesce Logic
+        # 5. Aplica Lógica Coalesce
         print("\n--- Calculating Final Column ---")
         df_result = df_final.withColumn("nome_plataforma_final",
                                         coalesce(col("nome_plataforma"), col("nome_plataforma_cli"), lit("N/D")))
 
         print("Final Result Data:", df_result.data)
 
-        # Assertions
+        # Asserções
         row1 = next(r for r in df_result.data if r["cod_operacao"] == "101")
         self.assertEqual(row1["nome_plataforma_final"], "Platform Original")
 

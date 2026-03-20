@@ -3,11 +3,11 @@ import sys
 import os
 from unittest.mock import MagicMock
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -36,7 +36,7 @@ class TestFunnelDates(unittest.TestCase):
         mock_greatest = MagicMock(name="greatest")
         mock_coalesce = MagicMock(name="coalesce")
 
-        # Mock DataFrame
+        # Simula DataFrame
         mock_df = MagicMock(name="df")
         # withColumn returns df
         mock_df.withColumn.return_value = mock_df
@@ -59,11 +59,11 @@ class TestFunnelDates(unittest.TestCase):
         # Verification
         self.assertEqual(result_df, mock_df)
 
-        # Verify specific transformations
+        # Verifica specific transformations
         # .withColumn("data_aprovacao", greatest(col("pivot_checklist"), col("pivot_assinatura")))
 
-        # Check if greatest was called for data_aprovacao
-        # We expect greatest to be called with specific mocked columns
+        # Verifica se greatest foi chamado para data_aprovacao
+        # Esperamos que greatest seja chamado com colunas simuladas específicas
         arg1 = col_mocks["pivot_checklist"]
         arg2 = col_mocks["pivot_assinatura"]
         mock_greatest.assert_any_call(arg1, arg2)
@@ -73,7 +73,7 @@ class TestFunnelDates(unittest.TestCase):
         arg4 = col_mocks["pivot_concluido"]
         mock_coalesce.assert_any_call(arg3, arg4)
 
-        # Verify df.withColumn calls
+        # Verifica df.withColumn calls
         calls = mock_df.withColumn.call_args_list
         column_names = [c[0][0] for c in calls]
 

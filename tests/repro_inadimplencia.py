@@ -9,15 +9,15 @@ def run_test():
         .config("spark.driver.memory", "4g") \
         .getOrCreate()
 
-    # 1. Mock df_calendario
+    # 1. Simula df_calendario
     df_calendario = spark.sql("""
         SELECT explode(
             sequence(to_date('2024-01-01'), current_date(), interval 1 month)
         ) as inicio_mes
     """).select(last_day("inicio_mes").alias("DATA_CORTE"))
 
-    # 2. Mock df_titulos_enrich
-    # Generate some data
+    # 2. Simula df_titulos_enrich
+    # Gera alguns dados
     # Create a DataFrame with 1000 titles
     data = []
     for i in range(1000):
@@ -34,7 +34,7 @@ def run_test():
     print("Running Original Logic (CrossJoin + Filter)...")
     start_time = time.time()
 
-    # ORIGINAL LOGIC
+    # LÓGICA ORIGINAL
     # 4. Cross Join com Calendário (Multiplica Títulos x Meses)
     df_historico_base = df_titulos_enrich.crossJoin(df_calendario)
 
@@ -61,14 +61,14 @@ def run_test():
     print("Running Optimized Logic (Broadcast Join)...")
     start_time = time.time()
 
-    # OPTIMIZED LOGIC
+    # LÓGICA OTIMIZADA
     df_calculo_status_opt = df_titulos_enrich.join(
         broadcast(df_calendario),
         (col("data_analise") <= col("DATA_CORTE")) &
         ((col("liquidacao").isNull()) | (col("liquidacao") > col("DATA_CORTE"))),
         "inner"
     ).withColumn(
-        "IS_ABERTO_NA_DATA", lit(1) # Keeping column for compatibility if needed, though strictly not needed for logic correctness
+        "IS_ABERTO_NA_DATA", lit(1) # Mantendo a coluna para compatibilidade se necessário, embora não seja estritamente necessário para a correção lógica
     )
 
     count_opt = df_calculo_status_opt.count()
@@ -76,13 +76,13 @@ def run_test():
     time_opt = end_time - start_time
     print(f"Optimized Time: {time_opt:.4f}s, Count: {count_opt}")
 
-    # Verify results
-    # Sort and compare or just count
+    # Verifica results
+    # Classifica e compara ou apenas conta
     assert count_orig == count_opt, f"Counts differ: Original={count_orig}, Optimized={count_opt}"
 
     # Check if content matches for a sample
     # We can join them and check for mismatches but counting is a good first step.
-    # To be thorough, let's check distinct IDs.
+    # Para ser minucioso, vamos verificar IDs distintos.
 
     ids_orig = df_calculo_status_orig.select("cod_operacao", "DATA_CORTE").orderBy("cod_operacao", "DATA_CORTE").collect()
     ids_opt = df_calculo_status_opt.select("cod_operacao", "DATA_CORTE").orderBy("cod_operacao", "DATA_CORTE").collect()

@@ -3,11 +3,11 @@ from unittest.mock import MagicMock, call, patch
 import sys
 import os
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -23,18 +23,18 @@ class TestProrrogacaoLogic(unittest.TestCase):
              raise ValueError("Function process_tab_operacoes_prorrogacao not found in notebook.")
 
     def test_process_logic(self):
-        # Mocks for global dependencies
+        # Simulações para dependências globais
         mock_spark = MagicMock()
         mock_col = MagicMock()
         mock_to_date = MagicMock()
         mock_lit = MagicMock()
 
-        # Mock DataFrames
+        # Simula DataFrames
         mock_df_prorrogacao = MagicMock(name="df_prorrogacao")
         mock_df_titulos = MagicMock(name="df_titulos")
         mock_df_operacoes = MagicMock(name="df_operacoes")
 
-        # Setup read.table side effect
+        # Configura efeito colateral (side effect) de read.table
         def read_table_side_effect(table_name):
             if "tab_operacoes_prorrogacao" in table_name:
                 return mock_df_prorrogacao
@@ -46,21 +46,21 @@ class TestProrrogacaoLogic(unittest.TestCase):
 
         mock_spark.read.table.side_effect = read_table_side_effect
 
-        # Setup columns for prorrogacao
+        # Configura colunas para prorrogação
         mock_df_prorrogacao.columns = [
             "CODTITULO", "CODOPERACAO", "DATAINCLUSAO", "TARIFA",
             "USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO",
             "VALORDEVIDO", "VALORPROR", "VALORBOLETO"
         ]
 
-        # Setup col() mock to support alias chaining
+        # Configura a simulação col() para suportar o encadeamento de alias
         def col_side_effect(name):
             m = MagicMock(name=f"col('{name}')")
             m.alias.return_value = m
             return m
         mock_col.side_effect = col_side_effect
 
-        # Setup chaining
+        # Configura encadeamento
         mock_df_prorrogacao_select = MagicMock(name="df_prorrogacao_select")
         mock_df_prorrogacao.select.return_value = mock_df_prorrogacao_select
 
@@ -101,11 +101,11 @@ class TestProrrogacaoLogic(unittest.TestCase):
         exec(self.func_source, exec_globals, local_scope)
         process_func = local_scope['process_tab_operacoes_prorrogacao']
 
-        # Execute
+        # Executa
         process_func()
 
-        # Assertions
-        # Check Drop with CORRECT names (lowercase without underscores)
+        # Asserções
+        # Verifica Drop com nomes CORRETOS (minúsculas sem sublinhados)
         mock_df_transformed.drop.assert_called()
         args, _ = mock_df_transformed.drop.call_args
         expected_dropped = [

@@ -5,7 +5,7 @@ import sys
 import os
 import zipfile
 
-# Mock pyspark modules
+# Simulação dos módulos pyspark
 class MockSparkSession:
     def read(self): return self
     def table(self, name): return MagicMock()
@@ -21,8 +21,8 @@ sys.modules['pyspark.sql.functions'] = MagicMock()
 sys.modules['pyspark.sql.types'] = MagicMock()
 sys.modules['notebookutils'] = MagicMock()
 
-# Redefine logic here because importing from notebook content is tricky
-# Updated to match the refactored logic in the notebook (headers + HEAD check + new mirrors + zip check)
+# Redefine a lógica aqui porque importar do conteúdo do notebook é complicado
+# Atualizado para corresponder à lógica refatorada no notebook (cabeçalhos + verificação HEAD + novos espelhos + verificação zip)
 def download_logic_snippet(filename, base_dir_download, requests_mock, zipfile_mock=None):
     MIRRORS = [
         "https://dadosabertos.rfb.gov.br/CNPJ/",
@@ -41,7 +41,7 @@ def download_logic_snippet(filename, base_dir_download, requests_mock, zipfile_m
         print(f"Tentando baixar de: {url}")
 
         try:
-            # HEAD request check
+            # Verificação de requisição HEAD
             try:
                 head_response = requests_mock.head(url, headers=headers, verify=True, timeout=30, allow_redirects=True)
                 if head_response.status_code != 200:
@@ -54,10 +54,10 @@ def download_logic_snippet(filename, base_dir_download, requests_mock, zipfile_m
             response = requests_mock.get(url, headers=headers, verify=True, stream=True, timeout=120)
 
             if response.status_code == 200:
-                # In real code we write to file here
+                # No código real nós escrevemos para o arquivo aqui
                 print(f"Download concluído com sucesso: {local_zip_path}")
 
-                # Mock extraction logic
+                # Simula a lógica de extração
                 try:
                     print(f"Verificando integridade e extraindo {filename}...")
                     if zipfile_mock:
@@ -90,7 +90,7 @@ def test_download_retry_mechanism():
     primary_url = "https://dadosabertos.rfb.gov.br/CNPJ/test.zip"
     fallback_url = "http://200.152.38.155/CNPJ/test.zip"
 
-    # Setup side effect for HEAD and GET:
+    # Configura side_effect para HEAD e GET:
     # 1. Primary URL -> Raises Exception (Simulate Timeout)
     # 2. Fallback URL -> Returns 200 OK
 
@@ -104,24 +104,24 @@ def test_download_retry_mechanism():
             return mock_resp
         return MagicMock(status_code=404)
 
-    # Mock both HEAD and GET to use the side effect or behave appropriately
+    # Simula HEAD e GET para usar o side_effect ou comportar-se adequadamente
     requests_mock.head.side_effect = side_effect
     requests_mock.get.side_effect = side_effect
 
-    # Mock zipfile to pass testzip
+    # Simula zipfile para passar testzip
     mock_zip_instance = MagicMock()
     mock_zip_instance.testzip.return_value = None
     zipfile_mock.ZipFile.return_value.__enter__.return_value = mock_zip_instance
 
 
-    # Execute
+    # Executa
     success = download_logic_snippet("test.zip", "/tmp", requests_mock, zipfile_mock)
 
-    # Verify
+    # Verifica
     assert success is True
 
-    # Verify calls were made
-    # Check that fallback was attempted
+    # Verifica se chamadas foram feitas
+    # Verifica se a contingência (fallback) foi tentada
     requests_mock.get.assert_called_with(fallback_url, headers=ANY, verify=True, stream=True, timeout=120)
 
 def test_download_all_fail():
@@ -144,11 +144,11 @@ def test_github_mirror_redirect():
     fallback_url = "http://200.152.38.155/CNPJ/test.zip"
     github_url = "https://github.com/jonathands/dados-abertos-receita-cnpj/releases/download/2024.09/test.zip"
 
-    # 1. Primary and Fallback fail/timeout
-    # 2. GitHub succeeds with redirect allowed
+    # 1. Primário e Alternativa falham/tempo limite
+    # 2. GitHub tem sucesso com redirecionamento permitido
 
     def head_side_effect(url, **kwargs):
-        # Verify allow_redirects=True is present
+        # Verifica se allow_redirects=True está presente
         assert kwargs.get('allow_redirects') is True
 
         if url == github_url:
@@ -167,7 +167,7 @@ def test_github_mirror_redirect():
     requests_mock.head.side_effect = head_side_effect
     requests_mock.get.side_effect = get_side_effect
 
-    # Mock zipfile to pass testzip
+    # Simula zipfile para passar testzip
     mock_zip_instance = MagicMock()
     mock_zip_instance.testzip.return_value = None
     zipfile_mock.ZipFile.return_value.__enter__.return_value = mock_zip_instance
@@ -176,7 +176,7 @@ def test_github_mirror_redirect():
 
     assert success is True
 
-    # Verify GitHub mirror was tried with correct params
+    # Verifica se o espelho do GitHub foi tentado com os parâmetros corretos
     requests_mock.head.assert_any_call(github_url, headers=ANY, verify=True, timeout=30, allow_redirects=True)
     requests_mock.get.assert_called_with(github_url, headers=ANY, verify=True, stream=True, timeout=120)
 
@@ -202,31 +202,31 @@ def test_corrupt_zip_fallback():
     requests_mock.head.side_effect = head_side_effect
     requests_mock.get.side_effect = get_side_effect
 
-    # Define ZipFile behavior depending on which URL was called last or some state?
-    # Since download_logic_snippet re-opens the file from disk, we can't easily distinguish
-    # based on the file content unless we mock open.
-    # Instead, we'll use side_effect on ZipFile to raise BadZipFile the first time, then succeed the second time.
+    # Define o comportamento do ZipFile dependendo de qual URL foi chamado por último ou de algum estado?
+    # Já que download_logic_snippet reabre o arquivo do disco, não podemos distinguir facilmente
+    # com base no conteúdo do arquivo a menos que simulemos open.
+    # Em vez disso, usaremos side_effect no ZipFile para levantar BadZipFile na primeira vez e então ter sucesso na segunda vez.
 
     mock_corrupt_zip = MagicMock()
     # testzip returns file name if corrupt, None if valid.
-    # But often BadZipFile is raised during __init__ or open.
-    # Let's verify our logic: it calls ZipFile(path, 'r').
-    # If that works, it calls testzip().
+    # Mas frequentemente BadZipFile é levantado durante __init__ ou open.
+    # Vamos verificar nossa lógica: ela chama ZipFile(path, 'r').
+    # Se funcionar, chama testzip().
 
-    # Scenario: 1st call (Primary) -> ZipFile opens but testzip fails
-    # Scenario: 2nd call (Fallback) -> ZipFile opens and testzip passes
+    # Cenário: 1ª chamada (Primário) -> ZipFile abre mas testzip falha
+    # Cenário: 2ª chamada (Alternativa) -> ZipFile abre e testzip passa
 
     mock_zip_instance_corrupt = MagicMock()
-    mock_zip_instance_corrupt.testzip.return_value = "corrupt_file.txt" # returns name of first bad file
+    mock_zip_instance_corrupt.testzip.return_value = "corrupt_file.txt" # retorna o nome do primeiro arquivo ruim
 
     mock_zip_instance_valid = MagicMock()
     mock_zip_instance_valid.testzip.return_value = None # None means no bad files
 
-    # We need ZipFile context manager to return these instances sequentially
+    # Precisamos que o gerenciador de contexto ZipFile retorne essas instâncias sequencialmente
     # zipfile_mock.ZipFile.return_value.__enter__.side_effect = [mock_zip_instance_corrupt, mock_zip_instance_valid]
 
     # Wait, if testzip returns a string, our logic raises BadZipFile manually.
-    # Logic: if zip_ref.testzip() is not None: raise zipfile.BadZipFile
+    # Lógica: se zip_ref.testzip() não for None: levanta zipfile.BadZipFile
 
     zipfile_mock.ZipFile.return_value.__enter__.side_effect = [
         mock_zip_instance_corrupt,
@@ -237,7 +237,7 @@ def test_corrupt_zip_fallback():
 
     assert success is True
 
-    # Verify we tried to download twice (Primary and Fallback)
+    # Verifica se tentamos baixar duas vezes (Primário e Alternativa)
     assert requests_mock.get.call_count == 2
-    # Verify ZipFile was opened twice
+    # Verifica se o ZipFile foi aberto duas vezes
     assert zipfile_mock.ZipFile.call_count == 2

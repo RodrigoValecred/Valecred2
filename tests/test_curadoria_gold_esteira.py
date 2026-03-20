@@ -3,11 +3,11 @@ import sys
 import os
 from unittest.mock import MagicMock, call
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -24,7 +24,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
              raise ValueError("Function transform_esteira_dates not found in notebook.")
 
     def _test_single_pass_pivot(self):
-        # Mocks for Spark functions
+        # Simulações para funções do Spark
         col_mocks = {}
         def col_side_effect(name):
             if name not in col_mocks:
@@ -39,7 +39,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
         mock_max = MagicMock(return_value=MagicMock(name="max_mock"))
         mock_min = MagicMock(return_value=MagicMock(name="min_mock"))
 
-        # Setup aliases for max/min mocks so .alias("max") works
+        # Configuração de aliases para simulações de max/min para que .alias("max") funcione
         mock_max.return_value.alias = MagicMock(return_value="max_aliased")
         mock_min.return_value.alias = MagicMock(return_value="min_aliased")
 
@@ -54,12 +54,12 @@ class TestTransformEsteiraDates(unittest.TestCase):
         mock_grouped.pivot.return_value = mock_pivoted
         mock_pivoted.agg.return_value = mock_combined
 
-        # Select returns different mocks for max and min dfs
+        # Select retorna simulações diferentes para max e min dfs
         mock_df_max = MagicMock(name="df_max")
         mock_df_min = MagicMock(name="df_min")
         mock_combined.select.side_effect = [mock_df_max, mock_df_min]
 
-        # Input Data
+        # Dados de Entrada
         status_mapping = {
             "PROPOSTA": "proposta",
             "DIR COMERCIAL": "dir_comercial"
@@ -72,57 +72,57 @@ class TestTransformEsteiraDates(unittest.TestCase):
             'min': mock_min,
         }
 
-        # Execute the function definition
+        # # Executa a função definition
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         transform_esteira_dates = local_scope['transform_esteira_dates']
 
-        # Run the function
+        # Executa a função
         result = transform_esteira_dates(mock_df_esteira, status_mapping)
 
-        # Assertions
+        # Asserções
 
-        # 1. Verify GroupBy and Pivot
+        # 1. Verifica GroupBy e Pivot
         mock_df_esteira.groupBy.assert_called_with("cod_cliente")
         mock_grouped.pivot.assert_called()
         args, _ = mock_grouped.pivot.call_args
         self.assertEqual(args[0], "status_do_cliente")
-        self.assertEqual(set(args[1]), set(status_mapping.keys())) # Verify list content
+        self.assertEqual(set(args[1]), set(status_mapping.keys())) # Verifica list content
 
-        # 2. Verify Aggregation (Single Pass)
+        # 2. Verifica Aggregation (Single Pass)
         mock_pivoted.agg.assert_called_once()
         agg_args = mock_pivoted.agg.call_args[0]
-        # Should contain aliased max and min
+        # Deve conter max e min com alias
         self.assertEqual(agg_args[0], "max_aliased")
         self.assertEqual(agg_args[1], "min_aliased")
 
-        # 3. Verify Selection of Max DataFrame
-        # First call to select
+        # 3. Verifica a Seleção do Max DataFrame
+        # Primeira chamada a select
         self.assertEqual(mock_combined.select.call_count, 1)
 
         call_args_max = mock_combined.select.call_args_list[0][0][0]
-        # Check if correct columns are selected
-        # We expect [col("cod_cliente")] + [col("PROPOSTA_max").alias("pivot_proposta"), ...]
+        # Verifica se as colunas corretas foram selecionadas
+        # Esperamos [col("cod_cliente")] + [col("PROPOSTA_max").alias("pivot_proposta"), ...]
 
-        # Since we mocked col(), we need to verify the mocks
+        # Como simulamos col(), precisamos verificar as simulações
         self.assertIn("cod_cliente", col_mocks)
         self.assertIn("PROPOSTA_max", col_mocks)
         self.assertIn("DIR COMERCIAL_max", col_mocks)
 
-        # Verify alias calls on the mocks
+        # Verifica chamadas de alias nas simulações
         col_mocks["PROPOSTA_max"].alias.assert_called_with("pivot_proposta")
         col_mocks["DIR COMERCIAL_max"].alias.assert_called_with("pivot_dir_comercial")
 
-        # 4. Verify Selection of Min DataFrame
+        # 4. Verifica a Seleção do Min DataFrame
         call_args_min = mock_combined.select.call_args_list[1][0][0]
 
         self.assertIn("PROPOSTA_min", col_mocks)
 
         col_mocks["PROPOSTA_min"].alias.assert_called_with("PROPOSTA")
 
-        # 5. Verify Returns
+        # 5. Verifica Returns
         self.assertEqual(result, mock_df_max)
-        # Removed assert for min
+        # Asserção para min removida
 
 if __name__ == '__main__':
     unittest.main()

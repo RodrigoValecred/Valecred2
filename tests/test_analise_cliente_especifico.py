@@ -3,7 +3,7 @@ import sys
 import os
 from unittest.mock import MagicMock, call
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
@@ -28,11 +28,11 @@ class TestCreateTargetVariable(unittest.TestCase):
 
         if func_source:
             local_scope = {}
-            # Mock pyspark objects
+            # Simula objetos pyspark
             mock_when = MagicMock(name="when")
             mock_col = MagicMock(name="col")
 
-            # Setup when() to return something with .otherwise()
+            # Configuração de when() para retornar algo com .otherwise()
             mock_when_result = MagicMock(name="when_result")
             mock_when.return_value = mock_when_result
 
@@ -56,15 +56,15 @@ class TestCreateTargetVariable(unittest.TestCase):
         if not self.create_target_variable:
             self.fail("Function create_target_variable not found in notebook.")
 
-        # Execute the extracted function
+        # Executa the extracted function
         result = self.create_target_variable()
 
-        # Check that it returns the result of .otherwise(1)
+        # Verifica se ele retorna o resultado de .otherwise(1)
         self.assertEqual(result, self.mock_when_result.otherwise.return_value)
         self.mock_when_result.otherwise.assert_called_once_with(1)
 
-        # Check that when was called correctly
-        # This is hard to assert exactly because of overloaded operators in PySpark Column mocks
+        # Verifica se when foi chamado corretamente
+        # Isso é difícil de afirmar exatamente devido aos operadores sobrecarregados nas simulações de Coluna do PySpark
         self.mock_when.assert_called_once()
         args, kwargs = self.mock_when.call_args
         self.assertEqual(args[1], 0)

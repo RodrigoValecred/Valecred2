@@ -2,11 +2,11 @@ import unittest
 import sys
 import os
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -22,7 +22,7 @@ class TestSiglaExpr(unittest.TestCase):
              raise ValueError("Function get_sigla_expr not found in notebook.")
 
     def test_sigla_expression_structure(self):
-        # Helper class to mock Column object with operator overloading
+        # Classe auxiliar para simular objeto Column com sobrecarga de operadores
         class MockColumn(str):
             def __new__(cls, content):
                 return super().__new__(cls, content)
@@ -39,7 +39,7 @@ class TestSiglaExpr(unittest.TestCase):
             def __gt__(self, other):
                 return MockColumn(f"({self} > {other})")
 
-        # Mocks that return string representation of the operation
+        # Simulações que retornam a representação de string da operação
         def mock_col(name):
             return MockColumn(f"col({name})")
 
@@ -63,7 +63,7 @@ class TestSiglaExpr(unittest.TestCase):
 
         # Lambda executors
         def mock_array_filter(col, func):
-            # Execute lambda with a dummy column "x"
+            # Executa lambda with a dummy column "x"
             # The lambda expects a column object that supports operators
             res = func(MockColumn("x"))
             return f"array_filter({col}, x -> {res})"
@@ -77,7 +77,7 @@ class TestSiglaExpr(unittest.TestCase):
             'upper': mock_upper,
             'regexp_replace': mock_regexp_replace,
             'split': mock_split,
-            'array_filter': mock_array_filter, # The notebook imports filter as array_filter
+            'array_filter': mock_array_filter, # O notebook importa filter como array_filter
             'transform': mock_transform,
             'array_join': mock_array_join,
             'length': mock_length,
@@ -88,10 +88,10 @@ class TestSiglaExpr(unittest.TestCase):
         exec(self.func_source, exec_globals, local_scope)
         get_sigla_expr = local_scope['get_sigla_expr']
 
-        # Run the function
+        # Executa a função
         result = get_sigla_expr("nome_base")
 
-        # Expected Logic:
+        # Lógica Esperada:
         stopwords = ["DA", "DE", "DO", "DAS", "DOS", "E", "LTDA", "S.A", "SA", "ME", "EPP", "S/A"]
 
         expected_part1 = "split(regexp_replace(upper(col(nome_base)), '[^A-Z0-9 ]', ''), ' ')"
