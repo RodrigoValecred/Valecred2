@@ -28,35 +28,47 @@ def mock_col(name):
     return MockColumn(name)
 
 class MockDataFrame:
-    def __init__(self, columns):
+    def __init__(self, columns, column_expressions=None):
         self.columns = columns
+        self.column_expressions = column_expressions or {}
 
     def select(self, *cols):
         new_columns = []
+        new_exprs = {}
         for c in cols:
             if isinstance(c, MockColumn):
                 if c.name not in self.columns:
                     raise ValueError(f"Column '{c.name}' not found in DataFrame")
-                new_columns.append(c.alias_name if c.alias_name else c.name)
+                col_name = c.alias_name if c.alias_name else c.name
+                new_columns.append(col_name)
+                if c.name in self.column_expressions:
+                    new_exprs[col_name] = self.column_expressions[c.name]
             elif isinstance(c, str):
                 if c not in self.columns:
                     raise ValueError(f"Column '{c}' not found in DataFrame")
                 new_columns.append(c)
+                if c in self.column_expressions:
+                    new_exprs[c] = self.column_expressions[c]
             else:
                 new_columns.append(str(c))
-        return MockDataFrame(new_columns)
+        return MockDataFrame(new_columns, new_exprs)
 
     def withColumnRenamed(self, existing, new):
         if existing in self.columns:
             new_cols = [new if c == existing else c for c in self.columns]
-            return MockDataFrame(new_cols)
+            new_exprs = dict(self.column_expressions)
+            if existing in new_exprs:
+                new_exprs[new] = new_exprs.pop(existing)
+            return MockDataFrame(new_cols, new_exprs)
         return self
 
     def withColumn(self, name, col_expr):
         # Simulates adding a column
+        new_exprs = dict(self.column_expressions)
+        new_exprs[name] = col_expr
         if name not in self.columns:
-            return MockDataFrame(self.columns + [name])
-        return self
+            return MockDataFrame(self.columns + [name], new_exprs)
+        return MockDataFrame(self.columns, new_exprs)
 
 def mock_lit(val):
     return f"LIT({val})"
@@ -330,6 +342,8 @@ class TestStandardizeEstudoColumns(unittest.TestCase):
 
         self.assertIn("valor_risco_estudo", new_df.columns)
         self.assertIn("valor_limite_estudo", new_df.columns)
+        self.assertEqual(new_df.column_expressions.get("valor_risco_estudo"), "LIT(0)")
+        self.assertEqual(new_df.column_expressions.get("valor_limite_estudo"), "LIT(0)")
 
     def test_standardize_columns_already_exists(self):
         if not self.standardize_estudo_columns: self.skipTest("Function not found")
