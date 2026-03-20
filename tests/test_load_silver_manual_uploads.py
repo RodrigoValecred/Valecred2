@@ -10,7 +10,7 @@ except ImportError:
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     from notebook_utils import extract_function_from_file
 
-# Path to the notebook
+# Caminho para o notebook
 NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Load_Silver_From_Manual_Uploads.Notebook/notebook-content.py"
 
 class TestSanitizeColumnName(unittest.TestCase):
@@ -18,12 +18,12 @@ class TestSanitizeColumnName(unittest.TestCase):
     def setUpClass(cls):
         print(f"Extracting sanitize_column_name from {NOTEBOOK_PATH}")
         # sanitize_column_name is a nested function, but extract_function_from_file uses ast.walk so it should find it.
-        # It relies on notebook_utils.py using textwrap.dedent to handle the indentation.
+        # Depende de notebook_utils.py usando textwrap.dedent para gerenciar a indentação.
         func_source = extract_function_from_file(NOTEBOOK_PATH, "sanitize_column_name")
 
         if func_source:
             local_scope = {}
-            # The function uses 're' and 'unicodedata', so we must provide them in globals
+            # A função usa 're' e 'unicodedata', portanto, devemos fornecê-los em globais
             global_scope = {
                 "re": re,
                 "unicodedata": unicodedata
@@ -86,7 +86,7 @@ class TestSanitizeColumnName(unittest.TestCase):
     def test_mixed_cases_upper(self):
         """Test handling of uppercase inputs (should bypass CamelCase logic and just lower)."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
-        # 'ID_CLIENTE' -> isupper() is True -> lower() -> 'id_cliente'
+        # 'ID_CLIENTE' -> isupper() é True -> lower() -> 'id_cliente'
         self.assertEqual(self.sanitize_column_name("ID_CLIENTE"), "id_cliente")
         # 'CODIGO' -> 'codigo'
         self.assertEqual(self.sanitize_column_name("CODIGO"), "codigo")
@@ -94,7 +94,7 @@ class TestSanitizeColumnName(unittest.TestCase):
     def test_mixed_cases_complex(self):
         """Test complex mixed cases."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
-        # 'Some_Mixed_Case' -> 'some_mixed_case' (CamelCase logic applies to parts)
+        # 'Some_Mixed_Case' -> 'some_mixed_case' (lógica CamelCase aplica-se às partes)
         # 'Some' -> 'some', '_', 'Mixed' -> '_mixed' ...
         self.assertEqual(self.sanitize_column_name("Some_Mixed_Case"), "some_mixed_case")
 
@@ -104,7 +104,7 @@ class TestSanitizeColumnName(unittest.TestCase):
     def test_numbers(self):
         """Test that numbers are preserved."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
-        # Logic analysis: 'Address1' -> 'Address1' -> 'address1' (no split before number unless CamelCase)
+        # Análise lógica: 'Address1' -> 'Address1' -> 'address1' (sem split antes de número exceto se CamelCase)
         self.assertEqual(self.sanitize_column_name("Address1"), "address1")
         self.assertEqual(self.sanitize_column_name("v2_0"), "v2_0")
 

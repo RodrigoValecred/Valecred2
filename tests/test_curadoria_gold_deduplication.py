@@ -3,11 +3,11 @@ import sys
 import os
 from unittest.mock import MagicMock, call
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -24,25 +24,25 @@ class TestDeduplicateClientes(unittest.TestCase):
         # Mocks
         mock_df = MagicMock(name="df")
 
-        # Mock Column expressions
+        # Simula expressões Column
         mock_col = MagicMock(name="col_fn")
         mock_col_obj = MagicMock(name="col_obj")
         mock_col.return_value = mock_col_obj
 
-        # Mock desc() call
+        # Simula chamada de desc()
         mock_col_obj.desc.return_value = "DESC_ORDER"
 
-        # Mock __eq__ for filter(col("rn") == 1)
+        # Simula __eq__ para filter(col("rn") == 1)
         mock_filter_expr = MagicMock(name="filter_expr")
         mock_col_obj.__eq__.return_value = mock_filter_expr
 
-        # Mock Window
+        # Simula Window
         mock_window = MagicMock(name="Window")
         mock_window_spec = MagicMock(name="WindowSpec")
         mock_window.partitionBy.return_value = mock_window_spec
         mock_window_spec.orderBy.return_value = "WINDOW_SPEC"
 
-        # Mock row_number
+        # Simula row_number
         mock_row_number = MagicMock(name="row_number")
         mock_row_number_obj = MagicMock(name="row_number_obj")
         mock_row_number.return_value = mock_row_number_obj
@@ -59,7 +59,7 @@ class TestDeduplicateClientes(unittest.TestCase):
         exec(func_source, exec_globals, local_scope)
         deduplicate_clientes_staging = local_scope['deduplicate_clientes_staging']
 
-        # Setup DataFrame method chains
+        # Configura cadeias de métodos do DataFrame
         # df.withColumn(..).filter(..).drop(..)
         mock_df_with_col = MagicMock(name="df_with_col")
         mock_df.withColumn.return_value = mock_df_with_col
@@ -70,13 +70,13 @@ class TestDeduplicateClientes(unittest.TestCase):
         mock_df_final = MagicMock(name="df_final")
         mock_df_filtered.drop.return_value = mock_df_final
 
-        # Run function
+        # Executa função
         result = deduplicate_clientes_staging(mock_df)
 
-        # Assertions
+        # Asserções
         # 1. Window Specification
         mock_window.partitionBy.assert_called_with("cpf_cnpj")
-        # Ensure orderBy was called with desc orders
+        # Garante que orderBy foi chamado com ordens decrescentes
         mock_window_spec.orderBy.assert_called()
 
         # 2. withColumn "rn"

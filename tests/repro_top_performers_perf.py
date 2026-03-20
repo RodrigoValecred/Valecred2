@@ -7,17 +7,17 @@ from datetime import date, timedelta
 import random
 
 def create_mock_data(spark):
-    num_gerentes = 200000  # 200k to ensure visible difference
+    num_gerentes = 200000  # 200k para garantir diferença visível
     months = 12
 
     # Gerentes DataFrame
     df_gerentes = spark.range(num_gerentes).select(F.format_string("G%d", "id").alias("id_gerente"))
 
-    # Months DataFrame (cross join will result in 2.4M rows)
-    # Using range to simulate months
+    # Months DataFrame (cross join resultará em 2.4M de linhas)
+    # Usando range para simular meses
     df_months = spark.range(months).select(F.date_add(F.lit("2023-01-01"), (F.col("id")*30).cast("int")).alias("mes_ref"))
 
-    # Cross Join and add random metric
+    # Cross Join e adiciona métrica aleatória
     df = df_gerentes.crossJoin(F.broadcast(df_months)) \
         .withColumn("resultado_operacional", (F.rand() * 10000).cast("double"))
 
@@ -31,7 +31,7 @@ def run_original(spark, df_final_metrics):
         .groupBy("id_gerente") \
         .agg(F.sum("resultado_operacional").alias("res_acum"))
 
-    # 2. Quantile & Collect (The bottleneck)
+    # 2. Quantil e Collect (O gargalo)
     try:
         corte_top = df_perf_12m.approxQuantile("res_acum", [0.75], 0.01)[0]
         top_performers = df_perf_12m.filter(F.col("res_acum") >= corte_top).select("id_gerente").rdd.flatMap(lambda x: x).collect()
@@ -61,10 +61,10 @@ def run_optimized(spark, df_final_metrics):
         # Get Top Performers DataFrame
         df_top_performers = df_perf_12m.filter(F.col("res_acum") >= corte_top).select("id_gerente")
 
-        # Use Left Semi Join logic to flag
+        # Usa a lógica de Left Semi Join para sinalizar
         # We want to keep all rows in df_final_metrics and add a flag column
 
-        # Approach: Join with constant column, then coalesce
+        # Abordagem: Join com coluna constante, depois coalesce
         df_top_with_flag = df_top_performers.withColumn("is_top_flag", F.lit(True))
 
         df_res = df_final_metrics.join(df_top_with_flag, on="id_gerente", how="left") \

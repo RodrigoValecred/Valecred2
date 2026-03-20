@@ -6,7 +6,7 @@ def extract_function_from_file(filepath, function_name):
     """
     Extracts the source code of a function from a python file using AST.
     """
-    # Check if file exists at path, or relative to potential test run locations
+    # Verifica se o arquivo existe no caminho, ou em relação aos possíveis locais de execução do teste
     candidates = [
         filepath,
         os.path.join("..", filepath),
@@ -20,16 +20,16 @@ def extract_function_from_file(filepath, function_name):
             break
 
     if not found_path:
-        # Try to match the original logic more closely if simple checks fail
-        # Original logic: if not exists, try ../filepath. If not exists, revert to filepath.
-        # This is covered by candidates, but let's be verbose in logging if needed.
+        # Tenta corresponder a lógica original mais de perto se verificações simples falharem
+        # Lógica original: se não existir, tenta ../filepath. Se não existir, reverte para filepath.
+        # Isso é coberto por candidatos, mas vamos ser verbosos no log se necessário.
         print(f"File not found: {filepath}")
         return None
 
     with open(found_path, 'r', encoding='utf-8') as f:
         source = f.read()
 
-    # Pre-process source to remove magic commands that break AST parsing
+    # Pré-processa a fonte para remover comandos mágicos que quebram a análise AST
     lines = source.splitlines()
     clean_lines = []
     for line in lines:

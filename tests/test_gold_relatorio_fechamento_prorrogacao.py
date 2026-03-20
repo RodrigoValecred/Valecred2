@@ -9,7 +9,7 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import col, row_number, lead, when, lit, max, to_date
 
 def process_fechamento_prorrogacao(df_prorrog):
-    # Logic extracted from NB_Fechamento_Prorrogacao_Mensal.Notebook
+    # Lógica extraída de NB_Fechamento_Prorrogacao_Mensal.Notebook
 
     # 1. Normalize Status
     df_prorrog_prep = df_prorrog \
@@ -19,7 +19,7 @@ def process_fechamento_prorrogacao(df_prorrog):
             .otherwise("INDEFERIDO")
         )
 
-    # 2. Identify if it was eventually deferred
+    # 2. Identifica se foi eventualmente deferido
     w_titulo = Window.partitionBy("cod_titulo")
 
     # Flag: 1 if status_analise_norm == 'DEFERIDO'
@@ -27,7 +27,7 @@ def process_fechamento_prorrogacao(df_prorrog):
         when(col("status_analise_norm") == "DEFERIDO", 1).otherwise(0)
     )
 
-    # Calculate if there was any deferral in history
+    # Calcula se houve algum deferimento no histórico
     df_calculated = df_flagged.withColumn("foi_deferido_eventualmente",
         max("is_deferido").over(w_titulo)
     )
@@ -80,27 +80,27 @@ class TestProrrogacaoLogic(unittest.TestCase):
 
         df = self.spark.createDataFrame(data, schema)
 
-        # Apply extracted logic
+        # Aplica lógica extraída
         df_final = process_fechamento_prorrogacao(df)
 
         # Verification
         results = df_final.orderBy("cod_operacao").collect()
 
-        # Check Case 1 (Recovered)
+        # Verifica Caso 1 (Recuperado)
         row_101 = next((r for r in results if r.cod_operacao == 101), None) # Rejected
         row_102 = next((r for r in results if r.cod_operacao == 102), None) # Accepted
         self.assertEqual(row_101.status_final_prorrogacao, "RECUPERADA")
         self.assertEqual(row_102.status_final_prorrogacao, "DEFERIDO")
 
-        # Check Case 2 (Unrecovered)
+        # Verifica Caso 2 (Não Recuperado)
         row_201 = next((r for r in results if r.cod_operacao == 201), None)
         self.assertEqual(row_201.status_final_prorrogacao, "INDEFERIDO")
 
-        # Check Case 3 (Normal)
+        # Verifica Caso 3 (Normal)
         row_301 = next((r for r in results if r.cod_operacao == 301), None)
         self.assertEqual(row_301.status_final_prorrogacao, "DEFERIDO")
 
-        # Check Case 4 (Multiple Attempts)
+        # Verifica Caso 4 (Múltiplas Tentativas)
         row_401 = next((r for r in results if r.cod_operacao == 401), None)
         row_402 = next(r for r in results if r.cod_operacao == 402)
         row_403 = next((r for r in results if r.cod_operacao == 403), None)

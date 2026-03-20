@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-# Mocking pyspark since it's not available in the environment
+# Simulando o pyspark já que não está disponível no ambiente
 import sys
 from types import ModuleType
 
@@ -30,15 +30,15 @@ class TestAnaliseClienteLogic(unittest.TestCase):
     def test_spark_filter_calls(self, mock_col):
         mock_col.side_effect = col
 
-        # Simulating the spark dataframe
+        # Simulando o dataframe spark
         df_spark = MagicMock()
         df_spark.filter.return_value = df_spark
 
-        # Values from the notebook
+        # Valores a partir do notebook
         CLIENTE_CPFCNPJ = "14630809000101"
         tipos_excluir = ['RN', 'RE', 'RC', 'PR', 'AB', 'AM', 'LB', 'PB']
 
-        # Replicating the Spark filter logic from the optimized notebook
+        # Replicando a lógica do filtro do Spark do notebook otimizado
         df_mestra_spark = df_spark
         df_mestra_spark = df_mestra_spark.filter(col("CPFCNPJ") == CLIENTE_CPFCNPJ)
         df_mestra_spark = df_mestra_spark.filter(
@@ -49,16 +49,16 @@ class TestAnaliseClienteLogic(unittest.TestCase):
         df_mestra_spark = df_mestra_spark.filter(~col("TTO_OPERACAO").isin(tipos_excluir))
         df_mestra_spark = df_mestra_spark.filter(col("LIQUIDACAO").isNotNull())
 
-        # Verify filter was called
+        # Verifica se filter foi chamado
         self.assertTrue(df_spark.filter.called)
 
-        # Check that it called filter at least 4 times
+        # Verifica se chamou filter pelo menos 4 vezes
         self.assertEqual(df_spark.filter.call_count, 4)
 
-        # Verify the specific calls
+        # Verifica as chamadas específicas
         calls = df_spark.filter.call_args_list
-        # First call should be the CPFCNPJ filter
-        # Note: comparison returns our mock
+        # Primeira chamada deve ser o filtro CPFCNPJ
+        # Nota: a comparação retorna nossa simulação
         self.assertIn('col(CPFCNPJ)', str(calls[0]))
 
 if __name__ == '__main__':

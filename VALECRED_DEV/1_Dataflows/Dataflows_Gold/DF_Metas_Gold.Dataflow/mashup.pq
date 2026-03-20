@@ -16,7 +16,7 @@ in
     #"Navegação 2";
 [DataDestinations = {[Definition = [Kind = "Reference", QueryName = "fato_metas_DataDestination", IsNewTarget = true], Settings = [Kind = "Manual", AllowCreation = true, ColumnSettings = [Mappings = {[SourceColumnName = "sk_data", DestinationColumnName = "sk_data"], [SourceColumnName = "sk_empresa", DestinationColumnName = "sk_empresa"], [SourceColumnName = "sk_plataforma", DestinationColumnName = "sk_plataforma"], [SourceColumnName = "vop_meta", DestinationColumnName = "vop_meta"]}], DynamicSchema = false, UpdateMethod = [Kind = "Replace"], TypeSettings = [Kind = "Table"]]]}]
 shared fato_metas = let
-    // Source from sup_metas, assuming columns 'data' and 'valor'
+    // Fonte de sup_metas, assumindo colunas 'data' e 'valor'
     FonteMetas = sup_metas,
 
     // Transformar coluna data para tipo de data para join

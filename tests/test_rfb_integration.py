@@ -1,10 +1,9 @@
-
 import pytest
 from unittest.mock import MagicMock, patch
 import sys
 import os
 
-# Mock pyspark modules
+# Simulação dos módulos pyspark
 class MockSparkSession:
     def read(self): return self
     def table(self, name): return MagicMock()
@@ -20,9 +19,9 @@ sys.modules['pyspark.sql.functions'] = MagicMock()
 sys.modules['pyspark.sql.types'] = MagicMock()
 sys.modules['notebookutils'] = MagicMock()
 
-# Test the RFB notebook logic (download/extract)
+# Testa a lógica do notebook RFB (download/extração)
 def test_rfb_notebook_logic():
-    notebook_path = "VALECRED_DEV/7_Dados_Externos/NB_Load_Bronze_Receita_Federal_Full.Notebook/notebook-content.py"
+    notebook_path = "VALECRED_DEV/7_Dados_Externos/Receita Federal/NB_Load_Bronze_Receita_Federal_Full.Notebook/notebook-content.py"
     assert os.path.exists(notebook_path)
 
     with open(notebook_path, 'r') as f:
@@ -31,7 +30,7 @@ def test_rfb_notebook_logic():
         assert "files/RFB_Downloads" in content.lower() or "Files/RFB_Downloads" in content
         assert "spark.read" in content
 
-# Test the Gold notebook logic
+# Testa a lógica do notebook Gold
 def test_gold_notebook_logic():
     notebook_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Empresas_RFB_Target.Notebook/notebook-content.py"
     assert os.path.exists(notebook_path)

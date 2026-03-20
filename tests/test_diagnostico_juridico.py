@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import sys
 import os
 
-# Ensure tests package is in path
+# Garante que o pacote tests está no path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
@@ -28,11 +28,11 @@ class TestDiagnosticoJuridico(unittest.TestCase):
         # Prepare scope
         def create_mock_col(name):
             m = MagicMock()
-            # We need alias to return something that can be passed to agg
+            # Precisamos que alias retorne algo que possa ser passado para agg
             # agg accepts Column objects.
             # So alias should return a MagicMock too (or a string if agg mocks accept strings)
             # Let's return a string for simplicity in debugging, but since agg is mocked, it doesn't matter what it returns as long as it returns *something*.
-            # But wait, alias() is called on the result of max().
+            # Mas espere, alias() é chamado no resultado de max().
             m.alias.return_value = f"{name}_aliased"
             return m
 
@@ -57,10 +57,10 @@ class TestDiagnosticoJuridico(unittest.TestCase):
         spark = MagicMock()
         df_titulos = MagicMock()
 
-        # Mock reading table
+        # Simula leitura da tabela
         spark.read.table.return_value = df_titulos
 
-        # Mock aggregation and collection
+        # Simula agregação e coleta
         # silver_stats = df_titulos.agg(...).collect()[0]
         # We need agg(...) to return a DF, and collect() to return a list of Rows
         mock_stats_df = MagicMock()
@@ -69,10 +69,10 @@ class TestDiagnosticoJuridico(unittest.TestCase):
         mock_row = {'total_titulos': 100, 'max_data_inclusao': '2023-01-01'}
         mock_stats_df.collect.return_value = [mock_row]
 
-        # Run function
+        # Executa função
         result = self.check_silver_titulos(spark)
 
-        # Verify
+        # Verifica
         spark.read.table.assert_called_with("LH_Silver.staging_titulos_limpa")
         self.assertEqual(result, df_titulos)
 
@@ -80,22 +80,22 @@ class TestDiagnosticoJuridico(unittest.TestCase):
         """Test error handling when table read fails."""
         spark = MagicMock()
 
-        # Mock error
+        # Simula erro
         spark.read.table.side_effect = Exception("Table not found")
 
-        # Run function
-        # We expect it to print error and return None
-        # To suppress print output in test, we could patch builtins.print, but it's not strictly necessary unless we want to assert on it.
-        # Let's assert on it.
+        # Executa função
+        # Esperamos que imprima erro e retorne None
+        # Para suprimir a saída de impressão no teste, poderíamos fazer um patch em builtins.print, mas não é estritamente necessário a menos que queiramos fazer asserções sobre isso.
+        # Vamos fazer asserção sobre isso.
 
         with patch('builtins.print') as mock_print:
             result = self.check_silver_titulos(spark)
 
-            # Verify exception was caught
+            # Verifica se a exceção foi capturada
             self.assertIsNone(result)
 
-            # Verify error message was printed
-            # Check if any call contained "ERRO"
+            # Verifica se a mensagem de erro foi impressa
+            # Verifica se alguma chamada conteve "ERRO"
             found_error_msg = False
             for call_args in mock_print.call_args_list:
                 args, _ = call_args

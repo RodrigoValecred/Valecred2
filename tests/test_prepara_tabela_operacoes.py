@@ -5,13 +5,13 @@ import os
 import re
 import unicodedata
 
-# Path to the notebook file
+# Caminho para o notebook file
 NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py"
 
 try:
     from tests.notebook_utils import extract_function_from_file
 except ImportError:
-    # Try importing directly if running from within tests directory
+    # Tente importar diretamente se executar de dentro do diretório tests
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     from notebook_utils import extract_function_from_file
 
@@ -69,7 +69,7 @@ class TestDecodeHtmlEntities(unittest.TestCase):
         print(f"Extracting unescape_udf from {NOTEBOOK_PATH}")
         func_source = extract_function_from_file(NOTEBOOK_PATH, "unescape_udf")
 
-        # We need to remove the decorator to test the plain function
+        # Precisamos remover o decorator para testar a função pura
         if func_source:
             lines = func_source.split('\n')
             clean_lines = [line for line in lines if not line.strip().startswith('@pandas_udf')]
@@ -129,10 +129,10 @@ class TestDecodeHtmlEntities(unittest.TestCase):
             self.skipTest("Function not found")
 
         s = pd.Series([123, 3.14])
-        # pandas str.replace will return NaN for non-strings in object arrays generally or leave them alone depending on pandas version
-        # We just verify it doesn't crash, and preserves numerical types if not using str accessor directly on them
+        # pandas str.replace retornará NaN para não-strings em matrizes de objetos geralmente ou os deixará em paz dependendo da versão do pandas
+        # Apenas verificamos que ele não falha, e preserva os tipos numéricos se não usarmos o str accessor diretamente neles
         # Wait, if we use text.str.replace, on a numeric series it will return NaN.
-        # But typically PySpark strings are passed as object series. Let's not test numbers.
+        # Mas normalmente as strings do PySpark são passadas como object series. Não vamos testar números.
         pass
 
 class TestTacVariations(unittest.TestCase):
@@ -166,7 +166,7 @@ class TestTacVariations(unittest.TestCase):
         for item in expected_items:
             self.assertIn(item, variations)
 
-        # Verify no unexpected items if the list is intended to be exact
+        # Verifica se não há itens inesperados se a lista for planejada para ser exata
         self.assertEqual(len(variations), len(expected_items))
         self.assertEqual(set(variations), set(expected_items))
 
@@ -187,7 +187,7 @@ class TestNormalizeCol(unittest.TestCase):
 
         if func_source:
             local_scope = {}
-            # The function uses 're' and 'unicodedata', so we must provide them in globals
+            # A função usa 're' e 'unicodedata', portanto, devemos fornecê-los em globais
             global_scope = {
                 "re": re,
                 "unicodedata": unicodedata
@@ -250,7 +250,7 @@ class TestNormalizeCol(unittest.TestCase):
     def test_mixed_cases_upper(self):
         """Test handling of uppercase inputs (should bypass CamelCase logic and just lower)."""
         if not self.normalize_col: self.skipTest("Function not found")
-        # 'ID_CLIENTE' -> isupper() is True -> lower() -> 'id_cliente'
+        # 'ID_CLIENTE' -> isupper() é True -> lower() -> 'id_cliente'
         self.assertEqual(self.normalize_col("ID_CLIENTE"), "id_cliente")
         # 'CODIGO' -> 'codigo'
         self.assertEqual(self.normalize_col("CODIGO"), "codigo")
@@ -292,7 +292,7 @@ class TestStandardizeEstudoColumns(unittest.TestCase):
     def test_standardize_columns_rename(self):
         if not self.standardize_estudo_columns: self.skipTest("Function not found")
 
-        # Scenario: Columns "valoremabertort" and "limitefomento" exist
+        # Cenário: Colunas "valoremabertort" e "limitefomento" existem
         df = MockDataFrame(["cod_operacao", "valoremabertort", "limitefomento"])
         new_df = self.standardize_estudo_columns(df)
 
@@ -304,21 +304,21 @@ class TestStandardizeEstudoColumns(unittest.TestCase):
     def test_standardize_columns_priority(self):
         if not self.standardize_estudo_columns: self.skipTest("Function not found")
 
-        # Scenario: "valoremabertort" and "risco" both exist (should pick first match: valoremabertort)
-        # Note: function iterates candidates. First match in candidates list wins if both exist?
-        # Function logic:
-        # for cand in candidates: if cand in existing: rename and return.
-        # So priority depends on candidates list order.
+        # Cenário: "valoremabertort" e "risco" ambos existem (deve pegar a primeira correspondência: valoremabertort)
+        # Nota: função itera candidatos. A primeira correspondência na lista de candidatos vence se ambos existirem?
+        # Lógica da função:
+        # para cand em candidatos: se cand em existente: renomeia e retorna.
+        # Portanto a prioridade depende da ordem da lista de candidatos.
         # Candidates: ["valoremabertort", "risco", ...]
 
         df = MockDataFrame(["risco", "valoremabertort"])
         new_df = self.standardize_estudo_columns(df)
 
         self.assertIn("valor_risco_estudo", new_df.columns)
-        # Assuming `valoremabertort` is checked before `risco` (or after?)
-        # Check source: risk_candidates = ["valoremabertort", "risco", ...]
-        # So "valoremabertort" is found first. It gets renamed to "valor_risco_estudo".
-        # "risco" should remain as is (because return happens after rename).
+        # Assumindo que `valoremabertort` seja verificado antes de `risco` (ou depois?)
+        # Verifica origem: risk_candidates = ["valoremabertort", "risco", ...]
+        # Então "valoremabertort" é encontrado primeiro. Ele é renomeado para "valor_risco_estudo".
+        # "risco" deve permanecer como está (porque o retorno acontece após renomear).
         self.assertIn("risco", new_df.columns)
 
     def test_standardize_columns_missing(self):

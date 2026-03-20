@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 import sys
 
-# Mock pyspark module since it is not installed
+# Simulação do módulo pyspark já que não está instalado
 pyspark = MagicMock()
 pyspark.sql = MagicMock()
 pyspark.sql.functions = MagicMock()
@@ -13,18 +13,18 @@ sys.modules["pyspark.sql.functions"] = pyspark.sql.functions
 
 class TestDimEmpresas(unittest.TestCase):
     def setUp(self):
-        # Reset global mocks to ensure test isolation
+        # Redefine simulações globais para garantir o isolamento do teste
         pyspark.sql.functions.reset_mock()
 
-        # Mock Spark Session
+        # Simula Spark Session
         self.spark = MagicMock()
 
-        # Mock DataFrames
+        # Simula DataFrames
         self.df_empresas = MagicMock()
         self.df_cadastros = MagicMock()
         self.df_apelidos = MagicMock()
 
-        # Setup schema-like behavior
+        # Configura comportamento semelhante a schema
         self.df_empresas.filter.return_value = self.df_empresas
         self.df_empresas.withColumn.return_value = self.df_empresas
         self.df_empresas.alias.return_value = self.df_empresas
@@ -32,16 +32,16 @@ class TestDimEmpresas(unittest.TestCase):
         self.df_cadastros.alias.return_value = self.df_cadastros
         self.df_apelidos.alias.return_value = self.df_apelidos
 
-        # Mock joins
+        # Simula joins
         self.df_joined = MagicMock()
         self.df_empresas.join.return_value = self.df_joined
         self.df_joined.join.return_value = self.df_joined
 
-        # Mock final transformations
+        # Simula transformações finais
         self.df_joined.withColumn.return_value = self.df_joined
         self.df_joined.select.return_value = self.df_joined
 
-        # Setup return values for table reads
+        # Configuração dos valores de retorno para leituras de tabela
         def read_table_side_effect(table_name):
             if table_name == "LH_Silver.staging_empresas":
                 return self.df_empresas
@@ -53,14 +53,14 @@ class TestDimEmpresas(unittest.TestCase):
 
         self.spark.read.table.side_effect = read_table_side_effect
 
-        # Because we mocked the module, we can access functions directly
+        # Como simulamos o módulo, podemos acessar as funções diretamente
         self.mock_col = pyspark.sql.functions.col
         self.mock_lit = pyspark.sql.functions.lit
         self.mock_concat = pyspark.sql.functions.concat
         self.mock_regexp_replace = pyspark.sql.functions.regexp_replace
         self.mock_when = pyspark.sql.functions.when
 
-        # Execute the logic from the notebook (adapted for test)
+        # Executa a lógica do notebook (adaptado para teste)
         self._execute_dim_empresas_logic()
 
     def _execute_dim_empresas_logic(self):
@@ -84,8 +84,8 @@ class TestDimEmpresas(unittest.TestCase):
             "left"
         )
 
-        # Second join (The one to be fixed)
-        # Simulating the FIXED logic
+        # Segunda junção (A que deve ser corrigida)
+        # Simulando a lógica CORRIGIDA
         df_j_final = df_j.join(
             df_a.alias("a"),
             # Corrected join condition
@@ -110,12 +110,12 @@ class TestDimEmpresas(unittest.TestCase):
         self.df_final = df_final
 
     def test_join_condition_columns(self):
-        """Verify col calls for the second join"""
+        """Verifica col calls for the second join"""
         self.mock_col.assert_any_call("e.cod_empresa")
         self.mock_col.assert_any_call("a.cod_empresa")
 
     def test_selection_columns(self):
-        """Verify col calls for selection"""
+        """Verifica col calls for selection"""
         self.mock_col.assert_any_call("a.apelido_empresa")
 
     def test_incorrect_columns_not_used(self):

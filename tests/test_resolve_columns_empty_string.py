@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import sys
 import os
 
-# Add project root to sys.path
+# Adiciona raiz do projeto ao sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from tests.notebook_utils import extract_function_from_file
@@ -16,14 +16,14 @@ class TestResolveColumns(unittest.TestCase):
 
         self.assertIsNotNone(func_source, "Failed to extract function source")
 
-        # 2. Mock PySpark functions
+        # 2. Simula funções PySpark
         mock_col = MagicMock()
         mock_trim = MagicMock()
         mock_when = MagicMock()
         mock_coalesce = MagicMock()
         mock_lit = MagicMock()
 
-        # Define mock behaviors
+        # Define comportamentos de simulação
         mock_col_instance = MagicMock()
         mock_col.return_value = mock_col_instance
 
@@ -40,7 +40,7 @@ class TestResolveColumns(unittest.TestCase):
 
         mock_coalesce.return_value = "FINAL_COALESCE"
 
-        # 3. Create DataFrame Mock
+        # 3. Cria Simulação de DataFrame
         mock_df = MagicMock()
         mock_df.columns = ["mycol", "mycol_op"]
         mock_df.withColumn.return_value = mock_df
@@ -54,7 +54,7 @@ class TestResolveColumns(unittest.TestCase):
             "lit": mock_lit
         }
 
-        # 5. Execute function definition
+        # 5. Executa function definition
         try:
             exec(func_source, exec_globals)
         except Exception as e:
@@ -65,29 +65,29 @@ class TestResolveColumns(unittest.TestCase):
         # 6. Call function
         result_df = resolve_columns(mock_df, ["mycol"])
 
-        # 7. Assertions
+        # 7. Asserções
 
-        # Check if trim(col("mycol")) was called
+        # Verifica se trim(col("mycol")) foi chamado
         # mock_col("mycol") -> mock_col_instance
         # mock_trim(mock_col_instance) -> mock_trim_instance
         mock_col.assert_any_call("mycol")
         mock_trim.assert_any_call(mock_col_instance)
 
-        # Check condition: trim(...) == ""
+        # Verifica condição: trim(...) == ""
         mock_trim_instance.__eq__.assert_called_with("")
 
-        # Check when(condition, None)
+        # Verifica when(condição, None)
         # when(mock_condition, None)
         mock_when.assert_any_call(mock_condition, None)
 
-        # Check otherwise(col("mycol"))
+        # Verifica otherwise(col("mycol"))
         mock_when_instance.otherwise.assert_called_with(mock_col_instance)
 
-        # Check coalesce(RESULT_EXPRESSION, col("mycol_op"))
-        # We need to verify col("mycol_op") was called too
+        # Verifica coalesce(RESULT_EXPRESSION, col("mycol_op"))
+        # Precisamos verificar se col("mycol_op") também foi chamado
         mock_col.assert_any_call("mycol_op")
 
-        # Verify withColumn call with correct coalesce result
+        # Verifica a chamada withColumn com o resultado de coalesce correto
         mock_df.withColumn.assert_called_with("mycol", "FINAL_COALESCE")
 
 if __name__ == "__main__":

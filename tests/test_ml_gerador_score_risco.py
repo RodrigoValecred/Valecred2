@@ -5,7 +5,7 @@ import numpy as np
 import sys
 import os
 
-# Adjust path to find notebook_utils
+# Ajusta caminho para encontrar notebook_utils
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
@@ -13,12 +13,12 @@ if current_dir not in sys.path:
 try:
     from notebook_utils import extract_function_from_file
 except ImportError:
-    # If run from root
+    # Se executado a partir da raiz
     try:
         from tests.notebook_utils import extract_function_from_file
     except ImportError:
         # Fallback if neither works (e.g. strict environment)
-        # We will assume notebook_utils is importable if we are in tests dir
+        # Assumiremos que notebook_utils pode ser importado se estivermos no diretório tests
         sys.path.append(os.path.join(current_dir, '..'))
         from tests.notebook_utils import extract_function_from_file
 
@@ -26,14 +26,14 @@ NOTEBOOK_PATH = "VALECRED_DEV/6_Machine_Learning/ML_Gerador_Score_Risco.Notebook
 
 class TestMLGeradorScoreRisco(unittest.TestCase):
     def setUp(self):
-        # Mock pyspark.sql.functions.col
+        # Simula pyspark.sql.functions.col
         self.mock_col = MagicMock()
         self.mock_col.return_value = MagicMock() # Column object
 
-        # Mock display
+        # Simula display
         self.mock_display = MagicMock()
 
-        # Mock Colors class
+        # Simula classe Colors
         class MockColors:
             HEADER = '[HEADER]'
             BLUE = '[BLUE]'
@@ -44,7 +44,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
             RESET = '[RESET]'
             BOLD = '[BOLD]'
 
-        # Mock draw_risk_meter
+        # Simula draw_risk_meter
         def mock_draw_risk_meter(score, width=30):
             return f"[RISK METER: {score:.2f}]"
 
@@ -62,12 +62,12 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         except ValueError:
             return
 
-        # Test NaN
+        # Testa NaN
         res_nan = draw_risk_meter(float('nan'))
         self.assertIn("[DADOS INSUFICIENTES]", res_nan)
         self.assertIn("[YELLOW]", res_nan)
 
-        # Test clamp minimum (e.g., negative score -> 0.0)
+        # Testa mínimo de restrição (e.g., negative score -> 0.0)
         res_min = draw_risk_meter(-0.5, width=10)
         self.assertIn("[GREEN]", res_min)
         self.assertIn("✅", res_min)
@@ -75,7 +75,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         # 0 filled, 10 empty
         self.assertIn("░" * 10, res_min)
 
-        # Test clamp maximum (e.g., > 1.0 -> 1.0)
+        # Testa máximo de restrição (e.g., > 1.0 -> 1.0)
         res_max = draw_risk_meter(1.5, width=10)
         self.assertIn("[RED]", res_max)
         self.assertIn("🚨", res_max)
@@ -83,7 +83,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         # 10 filled, 0 empty
         self.assertIn("█" * 10, res_max)
 
-        # Test Low Risk (< 0.15)
+        # Testa Baixo Risco (< 0.15)
         res_low = draw_risk_meter(0.10, width=10)
         self.assertIn("[GREEN]", res_low)
         self.assertIn("✅", res_low)
@@ -92,7 +92,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn("█", res_low)
         self.assertIn("░" * 9, res_low)
 
-        # Test Medium Risk (>= 0.15 and < 0.40)
+        # Testa Risco Médio (>= 0.15 e < 0.40)
         res_med = draw_risk_meter(0.25, width=10)
         self.assertIn("[YELLOW]", res_med)
         self.assertIn("⚠️", res_med)
@@ -101,7 +101,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn("█" * 2, res_med)
         self.assertIn("░" * 8, res_med)
 
-        # Test High Risk (>= 0.40)
+        # Testa Alto Risco (>= 0.40)
         res_high = draw_risk_meter(0.50, width=10)
         self.assertIn("[RED]", res_high)
         self.assertIn("🚨", res_high)
@@ -110,19 +110,19 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn("█" * 5, res_high)
         self.assertIn("░" * 5, res_high)
 
-        # Test Boundary Thresholds
+        # Testa Limites de Borda
         res_bound1 = draw_risk_meter(0.149)
         self.assertIn("[GREEN]", res_bound1)
         res_bound2 = draw_risk_meter(0.15)
         self.assertIn("[YELLOW]", res_bound2)
 
-        # Test Edge case just below 0.15
+        # Testa Caso Extremo logo abaixo de 0.15
         res_bound_almost_15 = draw_risk_meter(0.149999)
         self.assertIn("[GREEN]", res_bound_almost_15)
         self.assertIn("✅", res_bound_almost_15)
-        self.assertIn("0.15", res_bound_almost_15)  # Because of {:.2f} formatting, it rounds to 0.15 but stays green
+        self.assertIn("0.15", res_bound_almost_15)  # Devido à formatação {:.2f}, arredonda para 0.15 mas permanece verde
 
-        # Test Edge case exactly 0.0 for < 0.15 logic
+        # Testa Caso Extremo exatamente 0.0 para lógica < 0.15
         res_zero = draw_risk_meter(0.0, width=10)
         self.assertIn("[GREEN]", res_zero)
         self.assertIn("✅", res_zero)
@@ -142,17 +142,17 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
 
         import math
 
-        # Test np.nan
+        # Testa np.nan
         res_np_nan = draw_risk_meter(np.nan)
         self.assertIn("[DADOS INSUFICIENTES]", res_np_nan)
         self.assertIn("[YELLOW]", res_np_nan)
 
-        # Test math.nan
+        # Testa math.nan
         res_math_nan = draw_risk_meter(math.nan)
         self.assertIn("[DADOS INSUFICIENTES]", res_math_nan)
         self.assertIn("[YELLOW]", res_math_nan)
 
-        # Test None
+        # Testa None
         res_none = draw_risk_meter(None)
         self.assertIn("[DADOS INSUFICIENTES]", res_none)
         self.assertIn("[YELLOW]", res_none)
@@ -169,12 +169,12 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         try:
             calcular_score_cliente = self.load_function("calcular_score_cliente")
         except ValueError:
-             # Skip if not yet implemented (for TDD)
+             # Pula se ainda não implementado (para TDD)
              return
 
-        # Mock inputs
+        # Simula entradas
         mock_df_spark = MagicMock()
-        # Mock DataFrame structure
+        # Simula DataFrame structure
         data = {
             'CPFCNPJ': ['123'],
             'LIQUIDACAO': [None],
@@ -182,8 +182,8 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
             'STATUSACEITE': ['A'],
             'ACEITO': ['S'],
             'TTO_OPERACAO': ['NP'],
-            'VALOR': [1000.5], # Ensure it's float64
-            'PRAZO': [30],     # Ensure it's int64
+            'VALOR': [1000.5], # Garante que é float64
+            'PRAZO': [30],     # Garante que é int64
             'CODRATING_CEDENTE': ['A'],
             'CODSTATUSCLIENTE': ['1']
         }
@@ -196,7 +196,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         mock_df_spark.toPandas.return_value = mock_df_pandas
 
         mock_model = MagicMock()
-        mock_model.predict_proba.return_value = np.array([[0.1, 0.9]]) # Probability of class 1 is 0.9
+        mock_model.predict_proba.return_value = np.array([[0.1, 0.9]]) # A probabilidade da classe 1 é 0.9
 
         model_features = ['VALOR', 'PRAZO', 'CODRATING_CEDENTE']
 
@@ -206,14 +206,14 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn('SCORE_RISCO', result.columns)
         self.assertEqual(result['SCORE_RISCO'].iloc[0], 0.9)
 
-        # Verify data type downcasting float64 -> float32
+        # Verifica data type downcasting float64 -> float32
         args, kwargs = mock_model.predict_proba.call_args
         X_cliente_passed = args[0]
 
         self.assertEqual(X_cliente_passed['VALOR'].dtype, 'float32', "float64 should be downcasted to float32")
         self.assertEqual(X_cliente_passed['PRAZO'].dtype, 'int64', "int64 should remain int64")
 
-        # Verify filtering was called
+        # Verifica se a filtragem foi chamada
         self.mock_col.assert_called()
 
     def test_exibir_analise_risco(self):
@@ -231,7 +231,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
             'CODRATING_CEDENTE': ['A', 'B']
         })
 
-        # We can't easily capture stdout without redirecting it, but we can verify display is called
+        # Não podemos capturar facilmente o stdout sem redirecioná-lo, mas podemos verificar se display é chamado
         exibir_analise_risco(df, '123')
         self.mock_display.assert_called()
 
@@ -250,11 +250,11 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         if source_main: exec(source_main, self.context)
 
         if 'gerar_score_e_alertas' not in self.context:
-            return # Skip if main function not found or not loaded
+            return # Pula se a função principal não foi encontrada ou não foi carregada
 
         gerar_score = self.context['gerar_score_e_alertas']
 
-        # Setup Mocks
+        # Configura Simulações
         mock_df_spark = MagicMock()
         mock_df_pandas = pd.DataFrame({
             'CPFCNPJ': ['123'],

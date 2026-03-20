@@ -8,10 +8,10 @@ spark = SparkSession.builder \
     .config("spark.ui.enabled", "false") \
     .getOrCreate()
 
-# Mock Data
-# Client 1: Has paid titles (Should be in study)
-# Client 2: Has ONLY open titles (New client) -> Expected to be MISSING with current logic
-# Client 3: Has paid and open titles (Should be in study)
+# Simulação de Dados
+# Cliente 1: Tem títulos pagos (Deve estar no estudo)
+# Cliente 2: Tem APENAS títulos em aberto (Novo cliente) -> Esperado estar AUSENTE com a lógica atual
+# Cliente 3: Tem títulos pagos e abertos (Deve estar no estudo)
 
 data_titulos = [
     # Client 1 (Paid)
@@ -27,7 +27,7 @@ columns = ["cod_cliente", "data_inclusao", "venc_prorrogado", "liquidacao", "val
 
 df_titulos = spark.createDataFrame(data_titulos, columns)
 
-# Current Logic Reproduction
+# Reprodução da Lógica Atual
 print("--- Reproducing Logic ---")
 
 # 1.1 Metrics (Paid)
@@ -46,7 +46,7 @@ df_metrics_risco = df_aberto.groupBy("cod_cliente").agg(
     sum(when(col("dias_atraso_atual") > 5, col("valor_devido")).otherwise(0)).alias("saldo_inadimplente_atual")
 )
 
-# Join Logic (The Suspect)
+# Lógica do Join (A Suspeita)
 print("Performing Left Join (Current Logic)...")
 df_features = df_metrics_pagos \
     .join(df_metrics_risco, "cod_cliente", "left") \
@@ -54,7 +54,7 @@ df_features = df_metrics_pagos \
 
 df_features.show()
 
-# Verify if Client 2 is missing
+# Verifica se o Cliente 2 está ausente
 clients_found = [row.cod_cliente for row in df_features.collect()]
 print(f"Clients found: {clients_found}")
 if 2 not in clients_found:

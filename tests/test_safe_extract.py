@@ -7,7 +7,7 @@ import tempfile
 from io import BytesIO
 from unittest.mock import patch, MagicMock
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
@@ -63,7 +63,7 @@ class TestSafeExtract(unittest.TestCase):
         if not func_source:
              self.fail(f"Function safe_extract not found in {RFB_NOTEBOOK_PATH}")
 
-        # Compile the function
+        # Compila a função
         exec_globals = {
             'os': os,
             'zipfile': zipfile,
@@ -72,14 +72,14 @@ class TestSafeExtract(unittest.TestCase):
         exec(func_source, exec_globals)
         safe_extract = exec_globals['safe_extract']
 
-        # Mock zip_ref to raise Exception on extractall
+        # Simula zip_ref para lançar Exception em extractall
         mock_zip_ref = MagicMock()
         mock_zip_ref.namelist.return_value = ['file.txt']
         mock_zip_ref.filename = "test_error.zip"
-        mock_zip_ref.extractall.side_effect = Exception("Mock extraction error")
+        mock_zip_ref.extractall.side_effect = Exception("Simulação da extração error")
 
-        # Call safe_extract which should bubble up the exception
-        with self.assertRaisesRegex(Exception, "Mock extraction error"):
+        # Chama safe_extract que deve subir a exceção
+        with self.assertRaisesRegex(Exception, "Simulação da extração error"):
             safe_extract(mock_zip_ref, self.output_dir)
 
     def _test_safe_extract(self, notebook_path):
@@ -88,7 +88,7 @@ class TestSafeExtract(unittest.TestCase):
         if not func_source:
              self.fail(f"Function safe_extract not found in {notebook_path}")
 
-        # Compile the function
+        # Compila a função
         exec_globals = {
             'os': os,
             'zipfile': zipfile,
@@ -97,18 +97,18 @@ class TestSafeExtract(unittest.TestCase):
         exec(func_source, exec_globals)
         safe_extract = exec_globals['safe_extract']
 
-        # 1. Test Malicious Zip
+        # 1. Testa Zip Malicioso
         with zipfile.ZipFile(self.malicious_zip_path, 'r') as zf:
             with self.assertRaises(Exception) as cm:
                 safe_extract(zf, self.output_dir)
             self.assertIn("Zip Slip vulnerability detected", str(cm.exception))
 
-        # Verify nothing was extracted (fail-fast / atomic check behavior)
+        # Verifica se nada foi extraído (comportamento de verificação atômica / fail-fast)
         self.assertFalse(os.path.exists(os.path.join(self.output_dir, "good.txt")), "good.txt should not be extracted if validation fails")
         self.assertFalse(os.path.exists(os.path.join(self.output_dir, "evil.txt")), "evil.txt should not be extracted")
         self.assertFalse(os.path.exists(os.path.join(self.test_dir, "evil.txt")), "evil.txt should not be extracted outside")
 
-        # 2. Test Safe Zip
+        # 2. Testa Zip Seguro
         with zipfile.ZipFile(self.safe_zip_path, 'r') as zf:
             safe_extract(zf, self.output_dir)
 

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 import sys
 import os
 
-# Ensure tests package is in path
+# Garante que o pacote tests está no path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
@@ -25,8 +25,8 @@ class TestUnfoldContactInfo(unittest.TestCase):
         if not self.func_source:
             self.skipTest("Function not found")
 
-        # Prepare scope with mocks for Spark functions
-        # We return strings to easily verify the composition of functions
+        # Prepara o escopo com simulações para as funções do Spark
+        # Retornamos strings para verificar facilmente a composição das funções
         self.mock_col = MagicMock(side_effect=lambda x: f"col({x})")
         self.mock_explode = MagicMock(side_effect=lambda x: f"explode({x})")
         self.mock_split = MagicMock(side_effect=lambda x, y: f"split({x}, {y})")
@@ -59,14 +59,14 @@ class TestUnfoldContactInfo(unittest.TestCase):
 
         result = self.unfold_contact_info(df, "INPUT_COL", "OUTPUT_COL", ";")
 
-        # Verify first withColumn call (explode + split)
+        # Verifica first withColumn call (explode + split)
         # Expected: explode(split(col(INPUT_COL), ;))
         df.withColumn.assert_called_once()
         args, _ = df.withColumn.call_args
         self.assertEqual(args[0], "OUTPUT_COL")
         self.assertEqual(args[1], "explode(split(col(INPUT_COL), ;))")
 
-        # Verify second withColumn call (trim)
+        # Verifica second withColumn call (trim)
         # Expected: trim(col(OUTPUT_COL))
         df_unfolded.withColumn.assert_called_once()
         args, _ = df_unfolded.withColumn.call_args
@@ -83,7 +83,7 @@ class TestUnfoldContactInfo(unittest.TestCase):
         # Use a safe delimiter like "," to avoid regex confusion in test
         self.unfold_contact_info(df, "INPUT_COL", "OUTPUT_COL", ",")
 
-        # Verify split uses correct delimiter
+        # Verifica split uses correct delimiter
         self.mock_split.assert_called_with("col(INPUT_COL)", ",")
 
 if __name__ == '__main__':

@@ -4,23 +4,23 @@ import shutil
 import unittest
 import tempfile
 
-# --- The function to be tested and later copied to notebook ---
+# --- A função a ser testada e posteriormente copiada para o notebook ---
 def safe_extract(zip_ref, path):
     """
     Extracts a zip file to the specified path, preventing Zip Slip vulnerability.
     """
-    # Normalize the target path to an absolute path
+    # Normaliza o caminho de destino para um caminho absoluto
     target_path = os.path.abspath(path)
 
     for member in zip_ref.namelist():
-        # Resolve the full path of the member
-        # Note: os.path.join will discard 'target_path' if 'member' is absolute
+        # Resolve o caminho completo do membro
+        # Nota: os.path.join descartará 'target_path' se 'member' for absoluto
         member_path = os.path.join(target_path, member)
-        # Normalize the member path to resolve '..' and '.'
+        # Normaliza o caminho do membro para resolver '..' e '.'
         abs_member_path = os.path.abspath(member_path)
 
-        # Check if the member path starts with the target path
-        # We append os.sep to ensure we match directory boundaries (e.g. /tmp/foo vs /tmp/foobar)
+        # Verifica se o caminho do membro inicia com o caminho de destino
+        # Nós anexamos os.sep para garantir a correspondência de limites de diretório (ex. /tmp/foo vs /tmp/foobar)
         if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
              raise Exception(f"Zip Slip vulnerability detected: {member}")
 
@@ -60,7 +60,7 @@ class TestSafeExtract(unittest.TestCase):
                 return self._namelist
 
             def extractall(self, path):
-                pass # Mock extraction
+                pass # Simulação da extração
 
         # Case 1: Simple parent traversal
         mock_zip = MockZipFile(['../evil.txt'])

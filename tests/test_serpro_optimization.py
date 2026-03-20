@@ -6,18 +6,18 @@ class TestSerproOptimization(unittest.TestCase):
         """
         Verifies that the proposed optimization for Bidding numbers uses join instead of collect+isin.
         """
-        # Mock Spark objects
+        # Simula objetos Spark
         mock_df = MagicMock()
         mock_biddings_df = MagicMock()
         mock_ids_df = MagicMock()
 
-        # Setup returns
+        # Configura retornos
         mock_biddings_df.select.return_value.distinct.return_value = mock_ids_df
 
-        # --- The logic to be implemented in the notebook ---
+        # --- A lógica a ser implementada no notebook ---
         serpro_biddings_df = mock_biddings_df
 
-        # Original: serpro_bidding_numbers = [row['Número Licitação'] for row in serpro_biddings_df.select('Número Licitação').distinct().collect()]
+        # Original: serpro_bidding_numbers = [row['Número Licitação'] para linha em serpro_biddings_df.select('Número Licitação').distinct().collect()]
         # New:
         serpro_bidding_numbers_df = serpro_biddings_df.select('Número Licitação').distinct()
 
@@ -28,14 +28,14 @@ class TestSerproOptimization(unittest.TestCase):
         filtered_df = df.join(serpro_bidding_numbers_df, on="Número Licitação", how="left_semi")
         # ---------------------------------------------------------
 
-        # Assertions
+        # Asserções
         mock_biddings_df.select.assert_called_with('Número Licitação')
         mock_biddings_df.select.return_value.distinct.assert_called()
 
-        # Verify join called
+        # Verifica se join foi chamado
         df.join.assert_called_with(mock_ids_df, on="Número Licitação", how="left_semi")
 
-        # Verify collect was NOT called
+        # Verifica se collect NÃO foi chamado
         mock_biddings_df.collect.assert_not_called()
         mock_biddings_df.select.return_value.distinct.return_value.collect.assert_not_called()
 
@@ -43,18 +43,18 @@ class TestSerproOptimization(unittest.TestCase):
         """
         Verifies that the proposed optimization for Contract numbers uses join instead of collect+isin.
         """
-        # Mock Spark objects
+        # Simula objetos Spark
         mock_df = MagicMock()
         mock_contracts_df = MagicMock()
         mock_ids_df = MagicMock()
 
-        # Setup returns
+        # Configura retornos
         mock_contracts_df.select.return_value.distinct.return_value = mock_ids_df
 
-        # --- The logic to be implemented in the notebook ---
+        # --- A lógica a ser implementada no notebook ---
         serpro_contracts_df = mock_contracts_df
 
-        # Original: serpro_contract_numbers = [row['Número Contrato'] for row in serpro_contracts_df.select('Número Contrato').distinct().collect()]
+        # Original: serpro_contract_numbers = [row['Número Contrato'] para linha em serpro_contracts_df.select('Número Contrato').distinct().collect()]
         # New:
         serpro_contract_numbers_df = serpro_contracts_df.select('Número Contrato').distinct()
 
@@ -65,14 +65,14 @@ class TestSerproOptimization(unittest.TestCase):
         filtered_df = df.join(serpro_contract_numbers_df, on="Número Contrato", how="left_semi")
         # ---------------------------------------------------------
 
-        # Assertions
+        # Asserções
         mock_contracts_df.select.assert_called_with('Número Contrato')
         mock_contracts_df.select.return_value.distinct.assert_called()
 
-        # Verify join called
+        # Verifica se join foi chamado
         df.join.assert_called_with(mock_ids_df, on="Número Contrato", how="left_semi")
 
-        # Verify collect was NOT called
+        # Verifica se collect NÃO foi chamado
         mock_contracts_df.collect.assert_not_called()
         mock_contracts_df.select.return_value.distinct.return_value.collect.assert_not_called()
 

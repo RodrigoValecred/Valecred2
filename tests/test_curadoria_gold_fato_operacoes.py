@@ -3,11 +3,11 @@ import sys
 import os
 from unittest.mock import MagicMock, call
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -36,7 +36,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
              raise ValueError("Function select_fato_operacoes_columns not found in notebook.")
 
     def test_sk_produto_join(self):
-        # Dictionary to store mocks created by col()
+        # Dicionário para armazenar simulações criadas por col()
         col_mocks = {}
 
         def col_side_effect(name):
@@ -57,7 +57,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         mock_df_cal = MagicMock()
         mock_df_prod = MagicMock()
 
-        # Setup method chaining mocks
+        # Configura simulações de encadeamento de métodos
         mock_df_prep = MagicMock()
         mock_df_ops.withColumn.return_value = mock_df_prep
 
@@ -87,16 +87,16 @@ class TestCreateFatoOperacoes(unittest.TestCase):
             'to_date': mock_to_date,
             'broadcast': mock_broadcast,
         }
-        # Add other potential functions as dummy mocks
+        # Adiciona outras funções potenciais como simulações fictícias
         for func_name in ['when', 'length', 'regexp_replace', 'collect_list', 'concat_ws', 'upper', 'greatest',
                           'substring', 'year', 'lead', 'date_add', 'lag', 'max', 'coalesce', 'dayofweek',
                           'dayofmonth', 'date_sub', 'trim', 'datediff', 'sum', 'min', 'count', 'round',
                           'floor', 'least', 'current_date', 'split', 'pow', 'xxhash64']:
              exec_globals[func_name] = MagicMock()
 
-        # Execute the function definition
+        # # Executa a função definition
         local_scope = {}
-        # Helpers must be in exec_globals so create_fato_operacoes can see them
+        # Auxiliares devem estar em exec_globals para que create_fato_operacoes os veja
         exec(self.helper1_source, exec_globals)
         exec(self.helper2_source, exec_globals)
         exec(self.helper3_source, exec_globals)
@@ -104,21 +104,21 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         exec(self.func_source, exec_globals, local_scope)
         create_fato_operacoes = local_scope['create_fato_operacoes']
 
-        # Run the function
+        # Executa a função
         result = create_fato_operacoes(mock_df_ops, mock_df_cal, mock_df_prod)
 
-        # Assertions
+        # Asserções
 
-        # 1. Verify that df_dim_produto.select was called with "chave_produto" and "sk_produto"
+        # 1. Verifica se df_dim_produto.select foi chamado com "chave_produto" e "sk_produto"
         mock_df_prod.select.assert_called_with("chave_produto", "sk_produto")
 
-        # 2. Verify join
+        # 2. Verifica join
         mock_df_joined_1.join.assert_called()
         args, kwargs = mock_df_joined_1.join.call_args
         self.assertEqual(args[1], "chave_produto")
         self.assertEqual(args[2], "left")
 
-        # 3. Verify Select includes sk_produto
+        # 3. Verifica Select includes sk_produto
         mock_df_joined_2.select.assert_called()
         call_args = mock_df_joined_2.select.call_args[0]
 

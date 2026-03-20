@@ -3,11 +3,11 @@ import sys
 import os
 from unittest.mock import MagicMock, call
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -29,9 +29,9 @@ class TestStatusRiscoExpr(unittest.TestCase):
         def col_side_effect(name):
             if name not in col_mocks:
                 m = MagicMock(name=f"col({name})")
-                m.__lt__ = MagicMock(name=f"lt_mock") # Mock < operator
-                m.__eq__ = MagicMock(name=f"eq_mock") # Mock == operator
-                m.__and__ = MagicMock(name=f"and_mock") # Mock & operator
+                m.__lt__ = MagicMock(name=f"lt_mock") # Simula operador <
+                m.__eq__ = MagicMock(name=f"eq_mock") # Simula operador ==
+                m.__and__ = MagicMock(name=f"and_mock") # Simula operador &
                 col_mocks[name] = m
             return col_mocks[name]
 
@@ -39,7 +39,7 @@ class TestStatusRiscoExpr(unittest.TestCase):
         mock_when = MagicMock(name="when")
         mock_current_date = MagicMock(name="current_date")
 
-        # To chain when().when().otherwise()
+        # Para encadear when().when().otherwise()
         mock_when_ret = MagicMock(name="when_ret")
         mock_when.return_value = mock_when_ret
         mock_when_ret.when.return_value = mock_when_ret # Chain
@@ -57,30 +57,30 @@ class TestStatusRiscoExpr(unittest.TestCase):
         exec(self.func_source, exec_globals, local_scope)
         get_status_risco_expr = local_scope['get_status_risco_expr']
 
-        # Test Case 1: Default args
+        # Caso de Teste 1: Argumentos padrão
         result = get_status_risco_expr()
 
-        # Verify result
+        # Verifica result
         self.assertEqual(result, "RESULT_COLUMN")
 
-        # Verify calls
+        # Verifica calls
         self.assertTrue(mock_when.called)
-        self.assertTrue(mock_current_date.called) # Should be called as default arg
+        self.assertTrue(mock_current_date.called) # Deve ser chamado como argumento padrão
 
-        # Test Case 2: Custom args and explicit date
+        # Caso de Teste 2: Argumentos customizados e data explícita
         mock_date_col = MagicMock(name="custom_date")
         get_status_risco_expr("my_tto", "my_venc", mock_date_col)
 
-        # Verify col calls
+        # Verifica col calls
         self.assertIn("my_tto", col_mocks)
         self.assertIn("my_venc", col_mocks)
 
-        # Verify comparison: my_venc < mock_date_col
-        # Note: In the function: col(col_vencimento) < current_date_col
-        # So we expect col_mocks["my_venc"].__lt__ to be called with mock_date_col
+        # Verifica comparison: my_venc < mock_date_col
+        # Nota: Na função: col(col_vencimento) < current_date_col
+        # Então esperamos que col_mocks["my_venc"].__lt__ seja chamado com mock_date_col
         col_mocks["my_venc"].__lt__.assert_called_with(mock_date_col)
 
-        # Verify comparison: my_tto == "RN"
+        # Verifica comparison: my_tto == "RN"
         col_mocks["my_tto"].__eq__.assert_called_with("RN")
 
 if __name__ == '__main__':

@@ -3,11 +3,11 @@ import sys
 import os
 from unittest.mock import MagicMock, call
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -28,9 +28,9 @@ class TestSilverJurosCorrections(unittest.TestCase):
         mock_col = MagicMock(name="col")
         mock_when = MagicMock(name="when")
         mock_df = MagicMock(name="df")
-        mock_df.columns = ["JUROS"] # Mock columns existence
+        mock_df.columns = ["JUROS"] # Simula existência de colunas
 
-        # Mock chaining of when().when().otherwise()
+        # Simula encadeamento de when().when().otherwise()
         mock_when_ret = MagicMock(name="when_ret")
         mock_otherwise_ret = MagicMock(name="otherwise_ret")
 
@@ -38,7 +38,7 @@ class TestSilverJurosCorrections(unittest.TestCase):
         mock_when_ret.when.return_value = mock_when_ret
         mock_when_ret.otherwise.return_value = mock_otherwise_ret
 
-        # Test Data
+        # Dados de Teste
         test_corrections = {
             -100.0: 10.0,
             -200.0: 20.0
@@ -56,13 +56,13 @@ class TestSilverJurosCorrections(unittest.TestCase):
         exec(self.func_source, exec_globals, local_scope)
         apply_juros_corrections = local_scope['apply_juros_corrections']
 
-        # Run function
+        # Executa função
         result_df = apply_juros_corrections(mock_df)
 
         # Verification
         mock_df.withColumn.assert_called_once()
         args, _ = mock_df.withColumn.call_args
-        self.assertEqual(args[0], "JUROS") # Expect upper case as per Silver logic
+        self.assertEqual(args[0], "JUROS") # Espera letras maiúsculas conforme a lógica Silver
         self.assertEqual(args[1], mock_otherwise_ret)
 
         self.assertEqual(mock_when.call_count, 1)
@@ -74,9 +74,9 @@ class TestSilverJurosCorrections(unittest.TestCase):
         mock_col = MagicMock(name="col")
         mock_when = MagicMock(name="when")
         mock_df = MagicMock(name="df")
-        mock_df.columns = ["juros"] # Mock columns existence (lowercase)
+        mock_df.columns = ["juros"] # Simula existência de colunas (lowercase)
 
-        # Mock chaining of when().when().otherwise()
+        # Simula encadeamento de when().when().otherwise()
         mock_when_ret = MagicMock(name="when_ret")
         mock_otherwise_ret = MagicMock(name="otherwise_ret")
 
@@ -95,10 +95,10 @@ class TestSilverJurosCorrections(unittest.TestCase):
         exec(self.func_source, exec_globals, local_scope)
         apply_juros_corrections = local_scope['apply_juros_corrections']
 
-        # Run function
+        # Executa função
         result_df = apply_juros_corrections(mock_df)
 
-        # Verification - Should detect "juros" and use it
+        # Verificação - Deve detectar "juros" e usá-lo
         mock_df.withColumn.assert_called_once()
         args, _ = mock_df.withColumn.call_args
         self.assertEqual(args[0], "juros")

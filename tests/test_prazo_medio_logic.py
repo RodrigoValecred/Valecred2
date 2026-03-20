@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, call
 import sys
 import os
 
-# Ensure tests package is in path
+# Garante que o pacote tests está no path
 sys.path.append(os.getcwd())
 
-# 1. Mock PySpark modules BEFORE imports
+# 1. Simula módulos PySpark ANTES das importações
 sys.modules["pyspark"] = MagicMock()
 sys.modules["pyspark.sql"] = MagicMock()
 sys.modules["pyspark.sql.functions"] = MagicMock()
@@ -15,7 +15,7 @@ sys.modules["pyspark.sql.types"] = MagicMock()
 sys.modules["pyspark.sql.window"] = MagicMock()
 sys.modules["notebookutils"] = MagicMock()
 
-# 2. Define Mock Functions to mimic PySpark behavior for this specific logic
+# 2. Define funções de simulação para imitar o comportamento do PySpark para esta lógica específica
 def col(name):
     m = MagicMock()
     m.__repr__ = lambda x: f"col('{name}')"
@@ -78,17 +78,17 @@ class TestPrazoMedioLogic(unittest.TestCase):
         df_titulos_calc = MagicMock(name="df_titulos_calc")
         df_titulos_agg = MagicMock(name="df_titulos_agg")
 
-        # Setup Chains
+        # Configura Cadeias
         df_ops.select.return_value = df_ops_select
         df_titulos.join.return_value = df_titulos_joined
         df_titulos_joined.withColumn.return_value = df_titulos_calc # First calc
         df_titulos_calc.withColumn.return_value = df_titulos_calc # Second calc
         df_titulos_calc.groupBy.return_value.agg.return_value = df_titulos_agg
 
-        # --- SIMULATE LOGIC ---
+        # --- LÓGICA DE SIMULAÇÃO ---
 
         # 1. Join
-        # We need data_deferimento from ops
+        # Precisamos de data_deferimento das operações
         df_joined = df_titulos.join(df_ops.select("cod_operacao", "data_deferimento"), "cod_operacao", "inner")
 
         # 2. Calculate Prazo Original
@@ -106,22 +106,22 @@ class TestPrazoMedioLogic(unittest.TestCase):
 
         # --- VERIFICATION ---
 
-        # Verify Join
+        # Verifica Join
         df_titulos.join.assert_called_with(df_ops_select, "cod_operacao", "inner")
 
-        # Verify datediff calculation
-        # We check the args passed to datediff in the flow
-        # It's hard to extract the exact datediff call object from the withColumn call args without complex inspection,
-        # but we can check if datediff was called with correct columns.
+        # Verifica datediff calculation
+        # Verificamos os argumentos passados para datediff no fluxo
+        # É difícil extrair o objeto exato da chamada datediff dos argumentos de withColumn sem inspeção complexa,
+        # mas podemos verificar se datediff foi chamado com colunas corretas.
         # Since we mocked datediff to return a named MagicMock, we can check the withColumn calls.
 
         calls = df_titulos_joined.withColumn.call_args_list
         # Expecting call("prazo_original_dias", datediff_result)
-        # We can just verify that the sequence of operations was performed on the objects.
+        # Podemos apenas verificar se a sequência de operações foi executada nos objetos.
 
-        # Let's trust the flow if the code executed without error on mocks.
-        # Ideally, we'd check:
-        # assert "datediff(col('vencimento'), col('data_deferimento'))" in str(df_titulos_joined.withColumn.call_args)
+        # Vamos confiar no fluxo se o código executou sem erros nas simulações.
+        # Idealmente, verificaríamos:
+        # asserção "datediff(col('vencimento'), col('data_deferimento'))" in str(df_titulos_joined.withColumn.call_args)
 
         print("Logic flow executed successfully on mocks.")
 

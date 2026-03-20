@@ -3,11 +3,11 @@ import sys
 import os
 from unittest.mock import MagicMock, call
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -77,10 +77,10 @@ class TestSelectTitulos(unittest.TestCase):
              raise ValueError("Function select_titulos not found in notebook.")
 
     def test_select_titulos_structure(self):
-        # Mock DataFrame
+        # Simula DataFrame
         mock_df = MagicMock(name="df")
 
-        # We need to track the arguments passed to df.select
+        # Precisamos rastrear os argumentos passados para df.select
         captured_args = []
         def select_mock(*args):
             captured_args.extend(args)
@@ -98,27 +98,27 @@ class TestSelectTitulos(unittest.TestCase):
             'lit': mock_lit,
         }
 
-        # Execute the function definition
+        # # Executa a função definition
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         select_titulos = local_scope['select_titulos']
 
-        # Call the function
+        # Chama a função
         result = select_titulos(mock_df)
 
-        # Verify it returns the result of df.select
+        # Verifica se ele retorna o resultado de df.select
         self.assertEqual(result, "df_result")
 
-        # 1. Verify df.select was called
+        # 1. Verifica se df.select foi chamado
         self.assertTrue(mock_df.select.called)
 
-        # We expect 36 arguments (columns)
+        # Esperamos 36 argumentos (colunas)
         self.assertEqual(len(captured_args), 36, f"Expected 36 columns, got {len(captured_args)}")
 
-        # Convert all captured arguments to their string representations
+        # Converte todos os argumentos capturados para suas representações de string
         args_str = [str(arg) for arg in captured_args]
 
-        # 2. Verify all simple column aliases are present
+        # 2. Verifica se todos os aliases de coluna simples estão presentes
         expected_simple_aliases = {
             "col('CODTITULO') AS cod_titulo",
             "col('CODOPERACAO') AS cod_operacao",
@@ -158,13 +158,13 @@ class TestSelectTitulos(unittest.TestCase):
         for expected_alias in expected_simple_aliases:
             self.assertIn(expected_alias, args_str, f"Missing expected simple alias mapping: {expected_alias}")
 
-        # 3. Verify complex calculated columns using their string representations
+        # 3. Verifica colunas calculadas complexas usando suas representações de string
 
         # vencimento_efetivo uses coalesce
         expected_vencimento_efetivo = "coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')) AS vencimento_efetivo"
         self.assertIn(expected_vencimento_efetivo, args_str, "Missing or incorrect vencimento_efetivo expression")
 
-        # dias_atraso uses datediff and when
+        # dias_atraso usa datediff e when
         expected_dias_atraso = "when(col('LIQUIDACAO').isNotNull(), datediff(col('LIQUIDACAO'), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')))).otherwise(datediff(current_date(), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')))) AS dias_atraso"
         self.assertIn(expected_dias_atraso, args_str, "Missing or incorrect dias_atraso expression")
 
@@ -202,13 +202,13 @@ class TestDeduplicateTitulos(unittest.TestCase):
         exec(self.func_source, exec_globals, local_scope)
         deduplicate_titulos = local_scope['deduplicate_titulos']
 
-        # Sample data with duplicates for CODTITULO
+        # Dados de amostra com duplicatas para CODTITULO
         data = [
-            # Título 1 - Row 1 is the most recent due to DATAALTERACAO
+            # Título 1 - A linha 1 é a mais recente devido a DATAALTERACAO
             (1, "2023-01-01", "2023-01-10", None, "A"),
             (1, "2023-01-01", "2023-01-05", None, "B"),
 
-            # Título 2 - Row 1 is most recent due to LIQUIDACAO
+            # Título 2 - A linha 1 é a mais recente devido a LIQUIDACAO
             (2, "2023-02-01", "2023-02-02", "2023-02-20", "C"),
             (2, "2023-02-01", "2023-02-15", None, "D"),
 
@@ -230,10 +230,10 @@ class TestDeduplicateTitulos(unittest.TestCase):
 
         key_columns = ["CODTITULO"]
 
-        # Execute deduplication
+        # Executa deduplication
         df_result = deduplicate_titulos(df, key_columns)
 
-        # Verify results
+        # Verifica results
         results = df_result.orderBy("CODTITULO").collect()
 
         self.assertEqual(len(results), 3, "Should have 3 unique titles")
@@ -242,15 +242,15 @@ class TestDeduplicateTitulos(unittest.TestCase):
         row1 = [r for r in results if r.CODTITULO == 1][0]
         self.assertEqual(row1.OTHER_DATA, "A")
 
-        # Check Título 2 -> expects OTHER_DATA = "C" because LIQUIDACAO is highest ("2023-02-20")
+        # Verifica Título 2 -> espera OTHER_DATA = "C" porque LIQUIDACAO é maior ("2023-02-20")
         row2 = [r for r in results if r.CODTITULO == 2][0]
         self.assertEqual(row2.OTHER_DATA, "C")
 
-        # Check Título 3 -> expects OTHER_DATA = "E"
+        # Verifica Título 3 -> espera OTHER_DATA = "E"
         row3 = [r for r in results if r.CODTITULO == 3][0]
         self.assertEqual(row3.OTHER_DATA, "E")
 
-        # Check that DATA_MAIS_RECENTE and row_num were correctly dropped
+        # Verifica se DATA_MAIS_RECENTE e row_num foram descartados corretamente
         self.assertNotIn("DATA_MAIS_RECENTE", df_result.columns)
         self.assertNotIn("row_num", df_result.columns)
 

@@ -251,10 +251,10 @@ def prepare_dashboard_data(df, ref_date):
         df['validade_limite'] = 'N/A'
 
     # ⚡ Bolt: Substituir apply por list comprehension para formatar moedas
-    # 💡 What: Substituída a lenta aplicação linha a linha do Pandas por list comprehension nativa do Python
-    # 🎯 Why: O overhead do Pandas .apply() para aplicar funções Python puras linha a linha é alto. List comprehensions contornam o Pandas iterando puramente em C/Python nativo.
-    # 📊 Impact: Acelera significativamente a execução da formatação de valores em cerca de 2-4x dependendo do tamanho do DataFrame.
-    # 🔬 Measurement: List comprehensions são mais rápidas do que iterar séries pandas com .apply() quando a função é uma função python customizada simples.
+    # 💡 O que: Substituída a lenta aplicação linha a linha do Pandas por list comprehension nativa do Python
+    # 🎯 Por que: O overhead do Pandas .apply() para aplicar funções Python puras linha a linha é alto. List comprehensions contornam o Pandas iterando puramente em C/Python nativo.
+    # 📊 Impacto: Acelera significativamente a execução da formatação de valores em cerca de 2-4x dependendo do tamanho do DataFrame.
+    # 🔬 Medição: List comprehensions são mais rápidas do que iterar séries pandas com .apply() quando a função é uma função python customizada simples.
     df_calc['risco_fmt'] = [format_currency_br(x) for x in df['valor_risco']]
     df_calc['limite_fmt'] = [format_currency_br(x) for x in df['limite_global']]
     df_calc['excesso_fmt'] = [format_currency_br(x) for x in df['excesso_valor']]

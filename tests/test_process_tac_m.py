@@ -3,7 +3,7 @@ import sys
 import os
 from unittest.mock import MagicMock, call
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
@@ -12,12 +12,12 @@ NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_
 class TestProcessTacM(unittest.TestCase):
 
     def setUp(self):
-        # Extract the function
+        # Extrai a função
         func_source = extract_function_from_file(NOTEBOOK_PATH, "transform_tac_m")
         if not func_source:
              self.fail("Function transform_tac_m not found in notebook.")
 
-        # Prepare execution context with mocks
+        # Prepara contexto de execução com simulações
         self.mock_col = MagicMock(name="col")
         self.mock_trim = MagicMock(name="trim")
         self.mock_upper = MagicMock(name="upper")
@@ -36,7 +36,7 @@ class TestProcessTacM(unittest.TestCase):
         self.transform_tac_m = local_scope['transform_tac_m']
 
     def test_transform_calls(self):
-        # Mock DataFrame
+        # Simula DataFrame
         mock_df = MagicMock(name="df")
 
         # Chainable return values
@@ -47,7 +47,7 @@ class TestProcessTacM(unittest.TestCase):
         # df.orderBy returns df
         mock_df.orderBy.return_value = mock_df
 
-        # Mock Column expressions
+        # Simula expressões Column
         # col("descricao") -> mock_col_desc
         mock_col_desc = MagicMock(name="col_descricao")
 
@@ -75,36 +75,36 @@ class TestProcessTacM(unittest.TestCase):
         # Variations list
         tac_variations = ["A", "B"]
 
-        # Execute
+        # Executa
         result = self.transform_tac_m(mock_df, tac_variations)
 
-        # Verify Assertions
+        # Verifica Asserções
 
-        # 1. Verify col("descricao") was called
+        # 1. Verifica se col("descricao") foi chamado
         self.mock_col.assert_any_call("descricao")
 
-        # 2. Verify upper(col("descricao"))
-        # Since col returns different objects if we didn't use the same mock instance...
-        # But we use side_effect returning mock_col_desc for "descricao" every time.
+        # 2. Verifica upper(col("descricao"))
+        # Já que col retorna objetos diferentes se não usarmos a mesma instância de simulação...
+        # Mas usamos side_effect retornando mock_col_desc para "descricao" todas as vezes.
         self.mock_upper.assert_called_with(mock_col_desc)
 
-        # 3. Verify trim(upper(...))
+        # 3. Verifica trim(upper(...))
         self.mock_trim.assert_called_with(mock_upper_obj)
 
-        # 4. Verify withColumn("descricao", trim(...))
+        # 4. Verifica withColumn("descricao", trim(...))
         mock_df.withColumn.assert_any_call("descricao", mock_trim_obj)
 
-        # 5. Verify filter(isin)
-        # Check isin called with variations + ["TAC M"]
+        # 5. Verifica filter(isin)
+        # Verifica isin chamado com variações + ["TAC M"]
         mock_col_desc.isin.assert_called_with(tac_variations + ["TAC M"])
-        # Check filter called with result of isin
+        # Verifica o filter chamado com o resultado de isin
         mock_df.filter.assert_called_with(mock_isin_expr)
 
-        # 6. Verify withColumn("descricao", lit("TAC M"))
+        # 6. Verifica withColumn("descricao", lit("TAC M"))
         self.mock_lit.assert_called_with("TAC M")
         mock_df.withColumn.assert_any_call("descricao", self.mock_lit.return_value)
 
-        # 7. Verify orderBy
+        # 7. Verifica orderBy
         self.mock_col.assert_any_call("data_inclusao")
         mock_col_date.desc.assert_called()
         mock_df.orderBy.assert_called()

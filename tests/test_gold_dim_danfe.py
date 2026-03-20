@@ -3,11 +3,11 @@ import sys
 import os
 from unittest.mock import MagicMock
 
-# Ensure the tests directory is in the path to import notebook_utils
+# Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define the path to the notebook file relative to the repository root
+# Define o caminho para o arquivo do notebook em relação à raiz do repositório
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
@@ -24,18 +24,18 @@ class TestParseDanfe(unittest.TestCase):
              raise ValueError("Function parse_danfe not found in notebook.")
 
     def test_parse_danfe_calls(self):
-        # Mocks for PySpark functions
+        # Simulações para funções do PySpark
         mock_col = MagicMock(name="col")
         mock_substring = MagicMock(name="substring")
 
-        # Mock Column behavior
+        # Simula comportamento de Column
         def col_side_effect(name):
             m = MagicMock(name=f"col('{name}')")
             return m
 
         mock_col.side_effect = col_side_effect
 
-        # Mock DataFrame
+        # Simula DataFrame
         mock_df = MagicMock(name="df")
 
         # Chainable withColumn
@@ -49,17 +49,17 @@ class TestParseDanfe(unittest.TestCase):
             'substring': mock_substring,
         }
 
-        # Execute the function definition
+        # # Executa a função definition
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         parse_danfe = local_scope['parse_danfe']
 
-        # Call the function
+        # Chama a função
         result_df = parse_danfe(mock_df)
 
-        # Assertions
+        # Asserções
 
-        # 1. Verify expected columns were added
+        # 1. Verifica se as colunas esperadas foram adicionadas
         expected_cols = {
             "uf": (1, 2),
             "aamm": (3, 4),
@@ -71,7 +71,7 @@ class TestParseDanfe(unittest.TestCase):
             "dv": (44, 1)
         }
 
-        # Get all calls to withColumn
+        # Obtém todas as chamadas para withColumn
         self.assertEqual(mock_df.withColumn.call_count, len(expected_cols))
 
         calls = mock_df.withColumn.call_args_list
@@ -81,34 +81,34 @@ class TestParseDanfe(unittest.TestCase):
         for col_name in expected_cols:
             self.assertIn(col_name, added_cols)
 
-        # 2. Verify substring calls
+        # 2. Verifica substring calls
         self.assertEqual(mock_substring.call_count, len(expected_cols))
 
         substring_calls = mock_substring.call_args_list
 
         # Check that we have a substring call corresponding to each expected column param
-        # We can't easily link substring call to withColumn call without more complex mocking,
-        # but we can verify the set of substring calls matches our expectations.
+        # Não podemos vincular facilmente a chamada substring à chamada withColumn sem uma simulação mais complexa,
+        # mas podemos verificar se o conjunto de chamadas de substring atende às nossas expectativas.
 
-        expected_params = list(expected_cols.values()) # List of (start, len)
+        expected_params = list(expected_cols.values()) # Lista de (início, comprimento)
 
         found_params = []
         for call_args in substring_calls:
             args, _ = call_args
-            # args[0] is col object, args[1] is start, args[2] is length
+            # args[0] é o objeto col, args[1] é início, args[2] é comprimento
             found_params.append((args[1], args[2]))
 
-        # Sort both lists to compare
+        # Classifica ambas as listas para comparar
         expected_params.sort()
         found_params.sort()
 
         self.assertEqual(expected_params, found_params, "Mismatch in substring parameters")
 
-        # 3. Verify withColumnRenamed
+        # 3. Verifica withColumnRenamed
         mock_df.withColumnRenamed.assert_called_once_with("CHAVEDANFE", "chave_danfe")
 
-        # 4. Verify col was called with CHAVEDANFE at least once
-        # In reality it's called for every substring call.
+        # 4. Verifica se col foi chamado com CHAVEDANFE pelo menos uma vez
+        # Na realidade é chamado para cada chamada substring.
         col_calls = mock_col.call_args_list
         for call_args in col_calls:
             self.assertEqual(call_args[0][0], "CHAVEDANFE")
