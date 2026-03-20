@@ -1,3 +1,7 @@
 ## 2024-05-24 - Pandas .apply() Overhead with Pure Python Functions
 **Learning:** In this codebase's Pandas workflows (specifically formatting UI strings in reporting notebooks), using `.apply()` with pure Python functions (like `format_currency_br` or `lambda` string formatters) incurs severe overhead due to Series indexing and function call wrapping per row. It is significantly slower than bypassing Pandas entirely.
 **Action:** Always replace `.apply()` with native Python list comprehensions (e.g., `[func(x) for x in df['col']]`) when applying simple Python string manipulations or custom formatting functions across Pandas columns.
+
+## 2024-06-12 - PySpark Catalyst Predicate Pushdown and crossJoin with Watermarks
+**Learning:** In PySpark incremental load patterns, using `.crossJoin()` with a single-row aggregated watermark DataFrame against a large source table (e.g., Bronze) completely disables the Catalyst optimizer's ability to perform Predicate Pushdown. Catalyst treats it as a `BroadcastNestedLoopJoin` and forces a full table scan of the source before filtering. This is a common but highly inefficient pattern.
+**Action:** Always extract the scalar watermark value directly into a Python variable using `.first()[0]`, and then use `lit(watermark_val)` in the `.filter()` condition. This guarantees that Spark can evaluate the bounds at the Parquet/Delta storage level and skip reading irrelevant data entirely.
