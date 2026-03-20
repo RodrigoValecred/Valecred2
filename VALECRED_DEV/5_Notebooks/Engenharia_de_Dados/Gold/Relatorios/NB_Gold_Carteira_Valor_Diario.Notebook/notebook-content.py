@@ -43,7 +43,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.functions import (
-    col, explode, sequence, sum, lit, coalesce, current_date, to_date, 
+    col, explode, sequence, sum, coalesce, current_date, to_date,
     when, count, max, min, round, abs
 )
 from pyspark.sql.types import DateType
