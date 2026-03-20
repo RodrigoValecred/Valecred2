@@ -1,5 +1,3 @@
-import json
-
 file_path = "VALECRED_DEV/1_Dataflows/Dataflows_Silver/DF_Preparacao_Silver.Dataflow/mashup.pq"
 
 with open(file_path, "r") as f:
