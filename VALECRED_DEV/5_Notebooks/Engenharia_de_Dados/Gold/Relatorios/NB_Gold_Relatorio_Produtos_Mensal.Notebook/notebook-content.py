@@ -36,7 +36,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.functions import (
-    col, sum, avg, count, max, min, lit, when, round, coalesce, year, month, trunc, datediff, to_date, concat, broadcast, trim
+    col, sum, avg, count, max, min, lit, when, round, coalesce, year, trunc, datediff, to_date, concat, broadcast, trim
 )
 from notebookutils import mssparkutils
 
