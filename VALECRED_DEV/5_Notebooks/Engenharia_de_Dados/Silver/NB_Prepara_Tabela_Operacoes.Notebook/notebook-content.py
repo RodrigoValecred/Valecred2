@@ -193,18 +193,21 @@ def process_incremental_operacoes(source_table, output_path, key_columns_operaco
     print("Modo Incremental: Operações")
     delta_table_ops = DeltaTable.forPath(spark, output_path)
 
-    # 1. Watermark (Optimized: Avoid collect())
-    df_watermark = spark.read.format("delta").load(output_path) \
+    # ⚡ Otimização Bolt: Substituir .crossJoin(df_watermark) por .first()[0] e lit()
+    # 💡 O que: Extrair o escalar do watermark no driver em vez de usar crossJoin na query de filtro.
+    # 🎯 Por que: crossJoin com um DataFrame de uma linha quebra o Predicate Pushdown do Catalyst (o otimizador não sabe que é apenas uma linha antes da execução). Extrair o valor para uma variável Python `last_watermark_val` e usar `lit()` permite que o filtro seja avaliado no nível do armazenamento (Parquet/Delta) muito antes de carregar os dados.
+    # 📊 Impacto: Evita full table scan na tabela Bronze, tornando cargas incrementais significativamente mais rápidas e com menos I/O, já que arquivos irrelevantes são ignorados instantaneamente pelo Predicate Pushdown.
+    # 🔬 Medição: O plano físico (`.explain()`) mostrará `PushedFilters: [IsNotNull..., GreaterThanOrEqual...]` em vez de um `BroadcastNestedLoopJoin`.
+    last_watermark_val = spark.read.format("delta").load(output_path) \
         .select(greatest(max("data_inclusao"), max("data_alteracao")).alias("max_date")) \
-        .select(coalesce(col("max_date"), lit("1900-01-01")).alias("last_watermark"))
+        .select(coalesce(col("max_date"), lit("1900-01-01")).alias("last_watermark")) \
+        .first()[0]
 
-    print("Calculando Watermark Operações distribuído...")
+    print(f"Calculando Watermark Operações no driver: {last_watermark_val}...")
 
     # 2. Read Bronze Filtered
     df_bronze_ops = spark.read.table(source_table) \
-        .crossJoin(df_watermark) \
-        .filter((col("DATAINCLUSAO") >= col("last_watermark")) | (col("DATAALTERACAO") >= col("last_watermark"))) \
-        .drop("last_watermark")
+        .filter((col("DATAINCLUSAO") >= lit(last_watermark_val)) | (col("DATAALTERACAO") >= lit(last_watermark_val)))
 
     # 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_ops.isEmpty():
@@ -277,16 +280,19 @@ def process_incremental_devolucoes(source_table, output_path):
     print("Modo Incremental: Devoluções")
     delta_table_dev = DeltaTable.forPath(spark, output_path)
 
-    # 🧠 Otimização Tensor: Evitar collect() usando crossJoin
-    df_watermark = spark.read.format("delta").load(output_path) \
-        .agg(coalesce(max("data_inclusao"), lit("1900-01-01")).alias("last_watermark"))
+    # ⚡ Otimização Bolt: Substituir .crossJoin(df_watermark) por .first()[0] e lit()
+    # 💡 O que: Extrair o escalar do watermark no driver em vez de usar crossJoin na query de filtro.
+    # 🎯 Por que: crossJoin com um DataFrame de uma linha quebra o Predicate Pushdown do Catalyst (o otimizador não sabe que é apenas uma linha antes da execução). Extrair o valor para uma variável Python `last_watermark_val` e usar `lit()` permite que o filtro seja avaliado no nível do armazenamento (Parquet/Delta) muito antes de carregar os dados.
+    # 📊 Impacto: Evita full table scan na tabela Bronze, tornando cargas incrementais significativamente mais rápidas e com menos I/O.
+    # 🔬 Medição: O plano físico (`.explain()`) mostrará que filtros de partição/estatísticas podem ser aplicados diretamente nos arquivos Parquet de origem.
+    last_watermark_val = spark.read.format("delta").load(output_path) \
+        .agg(coalesce(max("data_inclusao"), lit("1900-01-01")).alias("last_watermark")) \
+        .first()[0]
 
-    print("Calculando Watermark Devoluções distribuído...")
+    print(f"Calculando Watermark Devoluções no driver: {last_watermark_val}...")
 
     df_bronze_dev = spark.read.table(source_table) \
-        .crossJoin(df_watermark) \
-        .filter((col("DATAINCLUSAO") >= col("last_watermark")) | (col("DATAALTERACAO") >= col("last_watermark"))) \
-        .drop("last_watermark")
+        .filter((col("DATAINCLUSAO") >= lit(last_watermark_val)) | (col("DATAALTERACAO") >= lit(last_watermark_val)))
 
     # 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_dev.isEmpty():
