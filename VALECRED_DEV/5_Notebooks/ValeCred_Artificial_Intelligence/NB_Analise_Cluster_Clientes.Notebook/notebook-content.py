@@ -40,7 +40,6 @@
 from pyspark.sql.functions import col, datediff, avg, sum, count, max, current_date, when, lit, desc, min, create_map, stddev, coalesce, abs
 from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.clustering import KMeans
-from pyspark.ml.evaluation import ClusteringEvaluator
 from itertools import chain
 import time
 
