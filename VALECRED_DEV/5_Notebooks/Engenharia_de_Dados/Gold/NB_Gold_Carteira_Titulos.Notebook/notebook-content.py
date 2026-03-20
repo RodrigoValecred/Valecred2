@@ -82,10 +82,11 @@ print("Aplicando lógica de negócio...")
 df_ops_filtered = df_ops.filter(
     (col("status_aceite") == 'A') &
     (col("status_analise") == "D")
-).select("cod_operacao", "status_aceite", "status_analise")
+).select("cod_operacao", "status_aceite", "status_analise").drop_duplicates(["cod_operacao"])
 
 # Filtro de Títulos: aceito = S, t_doc <> BL, liquidacao is null
-df_titulos_filtered = df_titulos.filter(
+df_titulos_filtered = df_titulos.dropDuplicates(["cod_titulo"]) \
+    .filter(
     (col("aceito") =="S") &
     (col("t_doc") != "BL") &
     (col("liquidacao").isNull())

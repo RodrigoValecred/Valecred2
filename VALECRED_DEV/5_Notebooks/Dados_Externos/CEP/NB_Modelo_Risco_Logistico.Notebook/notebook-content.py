@@ -76,17 +76,18 @@ from pyspark.sql.types import StructType, StructField, StringType, FloatType
 
 # Lista de focos de crise (Exemplos reais de pontos críticos em greves)
 data = [
-    ("Bloqueio - Marginal Tietê (SP)", -23.518, -46.618, "Crítico"),
-    ("Protesto - Rod. Fernão Dias (MG)", -19.951, -44.015, "Alto"),
-    ("Greve - Porto de Santos (SP)", -23.951, -46.333, "Crítico"),
-    ("Barricada - BR-116 (PR)", -25.428, -49.273, "Moderado")
+    ("Bloqueio - Marginal Tietê (SP)", -23.518, -46.618, "Crítico", 1),
+    ("Protesto - Rod. Fernão Dias (MG)", -19.951, -44.015, "Alto", 0),
+    ("Greve - Porto de Santos (SP)", -23.951, -46.333, "Crítico", 1),
+    ("Barricada - BR-116 (PR)", -25.428, -49.273, "Moderado", 0)
 ]
 
 schema = StructType([
     StructField("local_crise", StringType(), True),
     StructField("lat_crise", FloatType(), True),
     StructField("lon_crise", FloatType(), True),
-    StructField("severidade", StringType(), True)
+    StructField("severidade", StringType(), True),
+    StructField("status_ativo", IntegerType(), True)
 ])
 
 df_pontos_crise = spark.createDataFrame(data, schema)
@@ -102,7 +103,7 @@ df_pontos_crise.write.format("delta").mode("overwrite").saveAsTable("LH_Silver.p
 # CELL ********************
 
 # Carregar as tabelas
-df_titulos = spark.read.table("LH_Gold.fato_titulos")
+df_titulos = spark.read.table("LH_Gold.carteira_de_titulos")
 df_crise = spark.read.table("LH_Silver.pontos_crise")
 
 # METADATA ********************

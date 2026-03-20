@@ -981,7 +981,8 @@ print("Dimensão Produto (dim_produtos) já carregada na inicialização.")
 print("\nIniciando construção da fato_titulos...")
 # 3.1 Preparação e Enriquecimento
 # --------------------------------------------------------------
-df_titulos_base = df_titulos_limpa.filter(~col("t_doc").isin("BL", "RC")) \
+df_titulos_base = df_titulos_limpa.dropDuplicates(["cod_titulo"]) \
+    .filter(~col("t_doc").isin("BL", "RC")) \
     .withColumn("tipo_documento_sacado", when(length(col("cpf_cnpj_sacado")) == 11, "CPF").when(length(col("cpf_cnpj_sacado")) == 14, "CNPJ").otherwise("Inválido")) \
     .withColumn("raiz_cnpj", when(col("tipo_documento_sacado") == "CNPJ", substring(col("cpf_cnpj_sacado"), 1, 8)).otherwise(col("cpf_cnpj_sacado")))
 
