@@ -47,32 +47,19 @@ df_metrics_risco = df_aberto.groupBy("cod_cliente").agg(
 )
 
 # Lógica do Join (A Suspeita)
-print("Performing Left Join (Current Logic)...")
+print("Performing Full Outer Join (Fixed Logic)...")
 df_features = df_metrics_pagos \
-    .join(df_metrics_risco, "cod_cliente", "left") \
+    .join(df_metrics_risco, "cod_cliente", "full_outer") \
     .na.fill(0)
 
 df_features.show()
 
-# Verifica se o Cliente 2 está ausente
+# Verifica se o Cliente 2 está presente
 clients_found = [row.cod_cliente for row in df_features.collect()]
 print(f"Clients found: {clients_found}")
-if 2 not in clients_found:
-    print("CONFIRMED: Client 2 (Only Open Titles) is MISSING due to Left Join.")
-else:
-    print("Logic seems fine? (Unexpected)")
-
-# Proposed Fix: Full Outer Join
-print("\n--- Testing Fix (Full Outer Join) ---")
-df_features_fixed = df_metrics_pagos \
-    .join(df_metrics_risco, "cod_cliente", "full_outer") \
-    .na.fill(0)
-
-df_features_fixed.show()
-clients_found_fixed = [row.cod_cliente for row in df_features_fixed.collect()]
-print(f"Clients found with fix: {clients_found_fixed}")
-
-if 2 in clients_found_fixed:
+if 2 in clients_found:
     print("SUCCESS: Client 2 is now included.")
+else:
+    print("CONFIRMED: Client 2 is MISSING.")
 
 spark.stop()
