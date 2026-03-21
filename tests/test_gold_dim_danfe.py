@@ -86,7 +86,7 @@ class TestParseDanfe(unittest.TestCase):
 
         substring_calls = mock_substring.call_args_list
 
-        # Check that we have a substring call corresponding to each expected column param
+        # Verifica se temos uma chamada substring correspondente a cada parâmetro de coluna esperado
         # Não podemos vincular facilmente a chamada substring à chamada withColumn sem uma simulação mais complexa,
         # mas podemos verificar se o conjunto de chamadas de substring atende às nossas expectativas.
 

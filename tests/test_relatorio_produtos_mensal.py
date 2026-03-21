@@ -49,7 +49,7 @@ def avg(c): return MagicMock()
 def count(c): return MagicMock()
 def max(c): return MagicMock()
 def min(c): return MagicMock()
-# We need a way to track calls to 'when'
+# Precisamos de uma maneira de rastrear chamadas para 'when'
 mock_when_tracker = MagicMock()
 
 def mock_when(condition, value):
@@ -113,7 +113,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         cls.prorrog_code = extract_function_from_file(NOTEBOOK_PATH, "process_prorrogacoes_stream")
         cls.mora_code = extract_function_from_file(NOTEBOOK_PATH, "process_mora_stream")
 
-        # Executa in global scope
+        # Executa no escopo global
         for code in [cls.resolve_code, cls.load_code, cls.ops_code, cls.prorrog_code, cls.mora_code]:
             if code:
                 # Adiciona mock_when como 'when' ao contexto de execução
@@ -125,9 +125,9 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
     def test_historical_mapping_fix(self):
         """
-        Verifies that df_map_ops is created from all operations (not just 2025+),
-        while df_ops (Stream 1) is restricted to 2025+.
-        Uses extracted load_and_prepare_data.
+        Verifica se df_map_ops é criado de todas as operações (não apenas 2025+),
+        enquanto df_ops (Stream 1) é restrito a 2025+.
+        Usa load_and_prepare_data extraído.
         """
         # Simulações para tabelas
         df_ops_raw = MagicMock(name="df_ops_raw")
@@ -180,7 +180,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
     def test_operations_granularity(self):
         """
-        Validates the logic for Operations stream using extracted process_operacoes_stream.
+        Valida a lógica para o fluxo de Operações usando process_operacoes_stream extraído.
         """
         df_ops = MagicMock(name="df_ops")
         df_titulos = MagicMock(name="df_titulos")
@@ -201,7 +201,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
     def test_mora_data_deferimento_replacement_fix(self):
         """
-        Confirms that data_deferimento is updated to use the value of data_baixa in process_mora_stream.
+        Confirma que data_deferimento é atualizado para usar o valor de data_baixa em process_mora_stream.
         """
         # Garante que as funções foram extraídas
         self.assertIsNotNone(self.mora_code, "Failed to extract process_mora_stream")
@@ -237,8 +237,8 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
     def test_mora_date_logic_structure(self):
         """
-        Validates the structure of the Mora date logic ensuring robust date handling.
-        Specifically checks that 'data_referencia_mora' uses a check for year > 1900.
+        Valida a estrutura da lógica de data Mora garantindo manipulação de data robusta.
+        Verifica especificamente se 'data_referencia_mora' usa uma verificação de ano > 1900.
         """
         df_mora = MagicMock()
         df_titulos_dates = MagicMock()

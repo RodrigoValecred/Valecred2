@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 class TestSerproOptimization(unittest.TestCase):
     def test_bidding_optimization(self):
         """
-        Verifies that the proposed optimization for Bidding numbers uses join instead of collect+isin.
+        Verifica se a otimização proposta para números de Licitação usa join em vez de collect+isin.
         """
         # Simula objetos Spark
         mock_df = MagicMock()
@@ -41,7 +41,7 @@ class TestSerproOptimization(unittest.TestCase):
 
     def test_contract_optimization(self):
         """
-        Verifies that the proposed optimization for Contract numbers uses join instead of collect+isin.
+        Verifica se a otimização proposta para números de Contrato usa join em vez de collect+isin.
         """
         # Simula objetos Spark
         mock_df = MagicMock()

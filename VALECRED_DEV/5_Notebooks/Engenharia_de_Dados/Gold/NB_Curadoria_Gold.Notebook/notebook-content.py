@@ -74,8 +74,8 @@ def safe_read_table(spark, table_name, schema=None, fallback_df=None):
 
 def transform_esteira_dates(df_esteira, status_mapping):
     """
-    Optimized transformation to get Max and Min dates per status in a single pass.
-    Returns a single dataframe with all columns renamed.
+    Transformação otimizada para obter datas Máximas e Mínimas por status em uma única passagem.
+    Retorna um único dataframe com todas as colunas renomeadas.
     """
     expected_status = list(status_mapping.keys())
 
@@ -105,16 +105,16 @@ def transform_esteira_dates(df_esteira, status_mapping):
 
 def deduplicate_clientes_staging(df_base_raw):
     """
-    Deduplicates customer staging data by CPF/CNPJ, keeping the most recent record
-    based on 'data_inclusao' and 'cod_cliente'.
+    Desduplica dados de preparo de cliente por CPF/CNPJ, mantendo o registro mais recente
+    baseado em 'data_inclusao' e 'cod_cliente'.
     """
     w_dedup = Window.partitionBy("cpf_cnpj").orderBy(col("data_inclusao").desc(), col("cod_cliente").desc())
     return df_base_raw.withColumn("rn", row_number().over(w_dedup)).filter(col("rn") == 1).drop("rn")
 
 def calculate_vop_metrics(df_ops_validas):
     """
-    Calculates VOP metrics (Top Day of Week and Top Day of Month) for each client.
-    Optimized to reuse existing date columns in df_ops_validas.
+    Calcula métricas VOP (Melhor Dia da Semana e Melhor Dia do Mês) para cada cliente.
+    Otimizado para reutilizar colunas de data existentes em df_ops_validas.
     """
     # VOP por Dia da Semana (Top 1)
     # Reutilizando 'dia_da_semana_da_operacao' (1=Dom, 2=Seg...) calculado na Seção 1.2
@@ -235,7 +235,7 @@ STATUS_ESTEIRA_MAPPING = {
 
 def calculate_funnel_dates(df):
     """
-    Calculates derived dates for the funnel (Approval, Conclusion, Comite, Reserva, Entrada).
+    Calcula datas derivadas para o funil (Aprovação, Conclusão, Comitê, Reserva, Entrada).
     """
     return df \
         .withColumn("data_aprovacao", greatest(col("pivot_checklist"), col("pivot_assinatura"))) \
@@ -264,8 +264,8 @@ def get_status_risco_expr(col_tto="tto", col_vencimento="data_vencimento_util", 
 
 def check_incremental_gold(spark):
     """
-    Checks if new data exists in Silver layer compared to Gold layer.
-    If no new data, exits the notebook.
+    Verifica se existem novos dados na camada Silver comparada à camada Gold.
+    Se não houver novos dados, sai do notebook.
     """
     try:
         # Silver Tables (Source)

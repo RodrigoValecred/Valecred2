@@ -47,7 +47,7 @@ class TestKPISecurity(unittest.TestCase):
                 # Verifica se o primeiro argumento é o literal "password"
                 if isinstance(key_arg, ast.Constant) and key_arg.value == "password":
                     found_password_option = True
-                    # Assert second arg is NOT a string literal
+                    # Garante que o segundo argumento NÃO é uma string literal
                     if isinstance(value_arg, ast.Constant) and isinstance(value_arg.value, str):
                         self.fail(f"CRITICAL: Hardcoded password detected! Found: .option('password', '{value_arg.value}')")
 

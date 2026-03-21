@@ -88,7 +88,7 @@ class TestSelectTitulos(unittest.TestCase):
 
         mock_df.select.side_effect = select_mock
 
-        # Execution context using our MockColumn implementation
+        # Contexto de execução usando nossa implementação MockColumn
         exec_globals = {
             'col': mock_col,
             'when': mock_when,
@@ -168,7 +168,7 @@ class TestSelectTitulos(unittest.TestCase):
         expected_dias_atraso = "when(col('LIQUIDACAO').isNotNull(), datediff(col('LIQUIDACAO'), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')))).otherwise(datediff(current_date(), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')))) AS dias_atraso"
         self.assertIn(expected_dias_atraso, args_str, "Missing or incorrect dias_atraso expression")
 
-        # status_titulo uses when chain
+        # status_titulo usa cadeia when
         expected_status_titulo = "when(col('LIQUIDACAO').isNotNull(), 'LIQUIDADO').when((datediff(current_date(), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO'))) > 0), 'EM ATRASO').otherwise('EM DIA') AS status_titulo"
         self.assertIn(expected_status_titulo, args_str, "Missing or incorrect status_titulo expression")
 
@@ -238,7 +238,7 @@ class TestDeduplicateTitulos(unittest.TestCase):
 
         self.assertEqual(len(results), 3, "Should have 3 unique titles")
 
-        # Check Título 1 -> expects OTHER_DATA = "A" because DATAALTERACAO is highest ("2023-01-10")
+        # Verifica Título 1 -> espera OTHER_DATA = "A" porque DATAALTERACAO é o mais alto ("2023-01-10")
         row1 = [r for r in results if r.CODTITULO == 1][0]
         self.assertEqual(row1.OTHER_DATA, "A")
 

@@ -56,7 +56,7 @@ class TestCreateTargetVariable(unittest.TestCase):
         if not self.create_target_variable:
             self.fail("Function create_target_variable not found in notebook.")
 
-        # Executa the extracted function
+        # Executa a função extraída
         result = self.create_target_variable()
 
         # Verifica se ele retorna o resultado de .otherwise(1)

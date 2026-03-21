@@ -128,7 +128,7 @@ class Colors:
     BOLD = '\033[1m'
 
 def draw_risk_meter(score, width=30):
-    """Draws an ASCII risk meter."""
+    """Desenha um medidor de risco em ASCII."""
     # Tratar NaN
     if score is None or score != score:
         return f"{Colors.YELLOW}[DADOS INSUFICIENTES]{Colors.RESET}"

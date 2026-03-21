@@ -55,7 +55,7 @@ from pyspark.sql.utils import AnalysisException
 
 def safe_extract(zip_ref, path):
     """
-    Extracts a zip file to the specified path, preventing Zip Slip vulnerability.
+    Extrai um arquivo zip para o caminho especificado, prevenindo a vulnerabilidade Zip Slip.
     """
     # Normalizar o caminho de destino (target path) para um caminho absoluto
     target_path = os.path.abspath(path)

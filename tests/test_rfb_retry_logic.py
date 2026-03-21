@@ -50,7 +50,7 @@ def download_logic_snippet(filename, base_dir_download, requests_mock, zipfile_m
             except Exception as e:
                 print(f"Erro no HEAD request para {url}: {e}. Tentando GET direto...")
 
-            # GET request
+            # Requisição GET
             response = requests_mock.get(url, headers=headers, verify=True, stream=True, timeout=120)
 
             if response.status_code == 200:
@@ -187,7 +187,7 @@ def test_corrupt_zip_fallback():
     primary_url = "https://dadosabertos.rfb.gov.br/CNPJ/test.zip"
     fallback_url = "http://200.152.38.155/CNPJ/test.zip"
 
-    # 1. Primary URL returns a file, BUT it's corrupt
+    # 1. A URL primária retorna um arquivo, MAS ele está corrompido
     # 2. Fallback URL returns a valid file
 
     def head_side_effect(url, **kwargs):
@@ -208,7 +208,7 @@ def test_corrupt_zip_fallback():
     # Em vez disso, usaremos side_effect no ZipFile para levantar BadZipFile na primeira vez e então ter sucesso na segunda vez.
 
     mock_corrupt_zip = MagicMock()
-    # testzip returns file name if corrupt, None if valid.
+    # testzip retorna o nome do arquivo se estiver corrompido, None se válido.
     # Mas frequentemente BadZipFile é levantado durante __init__ ou open.
     # Vamos verificar nossa lógica: ela chama ZipFile(path, 'r').
     # Se funcionar, chama testzip().
@@ -225,7 +225,7 @@ def test_corrupt_zip_fallback():
     # Precisamos que o gerenciador de contexto ZipFile retorne essas instâncias sequencialmente
     # zipfile_mock.ZipFile.return_value.__enter__.side_effect = [mock_zip_instance_corrupt, mock_zip_instance_valid]
 
-    # Wait, if testzip returns a string, our logic raises BadZipFile manually.
+    # Espera, se testzip retornar uma string, nossa lógica levanta BadZipFile manualmente.
     # Lógica: se zip_ref.testzip() não for None: levanta zipfile.BadZipFile
 
     zipfile_mock.ZipFile.return_value.__enter__.side_effect = [

@@ -64,7 +64,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         mock_df_prep_2 = MagicMock()
         mock_df_prep.withColumn.return_value = mock_df_prep_2
 
-        # Filter should be applied before joins (Optimization)
+        # Filtro deve ser aplicado antes dos joins (Otimização)
         mock_df_filtered = MagicMock()
         mock_df_prep_2.filter.return_value = mock_df_filtered
 

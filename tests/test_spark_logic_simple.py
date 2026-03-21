@@ -13,7 +13,7 @@ sys.modules['pyspark.sql'] = mock_pyspark_sql
 sys.modules['pyspark.sql.functions'] = mock_pyspark_functions
 
 def col(name):
-    # This mock will return a MagicMock that supports common operators
+    # Este mock retornará um MagicMock que suporta operadores comuns
     m = MagicMock(name=f"col({name})")
     m.__eq__.return_value = m
     m.__ne__.return_value = m

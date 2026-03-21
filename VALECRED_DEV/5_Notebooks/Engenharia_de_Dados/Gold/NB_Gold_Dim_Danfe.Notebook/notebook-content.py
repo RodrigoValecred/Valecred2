@@ -68,8 +68,8 @@ df_chave_filtrada = df_titulos \
 # 3. Extração dos componentes (Parsing)
 def parse_danfe(df):
     """
-    Parses the DANFE key into its components.
-    Expects a column named 'CHAVEDANFE'.
+    Analisa a chave DANFE em seus componentes.
+    Espera uma coluna chamada 'CHAVEDANFE'.
     """
     # Substring em Spark é 1-based.
     return df \

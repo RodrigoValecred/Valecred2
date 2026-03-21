@@ -17,7 +17,7 @@ class TestSanitizeColumnName(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         print(f"Extracting sanitize_column_name from {NOTEBOOK_PATH}")
-        # sanitize_column_name is a nested function, but extract_function_from_file uses ast.walk so it should find it.
+        # sanitize_column_name é uma função aninhada, mas extract_function_from_file usa ast.walk, então deve encontrá-la.
         # Depende de notebook_utils.py usando textwrap.dedent para gerenciar a indentação.
         func_source = extract_function_from_file(NOTEBOOK_PATH, "sanitize_column_name")
 
@@ -39,7 +39,7 @@ class TestSanitizeColumnName(unittest.TestCase):
             print("WARNING: sanitize_column_name function not found in file.")
 
     def test_function_exists(self):
-        """Test that the function was successfully extracted."""
+        """Testa se a função foi extraída com sucesso."""
         self.assertIsNotNone(self.sanitize_column_name, "Function sanitize_column_name not found or failed to load.")
 
     def test_standard_snake_case(self):
@@ -57,7 +57,7 @@ class TestSanitizeColumnName(unittest.TestCase):
         self.assertEqual(self.sanitize_column_name("test_éíóú"), "test_eiou")
 
     def test_camel_case_conversion(self):
-        """Test CamelCase to snake_case conversion."""
+        """Testa a conversão de CamelCase para snake_case."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
         self.assertEqual(self.sanitize_column_name("NomeCliente"), "nome_cliente")
         self.assertEqual(self.sanitize_column_name("DataDeNascimento"), "data_de_nascimento")
@@ -65,26 +65,26 @@ class TestSanitizeColumnName(unittest.TestCase):
         self.assertEqual(self.sanitize_column_name("nomeCliente"), "nome_cliente")
 
     def test_special_characters(self):
-        """Test replacement of special characters with underscores."""
+        """Testa a substituição de caracteres especiais por sublinhados."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
         self.assertEqual(self.sanitize_column_name("Endereço/Rua"), "endereco_rua")
         self.assertEqual(self.sanitize_column_name("Renda ($)"), "renda")
         self.assertEqual(self.sanitize_column_name("user@domain.com"), "user_domain_com")
 
     def test_multiple_underscores(self):
-        """Test collapsing of consecutive underscores."""
+        """Testa o colapso de sublinhados consecutivos."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
         self.assertEqual(self.sanitize_column_name("id__cliente"), "id_cliente")
         self.assertEqual(self.sanitize_column_name("a___b"), "a_b")
 
     def test_stripping_underscores(self):
-        """Test stripping of leading and trailing underscores."""
+        """Testa a remoção de sublinhados no início e no final."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
         self.assertEqual(self.sanitize_column_name("_id_"), "id")
         self.assertEqual(self.sanitize_column_name("__name__"), "name")
 
     def test_mixed_cases_upper(self):
-        """Test handling of uppercase inputs (should bypass CamelCase logic and just lower)."""
+        """Testa o tratamento de entradas em maiúsculas (deve ignorar a lógica CamelCase e apenas colocar em minúsculas)."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
         # 'ID_CLIENTE' -> isupper() é True -> lower() -> 'id_cliente'
         self.assertEqual(self.sanitize_column_name("ID_CLIENTE"), "id_cliente")
@@ -102,7 +102,7 @@ class TestSanitizeColumnName(unittest.TestCase):
         self.assertEqual(self.sanitize_column_name("XMLHttpRequest"), "xml_http_request")
 
     def test_numbers(self):
-        """Test that numbers are preserved."""
+        """Testa se os números são preservados."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
         # Análise lógica: 'Address1' -> 'Address1' -> 'address1' (sem split antes de número exceto se CamelCase)
         self.assertEqual(self.sanitize_column_name("Address1"), "address1")

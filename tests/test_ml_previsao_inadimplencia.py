@@ -26,12 +26,12 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
 
     def test_predict_proba_udf_logic(self):
         """
-        Tests the core logic of the UDF:
-        1. Correctly uses broadcast variables.
-        2. Reconstructs DataFrame.
-        3. Handles categorical conversions.
-        4. Calls model prediction.
-        5. Returns correct probability column.
+        Testa a lógica principal da UDF:
+        1. Usa corretamente variáveis broadcast.
+        2. Reconstrói o DataFrame.
+        3. Gerencia conversões categóricas.
+        4. Chama a previsão do modelo.
+        5. Retorna a coluna de probabilidade correta.
         """
 
         # --- Mocks ---

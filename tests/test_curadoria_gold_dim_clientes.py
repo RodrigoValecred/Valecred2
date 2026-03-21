@@ -45,7 +45,7 @@ class TestJoinClienteDimensions(unittest.TestCase):
         mock_df_client_rate.cod_cliente_rate = MagicMock(name="df_client_rate.cod_cliente_rate")
         mock_df_status_cad.cod_cliente_status = MagicMock(name="df_status_cad.cod_cliente_status")
 
-        # Configure joins to return a chainable mock
+        # Configura joins para retornar um mock encadeável
         # Não precisamos ser muito rigorosos sobre os valores de retorno desde que tenham .join() e .drop()
 
         # Execution Context
@@ -75,7 +75,7 @@ class TestJoinClienteDimensions(unittest.TestCase):
             mock_df_status_cad
         )
 
-        # Verifica result is a DataFrame (mock)
+        # Verifica se o resultado é um DataFrame (mock)
         self.assertTrue(isinstance(result, MagicMock))
 
         # Verificação básica: df_base.join foi chamado
