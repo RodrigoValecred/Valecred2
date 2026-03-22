@@ -120,7 +120,7 @@ class TestCVMPeriodValidation(unittest.TestCase):
         if self.func_source is None:
             self.fail(f"Function validate_periodo not found in {self.notebook_path}")
 
-        # # Executa a função definition in a local scope
+        # # Executa a definição da função em um escopo local
         self.exec_globals = {}
         exec(self.func_source, self.exec_globals)
         self.validate_periodo = self.exec_globals["validate_periodo"]

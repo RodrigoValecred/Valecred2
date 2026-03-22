@@ -80,7 +80,7 @@ class TestUnfoldContactInfo(unittest.TestCase):
         df = MagicMock()
         df.withColumn.return_value = MagicMock()
 
-        # Use a safe delimiter like "," to avoid regex confusion in test
+        # Usa um delimitador seguro como "," para evitar confusão de regex no teste
         self.unfold_contact_info(df, "INPUT_COL", "OUTPUT_COL", ",")
 
         # Verifica split uses correct delimiter

@@ -29,7 +29,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
         def col_side_effect(name):
             if name not in col_mocks:
                 m = MagicMock(name=f"col({name})")
-                # When alias is called, return a new mock but keep track?
+                # Quando o alias for chamado, retorna um novo mock mas mantém o rastreamento?
                 # Actually alias usually returns a Column object.
                 m.alias = MagicMock(return_value=MagicMock(name=f"col({name}).alias"))
                 col_mocks[name] = m
@@ -72,7 +72,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
             'min': mock_min,
         }
 
-        # # Executa a função definition
+        # # Executa a definição da função
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         transform_esteira_dates = local_scope['transform_esteira_dates']

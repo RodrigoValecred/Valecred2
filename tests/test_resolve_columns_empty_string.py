@@ -10,7 +10,7 @@ from tests.notebook_utils import extract_function_from_file
 
 class TestResolveColumns(unittest.TestCase):
     def test_empty_string_treated_as_null(self):
-        # 1. Extract function source
+        # 1. Extrai a fonte da função
         notebook_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py"
         func_source = extract_function_from_file(notebook_path, "resolve_columns")
 

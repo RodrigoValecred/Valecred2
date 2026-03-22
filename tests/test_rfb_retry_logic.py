@@ -208,7 +208,7 @@ def test_corrupt_zip_fallback():
     # Em vez disso, usaremos side_effect no ZipFile para levantar BadZipFile na primeira vez e então ter sucesso na segunda vez.
 
     mock_corrupt_zip = MagicMock()
-    # testzip returns file name if corrupt, None if valid.
+    # testzip retorna o nome do arquivo se corrompido, None se válido.
     # Mas frequentemente BadZipFile é levantado durante __init__ ou open.
     # Vamos verificar nossa lógica: ela chama ZipFile(path, 'r').
     # Se funcionar, chama testzip().

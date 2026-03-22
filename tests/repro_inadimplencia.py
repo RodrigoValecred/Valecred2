@@ -18,7 +18,7 @@ def run_test():
 
     # 2. Simula df_titulos_enrich
     # Gera alguns dados
-    # Create a DataFrame with 1000 titles
+    # Cria um DataFrame com 1000 títulos
     data = []
     for i in range(1000):
         data.append((
@@ -80,8 +80,8 @@ def run_test():
     # Classifica e compara ou apenas conta
     assert count_orig == count_opt, f"Counts differ: Original={count_orig}, Optimized={count_opt}"
 
-    # Check if content matches for a sample
-    # We can join them and check for mismatches but counting is a good first step.
+    # Verifica se o conteúdo corresponde a uma amostra
+    # Podemos juntá-los e verificar se há incompatibilidades, mas a contagem é um bom primeiro passo.
     # Para ser minucioso, vamos verificar IDs distintos.
 
     ids_orig = df_calculo_status_orig.select("cod_operacao", "DATA_CORTE").orderBy("cod_operacao", "DATA_CORTE").collect()

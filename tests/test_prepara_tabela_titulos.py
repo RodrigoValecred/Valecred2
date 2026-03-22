@@ -98,7 +98,7 @@ class TestSelectTitulos(unittest.TestCase):
             'lit': mock_lit,
         }
 
-        # # Executa a função definition
+        # # Executa a definição da função
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         select_titulos = local_scope['select_titulos']
@@ -238,7 +238,7 @@ class TestDeduplicateTitulos(unittest.TestCase):
 
         self.assertEqual(len(results), 3, "Should have 3 unique titles")
 
-        # Check Título 1 -> expects OTHER_DATA = "A" because DATAALTERACAO is highest ("2023-01-10")
+        # Verifica Título 1 -> espera OTHER_DATA = "A" porque DATAALTERACAO é a mais alta ("2023-01-10")
         row1 = [r for r in results if r.CODTITULO == 1][0]
         self.assertEqual(row1.OTHER_DATA, "A")
 

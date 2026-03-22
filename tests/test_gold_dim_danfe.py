@@ -49,7 +49,7 @@ class TestParseDanfe(unittest.TestCase):
             'substring': mock_substring,
         }
 
-        # # Executa a função definition
+        # # Executa a definição da função
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         parse_danfe = local_scope['parse_danfe']
@@ -86,7 +86,7 @@ class TestParseDanfe(unittest.TestCase):
 
         substring_calls = mock_substring.call_args_list
 
-        # Check that we have a substring call corresponding to each expected column param
+        # Verifica se temos uma chamada de substring correspondente a cada parâmetro de coluna esperado
         # Não podemos vincular facilmente a chamada substring à chamada withColumn sem uma simulação mais complexa,
         # mas podemos verificar se o conjunto de chamadas de substring atende às nossas expectativas.
 

@@ -49,7 +49,7 @@ def avg(c): return MagicMock()
 def count(c): return MagicMock()
 def max(c): return MagicMock()
 def min(c): return MagicMock()
-# We need a way to track calls to 'when'
+# Precisamos de uma forma de rastrear as chamadas para 'when'
 mock_when_tracker = MagicMock()
 
 def mock_when(condition, value):
@@ -113,7 +113,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         cls.prorrog_code = extract_function_from_file(NOTEBOOK_PATH, "process_prorrogacoes_stream")
         cls.mora_code = extract_function_from_file(NOTEBOOK_PATH, "process_mora_stream")
 
-        # Executa in global scope
+        # Executa em escopo global
         for code in [cls.resolve_code, cls.load_code, cls.ops_code, cls.prorrog_code, cls.mora_code]:
             if code:
                 # Adiciona mock_when como 'when' ao contexto de execução

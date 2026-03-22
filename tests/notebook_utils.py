@@ -20,7 +20,7 @@ def extract_function_from_file(filepath, function_name):
             break
 
     if not found_path:
-        # Tenta corresponder a lógica original mais de perto se verificações simples falharem
+        # Tenta corresponder à lógica original mais de perto se verificações simples falharem
         # Lógica original: se não existir, tenta ../filepath. Se não existir, reverte para filepath.
         # Isso é coberto por candidatos, mas vamos ser verbosos no log se necessário.
         print(f"File not found: {filepath}")

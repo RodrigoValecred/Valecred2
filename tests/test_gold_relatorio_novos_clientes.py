@@ -32,7 +32,7 @@ def lit(val):
     m.__repr__ = lambda x: f"lit({val})"
     return m
 
-# Create a true Mock for broadcast so we can check .called
+# Cria um verdadeiro Mock para o broadcast para podermos verificar .called
 broadcast_mock = MagicMock(name="broadcast")
 broadcast_mock.return_value = MagicMock(name="broadcast_result")
 broadcast_mock.__repr__ = lambda x: "broadcast()"

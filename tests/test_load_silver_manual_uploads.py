@@ -17,7 +17,7 @@ class TestSanitizeColumnName(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         print(f"Extracting sanitize_column_name from {NOTEBOOK_PATH}")
-        # sanitize_column_name is a nested function, but extract_function_from_file uses ast.walk so it should find it.
+        # sanitize_column_name é uma função aninhada, mas extract_function_from_file usa ast.walk, então deve encontrá-la.
         # Depende de notebook_utils.py usando textwrap.dedent para gerenciar a indentação.
         func_source = extract_function_from_file(NOTEBOOK_PATH, "sanitize_column_name")
 

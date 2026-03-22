@@ -73,13 +73,13 @@ class MockDataFrame:
         print(f"Joining {self.name} with {other.name} on {on}")
         joined_data = []
 
-        # If 'on' is a condition (MockColumn)
+        # Se 'on' for uma condição (MockColumn)
         if isinstance(on, MockColumn):
             # Simplistic parser: "col1 == col2"
             cond_str = on.name
             parts = cond_str.split(" == ")
             if len(parts) == 2:
-                # Remove "col." prefix if any
+                # Remove o prefixo "col." se houver
                 left_col = parts[0].split(".")[-1].strip()
                 right_col = parts[1].split(".")[-1].strip()
 
@@ -145,7 +145,7 @@ class MockDataFrame:
         new_data = []
         for row in self.data:
             new_row = row.copy()
-            # If simplistic key match
+            # Se for uma correspondência de chave simplista
             if existing in new_row:
                 new_row[new] = new_row.pop(existing)
             new_data.append(new_row)

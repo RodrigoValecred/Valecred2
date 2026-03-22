@@ -22,7 +22,7 @@ def process_fechamento_prorrogacao(df_prorrog):
     # 2. Identifica se foi eventualmente deferido
     w_titulo = Window.partitionBy("cod_titulo")
 
-    # Flag: 1 if status_analise_norm == 'DEFERIDO'
+    # Flag: 1 se status_analise_norm == 'DEFERIDO'
     df_flagged = df_prorrog_prep.withColumn("is_deferido",
         when(col("status_analise_norm") == "DEFERIDO", 1).otherwise(0)
     )

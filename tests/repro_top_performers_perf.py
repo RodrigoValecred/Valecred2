@@ -62,7 +62,7 @@ def run_optimized(spark, df_final_metrics):
         df_top_performers = df_perf_12m.filter(F.col("res_acum") >= corte_top).select("id_gerente")
 
         # Usa a lógica de Left Semi Join para sinalizar
-        # We want to keep all rows in df_final_metrics and add a flag column
+        # Queremos manter todas as linhas em df_final_metrics e adicionar uma coluna de flag
 
         # Abordagem: Join com coluna constante, depois coalesce
         df_top_with_flag = df_top_performers.withColumn("is_top_flag", F.lit(True))

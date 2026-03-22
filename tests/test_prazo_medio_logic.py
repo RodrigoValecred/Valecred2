@@ -113,7 +113,7 @@ class TestPrazoMedioLogic(unittest.TestCase):
         # Verificamos os argumentos passados para datediff no fluxo
         # É difícil extrair o objeto exato da chamada datediff dos argumentos de withColumn sem inspeção complexa,
         # mas podemos verificar se datediff foi chamado com colunas corretas.
-        # Since we mocked datediff to return a named MagicMock, we can check the withColumn calls.
+        # Como criamos um mock do datediff para retornar um MagicMock nomeado, podemos verificar as chamadas de withColumn.
 
         calls = df_titulos_joined.withColumn.call_args_list
         # Expecting call("prazo_original_dias", datediff_result)

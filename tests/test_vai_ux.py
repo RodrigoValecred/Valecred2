@@ -16,7 +16,7 @@ class TestVaiUX:
         if not self.create_progress_bar_source:
             pytest.fail(f"Could not extract create_progress_bar from {NOTEBOOK_PATH}")
 
-        # # Executa a função definition in a local namespace
+        # # Executa a definição da função em um namespace local
         self.local_scope = {}
         exec(self.create_progress_bar_source, {}, self.local_scope)
         self.create_progress_bar = self.local_scope['create_progress_bar']

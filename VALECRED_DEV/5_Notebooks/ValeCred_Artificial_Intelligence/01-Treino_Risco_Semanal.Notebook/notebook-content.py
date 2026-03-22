@@ -126,7 +126,7 @@ feature_cols = [
 print("📉 Gerando amostra para treinamento (Performance)...")
 spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
 
-# 🧠 Tensor: Select required columns before .toPandas()
+# 🧠 Tensor: Selecione as colunas necessárias antes de .toPandas()
 # 💡 O que: Seleciona as features estritamente necessárias antes da conversão para Pandas.
 # 🎯 Por que: Transferir todas as colunas da tabela do JVM/Spark para o driver Python via rede desperdiça muita memória e CPU. Selecionar apenas o necessário reduz o payload.
 # 📊 Impacto: Acelera o `.toPandas()` em mais de 4x.

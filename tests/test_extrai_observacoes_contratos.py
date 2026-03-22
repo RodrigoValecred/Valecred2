@@ -37,7 +37,7 @@ class TestConverterMoedaBr(unittest.TestCase):
         func_source = extract_function_from_file(NOTEBOOK_PATH, "converter_moeda_br")
 
         if func_source:
-            # Create a context with mock functions to be used as globals during function execution
+            # Cria um contexto com funções de simulação (mock) para serem usadas como globais durante a execução da função
             context = {
                 "col": mock_col,
                 "regexp_replace": mock_regexp_replace,

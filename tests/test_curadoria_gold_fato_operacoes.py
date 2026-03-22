@@ -94,7 +94,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
                           'floor', 'least', 'current_date', 'split', 'pow', 'xxhash64']:
              exec_globals[func_name] = MagicMock()
 
-        # # Executa a função definition
+        # # Executa a definição da função
         local_scope = {}
         # Auxiliares devem estar em exec_globals para que create_fato_operacoes os veja
         exec(self.helper1_source, exec_globals)

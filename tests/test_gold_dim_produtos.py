@@ -58,7 +58,7 @@ class TestIncorporarProdutosAusentes(unittest.TestCase):
             'lit': mock_lit
         }
 
-        # # Executa a função definition
+        # # Executa a definição da função
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         incorporar_produtos_ausentes = local_scope['incorporar_produtos_ausentes']
@@ -88,7 +88,7 @@ class TestIncorporarProdutosAusentes(unittest.TestCase):
             'lit': MagicMock()
         }
 
-        # # Executa a função definition
+        # # Executa a definição da função
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         incorporar_produtos_ausentes = local_scope['incorporar_produtos_ausentes']
