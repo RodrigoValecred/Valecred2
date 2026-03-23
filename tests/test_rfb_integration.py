@@ -21,7 +21,7 @@ sys.modules['notebookutils'] = MagicMock()
 
 # Testa a lógica do notebook RFB (download/extração)
 def test_rfb_notebook_logic():
-    notebook_path = "VALECRED_DEV/7_Dados_Externos/Receita Federal/NB_Load_Bronze_Receita_Federal_Full.Notebook/notebook-content.py"
+    notebook_path = "VALECRED_DEV/5_Notebooks/Dados_Externos/Receita Federal/NB_Load_Bronze_Receita_Federal_Full.Notebook/notebook-content.py"
     assert os.path.exists(notebook_path)
 
     with open(notebook_path, 'r') as f:
