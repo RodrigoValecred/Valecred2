@@ -15,15 +15,15 @@ from notebook_utils import extract_function_from_file
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SERPRO_NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
-    "VALECRED_DEV/7_Dados_Externos/NB_Load_Bronze_From_SERPRO.Notebook/notebook-content.py"
+    "VALECRED_DEV/5_Notebooks/Dados_Externos/NB_Load_Bronze_From_SERPRO.Notebook/notebook-content.py"
 )
 CVM_NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
-    "VALECRED_DEV/7_Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
+    "VALECRED_DEV/5_Notebooks/Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
 )
 RFB_NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,
-    "VALECRED_DEV/7_Dados_Externos/Receita Federal/NB_Extract_Bronze_Receita_Federal_Full.Notebook/notebook-content.py"
+    "VALECRED_DEV/5_Notebooks/Dados_Externos/Receita Federal/NB_Extract_Bronze_Receita_Federal_Full.Notebook/notebook-content.py"
 )
 
 class TestSafeExtract(unittest.TestCase):
