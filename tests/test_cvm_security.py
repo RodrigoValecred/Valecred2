@@ -11,7 +11,7 @@ class TestCVMSecurity(unittest.TestCase):
     def test_requests_timeout(self):
         # Localiza o arquivo do notebook
         # Assumindo que executamos da raiz do repositório
-        filepath = "VALECRED_DEV/7_Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
+        filepath = "VALECRED_DEV/5_Notebooks/Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
 
         if not os.path.exists(filepath):
             self.fail(f"Notebook file not found at {filepath}")
@@ -58,7 +58,7 @@ class TestCVMSecurity(unittest.TestCase):
 
     def test_requests_stream(self):
         # Localiza o arquivo do notebook
-        filepath = "VALECRED_DEV/7_Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
+        filepath = "VALECRED_DEV/5_Notebooks/Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
 
         if not os.path.exists(filepath):
             self.fail(f"Notebook file not found at {filepath}")
@@ -112,7 +112,7 @@ class TestCVMSecurity(unittest.TestCase):
 class TestCVMPeriodValidation(unittest.TestCase):
     def setUp(self):
         # Localiza o arquivo do notebook
-        self.notebook_path = "VALECRED_DEV/7_Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
+        self.notebook_path = "VALECRED_DEV/5_Notebooks/Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py"
 
         # Extrai o código fonte da função
         self.func_source = extract_function_from_file(self.notebook_path, "validate_periodo")
