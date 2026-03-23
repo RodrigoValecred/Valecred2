@@ -6,6 +6,7 @@
 - Use clear, technical, but accessible language.
 - Standardize formatting (Markdown tables, Mermaid diagrams for ERD).
 - Reference the specific file or commit where the change occurred.
+- Write all code comments and documentation in Brazilian Portuguese (Português Brasileiro).
 
 ⚠️ Ask first:
 - Changing the primary documentation tool or format (e.g., switching from Markdown to Swagger).
