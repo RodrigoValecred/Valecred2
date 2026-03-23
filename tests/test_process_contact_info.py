@@ -44,11 +44,11 @@ class TestUnfoldContactInfo(unittest.TestCase):
         self.unfold_contact_info = local_scope["unfold_contact_info"]
 
     def test_function_exists(self):
-        """Test that the function was successfully extracted."""
+        """Testa se a função foi extraída com sucesso."""
         self.assertIsNotNone(self.func_source, "Function unfold_contact_info not found in notebook file.")
 
     def test_unfold_logic(self):
-        """Test the core logic: explode(split) then trim."""
+        """Testa a lógica principal: explode(split) e então trim."""
         df = MagicMock()
         # Mocking method chaining
         df_unfolded = MagicMock()
@@ -76,11 +76,11 @@ class TestUnfoldContactInfo(unittest.TestCase):
         self.assertEqual(result, df_cleaned)
 
     def test_delimiter_parameter(self):
-        """Test that the delimiter parameter is correctly passed to split."""
+        """Testa se o parâmetro delimitador é passado corretamente para o split."""
         df = MagicMock()
         df.withColumn.return_value = MagicMock()
 
-        # Use a safe delimiter like "," to avoid regex confusion in test
+        # Usa um delimitador seguro como "," para evitar confusão de regex no teste
         self.unfold_contact_info(df, "INPUT_COL", "OUTPUT_COL", ",")
 
         # Verifica split uses correct delimiter

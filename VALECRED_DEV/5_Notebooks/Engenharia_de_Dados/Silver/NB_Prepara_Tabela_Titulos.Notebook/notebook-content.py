@@ -137,8 +137,8 @@ def select_titulos(df):
 
 def deduplicate_titulos(df, key_columns):
     """
-    Deduplicates the dataframe based on the latest activity date.
-    Prioritizes DATAALTERACAO, DATAINCLUSAO, and LIQUIDACAO.
+    Desduplica o dataframe baseado na última data de atividade.
+    Prioriza DATAALTERACAO, DATAINCLUSAO e LIQUIDACAO.
     """
     df_with_latest = df.withColumn(
         "DATA_MAIS_RECENTE",

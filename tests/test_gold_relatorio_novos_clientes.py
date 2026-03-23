@@ -32,7 +32,7 @@ def lit(val):
     m.__repr__ = lambda x: f"lit({val})"
     return m
 
-# Create a true Mock for broadcast so we can check .called
+# Cria um verdadeiro Mock para broadcast para que possamos verificar .called
 broadcast_mock = MagicMock(name="broadcast")
 broadcast_mock.return_value = MagicMock(name="broadcast_result")
 broadcast_mock.__repr__ = lambda x: "broadcast()"
@@ -67,8 +67,8 @@ class TestGoldRelatorioNovosClientesOptimization(unittest.TestCase):
 
     def test_optimization_applied(self):
         """
-        Verifies that the optimized logic (pre-cast date and broadcast join) is syntactically correct
-        and calls the expected Spark functions.
+        Verifica se a lógica otimizada (data de pré-conversão e broadcast join) está sintaticamente correta
+        e chama as funções Spark esperadas.
         """
         # Simula DataFrames
         df_ops = MagicMock(name="df_ops")

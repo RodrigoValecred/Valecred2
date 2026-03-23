@@ -7,7 +7,7 @@ import tempfile
 # --- A função a ser testada e posteriormente copiada para o notebook ---
 def safe_extract(zip_ref, path):
     """
-    Extracts a zip file to the specified path, preventing Zip Slip vulnerability.
+    Extrai um arquivo zip para o caminho especificado, prevenindo a vulnerabilidade Zip Slip.
     """
     # Normaliza o caminho de destino para um caminho absoluto
     target_path = os.path.abspath(path)
@@ -50,7 +50,7 @@ class TestSafeExtract(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.extract_path, 'folder', 'nested.txt')))
 
     def test_safe_extract_zip_slip(self):
-        """Test extracting a zip file with Zip Slip vulnerability."""
+        """Testa a extração de um arquivo zip com a vulnerabilidade Zip Slip."""
 
         class MockZipFile:
             def __init__(self, namelist_return):

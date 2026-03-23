@@ -63,12 +63,12 @@ sys.modules["pyspark.sql.functions"].trunc = trunc
 class TestPrazoMedioLogic(unittest.TestCase):
     def test_prazo_medio_original_logic(self):
         """
-        Verifies the sequence of PySpark transformations to calculate 'Prazo Médio Original Sem Floating'.
-        Logic:
-          1. Join Titles with Ops (to get data_deferimento)
-          2. Calculate Prazo Original (vencimento - data_deferimento)
-          3. Calculate Weighted Value (Valor * Prazo Original)
-          4. Aggregate by Op
+        Verifica a sequência de transformações PySpark para calcular 'Prazo Médio Original Sem Floating'.
+        Lógica:
+          1. Join Títulos com Ops (para obter data_deferimento)
+          2. Calcula Prazo Original (vencimento - data_deferimento)
+          3. Calcula Valor Ponderado (Valor * Prazo Original)
+          4. Agrega por Op
         """
         # Mocks
         df_ops = MagicMock(name="df_ops")
@@ -113,7 +113,7 @@ class TestPrazoMedioLogic(unittest.TestCase):
         # Verificamos os argumentos passados para datediff no fluxo
         # É difícil extrair o objeto exato da chamada datediff dos argumentos de withColumn sem inspeção complexa,
         # mas podemos verificar se datediff foi chamado com colunas corretas.
-        # Since we mocked datediff to return a named MagicMock, we can check the withColumn calls.
+        # Já que criamos um mock de datediff para retornar um MagicMock nomeado, podemos verificar as chamadas de withColumn.
 
         calls = df_titulos_joined.withColumn.call_args_list
         # Expecting call("prazo_original_dias", datediff_result)
@@ -121,7 +121,7 @@ class TestPrazoMedioLogic(unittest.TestCase):
 
         # Vamos confiar no fluxo se o código executou sem erros nas simulações.
         # Idealmente, verificaríamos:
-        # asserção "datediff(col('vencimento'), col('data_deferimento'))" in str(df_titulos_joined.withColumn.call_args)
+        # asserção "datediff(col('vencimento'), col('data_deferimento'))" em str(df_titulos_joined.withColumn.call_args)
 
         print("Logic flow executed successfully on mocks.")
 

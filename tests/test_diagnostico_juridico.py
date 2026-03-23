@@ -30,8 +30,8 @@ class TestDiagnosticoJuridico(unittest.TestCase):
             m = MagicMock()
             # Precisamos que alias retorne algo que possa ser passado para agg
             # agg accepts Column objects.
-            # So alias should return a MagicMock too (or a string if agg mocks accept strings)
-            # Let's return a string for simplicity in debugging, but since agg is mocked, it doesn't matter what it returns as long as it returns *something*.
+            # Portanto, alias deve retornar um MagicMock também (ou uma string se os mocks de agg aceitarem strings)
+            # Vamos retornar uma string para simplificar a depuração, mas como agg é um mock, não importa o que ele retorna, desde que retorne *algo*.
             # Mas espere, alias() é chamado no resultado de max().
             m.alias.return_value = f"{name}_aliased"
             return m
@@ -53,7 +53,7 @@ class TestDiagnosticoJuridico(unittest.TestCase):
         self.check_silver_titulos = local_scope["check_silver_titulos"]
 
     def test_check_silver_titulos_success(self):
-        """Test happy path where table is read and stats calculated."""
+        """Testa o caminho feliz onde a tabela é lida e as estatísticas calculadas."""
         spark = MagicMock()
         df_titulos = MagicMock()
 
@@ -62,7 +62,7 @@ class TestDiagnosticoJuridico(unittest.TestCase):
 
         # Simula agregação e coleta
         # silver_stats = df_titulos.agg(...).collect()[0]
-        # We need agg(...) to return a DF, and collect() to return a list of Rows
+        # Precisamos que agg(...) retorne um DF e collect() retorne uma lista de Rows
         mock_stats_df = MagicMock()
         df_titulos.agg.return_value = mock_stats_df
 

@@ -4,7 +4,7 @@ import textwrap
 
 def extract_function_from_file(filepath, function_name):
     """
-    Extracts the source code of a function from a python file using AST.
+    Extrai o código fonte de uma função de um arquivo python usando AST.
     """
     # Verifica se o arquivo existe no caminho, ou em relação aos possíveis locais de execução do teste
     candidates = [

@@ -66,7 +66,7 @@ def generate_markdown(assets, inventory):
                     md += "- **Destination:** (Not specified)\n"
                     md += "- **Transformations:** (Not specified)\n"
                 elif section_name == 'Lakehouses' or section_name == 'Data Warehouses':
-                    pass # already has description placeholder
+                    pass # já possui espaço reservado para descrição
             md += "\n"
     return md
 

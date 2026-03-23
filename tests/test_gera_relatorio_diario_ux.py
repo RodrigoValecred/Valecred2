@@ -60,7 +60,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             self.fail(f"Failed to execute extracted function source: {e}")
 
     def test_prepare_dashboard_data_logic(self):
-        """Test business logic in isolation without print mocking"""
+        """Testa a lógica de negócio isoladamente sem simulação de impressão"""
         df = pd.DataFrame({
             'grupo': ['Safe Group', 'Risky Group'],
             'valor_risco': [50.0, 150.0],
@@ -252,7 +252,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("R$", html)
 
     def test_format_currency_br(self):
-        """Test the format_currency_br utility function."""
+        """Testa a função utilitária format_currency_br."""
         # Verifica se a função foi devidamente extraída e injetada
         self.assertIn('format_currency_br', self.scope)
         format_func = self.scope['format_currency_br']

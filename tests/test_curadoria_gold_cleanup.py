@@ -8,16 +8,16 @@ class TestCuradoriaGoldCleanup(unittest.TestCase):
             self.content = f.read()
 
     def test_find_column_removed(self):
-        """Test that find_column function definition is removed."""
+        """Testa se a definição da função find_column é removida."""
         self.assertNotIn("def find_column", self.content)
 
     def test_candidates_lists_removed(self):
-        """Test that candidate lists are removed."""
+        """Testa se as listas candidatas são removidas."""
         self.assertNotIn('risk_candidates = ["valoremabertort"', self.content)
         self.assertNotIn('limit_candidates = ["limitefomento"', self.content)
 
     def test_standardized_columns_usage(self):
-        """Test that standardized columns are used."""
+        """Testa se colunas padronizadas são usadas."""
         self.assertIn('col("estudo.valor_risco_estudo")', self.content)
         self.assertIn('col("estudo.valor_limite_estudo")', self.content)
 

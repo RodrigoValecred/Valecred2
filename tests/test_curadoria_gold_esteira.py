@@ -29,7 +29,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
         def col_side_effect(name):
             if name not in col_mocks:
                 m = MagicMock(name=f"col({name})")
-                # When alias is called, return a new mock but keep track?
+                # Quando alias é chamado, retorna um novo mock mas mantém o rastreamento?
                 # Actually alias usually returns a Column object.
                 m.alias = MagicMock(return_value=MagicMock(name=f"col({name}).alias"))
                 col_mocks[name] = m

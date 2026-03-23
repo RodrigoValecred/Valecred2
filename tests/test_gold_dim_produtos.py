@@ -76,7 +76,7 @@ class TestIncorporarProdutosAusentes(unittest.TestCase):
         mock_spark = MagicMock(name="spark")
         mock_df_calc = MagicMock(name="df_calc")
 
-        # Raise exception when reading table
+        # Levanta exceção ao ler a tabela
         mock_spark.read.table.side_effect = Exception("Table not found")
 
         # Contexto de execução (ainda precisa de importações mesmo se não usadas no caminho de falha se o python as analisar)

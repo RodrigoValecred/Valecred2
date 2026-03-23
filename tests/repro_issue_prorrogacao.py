@@ -30,10 +30,10 @@ class MockDataFrame:
         return MockDataFrame(f"selected_{self.name}", selected_cols, self.data)
 
     def filter(self, condition):
-        # Simulate filtering by creating a new dataframe with potentially fewer rows
-        # In a real mock, we would evaluate the condition.
-        # Here we just return a filtered version based on the condition string if we can parse it,
-        # or just return a mock that represents the filtered state.
+        # Simula a filtragem criando um novo dataframe com potencialmente menos linhas
+        # Em um mock real, avaliaríamos a condição.
+        # Aqui nós apenas retornamos uma versão filtrada baseada na string de condição se conseguirmos analisá-la,
+        # ou apenas retornamos um mock que representa o estado filtrado.
         return MockDataFrame(f"filtered_{self.name}", self.columns, [d for d in self.data if self._eval(condition, d)])
 
     def _eval(self, condition, row):
@@ -66,7 +66,7 @@ class MockDataFrame:
         return MockDataFrame(f"joined_{self.name}_{other.name}", all_cols, joined_data)
 
     def withColumn(self, name, col_expr):
-        # Simulate adding a column. Since we can't evaluate complex expressions easily,
+        # Simula a adição de uma coluna. Como não podemos avaliar expressões complexas facilmente,
         # vamos apenas adicionar o nome da coluna ao esquema.
         new_cols = self.columns + [name]
         return MockDataFrame(f"with_col_{self.name}", new_cols, self.data)
@@ -104,7 +104,7 @@ class TestRelatorioProdutos(unittest.TestCase):
 
     def test_repro_issue_platform_missing(self):
         # Simulação de Dados
-        # Operation 1: Accepted (A) and Deferido (D) -> Should be in map
+        # Operação 1: Aceito (A) e Deferido (D) -> Deve estar no mapa
         # Operação 2: Rejeitada (R) -> NÃO deve estar no mapa filtrado, mas pode ter Prorrogação
 
         ops_data = [
@@ -136,7 +136,7 @@ class TestRelatorioProdutos(unittest.TestCase):
 
         # Asserções
         print("Joined Data (Fixed Logic):", df_joined.data)
-        # Op 2 should have "Platform B"
+        # Op 2 deve ter "Platform B"
         row_op2 = next(r for r in df_joined.data if r["cod_operacao"] == "2")
         self.assertEqual(row_op2.get("nome_plataforma_op"), "Platform B")
         print("Confirmed: Platform is present for Op 2 with fixed logic.")

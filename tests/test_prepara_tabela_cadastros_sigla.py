@@ -63,8 +63,8 @@ class TestSiglaExpr(unittest.TestCase):
 
         # Lambda executors
         def mock_array_filter(col, func):
-            # Executa lambda with a dummy column "x"
-            # The lambda expects a column object that supports operators
+            # Executa o lambda com uma coluna dummy "x"
+            # O lambda espera um objeto de coluna que suporte operadores
             res = func(MockColumn("x"))
             return f"array_filter({col}, x -> {res})"
 

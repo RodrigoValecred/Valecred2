@@ -110,16 +110,16 @@ class TestDimEmpresas(unittest.TestCase):
         self.df_final = df_final
 
     def test_join_condition_columns(self):
-        """Verifica col calls for the second join"""
+        """Verifica as chamadas col para o segundo join"""
         self.mock_col.assert_any_call("e.cod_empresa")
         self.mock_col.assert_any_call("a.cod_empresa")
 
     def test_selection_columns(self):
-        """Verifica col calls for selection"""
+        """Verifica as chamadas col para seleção"""
         self.mock_col.assert_any_call("a.apelido_empresa")
 
     def test_incorrect_columns_not_used(self):
-        """Ensure incorrect columns a.nome and a.apelido were NOT called"""
+        """Garante que colunas incorretas a.nome e a.apelido NÃO foram chamadas"""
         with self.assertRaises(AssertionError):
             self.mock_col.assert_any_call("a.nome")
 

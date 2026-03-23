@@ -133,7 +133,7 @@ class TestCVMPeriodValidation(unittest.TestCase):
                 self.assertTrue(self.validate_periodo(p), f"Should accept valid period: {p}")
 
     def test_invalid_periodos_length(self):
-        """Test periods with incorrect length."""
+        """Testa períodos com comprimento incorreto."""
         invalid_cases = ["2025", "2025011", "1", ""]
         for p in invalid_cases:
             with self.subTest(periodo=p):
@@ -141,7 +141,7 @@ class TestCVMPeriodValidation(unittest.TestCase):
                     self.validate_periodo(p)
 
     def test_invalid_periodos_year(self):
-        """Test periods with year out of bounds (2010-2050)."""
+        """Testa períodos com ano fora dos limites (2010-2050)."""
         invalid_cases = ["200912", "199912", "205101", "300001", "000001"]
         for p in invalid_cases:
             with self.subTest(periodo=p):
@@ -149,7 +149,7 @@ class TestCVMPeriodValidation(unittest.TestCase):
                     self.validate_periodo(p)
 
     def test_invalid_periodos_month(self):
-        """Test periods with month out of bounds (1-12)."""
+        """Testa períodos com mês fora dos limites (1-12)."""
         invalid_cases = ["202500", "202513", "202599"]
         for p in invalid_cases:
             with self.subTest(periodo=p):
@@ -157,7 +157,7 @@ class TestCVMPeriodValidation(unittest.TestCase):
                     self.validate_periodo(p)
 
     def test_invalid_periodos_content(self):
-        """Test periods with non-digit characters."""
+        """Testa períodos com caracteres não dígitos."""
         invalid_cases = ["20250a", "abcdef", "2025-1", "20.250"]
         for p in invalid_cases:
             with self.subTest(periodo=p):

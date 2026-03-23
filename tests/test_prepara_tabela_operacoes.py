@@ -96,11 +96,11 @@ class TestDecodeHtmlEntities(unittest.TestCase):
             print("WARNING: unescape_udf function not found in file.")
 
     def test_function_exists(self):
-        """Test that the function was successfully extracted."""
+        """Testa se a função foi extraída com sucesso."""
         self.assertIsNotNone(self.unescape_udf, "Function unescape_udf not found in notebook file.")
 
     def test_basic_decoding(self):
-        """Test decoding of basic HTML entities."""
+        """Testa a decodificação de entidades HTML básicas."""
         if not self.unescape_udf:
             self.skipTest("Function not found")
 
@@ -109,7 +109,7 @@ class TestDecodeHtmlEntities(unittest.TestCase):
         pd.testing.assert_series_equal(self.unescape_udf(s), expected)
 
     def test_none_input(self):
-        """Test handling of None input."""
+        """Testa o tratamento de entrada nula (None)."""
         if not self.unescape_udf:
             self.skipTest("Function not found")
 
@@ -118,7 +118,7 @@ class TestDecodeHtmlEntities(unittest.TestCase):
         pd.testing.assert_series_equal(self.unescape_udf(s), expected)
 
     def test_empty_string(self):
-        """Test handling of empty string."""
+        """Testa o tratamento de string vazia."""
         if not self.unescape_udf:
             self.skipTest("Function not found")
 
@@ -136,14 +136,14 @@ class TestDecodeHtmlEntities(unittest.TestCase):
         pd.testing.assert_series_equal(self.unescape_udf(s), expected)
 
     def test_non_string_input(self):
-        """Test handling of non-string input."""
+        """Testa o tratamento de entrada não-string."""
         if not self.unescape_udf:
             self.skipTest("Function not found")
 
         s = pd.Series([123, 3.14])
         # pandas str.replace retornará NaN para não-strings em matrizes de objetos geralmente ou os deixará em paz dependendo da versão do pandas
         # Apenas verificamos que ele não falha, e preserva os tipos numéricos se não usarmos o str accessor diretamente neles
-        # Wait, if we use text.str.replace, on a numeric series it will return NaN.
+        # Espera, se usarmos text.str.replace, em uma série numérica retornará NaN.
         # Mas normalmente as strings do PySpark são passadas como object series. Não vamos testar números.
         pass
 
@@ -163,11 +163,11 @@ class TestTacVariations(unittest.TestCase):
             print("WARNING: get_tac_variations function not found in file.")
 
     def test_function_exists(self):
-        """Test that the function was successfully extracted."""
+        """Testa se a função foi extraída com sucesso."""
         self.assertIsNotNone(self.get_tac_variations, "Function get_tac_variations not found in notebook file.")
 
     def test_variations_list_content(self):
-        """Test that the variations list contains expected values."""
+        """Testa se a lista de variações contém valores esperados."""
         if not self.get_tac_variations:
             self.skipTest("Function not found")
 
@@ -183,7 +183,7 @@ class TestTacVariations(unittest.TestCase):
         self.assertEqual(set(variations), set(expected_items))
 
     def test_variations_are_strings(self):
-        """Test that all items in the list are strings."""
+        """Testa se todos os itens da lista são strings."""
         if not self.get_tac_variations:
             self.skipTest("Function not found")
 
@@ -215,7 +215,7 @@ class TestNormalizeCol(unittest.TestCase):
             print("WARNING: normalize_col function not found in file.")
 
     def test_function_exists(self):
-        """Test that the function was successfully extracted."""
+        """Testa se a função foi extraída com sucesso."""
         self.assertIsNotNone(self.normalize_col, "Function normalize_col not found or failed to load.")
 
     def test_standard_snake_case(self):
@@ -233,7 +233,7 @@ class TestNormalizeCol(unittest.TestCase):
         self.assertEqual(self.normalize_col("test_éíóú"), "test_eiou")
 
     def test_camel_case_conversion(self):
-        """Test CamelCase to snake_case conversion."""
+        """Testa a conversão de CamelCase para snake_case."""
         if not self.normalize_col: self.skipTest("Function not found")
         self.assertEqual(self.normalize_col("NomeCliente"), "nome_cliente")
         self.assertEqual(self.normalize_col("DataDeNascimento"), "data_de_nascimento")
@@ -241,26 +241,26 @@ class TestNormalizeCol(unittest.TestCase):
         self.assertEqual(self.normalize_col("nomeCliente"), "nome_cliente")
 
     def test_special_characters(self):
-        """Test replacement of special characters with underscores."""
+        """Testa a substituição de caracteres especiais por sublinhados."""
         if not self.normalize_col: self.skipTest("Function not found")
         self.assertEqual(self.normalize_col("Endereço/Rua"), "endereco_rua")
         self.assertEqual(self.normalize_col("Renda ($)"), "renda")
         self.assertEqual(self.normalize_col("user@domain.com"), "user_domain_com")
 
     def test_multiple_underscores(self):
-        """Test collapsing of consecutive underscores."""
+        """Testa o colapso de sublinhados consecutivos."""
         if not self.normalize_col: self.skipTest("Function not found")
         self.assertEqual(self.normalize_col("id__cliente"), "id_cliente")
         self.assertEqual(self.normalize_col("a___b"), "a_b")
 
     def test_stripping_underscores(self):
-        """Test stripping of leading and trailing underscores."""
+        """Testa a remoção de sublinhados no início e no final."""
         if not self.normalize_col: self.skipTest("Function not found")
         self.assertEqual(self.normalize_col("_id_"), "id")
         self.assertEqual(self.normalize_col("__name__"), "name")
 
     def test_mixed_cases_upper(self):
-        """Test handling of uppercase inputs (should bypass CamelCase logic and just lower)."""
+        """Testa o tratamento de entradas em maiúsculas (deve ignorar a lógica CamelCase e apenas colocar em minúsculas)."""
         if not self.normalize_col: self.skipTest("Function not found")
         # 'ID_CLIENTE' -> isupper() é True -> lower() -> 'id_cliente'
         self.assertEqual(self.normalize_col("ID_CLIENTE"), "id_cliente")
@@ -277,7 +277,7 @@ class TestNormalizeCol(unittest.TestCase):
         self.assertEqual(self.normalize_col("XMLHttpRequest"), "xml_http_request")
 
     def test_numbers(self):
-        """Test that numbers are preserved."""
+        """Testa se os números são preservados."""
         if not self.normalize_col: self.skipTest("Function not found")
         self.assertEqual(self.normalize_col("Address1"), "address1")
         self.assertEqual(self.normalize_col("v2_0"), "v2_0")
@@ -374,11 +374,11 @@ class TestGetOperacoesSchema(unittest.TestCase):
             print("WARNING: get_operacoes_schema function not found in file.")
 
     def test_function_exists(self):
-        """Test that the function was successfully extracted."""
+        """Testa se a função foi extraída com sucesso."""
         self.assertIsNotNone(self.get_operacoes_schema, "Function get_operacoes_schema not found or failed to load.")
 
     def test_get_operacoes_schema_happy_path(self):
-        """Test that the function correctly aliases columns when all are present."""
+        """Testa se a função cria alias corretamente para colunas quando todas estão presentes."""
         if not self.get_operacoes_schema:
             self.skipTest("Function not found")
 
@@ -410,7 +410,7 @@ class TestGetOperacoesSchema(unittest.TestCase):
             self.assertIn(col, result_df.columns)
 
     def test_get_operacoes_schema_missing_column(self):
-        """Test that the function raises an error when a required column is missing."""
+        """Testa se a função levanta um erro quando falta uma coluna requerida."""
         if not self.get_operacoes_schema:
             self.skipTest("Function not found")
 
