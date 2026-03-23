@@ -159,7 +159,7 @@ Agradecemos o interesse em contribuir com a plataforma! Para garantir a qualidad
     git checkout -b feature/sua-nova-feature
     ```
 2.  **Desenvolva e Teste**: Implemente suas alterações e teste-as exaustivamente no ambiente de desenvolvimento do Fabric.
-3.  **Documente seu Código**: Adicione comentários claros e, se estiver criando novas funções, inclua docstrings completas.
+3.  **Documente seu Código**: Adicione comentários claros em português (brasileiro) e, se estiver criando novas funções, inclua docstrings completas também em português (brasileiro).
 4.  **Abra um Pull Request (PR)**: Após concluir o desenvolvimento, envie um Pull Request para a branch `main`. Descreva suas alterações detalhadamente e marque um revisor.
 5.  **Aguarde a Revisão**: Seu código será revisado. Esteja preparado para fazer ajustes com base no feedback recebido.
 
