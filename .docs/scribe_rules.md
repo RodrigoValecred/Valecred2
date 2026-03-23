@@ -19,6 +19,10 @@
 
 ## Chronicle - Knowledge Base
 - Record structural patterns here.
+- Dataflows (`*.Dataflow/mashup.pq`) represent extraction/load layers.
+- Notebooks (`*.Notebook/notebook-content.py`) represent transformation/analysis layers.
+- SQL files (`*.sql`) represent schema changes or analytical queries.
+- Internal helper functions starting with `_` should be ignored unless explicitly exported.
 
 ## Process
 1. Scan: Git diff, DB schema, function inventory, type/interface audit.

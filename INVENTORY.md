@@ -190,12 +190,6 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** (Not specified)
 - **Processing Steps:** (Not specified)
 
-### NB_Diagnostico_Juridico.Notebook
-- **Description:** (Missing description)
-- **Input:** (Not specified)
-- **Output:** (Not specified)
-- **Processing Steps:** (Not specified)
-
 ### NB_Extract_Bronze_Receita_Federal_Full.Notebook
 - **Description:** (Missing description)
 - **Input:** (Not specified)
@@ -220,7 +214,7 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** (Not specified)
 - **Processing Steps:** (Not specified)
 
-### NB_Gera_Relatorio_Diario_Clientes.Notebook
+### NB_Gold_Carteira_Titulos.Notebook
 - **Description:** (Missing description)
 - **Input:** (Not specified)
 - **Output:** (Not specified)
@@ -443,12 +437,6 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Processing Steps:** (Not specified)
 
 ### NB_Silver_Pareceres_Keywords.Notebook
-- **Description:** (Missing description)
-- **Input:** (Not specified)
-- **Output:** (Not specified)
-- **Processing Steps:** (Not specified)
-
-### Processamento_Completo_Clientes.Notebook
 - **Description:** (Missing description)
 - **Input:** (Not specified)
 - **Output:** (Not specified)
