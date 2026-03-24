@@ -701,48 +701,52 @@ df_ops_enrich_step1 = df_ops \
         col("client_rate.taxa_cadastro_cliente")
     )
 
-df_operacoes_enriquecida = df_ops_enrich_step1.withColumn(
-    "operacao_informal",
+# ⚡ Otimização Bolt: Agrupar `withColumn` em projeção `select` única para `df_operacoes_enriquecida`.
+df_operacoes_enriquecida_blk1 = df_ops_enrich_step1.select("*",
     when(
         ((col("count").isNull()) | (col("count") == 0)) & (col("cod_empresa") == 14) & (col("nota_servico") == 'N'),
         lit(True)
-    ).otherwise(lit(False))
-).withColumn("data_deferimento", to_date(col("data_analise"))) \
- .withColumn("valor_utilizacao_limite_plus_excedente",
-             greatest(lit(0), (coalesce(col("risco_estudo_op"), lit(0)) + coalesce(col("valor_de_face"), lit(0)) - coalesce(col("limite_estudo_op"), lit(0))))) \
- .withColumn("era", when(col("data_deferimento") > lit("2023-08-31"), "VALE S").otherwise("VALE N")) \
- .withColumn("chave_base_cliente", concat(lit("40-"), col("cod_cliente"))) \
- .withColumn("chave_base_operacao", concat(lit("40-"), col("cod_operacao"))) \
- .withColumn("chave_base_empresa", concat(lit("40-"), col("cod_empresa"))) \
- .withColumn("chave_ano_mes_base_empresa", concat(lit("40-"), col("cod_empresa"), lit("-"), year(col("data_deferimento")), lit("-"), month(col("data_deferimento")))) \
- .withColumn("chave_meta", concat(col("chave_ano_mes_base_empresa"), lit("-"), col("gestor_da_operacao"))) \
- .withColumn("ano_do_deferimento", year(col("data_deferimento"))) \
- .withColumn("comissao_das_tarifas", col("taxa_comissao") * col("total_de_tarifas")) \
- .withColumn("data_inicio_do_mes", trunc(col("data_deferimento"), "MM")) \
- .withColumn("dia_da_operacao", dayofmonth(col("data_deferimento"))) \
- .withColumn("dia_da_semana_da_operacao", dayofweek(col("data_deferimento"))) \
- .withColumn("dia_da_semana_da_operacao_por_extenso",
-    when(col("dia_da_semana_da_operacao") == 2, "Segunda")
-    .when(col("dia_da_semana_da_operacao") == 3, "Terça")
-    .when(col("dia_da_semana_da_operacao") == 4, "Quarta")
-    .when(col("dia_da_semana_da_operacao") == 5, "Quinta")
-    .when(col("dia_da_semana_da_operacao") == 6, "Sexta")
-    .otherwise(None)) \
- .withColumn("faixa_de_tempo_de_analise_horas", abs(ceil((unix_timestamp(col("data_analise")) - unix_timestamp(col("data_inclusao")))/3600))) \
- .withColumn("faixa_de_tempo_de_analise_minutos", abs(ceil((unix_timestamp(col("data_analise")) - unix_timestamp(col("data_inclusao")))/60))) \
- .withColumn("tempo_de_analise_minutos", (unix_timestamp(col("data_analise")) - unix_timestamp(col("data_inclusao"))) / 60) \
- .withColumn("hora_da_inclusao", hour(col("data_inclusao"))) \
- .withColumn("meses_de_idade_do_cliente", floor(months_between(col("data_deferimento"), col("data_primeira_operacao_calc")))) \
- .withColumn("semana_do_deferimento", weekofyear(col("data_deferimento"))) \
- .withColumn("status_analisado_no_mesmo_dia", to_date(col("data_inclusao")) == to_date(col("data_analise"))) \
- .withColumn("status_escrow", when(col("flag_escrow").cast("boolean") == True, "sim").otherwise("não")) \
- .withColumn("status_meta", lit("SIM")) \
- .withColumn("status_taxa_majorada",
+    ).otherwise(lit(False)).alias("operacao_informal"),
+    to_date(col("data_analise")).alias("data_deferimento_calc"),
+    abs(ceil((unix_timestamp(col("data_analise")) - unix_timestamp(col("data_inclusao")))/3600)).alias("faixa_de_tempo_de_analise_horas"),
+    abs(ceil((unix_timestamp(col("data_analise")) - unix_timestamp(col("data_inclusao")))/60)).alias("faixa_de_tempo_de_analise_minutos"),
+    ((unix_timestamp(col("data_analise")) - unix_timestamp(col("data_inclusao"))) / 60).alias("tempo_de_analise_minutos"),
+    hour(col("data_inclusao")).alias("hora_da_inclusao"),
+    (to_date(col("data_inclusao")) == to_date(col("data_analise"))).alias("status_analisado_no_mesmo_dia"),
+    when(col("flag_escrow").cast("boolean") == True, "sim").otherwise("não").alias("status_escrow"),
+    lit("SIM").alias("status_meta"),
     when(col("taxa") > col("taxa_cadastro_cliente"), "MAJORADA")
-    .when(col("taxa") < col("taxa_cadastro_cliente"), "REDUZIDA")
-    .otherwise("MANTIDA")) \
- .withColumn("tarifa_de_recompra", col("tarifa_recompra") * col("n_docs_recompra")) \
- .withColumn("tarifa_de_titulos", col("n_docs") * col("tarifa")) \
+        .when(col("taxa") < col("taxa_cadastro_cliente"), "REDUZIDA")
+        .otherwise("MANTIDA").alias("status_taxa_majorada"),
+    (col("tarifa_recompra") * col("n_docs_recompra")).alias("tarifa_de_recompra"),
+    (col("n_docs") * col("tarifa")).alias("tarifa_de_titulos"),
+    greatest(lit(0), (coalesce(col("risco_estudo_op"), lit(0)) + coalesce(col("valor_de_face"), lit(0)) - coalesce(col("limite_estudo_op"), lit(0)))).alias("valor_utilizacao_limite_plus_excedente")
+)
+
+df_operacoes_enriquecida_blk2 = df_operacoes_enriquecida_blk1.select("*",
+    when(col("data_deferimento_calc") > lit("2023-08-31"), "VALE S").otherwise("VALE N").alias("era"),
+    concat(lit("40-"), col("cod_cliente")).alias("chave_base_cliente"),
+    concat(lit("40-"), col("cod_operacao")).alias("chave_base_operacao"),
+    concat(lit("40-"), col("cod_empresa")).alias("chave_base_empresa"),
+    concat(lit("40-"), col("cod_empresa"), lit("-"), year(col("data_deferimento_calc")), lit("-"), month(col("data_deferimento_calc"))).alias("chave_ano_mes_base_empresa"),
+    year(col("data_deferimento_calc")).alias("ano_do_deferimento"),
+    (col("taxa_comissao") * col("total_de_tarifas")).alias("comissao_das_tarifas"),
+    trunc(col("data_deferimento_calc"), "MM").alias("data_inicio_do_mes"),
+    dayofmonth(col("data_deferimento_calc")).alias("dia_da_operacao"),
+    dayofweek(col("data_deferimento_calc")).alias("dia_da_semana_da_operacao"),
+    floor(months_between(col("data_deferimento_calc"), col("data_primeira_operacao_calc"))).alias("meses_de_idade_do_cliente"),
+    weekofyear(col("data_deferimento_calc")).alias("semana_do_deferimento")
+)
+
+df_operacoes_enriquecida = df_operacoes_enriquecida_blk2.drop("data_deferimento").withColumnRenamed("data_deferimento_calc", "data_deferimento").select("*",
+    concat(col("chave_ano_mes_base_empresa"), lit("-"), col("gestor_da_operacao")).alias("chave_meta"),
+    when(col("dia_da_semana_da_operacao") == 2, "Segunda")
+        .when(col("dia_da_semana_da_operacao") == 3, "Terça")
+        .when(col("dia_da_semana_da_operacao") == 4, "Quarta")
+        .when(col("dia_da_semana_da_operacao") == 5, "Quinta")
+        .when(col("dia_da_semana_da_operacao") == 6, "Sexta")
+        .otherwise(None).alias("dia_da_semana_da_operacao_por_extenso")
+) \
  .na.fill(0, subset=["tac", "valor_taxa_adm", "valor_advalorem", "total_de_tarifas", "n_docs_recompra", "valor_pendencias"]) \
  .drop("count").cache()
 
@@ -1602,144 +1606,163 @@ df_funnel = df_join_1 \
     )
 
 # Colunas Calculadas
-df_final = calculate_funnel_dates(df_funnel) \
-    .withColumn("risco", coalesce(col("risco"), lit(0))) \
-    .withColumn("risco_grupo", coalesce(col("risco_grupo"), lit(0))) \
-    .withColumn("risco_comissaria_grupo", coalesce(col("risco_comissaria_grupo"), lit(0))) \
-    .withColumn("limite_contrato", coalesce(col("limite"), lit(0))) \
-    .withColumn("limite_grupo_manual", coalesce(col("limite_grupo_manual"), lit(0))) \
-    .withColumn("limite_extra_grupo", coalesce(col("limite_extra_grupo"), lit(0))) \
-    .withColumn("limite_plus_grupo", coalesce(col("limite_plus_grupo"), lit(0))) \
-    .withColumn("limite", greatest(col("limite_contrato"), col("limite_grupo_manual"))) \
-    .withColumn("nome_do_grupo", coalesce(col("grupo_economico"), col("nome"))) \
-    .withColumn("limite_comissaria", coalesce(col("limite_comissaria_contrato"), lit(0))) \
-    .withColumn("limite_comissaria_contrato", coalesce(col("limite_comissaria_contrato"), lit(0))) \
-    .withColumn("percentual_exigido_de_confirmacao", coalesce(col("percentual_exigido"), lit(0))) \
-    .withColumn("risco_comissaria", coalesce(col("risco_comissaria"), lit(0))) \
-    .withColumn("risco_exceto_comissaria", coalesce(col("risco_exceto_comissaria"), lit(0))) \
-    .withColumn("risco_total", col("risco") + col("risco_grupo")) \
-    .withColumn("limite_disponivel", (col("limite") + col("limite_extra_grupo") + col("limite_plus_grupo")) - col("risco_total")) \
-    .withColumn("risco_subtotal_comissaria", col("risco_comissaria") + col("risco_comissaria_grupo")) \
-    .withColumn("disponivel_comissaria", greatest(
-        least(col("limite_disponivel"), col("limite_comissaria_contrato") - col("risco_subtotal_comissaria")),
-        lit(0)
-    )) \
-    .withColumn("limite_maximo_disponivel", greatest(col("disponivel_comissaria"), col("limite_disponivel"))) \
-    .withColumn("dias_sem_operar", datediff(today_date, greatest(coalesce(col("data_ultima_operacao"), lit("1900-01-01")), coalesce(col("data_conclusao"), lit("1900-01-01"))))) \
-    .withColumn("dias_vencidos", datediff(today_date, col("data_vencido_mais_antigo"))) \
-    .withColumn("inadimplencia", coalesce(col("inadimplencia"), lit(0))) \
-    .withColumn("faixa_pdd",
-        when(col("dias_vencidos") > 180, 1)
+# ⚡ Otimização Bolt: Agrupar `withColumn` em blocos de `select` sequenciais (DAG chunking).
+# 💡 O que: Em vez de encadear dezenas de `withColumn` (que gera dezenas de nós Project no Catalyst),
+# agrupamos as colunas em blocos lógicos usando `.select("*", ...)`, respeitando suas dependências exatas.
+# 🎯 Por que: Uma projeção única por bloco reduz o overhead do otimizador massivamente e evita StackOverflow.
+df_final_blk1 = calculate_funnel_dates(df_funnel).select("*",
+    coalesce(col("risco"), lit(0)).alias("risco_calc"),
+    coalesce(col("risco_grupo"), lit(0)).alias("risco_grupo_calc"),
+    coalesce(col("risco_comissaria_grupo"), lit(0)).alias("risco_comissaria_grupo_calc"),
+    coalesce(col("limite"), lit(0)).alias("limite_contrato_calc"),
+    coalesce(col("limite_grupo_manual"), lit(0)).alias("limite_grupo_manual_calc"),
+    coalesce(col("limite_extra_grupo"), lit(0)).alias("limite_extra_grupo_calc"),
+    coalesce(col("limite_plus_grupo"), lit(0)).alias("limite_plus_grupo_calc"),
+    coalesce(col("grupo_economico"), col("nome")).alias("nome_do_grupo"),
+    coalesce(col("limite_comissaria_contrato"), lit(0)).alias("limite_comissaria_contrato_calc"),
+    coalesce(col("percentual_exigido"), lit(0)).alias("percentual_exigido_de_confirmacao"),
+    coalesce(col("risco_comissaria"), lit(0)).alias("risco_comissaria_calc"),
+    coalesce(col("risco_exceto_comissaria"), lit(0)).alias("risco_exceto_comissaria_calc"),
+    datediff(today_date, greatest(coalesce(col("data_ultima_operacao"), lit("1900-01-01")), coalesce(col("data_conclusao"), lit("1900-01-01")))).alias("dias_sem_operar"),
+    datediff(today_date, col("data_vencido_mais_antigo")).alias("dias_vencidos"),
+    coalesce(col("inadimplencia"), lit(0)).alias("inadimplencia_calc"),
+    when(col("data_primeira_operacao") >= col("data_aprovacao"), col("data_primeira_operacao")).alias("data_primeira_operacao_apos_aprovacao"),
+    datediff(col("data_primeira_proposta_credito"), col("data_primeira_proposta_comercial")).alias("dias_proposta_comercial"),
+    datediff(col("data_primeira_proposta_formalizacao"), col("data_primeira_proposta_credito")).alias("dias_proposta_credito"),
+    datediff(col("data_primeira_proposta_concluida"), col("data_primeira_proposta_formalizacao")).alias("dias_proposta_formalizacao"),
+    datediff(col("data_conclusao"), col("data_aprovacao")).alias("tempo_conclusao"),
+    datediff(col("data_aprovacao"), col("data_entrada")).alias("tempo_analise"),
+    floor(datediff(today_date, to_date(substring(col("data_inclusao").cast("string"), 1, 10))) / 365).alias("idade_cliente"),
+    coalesce(datediff(today_date, col("data_primeira_operacao")), lit(0)).alias("idade_cliente_em_dias"),
+    coalesce(col("status_do_cliente_cad").cast("string"), col("status_do_cliente").cast("string")).alias("status_do_cliente_calc"),
+    lit("Brasil").alias("pais"),
+    split(col("gestor_da_plataforma"), " ")[0].alias("primeiro_nome_gerente"),
+    when(col("grupo_economico").isNotNull(), concat(lit("G-"), upper(trim(col("grupo_economico")))))
+        .otherwise(concat(lit("C-"), col("cod_cliente"))).alias("id_limite_credito")
+)
+
+df_final_stg1 = df_final_blk1.drop("risco", "risco_grupo", "risco_comissaria_grupo", "limite_contrato", "limite_grupo_manual", "limite_extra_grupo", "limite_plus_grupo", "limite_comissaria_contrato", "risco_comissaria", "risco_exceto_comissaria", "inadimplencia", "status_do_cliente") \
+    .withColumnRenamed("risco_calc", "risco") \
+    .withColumnRenamed("risco_grupo_calc", "risco_grupo") \
+    .withColumnRenamed("risco_comissaria_grupo_calc", "risco_comissaria_grupo") \
+    .withColumnRenamed("limite_contrato_calc", "limite_contrato") \
+    .withColumnRenamed("limite_grupo_manual_calc", "limite_grupo_manual") \
+    .withColumnRenamed("limite_extra_grupo_calc", "limite_extra_grupo") \
+    .withColumnRenamed("limite_plus_grupo_calc", "limite_plus_grupo") \
+    .withColumnRenamed("limite_comissaria_contrato_calc", "limite_comissaria_contrato") \
+    .withColumnRenamed("risco_comissaria_calc", "risco_comissaria") \
+    .withColumnRenamed("risco_exceto_comissaria_calc", "risco_exceto_comissaria") \
+    .withColumnRenamed("inadimplencia_calc", "inadimplencia") \
+    .withColumnRenamed("status_do_cliente_calc", "status_do_cliente")
+
+df_final_stg2 = df_final_stg1.select("*",
+    greatest(col("limite_contrato"), col("limite_grupo_manual")).alias("limite_calc"),
+    (col("risco") + col("risco_grupo")).alias("risco_total"),
+    (col("risco_comissaria") + col("risco_comissaria_grupo")).alias("risco_subtotal_comissaria"),
+    when(col("dias_vencidos") > 180, 1)
         .when(col("dias_vencidos") > 150, 0.7)
         .when(col("dias_vencidos") > 120, 0.4)
         .when(col("dias_vencidos") > 90, 0.2)
         .when(col("dias_vencidos") > 60, 0.1)
         .when(col("dias_vencidos") > 30, 0.05)
-        .otherwise(0)
-    ) \
-    .withColumn("pdd", col("faixa_pdd") * col("inadimplencia")) \
-    .withColumn("status_atividade",
-        when(col("dias_sem_operar") > 120, "INATIVO")
+        .otherwise(0).alias("faixa_pdd"),
+    when(col("dias_sem_operar") > 120, "INATIVO")
         .when(col("data_ultima_operacao").isNull(), "NUNCA OPEROU")
-        .otherwise("ATIVO")
-    ) \
-    .withColumn("status_limite",
-        when((col("limite").isNull()) | (col("limite") == 0), "SEM LIMITE")
+        .otherwise("ATIVO").alias("status_atividade"),
+    when(col("vencimento_limite").isNull(), "INDETERMINADO")
+        .when(col("vencimento_limite") < today_date, "VENCIDO")
+        .otherwise("VÁLIDO").alias("status_validade_limite"),
+    when(col("dias_sem_operar") > 120, "REATIVAÇÃO")
+        .when(col("data_ultima_operacao").isNull(), "PROSPECÇÃO")
+        .when(col("idade_cliente_em_dias") > 90, "RENOVAÇÃO")
+        .otherwise("PROSPECÇÃO").alias("tipo_proposta"),
+    when(
+        (col("data_ultima_operacao") > col("vencimento_limite")) &
+        (col("vencimento_limite").isNotNull()) &
+        (date_add(col("data_ultima_operacao"), 120) >= today_date),
+        "OPERANDO VENCIDO"
+    ).otherwise("OPERANDO NORMAL").alias("status_operando_vencido"),
+    (col("risco_clean") / col("risco_sem_renegociacao")).alias("perc_risco_clean"),
+    when(col("perdas") > 0, 10).otherwise(0).alias("penalidade_perdas"),
+    (col("vencidos") / col("risco")).alias("perc_vencidos_risco"),
+    (col("risco_renegociacao") / col("risco")).alias("perc_risco_renegociacao")
+)
+
+if "limite" in df_final_stg2.columns:
+    df_final_stg2 = df_final_stg2.drop("limite").withColumnRenamed("limite_calc", "limite")
+else:
+    df_final_stg2 = df_final_stg2.withColumnRenamed("limite_calc", "limite")
+
+if "limite_comissaria" in df_final_stg2.columns:
+    df_final_stg2 = df_final_stg2.drop("limite_comissaria").withColumn("limite_comissaria", coalesce(col("limite_comissaria_contrato"), lit(0)))
+else:
+    df_final_stg2 = df_final_stg2.withColumn("limite_comissaria", coalesce(col("limite_comissaria_contrato"), lit(0)))
+
+df_final_stg3 = df_final_stg2.select("*",
+    ((col("limite") + col("limite_extra_grupo") + col("limite_plus_grupo")) - col("risco_total")).alias("limite_disponivel"),
+    (col("faixa_pdd") * col("inadimplencia")).alias("pdd"),
+    when((col("limite").isNull()) | (col("limite") == 0), "SEM LIMITE")
         .when(col("vencimento_limite") < today_date, "LIMITE VENCIDO")
         .when(col("risco") == 0, "LIMITE INATIVO")
         .when(col("risco") > col("limite"), "LIMITE EXCEDIDO")
-        .otherwise("LIMITE DISPONIVEL")
-    ) \
-    .withColumn("status_validade_limite",
-        when(col("vencimento_limite").isNull(), "INDETERMINADO")
-        .when(col("vencimento_limite") < today_date, "VENCIDO")
-        .otherwise("VÁLIDO")
-    ) \
-    .withColumn("percentual_cm", col("limite_comissaria_contrato") / col("limite")) \
-    .withColumn("falta_checar", greatest(
-        (coalesce(col("percentual_exigido"), lit(0.5)) * (col("risco_exceto_comissaria") + col("risco_grupo") - col("risco_subtotal_comissaria")))
-        - coalesce(col("confirmado_positivo"), lit(0)) - coalesce(col("confirmado_atencao"), lit(0)),
+        .otherwise("LIMITE DISPONIVEL").alias("status_limite"),
+    (col("limite_comissaria_contrato") / col("limite")).alias("percentual_cm"),
+    greatest(
+        (col("percentual_exigido") * (col("risco_exceto_comissaria") + col("risco_grupo") - col("risco_subtotal_comissaria")))
+        - col("confirmado_positivo") - col("confirmado_atencao"),
         lit(0)
-    )) \
-    .withColumn("data_primeira_operacao_apos_aprovacao",
-        when(col("data_primeira_operacao") >= col("data_aprovacao"), col("data_primeira_operacao"))
-    ) \
-    .withColumn("dias_proposta_comercial", datediff(col("data_primeira_proposta_credito"), col("data_primeira_proposta_comercial"))) \
-    .withColumn("dias_proposta_credito", datediff(col("data_primeira_proposta_formalizacao"), col("data_primeira_proposta_credito"))) \
-    .withColumn("dias_proposta_formalizacao", datediff(col("data_primeira_proposta_concluida"), col("data_primeira_proposta_formalizacao"))) \
-    .withColumn("tempo_conclusao", datediff(col("data_conclusao"), col("data_aprovacao"))) \
-    .withColumn("tempo_analise", datediff(col("data_aprovacao"), col("data_entrada"))) \
-    .withColumn("idade_cliente", floor(datediff(today_date, to_date(substring(col("data_inclusao").cast("string"), 1, 10))) / 365)) \
-    .withColumn("idade_cliente_em_dias", coalesce(datediff(today_date, col("data_primeira_operacao")), lit(0))) \
-    .withColumn("status_do_cliente", coalesce(col("status_do_cliente_cad").cast("string"), col("status_do_cliente").cast("string"))) \
-    .withColumn("tipo_proposta",
-        when(col("dias_sem_operar") > 120, "REATIVAÇÃO")
-        .when(col("data_ultima_operacao").isNull(), "PROSPECÇÃO")
-        .when(col("idade_cliente_em_dias") > 90, "RENOVAÇÃO")
-        .otherwise("PROSPECÇÃO")
-    ) \
-    .withColumn("pais", lit("Brasil")) \
-    .withColumn("primeiro_nome_gerente", split(col("gestor_da_plataforma"), " ")[0]) \
-    .withColumn("id_limite_credito",
-        when(col("grupo_economico").isNotNull(), concat(lit("G-"), upper(trim(col("grupo_economico")))))
-        .otherwise(concat(lit("C-"), col("cod_cliente")))
-    ) \
-    .withColumn("status_operando_vencido",
-        when(
-            (col("data_ultima_operacao") > col("vencimento_limite")) &
-            (col("vencimento_limite").isNotNull()) &
-            (date_add(col("data_ultima_operacao"), 120) >= today_date),
-            "OPERANDO VENCIDO"
-        ).otherwise("OPERANDO NORMAL")
-    ) \
-    .withColumn("taxa_minima_exigida",
-        (when(col("faixa_pdd") == 0.05, 0.0025) # Rating A (0.05 PDD)
-         .when(col("faixa_pdd") == 0.7, 0.0075) # Rating C (0.7 PDD?) - Lógica DAX vaga no mapeamento ratingPdd, usando o melhor palpite a partir de PDD
-         .otherwise(0.0050) # Rating B
+    ).alias("falta_checar"),
+    (
+        (when(col("faixa_pdd") == 0.05, 0.0025)
+         .when(col("faixa_pdd") == 0.7, 0.0075)
+         .otherwise(0.0050)
         ) + 0.0150 + 0.0010
-    ) \
-    .withColumn("pendencias_desc", concat_ws(", ",
+    ).alias("taxa_minima_exigida"),
+    when(col("perc_risco_clean") > 0.5, 1).otherwise(0).alias("penalidade_clean"),
+    when(col("dias_sem_operar") > 120, 3)
+        .when(col("dias_sem_operar") > 60, 2)
+        .when(col("dias_sem_operar") > 30, 1)
+        .otherwise(0).alias("penalidade_inativo"),
+    when(col("perc_vencidos_risco") > 0.50, 4)
+        .when(col("perc_vencidos_risco") > 0.25, 3)
+        .when(col("perc_vencidos_risco") > 0.10, 2)
+        .when(col("perc_vencidos_risco") > 0.05, 1)
+        .otherwise(0).alias("penalidade_inadimplencia"),
+    when(col("perc_risco_renegociacao") == 1, 3)
+        .when(col("perc_risco_renegociacao") > 0.4, 2)
+        .when(col("perc_risco_renegociacao") > 0.01, 1)
+        .otherwise(0).alias("penalidade_renegociacao")
+)
+
+df_final_stg4 = df_final_stg3.select("*",
+    greatest(
+        least(col("limite_disponivel"), col("limite_comissaria_contrato") - col("risco_subtotal_comissaria")),
+        lit(0)
+    ).alias("disponivel_comissaria")
+)
+
+df_final_stg5 = df_final_stg4.select("*",
+    greatest(col("disponivel_comissaria"), col("limite_disponivel")).alias("limite_maximo_disponivel")
+)
+
+df_final = df_final_stg5.select("*",
+    concat_ws(", ",
         when(col("status_atividade") == "INATIVO", "Cliente inativo"),
         when(col("falta_checar") > 0, "Confirmação desenquadrada"),
         when(col("vencimento_limite") < today_date, "Limite vencido"),
         when(col("limite_maximo_disponivel") <= 0, "Sem limite disponível"),
         when(col("problemas_checagem") > 0, "Problemas de checagem"),
         when(col("inadimplencia") > 0, "Títulos vencidos")
-    )) \
-    .withColumn("qtd_pendencias",
+    ).alias("pendencias_desc"),
+    (
         (when(col("status_atividade") == "INATIVO", 1).otherwise(0) +
          when(col("falta_checar") > 0, 1).otherwise(0) +
          when(col("vencimento_limite") < today_date, 1).otherwise(0) +
          when(col("limite_maximo_disponivel") <= 0, 1).otherwise(0) +
          when(col("problemas_checagem") > 0, 1).otherwise(0) +
          when(col("inadimplencia") > 0, 1).otherwise(0))
-    ) \
-    .withColumn("perc_risco_clean", col("risco_clean") / col("risco_sem_renegociacao")) \
-    .withColumn("penalidade_clean", when(col("perc_risco_clean") > 0.5, 1).otherwise(0)) \
-    .withColumn("penalidade_inativo",
-        when(col("dias_sem_operar") > 120, 3)
-        .when(col("dias_sem_operar") > 60, 2)
-        .when(col("dias_sem_operar") > 30, 1)
-        .otherwise(0)
-    ) \
-    .withColumn("penalidade_perdas", when(col("perdas") > 0, 10).otherwise(0)) \
-    .withColumn("perc_vencidos_risco", col("vencidos") / col("risco")) \
-    .withColumn("penalidade_inadimplencia",
-        when(col("perc_vencidos_risco") > 0.50, 4)
-        .when(col("perc_vencidos_risco") > 0.25, 3)
-        .when(col("perc_vencidos_risco") > 0.10, 2)
-        .when(col("perc_vencidos_risco") > 0.05, 1)
-        .otherwise(0)
-    ) \
-    .withColumn("perc_risco_renegociacao", col("risco_renegociacao") / col("risco")) \
-    .withColumn("penalidade_renegociacao",
-        when(col("perc_risco_renegociacao") == 1, 3)
-        .when(col("perc_risco_renegociacao") > 0.4, 2)
-        .when(col("perc_risco_renegociacao") > 0.01, 1)
-        .otherwise(0)
-    ) \
-    .withColumn("qualidade_cliente",
-        when(col("penalidade_perdas") > 0, 0)
+    ).alias("qtd_pendencias"),
+    when(col("penalidade_perdas") > 0, 0)
         .otherwise(
             round(
                 lit(10) - (
@@ -1749,8 +1772,8 @@ df_final = calculate_funnel_dates(df_funnel) \
                     col("penalidade_inativo")
                 ), 0
             )
-        )
-    )
+        ).alias("qualidade_cliente")
+)
 
 # Otimização: Fazer cache de df_final antes de separar para evitar recomputar o DAG massivo de join múltiplas vezes
 df_final.cache()
