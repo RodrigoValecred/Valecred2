@@ -30,3 +30,13 @@
 3. Format: Markdown tables for DB, code blocks for functions.
 4. Verify: Cross-reference.
 5. Commit: Title "📝 Scribe: Daily Documentation Sync [YYYY-MM-DD]".
+- **Power BI Reports** (`*.Report/`):
+  - `report.json` holds visual configurations.
+  - `definition.pbir` points to the underlying semantic model.
+  - Ignore `.pbism` files in these directories (strictly reserved for `.SemanticModel` definitions).
+- **Bolt Optimizations**: Look for specific emojis in code comments to identify documented performance optimizations:
+  - ⚡ / 🧠: Overall goal / Persona.
+  - 💡: 'What' (the optimization implemented).
+  - 🎯: 'Why' (the problem solved / bottleneck).
+  - 📊: 'Impact' (expected performance gains).
+  - 🧪 / 🔬: 'Measurement' (how to verify / profiling snippet).
