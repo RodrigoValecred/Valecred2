@@ -31,9 +31,13 @@
 
 # CELL ********************
 
+spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
+spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
+
 import requests
-from notebookutils import mssparkutils
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, coalesce, lit, sum
+from notebookutils import mssparkutils
 
 # METADATA ********************
 
@@ -129,6 +133,79 @@ if full_inventory:
     print(f"Sucesso! {len(full_inventory)} relatórios salvos com tipos validados.")
 else:
     print("A lista full_inventory está vazia. Verifique os loops anteriores.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 4. Ler logs de acesso
+log_path = "Files/logs_power_bi/PowerBI_ActivityLog_2026-01-01_ate_2026-02-28.csv"
+
+try:
+    df_logs = spark.read.format("csv").option("header", "true").option("inferSchema","true").load(log_path)
+    print(f"Sucesso ao ler os logs de acesso de: {log_path}")
+    df_logs.printSchema()
+except Exception as e:
+    print(f"Erro ao tentar ler o arquivo de logs: {e}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 5. Ler tabela de inventario
+from pyspark.sql import functions as F
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 6. Cruzamento (Join) e Agregação
+if 'df_logs' in locals() and 'df_inventario' in locals():
+    log_cols = df_logs.columns
+    join_col_log = "ArtifactId"
+    if "ReportId" in log_cols:
+        join_col_log = "ObjectId"
+
+    df_join = df_logs.join(
+        df_inventario,
+        df_logs[join_col_log] == df_inventario["ReportId"],
+        "inner"
+    )
+    # 7. Agragação: Relatórios acessados, por quem e frequência
+    user_col = "UserId" if "UserId" in log_cols else "UserKey" if "UserKey" in log_cols else "UserId"
+
+    df_agrupado = df_join.groupBy(
+        "WorkspaceName",
+        "ReportName",
+        "Ambiente",
+        F.col(user_col).alias("Usuario")
+    ).agg(
+        F.count("*").alias("Frequencia_Acessos"),
+        F.max("CreationTime").alias("Ultimo_Acesso")
+    ).orderBy(
+        F.col("Frequencia_Acessos").desc()
+    )
+
+    print("Resumo de Acessos aos Relatórios (Frequência por Usuários):")
+    display(df_agurpado)
+
+    df_agrupado.write.mode("overwrite").saveAsTable("LH_Bronze.relatorio_frequencia_acessos")
+
 
 # METADATA ********************
 
