@@ -192,15 +192,16 @@ df_perfil_unificado_spark = df_features_spark.groupBy("cpf_cnpj_sacado").agg(
 # Tratamento de Nulos e Tipos (Equivalente ao Pandas)
 df_perfil_unificado_spark = df_perfil_unificado_spark.fillna(0)
 
-cols_float = ['exposicao_maxima_historica', 'prazo_medio_historico', 'media_pagamento_mensal']
-for col in cols_float:
-    df_perfil_unificado_spark = df_perfil_unificado_spark.withColumn(col, F.col(col).cast("double"))
-
-# Regra de Negócio: Pagamento Mensal 0 vira 1.0
-df_perfil_unificado_spark = df_perfil_unificado_spark.withColumn(
-    "media_pagamento_mensal",
-    F.when(F.col("media_pagamento_mensal") == 0, 1.0).otherwise(F.col("media_pagamento_mensal"))
-)
+# 🧠 Bolt: Consolidate multiple .withColumn() into a single .withColumns()
+# 💡 O que: Substituiu um loop de casting e uma regra de negócio separada por uma única chamada .withColumns().
+# 🎯 Por que: Chamar .withColumn() repetidamente cria planos lógicos profundos no Spark, aumentando o overhead do Catalyst e o risco de StackOverflow. .withColumns() consolida as transformações em um único passo.
+# 📊 Impacto: Reduz a complexidade do plano e acelera a execução da etapa de curadoria.
+# 🔬 Medição: Reduz de 4 transformações sequenciais para 1 única chamada consolidada.
+df_perfil_unificado_spark = df_perfil_unificado_spark.withColumns({
+    "exposicao_maxima_historica": F.col("exposicao_maxima_historica").cast("double"),
+    "prazo_medio_historico": F.col("prazo_medio_historico").cast("double"),
+    "media_pagamento_mensal": F.when(F.col("media_pagamento_mensal") == 0, 1.0).otherwise(F.col("media_pagamento_mensal").cast("double"))
+})
 
 # Garantia Final de Nulos
 df_perfil_unificado_spark = df_perfil_unificado_spark.fillna(0)
