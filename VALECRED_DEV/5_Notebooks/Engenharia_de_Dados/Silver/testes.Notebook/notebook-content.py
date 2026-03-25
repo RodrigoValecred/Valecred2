@@ -136,3 +136,97 @@ else:
 # META   "language": "python",
 # META   "language_group": "synapse_pyspark"
 # META }
+
+# CELL ********************
+
+# 4. Ler logs de acesso (Lakehouse Bronze - Files)
+# Path base do PBI log
+log_path = "Files/logs_power_bi/PowerBI_ActivityLog_2026-01-01_ate_2026-02-28.csv"
+
+# Lendo o CSV de logs com cabeçalho
+try:
+    df_logs = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load(log_path)
+    print(f"Sucesso ao ler os logs de acesso de: {log_path}")
+    df_logs.printSchema()
+except Exception as e:
+    print(f"Erro ao tentar ler o arquivo de logs: {e}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# 5. Ler tabela de inventário já criada
+try:
+    df_inventario = spark.table("LH_Bronze.inventario_completo_detalhado")
+    print("Sucesso ao carregar a tabela LH_Bronze.inventario_completo_detalhado")
+    df_inventario.printSchema()
+except Exception as e:
+    print(f"Erro ao tentar ler a tabela de inventário: {e}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+from pyspark.sql import functions as F
+
+# 6. Cruzamento (Join) e Agregação
+# O log do Power BI costuma usar "ArtifactId", "ReportId" ou "ObjectId" para identificar o relatório.
+# Usaremos "ArtifactId" por padrão, mas você pode alterar para o nome correto caso seja diferente.
+# O usuário costuma vir na coluna "UserId"
+
+if 'df_logs' in locals() and 'df_inventario' in locals():
+    # Verifica quais colunas de Id o log tem (ArtifactId, ObjectId, ou ReportId)
+    log_cols = df_logs.columns
+    join_col_log = "ArtifactId" # Padrão
+    if "ReportId" in log_cols:
+        join_col_log = "ReportId"
+    elif "ObjectId" in log_cols:
+        join_col_log = "ObjectId"
+
+    # Fazendo o Join: logs de acesso com os detalhes do relatório (inventário)
+    # Vamos usar um left join a partir do inventário ou um inner join para ver apenas o que foi acessado
+    df_join = df_logs.join(
+        df_inventario,
+        df_logs[join_col_log] == df_inventario["ReportId"],
+        "inner"
+    )
+
+    # 7. Agregação: Relatórios acessados, por quem e frequência
+    # Assumindo que o UserId está na coluna "UserId" ou "UserKey"
+    user_col = "UserId" if "UserId" in log_cols else "UserKey" if "UserKey" in log_cols else "UserId"
+
+    # Agrupando e contando
+    df_agrupado = df_join.groupBy(
+        "WorkspaceName",
+        "ReportName",
+        "Ambiente",
+        F.col(user_col).alias("Usuario")
+    ).agg(
+        F.count("*").alias("Frequencia_Acessos"),
+        F.max("CreationTime").alias("Ultimo_Acesso") # Assumindo "CreationTime" como data do evento no log do PBI
+    ).orderBy(
+        F.col("Frequencia_Acessos").desc()
+    )
+
+    print("Resumo de Acessos aos Relatórios (Frequência por Usuário):")
+    display(df_agrupado)
+
+    # (Opcional) Salvar a tabela final cruzada para uso posterior no Power BI
+    # df_agrupado.write.mode("overwrite").saveAsTable("LH_Bronze.relatorio_frequencia_acessos")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
