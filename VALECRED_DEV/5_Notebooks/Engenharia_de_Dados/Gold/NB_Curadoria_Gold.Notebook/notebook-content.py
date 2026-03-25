@@ -72,6 +72,21 @@ def safe_read_table(spark, table_name, schema=None, fallback_df=None):
         else:
              raise e
 
+def get_escrow_data(spark, table_name):
+    """
+    Carrega os dados de Escrow da camada Silver, aplicando agrupamento por cod_operacao.
+    Se a tabela não existir, retorna um DataFrame vazio com o schema adequado.
+    """
+    try:
+        return spark.read.table(table_name).groupBy("cod_operacao").agg(max("ESCROW").alias("ESCROW"))
+    except Exception as e:
+        print(f"AVISO: Tabela {table_name} não encontrada ({e}). Criando dataframe vazio.")
+        schema = StructType([
+            StructField("cod_operacao", LongType(), True),
+            StructField("ESCROW", BooleanType(), True)
+        ])
+        return spark.createDataFrame([], schema=schema)
+
 def transform_esteira_dates(df_esteira, status_mapping):
     """
     Transformação otimizada para obter datas Máximas e Mínimas por status em uma única passagem.
@@ -507,11 +522,7 @@ df_estudo_operacoes = spark.read.table(TableNames.SILVER_STAGING_ESTUDO_OPERACOE
 
 # Escrow (Silver)
 print("Carregando Escrow (Silver)...")
-try:
-    df_escrow = spark.read.table(TableNames.SILVER_STAGING_OPERACOES_ESCROW).groupBy("cod_operacao").agg(max("ESCROW").alias("ESCROW"))
-except Exception as e:
-    print(f"AVISO: Tabela {TableNames.SILVER_STAGING_OPERACOES_ESCROW} não encontrada ({e}). Criando dataframe vazio.")
-    df_escrow = spark.createDataFrame([], schema=StructType([StructField("cod_operacao", LongType(), True), StructField("ESCROW", BooleanType(), True)]))
+df_escrow = get_escrow_data(spark, TableNames.SILVER_STAGING_OPERACOES_ESCROW)
 
 print("Leitura da Silver concluída.")
 
