@@ -305,17 +305,11 @@ print("="*40)
 
 def create_progress_bar(percentage, width=20):
     # Limita o valor preenchido para garantir que a largura da barra de progresso seja consistente
-    clamped_pct = float(percentage)
-    if clamped_pct < 0.0:
-        clamped_pct = 0.0
-    elif clamped_pct > 100.0:
-        clamped_pct = 100.0
+    clamped_pct = max(0.0, min(100.0, float(percentage)))
 
     filled = int((width * clamped_pct) / 100)
-    if filled < 0:
-        filled = 0
-    elif filled > width:
-        filled = width
+    # Garante que 'filled' está entre 0 e 'width'
+    filled = max(0, min(width, filled))
 
     bar = "█" * filled + "░" * (width - filled)
     return f"[{bar}] {clamped_pct:.1f}%"
