@@ -1,0 +1,35 @@
+{
+  "config": "{\"version\":\"5.51\",\"themeCollection\":{\"baseTheme\":{\"name\":\"CY23SU08\",\"version\":\"5.49\",\"type\":\"SharedResources\"}},\"activeSectionIndex\":0,\"defaultVisual\":{\"visualType\":\"tableEx\"}}",
+  "layoutOptimization": 0,
+  "resourcePackage": {
+    "disabled": false,
+    "items": []
+  },
+  "sections": [
+    {
+      "name": "ReportSection1",
+      "displayName": "Inativos",
+      "displayOption": 1,
+      "height": 720,
+      "width": 1280,
+      "visualContainers": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "width": 1280,
+          "height": 100,
+          "config": "{\"name\":\"TextBox1\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":0,\"width\":1280,\"height\":100}}],\"singleVisual\":{\"visualType\":\"textbox\",\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"value\":\"Insight Executivo: Manter dashboards inúteis gera custo de processamento (refreshes desnecessários) e poluição cognitiva para os tomadores de decisão do FIDC. Se o dado não é visto, ele é um passivo, não um ativo.\"}]}]}}]}}}"
+        },
+        {
+          "x": 0,
+          "y": 120,
+          "z": 1,
+          "width": 1280,
+          "height": 600,
+          "config": "{\"name\":\"Table1\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":120,\"z\":1,\"width\":1280,\"height\":600}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"Nome do Relatório / Workspace\"},{\"queryRef\":\"Dias desde o último acesso\"},{\"queryRef\":\"Botão de Notificar Proprietário\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"d\",\"Entity\":\"Dashboard\"}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"Nome do Relatório / Workspace\"},\"Name\":\"Nome do Relatório / Workspace\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"Dias desde o último acesso\"},\"Name\":\"Dias desde o último acesso\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"d\"}},\"Property\":\"Botão de Notificar Proprietário\"},\"Name\":\"Botão de Notificar Proprietário\"}]},\"columnProperties\":{\"Botão de Notificar Proprietário\":{\"visualElements\":[{\"properties\":{\"action\":{\"expr\":{\"Literal\":{\"Value\":\"'Power Automate'\"}}}}}]}}}}"
+        }
+      ]
+    }
+  ]
+}
