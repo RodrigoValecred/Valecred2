@@ -8,18 +8,18 @@
 # META   },
 # META   "dependencies": {
 # META     "lakehouse": {
-# META       "default_lakehouse": "553c2931-573b-4db0-838d-a70a01306d32",
-# META       "default_lakehouse_name": "LH_Bronze",
+# META       "default_lakehouse": "ee40705b-0100-49bc-8f35-81d71839f042",
+# META       "default_lakehouse_name": "LH_Gold",
 # META       "default_lakehouse_workspace_id": "41ae19db-f71d-471f-9ac7-ccbc2c75ce11",
 # META       "known_lakehouses": [
+# META         {
+# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
+# META         },
 # META         {
 # META           "id": "553c2931-573b-4db0-838d-a70a01306d32"
 # META         },
 # META         {
 # META           "id": "8f85c372-56ad-4f3f-acf9-3be2e9b99513"
-# META         },
-# META         {
-# META           "id": "ee40705b-0100-49bc-8f35-81d71839f042"
 # META         }
 # META       ]
 # META     }
@@ -35,6 +35,7 @@
 # - Nome do Sacado (`nome_sacado`)
 # - Valor do Limite Específico do Sacado (`valor_limite_especifico`)
 # - Valor do Risco em Aberto do Sacado (`valor_risco_em_aberto`)
+
 
 # CELL ********************
 
@@ -112,7 +113,7 @@ df_grupos_nome = df_grupos.select(
 df_limites_base = df_limites.select(
     col("cod_cliente"),
     col("cpf_cnpj").alias("cpf_cnpj_sacado"),
-    col("limite").alias("valor_limite_especifico")
+    col("valor").alias("valor_limite_especifico")
 )
 
 # METADATA ********************
