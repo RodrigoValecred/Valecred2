@@ -9,3 +9,7 @@
 ## 2024-10-24 - Python UDF Overhead in Massive PySpark Cross Joins
 **Learning:** In PySpark, using a custom Python UDF (e.g., `haversine_udf` mapping to a `math` based pure Python formula) during a `crossJoin` or other massive tabular expansion causes extreme overhead. Catalyst is forced to serialize and deserialize data row-by-row between the JVM and Python driver to execute the logic, which prevents predicate pushdown and Tungsten code generation.
 **Action:** Always implement mathematical formulas (e.g., Haversine distance) using native PySpark SQL functions (`F.sin`, `F.cos`, `F.pow`, `F.radians`, `F.atan2`) inside `.withColumn` calls instead of a Python UDF. This executes entirely within the JVM/C++ backend and natively integrates with Spark optimizations, often running ~4x faster or more on large datasets.
+
+## 2024-03-25 - PySpark Catalyst Plan Re-evaluation with Multiple Actions
+**Learning:** In PySpark workflows (e.g., `NB_Curadoria_Gold.Notebook`), performing multiple actions (like `count()`, `sum()`, `collect()`) on the same DataFrame forces the Catalyst optimizer to re-evaluate the entire logical and physical plan from scratch, resulting in redundant full table scans for every action.
+**Action:** Always explicitly call `.cache()` on the DataFrame before executing multiple actions, and `.unpersist()` immediately after to clear memory. This ensures the data is read into memory once, drastically reducing I/O and execution time.
