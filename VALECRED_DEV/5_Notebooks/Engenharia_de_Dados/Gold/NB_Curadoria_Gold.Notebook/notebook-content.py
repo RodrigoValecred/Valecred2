@@ -1894,10 +1894,15 @@ df_titulos_carteira = df_fato_titulos_final
 
 # Filtro de Risco Ativo (Carteira em Aberto)
 # Critério: Título aceito (status_deferimento='Sim') e em aberto (liquidacao is Null)
+# ⚡ Otimização Bolt: Fazer cache de df_carteira_ativa antes de múltiplas agregações
+# 💡 O que: Adicionado .cache() ao DataFrame df_carteira_ativa que é usado em múltiplas ações de collect() subsequentes para cálculos de HHI.
+# 🎯 Por que: Evita que o Catalyst reavalie todo o plano físico e faça full table scans redundantes na tabela fato para cada agregação de HHI.
+# 📊 Impacto: Reduz o tempo de execução e uso de I/O em múltiplas ações no mesmo DataFrame.
+# 🔬 Medição: O plano físico mostrará InMemoryTableScan em vez de FileScan após a primeira ação.
 df_carteira_ativa = df_titulos_carteira.filter(
     (col("status_deferimento") == "Sim") &
     (col("liquidacao").isNull())
-)
+).cache()
 
 # Valor Total da Carteira
 total_portfolio_row = df_carteira_ativa.agg(sum("valor_devido").alias("total")).collect()
@@ -1925,6 +1930,8 @@ if total_portfolio_value > 0:
 else:
     hhi_cedente = 0.0
     hhi_sacado = 0.0
+
+df_carteira_ativa.unpersist()
 
 # Preparando resultado
 today_py = datetime.date.today()
