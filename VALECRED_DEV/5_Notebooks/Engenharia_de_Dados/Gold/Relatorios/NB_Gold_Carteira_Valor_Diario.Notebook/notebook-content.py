@@ -174,6 +174,12 @@ df_exploded = df_dates.withColumn(
 
 # Agregação Diária por Empresa e Cliente + Plataforma e Produto
 # Soma do Valor Nominal dos títulos ativos naquele dia
+
+# ⚡ Bolt: Cache DataFrame after expensive explode operation
+# 💡 O que: Adicionado `.cache()` ao DataFrame `df_daily_agg`.
+# 🎯 Por que: `df_daily_agg` sofre múltiplas ações (uma escrita e duas coletas para o dashboard). Sem cache, o Catalyst reavalia o plano lógico e reexecuta o dispendioso `explode` três vezes, gerando scans redundantes de tabelas.
+# 📊 Impacto: Evita recálculos massivos (I/O e CPU) do histórico diário de títulos, acelerando drasticamente as etapas subsequentes.
+# 🔬 Medição: O Spark UI demonstrará `InMemoryTableScan` durante as etapas de collect para o dashboard, em vez de `FileScan` seguido de `Generate`.
 df_daily_agg = df_exploded.groupBy(
         "data_referencia",
         "cod_empresa",
@@ -189,7 +195,7 @@ df_daily_agg = df_exploded.groupBy(
     .withColumn(
         "taxa_media_ponderada",
         col("soma_ponderada_risco") / col("valor_carteira_total")
-    )
+    ).cache()
 
 print("Agregação diária concluída.")
 
@@ -259,6 +265,8 @@ try:
 
 except Exception as e:
     print(f"Erro ao gerar dashboard: {e}")
+
+df_daily_agg.unpersist()
 
 # METADATA ********************
 
