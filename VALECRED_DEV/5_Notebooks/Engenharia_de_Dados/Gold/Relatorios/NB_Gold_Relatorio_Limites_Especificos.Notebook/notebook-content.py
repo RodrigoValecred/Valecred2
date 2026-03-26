@@ -83,11 +83,12 @@ df_ops_filtered = df_ops.filter(
     (col("status_analise") == "D")
 ).select("cod_operacao").dropDuplicates(["cod_operacao"])
 
-# A regra para o risco em aberto é: liquidação nula, aceito='S' e t_doc não é 'BL'
+# Filtro de Títulos e Join com Operações: liquidação nula, aceito='S' e t_doc não é 'BL'
 df_titulos_ativos = df_titulos.dropDuplicates(["cod_titulo"]).filter(
     col("liquidacao").isNull() &
     (col("t_doc") != "BL") &
     (col("aceito") == "S")
+
 ).join(df_ops_filtered, "cod_operacao", "inner")
 
 # O risco em aberto utiliza o "valor_devido" em vez de apenas "valor"
