@@ -1,244 +1,214 @@
 {
-    "properties": {
-        "activities": [
-            {
-                "name": "NB_Analyze_FIDC_Performance",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "66673df6-005e-98e9-467b-eee10f58dbf3",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Gold_Risco_Cliente",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "d09e9438-7dc3-b483-4695-dcf19e608577",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Gold_Relatorio_Novos_Clientes",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "b4a7dda5-38b0-8253-4dc2-1c51f8c2d95c",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Analise_Safra_Gerentes",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "e9898550-444d-8465-4ab4-d6f80832bbd5",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Inadimplencia_Mensal",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "850a7725-46d0-8909-4bfe-516e7aadaa3f",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Risk_Aggregation",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "8c3962a0-09c2-98fa-49d7-af60db8a7b7e",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Gold_Carteira_Titulos",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "4df64670-8064-a34c-44b6-1095ee6190b3",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Analise_Cliente_Especifico",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "6822a9db-9819-b8ca-4685-e142d099aa7f",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Calendario_Gold",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "57299477-a07b-822b-4891-23d23f32ba93",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Gold_Relatorio_Produtos_Mensal",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "00000000-0000-0000-0000-000000000001",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Gold_Carteira_Valor_Diario",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "9f18db04-a5e7-80a8-451a-4f00aceb0901",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Gold_Relatorio_Limites_Especificos",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "81b913f3-fb85-a57c-4408-77f89b71156d",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Fechamento_Prorrogacao_Mensal",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "e89c862e-8a8c-af79-48da-f9bf5635de9d",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            },
-            {
-                "name": "NB_Gold_Dim_Produtos",
-                "type": "TridentNotebook",
-                "dependsOn": [],
-                "policy": {
-                    "timeout": "0.12:00:00",
-                    "retry": 0,
-                    "retryIntervalInSeconds": 30,
-                    "secureOutput": false,
-                    "secureInput": false
-                },
-                "userProperties": [],
-                "typeProperties": {
-                    "notebookId": "cce9e319-520c-493c-ac6a-19e56fb1e374",
-                    "workspaceId": "00000000-0000-0000-0000-000000000000"
-                }
-            }
-        ]
-    }
+  "properties": {
+    "activities": [
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "66673df6-005e-98e9-467b-eee10f58dbf3",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Analyze_FIDC_Performance",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "d09e9438-7dc3-b483-4695-dcf19e608577",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Gold_Risco_Cliente",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "b4a7dda5-38b0-8253-4dc2-1c51f8c2d95c",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Gold_Relatorio_Novos_Clientes",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "e9898550-444d-8465-4ab4-d6f80832bbd5",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Analise_Safra_Gerentes",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "850a7725-46d0-8909-4bfe-516e7aadaa3f",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Inadimplencia_Mensal",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "8c3962a0-09c2-98fa-49d7-af60db8a7b7e",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Risk_Aggregation",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "4df64670-8064-a34c-44b6-1095ee6190b3",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Gold_Carteira_Titulos",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "6822a9db-9819-b8ca-4685-e142d099aa7f",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Analise_Cliente_Especifico",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "57299477-a07b-822b-4891-23d23f32ba93",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Calendario_Gold",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "9f18db04-a5e7-80a8-451a-4f00aceb0901",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Gold_Relatorio_Produtos_Mensal",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "81b913f3-fb85-a57c-4408-77f89b71156d",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Gold_Relatorio_Limites_Especificos",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "e89c862e-8a8c-af79-48da-f9bf5635de9d",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Fechamento_Prorrogacao_Mensal",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "cce9e319-520c-493c-ac6a-19e56fb1e374",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "NB_Gold_Dim_Produtos",
+        "dependsOn": []
+      }
+    ]
+  }
 }
