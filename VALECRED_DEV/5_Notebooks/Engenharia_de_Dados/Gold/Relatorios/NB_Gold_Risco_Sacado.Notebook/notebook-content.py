@@ -24,13 +24,13 @@
 
 # # Relatório de Risco em Aberto por Sacado
 # **Objetivo:** Gerar um relatório que apresente o total do valor devido (risco em aberto) agrupado por sacado.
-#
+# 
 # **Lógica (Risco em Aberto):**
 # - Títulos: `liquidacao is null` (em aberto), `aceito = 'S'` e `t_doc != 'BL'`
 # - Operações: `status_aceite = 'A'` e `status_analise = 'D'` (operações deferidas)
-#
+# 
 # **Tabelas Origem:** `LH_Gold.fato_titulos`, `LH_Gold.fato_operacoes`, `LH_Gold.dim_sacados`
-#
+# 
 # **Tabela Destino:** `LH_Gold.relatorio_risco_sacado`
 
 # CELL ********************
