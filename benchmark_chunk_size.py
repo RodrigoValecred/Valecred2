@@ -32,7 +32,7 @@ if __name__ == "__main__":
     server = start_server()
     time.sleep(1) # wait for server to start
 
-    # Warm up
+    # Aquecimento
     download_file(8192)
 
     # Measure 8KB chunk size

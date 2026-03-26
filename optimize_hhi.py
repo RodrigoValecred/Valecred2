@@ -1,1 +1,1 @@
-# Example script to find where to optimize
+# Script de exemplo para encontrar onde otimizar

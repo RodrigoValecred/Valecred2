@@ -45,7 +45,7 @@ class TestStatusRiscoExpr(unittest.TestCase):
         mock_when_ret.when.return_value = mock_when_ret # Chain
         mock_when_ret.otherwise.return_value = "RESULT_COLUMN"
 
-        # Execution globals
+        # Globais de execução
         exec_globals = {
             'col': mock_col,
             'when': mock_when,

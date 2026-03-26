@@ -44,7 +44,7 @@ class TestSilverJurosCorrections(unittest.TestCase):
             -200.0: 20.0
         }
 
-        # Execution globals
+        # Globais de execução
         exec_globals = {
             'col': mock_col,
             'when': mock_when,

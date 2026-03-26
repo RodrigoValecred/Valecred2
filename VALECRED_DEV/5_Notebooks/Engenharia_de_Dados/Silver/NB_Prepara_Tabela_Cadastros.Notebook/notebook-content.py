@@ -59,7 +59,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
             target_watermark_col = watermark_col
 
         if not DeltaTable.isDeltaTable(spark, target_table_path):
-            return False # Target doesn't exist, proceed
+            return False # Destino não existe, prosseguindo
 
         # Check source max
         df_source = spark.read.table(source_table)
