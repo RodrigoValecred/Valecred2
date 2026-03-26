@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataPipeline",
+    "displayName": "PL_Relatorios_Gold_Diaria_v1.2"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "eb896fa6-1785-9206-449f-bc8ece856ffb"
+  }
+}

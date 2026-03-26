@@ -63,6 +63,7 @@ df_clientes = spark.read.table("LH_Silver.staging_clientes_limpa")
 df_cad_geral = spark.read.table("LH_Silver.staging_cad_geral_pf_pj_limpa")
 df_sacados = spark.read.table("LH_Gold.dim_sacados")
 df_titulos = spark.read.table("LH_Gold.fato_titulos")
+df_ops = spark.read.table("LH_Gold.fato_operacoes")
 
 # METADATA ********************
 
@@ -75,13 +76,23 @@ df_titulos = spark.read.table("LH_Gold.fato_titulos")
 
 # 2. Cálculo do Risco em Aberto
 print("Calculando o valor do risco em aberto...")
+
+# Filtro de Operações: status_aceite = A e status_analise = D
+df_ops_filtered = df_ops.filter(
+    (col("status_aceite") == "A") &
+    (col("status_analise") == "D")
+).select("cod_operacao")
+
 # A regra para o risco em aberto é: liquidação nula, aceito='S' e t_doc não é 'BL'
-df_risco = df_titulos.filter(
+df_titulos_ativos = df_titulos.filter(
     col("liquidacao").isNull() &
     (col("t_doc") != "BL") &
     (col("aceito") == "S")
-).groupBy("cod_cliente", "cpf_cnpj_sacado").agg(
-    sum("valor").alias("valor_risco_em_aberto")
+).join(df_ops_filtered, "cod_operacao", "inner")
+
+# O risco em aberto utiliza o "valor_devido" em vez de apenas "valor"
+df_risco = df_titulos_ativos.groupBy("cod_cliente", "cpf_cnpj_sacado").agg(
+    sum("valor_devido").alias("valor_risco_em_aberto")
 )
 
 # METADATA ********************
