@@ -115,7 +115,7 @@ print("Calculando valor em aberto por sacado...")
 
 # Agrupamento e Soma
 df_risco_sacado = df_risco_base.groupBy("cpf_cnpj_sacado").agg(
-    sum("valor").alias("valor_risco_em_aberto")
+    sum("valor_devido").alias("valor_risco_em_aberto")
 )
 
 # METADATA ********************
