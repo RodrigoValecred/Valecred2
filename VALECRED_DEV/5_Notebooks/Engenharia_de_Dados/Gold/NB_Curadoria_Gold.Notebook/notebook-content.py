@@ -927,7 +927,7 @@ df_titulos_agg = df_titulos_prazo.groupBy("cod_operacao").agg(
 df_operacoes_enriquecida = df_operacoes_enriquecida.join(df_titulos_agg, "cod_operacao", "left") \
     .withColumn("prazo_medio_total", coalesce(col("prazo_medio_ponderado_dias"), col("prazo_medio") + coalesce(col("floating"), lit(0))))
 
-df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto).cache()
+df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto).dropDuplicates(["cod_operacao"]).cache()
 
 output_path_fato_operacoes = TableNames.GOLD_FATO_OPERACOES
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)
@@ -1115,7 +1115,7 @@ df_fato_titulos_final = df_titulos_geo.select(
     col("spread"), 
     col("comissao_spread"),
     col("cod_cliente")
-).cache()
+).dropDuplicates(["cod_titulo"]).cache()
 output_path_titulos_final = TableNames.GOLD_FATO_TITULOS
 df_fato_titulos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_titulos_final)
 print(f"Tabela 'fato_titulos' salva em: {output_path_titulos_final}")
