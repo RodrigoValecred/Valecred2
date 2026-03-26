@@ -81,10 +81,10 @@ print("Calculando o valor do risco em aberto...")
 df_ops_filtered = df_ops.filter(
     (col("status_aceite") == "A") &
     (col("status_analise") == "D")
-).select("cod_operacao")
+).select("cod_operacao").dropDuplicates(["cod_operacao"])
 
 # A regra para o risco em aberto é: liquidação nula, aceito='S' e t_doc não é 'BL'
-df_titulos_ativos = df_titulos.filter(
+df_titulos_ativos = df_titulos.dropDuplicates(["cod_titulo"]).filter(
     col("liquidacao").isNull() &
     (col("t_doc") != "BL") &
     (col("aceito") == "S")
