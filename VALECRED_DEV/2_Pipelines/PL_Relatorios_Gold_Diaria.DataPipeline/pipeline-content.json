@@ -159,7 +159,14 @@
           "secureOutput": false
         },
         "name": "NB_Gold_Relatorio_Produtos_Mensal",
-        "dependsOn": []
+        "dependsOn": [
+          {
+            "activity": "NB_Gold_Dim_Produtos",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
       },
       {
         "type": "TridentNotebook",
