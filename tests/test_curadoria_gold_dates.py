@@ -41,7 +41,7 @@ class TestFunnelDates(unittest.TestCase):
         # withColumn returns df
         mock_df.withColumn.return_value = mock_df
 
-        # Execution globals
+        # Globais de execução
         exec_globals = {
             'col': mock_col,
             'greatest': mock_greatest,
@@ -73,7 +73,7 @@ class TestFunnelDates(unittest.TestCase):
         arg4 = col_mocks["pivot_concluido"]
         mock_coalesce.assert_any_call(arg3, arg4)
 
-        # Verifica df.withColumn calls
+        # Verifica chamadas df.withColumn
         calls = mock_df.withColumn.call_args_list
         column_names = [c[0][0] for c in calls]
 

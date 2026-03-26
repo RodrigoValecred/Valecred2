@@ -91,7 +91,7 @@ def test_download_retry_mechanism():
     fallback_url = "http://200.152.38.155/CNPJ/test.zip"
 
     # Configura side_effect para HEAD e GET:
-    # 1. Primary URL -> Raises Exception (Simulate Timeout)
+    # 1. URL Primária -> Lança Exceção (Simula Timeout)
     # 2. Fallback URL -> Returns 200 OK
 
     def side_effect(url, **kwargs):

@@ -32,7 +32,7 @@ class TestDashboardUX(unittest.TestCase):
             notebook_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/NB_Gera_Relatorio_Diario_Clientes.Notebook/notebook-content.py"
             with open(notebook_path, "r") as file:
                 code = file.read()
-                # Executa in a new global scope to avoid polluting the test environment
+                # Executa em um novo escopo global para evitar poluir o ambiente de teste
                 # mas passa 'display' via builtins
                 exec(code, {'display': mock_display})
 
