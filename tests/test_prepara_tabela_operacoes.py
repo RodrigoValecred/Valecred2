@@ -423,5 +423,35 @@ class TestGetOperacoesSchema(unittest.TestCase):
 
         self.assertIn("Column 'CODOPERACAO' not found in DataFrame", str(cm.exception))
 
+class TestTransformPareceresOperacoes(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting transform_pareceres_operacoes from {NOTEBOOK_PATH}")
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "transform_pareceres_operacoes")
+
+        if func_source:
+            local_scope = {}
+            global_scope = {
+                "col": mock_col,
+                "year": mock_col,
+                "regexp_replace": mock_col,
+                "trim": mock_col,
+                "when": mock_col,
+                "lit": mock_lit,
+                "unescape_udf": mock_col
+            }
+            try:
+                exec(func_source, global_scope, local_scope)
+                cls.transform_pareceres_operacoes = staticmethod(local_scope["transform_pareceres_operacoes"])
+            except Exception as e:
+                print(f"Error executing extracted function: {e}")
+                cls.transform_pareceres_operacoes = None
+        else:
+            cls.transform_pareceres_operacoes = None
+            print("WARNING: transform_pareceres_operacoes function not found in file.")
+
+    def test_function_exists(self):
+        self.assertIsNotNone(self.transform_pareceres_operacoes, "Function transform_pareceres_operacoes not found.")
+
 if __name__ == '__main__':
     unittest.main()

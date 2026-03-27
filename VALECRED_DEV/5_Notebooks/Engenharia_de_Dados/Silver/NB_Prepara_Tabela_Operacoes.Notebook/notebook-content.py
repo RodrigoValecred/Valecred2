@@ -472,27 +472,15 @@ def unescape_udf(text: pd.Series) -> pd.Series:
 
 # CELL ********************
 
-def process_pareceres_operacoes():
-    print("Processando Pareceres Operações...")
-    source_table = f"{source_lakehouse}.cad_geral_pareceres"
-    target_path = f"{target_lakehouse}.staging_pareceres_operacoes"
-
-    if check_should_skip(spark, source_table, target_path, "DATAINCLUSAO"):
-        print("Skipping Pareceres Operações (No new data)")
-        return
-
-    df_pareceres = spark.read.table(source_table).alias("cgp")
-    df_usuarios = spark.read.table(f"{source_lakehouse}.cad_usuarios").alias("cu")
-    df_operacoes_ref = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa").alias("to2")
-
-# Filtrar
+def transform_pareceres_operacoes(df_pareceres, df_usuarios, df_operacoes_ref):
+    # Filtrar
     df_pareceres_filtered = df_pareceres.filter(
         col("OBS").isNotNull() & col("CODOPERACAO").isNotNull() &
         (col("CODTIPOPARECER") == 10) & (year(col("DATAINCLUSAO")) >= 2024) &
         (~col("OBS").like("%<img alt=%"))
     )
 
-# Join
+    # Join
     df_joined = df_pareceres_filtered \
         .join(df_usuarios, col("cgp.USUAINCLUSAO") == col("cu.CODUSUARIO")) \
         .join(df_operacoes_ref, col("cgp.CODOPERACAO") == col("to2.cod_operacao")) \
@@ -521,7 +509,7 @@ def process_pareceres_operacoes():
 
     df_cleaned = df_joined.withColumn("Parecer", obs_col)
 
-# --- LÓGICA DE FLAGS (Aplicada já no texto limpo) ---
+    # --- LÓGICA DE FLAGS (Aplicada já no texto limpo) ---
     # Dica: Use (?i) no rlike para ignorar maiúscula/minúscula (case insensitive)
     
     df_final_pareceres = df_cleaned.withColumn("ESCROW", when(col("Parecer").rlike("(?i)#?ESCROW"), True).otherwise(False)) \
@@ -529,6 +517,23 @@ def process_pareceres_operacoes():
         .withColumn("ALCADA_CAIO", when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não")) \
         .withColumn("ALCADA_DAIANE", when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não")) \
         .withColumn("IS_LIMITE_PLUS", when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO"))
+
+    return df_final_pareceres
+
+def process_pareceres_operacoes():
+    print("Processando Pareceres Operações...")
+    source_table = f"{source_lakehouse}.cad_geral_pareceres"
+    target_path = f"{target_lakehouse}.staging_pareceres_operacoes"
+
+    if check_should_skip(spark, source_table, target_path, "DATAINCLUSAO"):
+        print("Skipping Pareceres Operações (No new data)")
+        return
+
+    df_pareceres = spark.read.table(source_table).alias("cgp")
+    df_usuarios = spark.read.table(f"{source_lakehouse}.cad_usuarios").alias("cu")
+    df_operacoes_ref = spark.read.table(f"{target_lakehouse}.staging_operacoes_limpa").alias("to2")
+
+    df_final_pareceres = transform_pareceres_operacoes(df_pareceres, df_usuarios, df_operacoes_ref)
 
     # Gravação
     df_final_pareceres.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_pareceres_operacoes")
