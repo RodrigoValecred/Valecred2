@@ -182,10 +182,13 @@ df_critical = df_features_final.filter(
 df_critical = df_critical.withColumn("perfil_cliente", lit("3. Alerta (Risco de Inadimplência)")) \
                          .withColumn("origem_classificacao", lit("Regra de Negócio (PDD/RN)"))
 
+# ⚡ Bolt: Caching df_critical e df_to_cluster antes do count() para evitar re-computação
+df_critical.cache()
 print(f"Clientes classificados como Risco por Regra: {df_critical.count()}")
 
 # Clientes Restantes para Clusterização (Prime vs Rentável)
 df_to_cluster = df_features_final.join(df_critical.select("cod_cliente"), "cod_cliente", "left_anti")
+df_to_cluster.cache()
 print(f"Clientes restantes para Clusterização: {df_to_cluster.count()}")
 
 # 2.2 K-Means nos Restantes
@@ -280,6 +283,9 @@ df_output.show(10, truncate=False)
 
 # 🧠 OTIMIZAÇÃO TENSOR: Liberar memória
 df_features_final.unpersist()
+# ⚡ Bolt: Liberar os caches recém-criados
+df_critical.unpersist()
+df_to_cluster.unpersist()
 print("⚡ Tensor: Cache cleared.")
 
 # METADATA ********************
