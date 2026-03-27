@@ -28,7 +28,7 @@ class TestDashboardUX(unittest.TestCase):
         # Captura stdout para analisar comandos de print
         f = io.StringIO()
         with contextlib.redirect_stdout(f):
-            # Executa the notebook content
+            # Executa o conteúdo do notebook
             notebook_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/NB_Gera_Relatorio_Diario_Clientes.Notebook/notebook-content.py"
             with open(notebook_path, "r") as file:
                 code = file.read()
