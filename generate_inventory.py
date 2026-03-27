@@ -45,34 +45,31 @@ def find_assets():
 assets = find_assets()
 
 def generate_markdown(assets, inventory):
-    md = "# Inventário de Ativos de Dados
-
-Este documento fornece um inventário detalhado de todos os ativos de dados no projeto VALECRED, incluindo Dataflows, Notebooks, Lakehouses e Warehouses.
-
-"
+    md = []
+    md.append("# Inventário de Ativos de Dados\n\nEste documento fornece um inventário detalhado de todos os ativos de dados no projeto VALECRED, incluindo Dataflows, Notebooks, Lakehouses e Warehouses.\n\n")
     for section_name in ['Data Warehouses', 'Lakehouses', 'Dataflows', 'Notebooks']:
-        md += f"## {section_name}\n\n"
+        md.append(f"## {section_name}\n\n")
 
         section_assets = assets.get(section_name, [])
         for asset in section_assets:
-            md += f"### {asset}\n"
+            md.append(f"### {asset}\n")
             if section_name in inventory and asset in inventory[section_name]:
                 for line in inventory[section_name][asset]:
-                    md += f"{line}\n"
+                    md.append(f"{line}\n")
             else:
-                md += "- **Description:** (Missing description)\n"
+                md.append("- **Description:** (Missing description)\n")
                 if section_name == 'Notebooks':
-                    md += "- **Input:** (Not specified)\n"
-                    md += "- **Output:** (Not specified)\n"
-                    md += "- **Processing Steps:** (Not specified)\n"
+                    md.append("- **Input:** (Not specified)\n")
+                    md.append("- **Output:** (Not specified)\n")
+                    md.append("- **Processing Steps:** (Not specified)\n")
                 elif section_name == 'Dataflows':
-                    md += "- **Source:** (Not specified)\n"
-                    md += "- **Destination:** (Not specified)\n"
-                    md += "- **Transformations:** (Not specified)\n"
+                    md.append("- **Source:** (Not specified)\n")
+                    md.append("- **Destination:** (Not specified)\n")
+                    md.append("- **Transformations:** (Not specified)\n")
                 elif section_name == 'Lakehouses' or section_name == 'Data Warehouses':
                     pass # já possui espaço reservado para descrição
-            md += "\n"
-    return md
+            md.append("\n")
+    return "".join(md)
 
 with open('INVENTORY.md', 'w') as f:
     f.write(generate_markdown(assets, inventory))
