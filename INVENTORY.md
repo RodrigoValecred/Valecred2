@@ -292,6 +292,12 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Output:** (Not specified)
 - **Processing Steps:** (Not specified)
 
+### NB_Gold_Relatorio_Limites_Especificos.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
 ### NB_Gold_Relatorio_Novos_Clientes.Notebook
 - **Description:** (Missing description)
 - **Input:** (Not specified)
@@ -309,6 +315,12 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Input:** `LH_Silver` (`staging_titulos`, `staging_operacoes`, `staging_clientes`)
 - **Output:** `LH_Gold` (`risco_cliente_produto`)
 - **Processing Steps:** Joins Silver tables, applies risk rules, and aggregates the data by client and product.
+
+### NB_Gold_Risco_Sacado.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
 
 ### NB_Inadimplencia_Mensal.Notebook
 - **Description:** (Missing description)
@@ -443,6 +455,12 @@ This document provides a detailed inventory of all data assets in the VALECRED p
 - **Processing Steps:** (Not specified)
 
 ### VAI_Inferencia_Online.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### testes.Notebook
 - **Description:** (Missing description)
 - **Input:** (Not specified)
 - **Output:** (Not specified)
