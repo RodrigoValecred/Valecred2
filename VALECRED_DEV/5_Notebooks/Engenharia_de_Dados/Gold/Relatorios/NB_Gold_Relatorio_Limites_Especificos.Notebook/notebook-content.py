@@ -43,7 +43,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, coalesce, lit, sum
+from pyspark.sql.functions import col, coalesce, lit, sum, avg
 from notebookutils import mssparkutils
 
 # METADATA ********************
@@ -81,19 +81,19 @@ print("Calculando o valor do risco em aberto...")
 df_ops_filtered = df_ops.filter(
     (col("status_aceite") == "A") &
     (col("status_analise") == "D")
-).select("cod_operacao").dropDuplicates(["cod_operacao"])
+).select("cod_operacao", "taxa_operacao").dropDuplicates(["cod_operacao"])
 
 # Filtro de Títulos e Join com Operações: liquidação nula, aceito='S' e t_doc não é 'BL'
 df_titulos_ativos = df_titulos.dropDuplicates(["cod_titulo"]).filter(
     col("liquidacao").isNull() &
     (col("t_doc") != "BL") &
     (col("aceito") == "S")
-
 ).join(df_ops_filtered, "cod_operacao", "inner")
 
 # O risco em aberto utiliza o "valor_devido" em vez de apenas "valor"
-df_risco = df_titulos_ativos.groupBy("cod_cliente", "cpf_cnpj_sacado").agg(
-    sum("valor_devido").alias("valor_risco_em_aberto")
+df_risco = df_titulos_ativos.groupBy("cpf_cnpj_sacado").agg(
+    sum("valor_devido").alias("valor_risco_em_aberto"),
+    avg("taxa_operacao").alias("taxa_media")
 )
 
 # METADATA ********************
@@ -125,6 +125,7 @@ df_grupos_nome = df_grupos.select(
 df_limites_base = df_limites.select(
     col("cod_cliente"),
     col("cpf_cnpj").alias("cpf_cnpj_sacado"),
+    col("tipo"),
     col("valor").alias("valor_limite_especifico")
 )
 
@@ -147,13 +148,15 @@ df_relatorio = df_limites_base.join(
 ).join(
     df_sacados, col("cpf_cnpj_sacado") == df_sacados.cpf_cnpj, "left"
 ).join(
-    df_risco, ["cod_cliente", "cpf_cnpj_sacado"], "left"
+    df_risco, "cpf_cnpj_sacado", "left"
 ).select(
     coalesce(col("nome_grupo"), lit("SEM GRUPO")).alias("nome_grupo"),
     col("nome_cliente"),
     col("nome_sacado"),
+    col("tipo"),
     col("valor_limite_especifico"),
-    coalesce(col("valor_risco_em_aberto"), lit(0.0)).alias("valor_risco_em_aberto")
+    coalesce(col("valor_risco_em_aberto"), lit(0.0)).alias("valor_risco_em_aberto"),
+    coalesce(col("taxa_media"), lit(0.0)).alias("taxa_media")
 )
 
 # METADATA ********************
