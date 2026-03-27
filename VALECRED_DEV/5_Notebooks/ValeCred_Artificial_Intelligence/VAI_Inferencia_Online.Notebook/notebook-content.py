@@ -76,9 +76,71 @@ df_hoje_ajustado = df_hoje_clean \
     .withColumnRenamed("QTD_TITULOS", "qtd_titulos") \
     .withColumnRenamed("cpf_cnpj_sacado", "cpf_cnpj_sacado") \
     .withColumnRenamed("TIPO_OPERACAO", "TTO") \
-    .withColumnRenamed("SUBTIPO_OPERACAO", "STTO")
+    .withColumnRenamed("SUBTIPO_OPERACAO", "STTO") \
+    .withColumnRenamed("CODCLIENTE", "cod_cliente")
     # (Ajuste os nomes "TIPO_OPERACAO" acima se na Bronze eles tiverem outro nome)
 # df_hoje_ajustado.show(5)
+
+# ==============================================================================
+# 🆕 VERIFICAÇÃO DE GOLPE INTERCIA SEM LIMITE (Grupos Econômicos)
+# ==============================================================================
+try:
+    print("🔍 Verificando regras de Intercia (Grupos Econômicos)...")
+    df_grupos = spark.table("LH_Silver.sup_grupos_economicos")
+    # Padronizar colunas de grupos
+    if "codcliente" in df_grupos.columns and "cod_cliente" not in df_grupos.columns:
+        df_grupos = df_grupos.withColumnRenamed("codcliente", "cod_cliente")
+    if "nomegrupo" in df_grupos.columns and "grupo_economico" not in df_grupos.columns:
+        df_grupos = df_grupos.withColumnRenamed("nomegrupo", "grupo_economico")
+
+    df_limites = spark.table("LH_Silver.staging_rlc_clientes_sacados_limites")
+
+    # Padronizar caso falte colunas no dataframe de limites
+    if "CODCLIENTE" in df_limites.columns and "cod_cliente" not in df_limites.columns:
+        df_limites = df_limites.withColumnRenamed("CODCLIENTE", "cod_cliente")
+    if "CPFCNPJ" in df_limites.columns and "cpf_cnpj" not in df_limites.columns:
+        df_limites = df_limites.withColumnRenamed("CPFCNPJ", "cpf_cnpj")
+
+    df_limites_intercia = df_limites.filter(F.col("tipo") == "INTERCIA")
+
+    # Criar lista de empresas do grupo (Sacados Intercia do Grupo todo)
+    df_cnpjs_grupo = df_limites_intercia.join(df_grupos, "cod_cliente", "inner") \
+        .select("grupo_economico", F.col("cpf_cnpj").alias("cpf_cnpj_sacado")) \
+        .distinct() \
+        .withColumn("is_empresa_grupo", F.lit(True))
+
+    # Limites específicos do cliente atual
+    df_limite_cliente = df_limites_intercia.select(
+        "cod_cliente",
+        F.col("cpf_cnpj").alias("cpf_cnpj_sacado"),
+        F.col("valor").alias("valor_limite_intercia")
+    )
+
+    # Obter grupo do cliente da operação
+    df_hoje_com_grupo = df_hoje_ajustado.join(df_grupos.select("cod_cliente", "grupo_economico"), "cod_cliente", "left")
+
+    # Cruzar com as empresas do grupo
+    df_hoje_verificacao = df_hoje_com_grupo.join(
+        df_cnpjs_grupo,
+        ["grupo_economico", "cpf_cnpj_sacado"],
+        "left"
+    ).fillna(False, subset=["is_empresa_grupo"])
+
+    # Cruzar com o limite do próprio cliente
+    df_hoje_verificacao = df_hoje_verificacao.join(
+        df_limite_cliente,
+        ["cod_cliente", "cpf_cnpj_sacado"],
+        "left"
+    ).fillna(0.0, subset=["valor_limite_intercia"])
+
+    # Flag de golpe: É do grupo E cliente não tem limite para ele
+    df_hoje_ajustado = df_hoje_verificacao.withColumn(
+        "alerta_intercia_sem_limite",
+        F.when(F.col("is_empresa_grupo") & (F.col("valor_limite_intercia") <= 0), F.lit(True)).otherwise(F.lit(False))
+    )
+except Exception as e:
+    print(f"⚠️ Não foi possível carregar regras de Intercia: {e}")
+    df_hoje_ajustado = df_hoje_ajustado.withColumn("alerta_intercia_sem_limite", F.lit(False))
 
 # ==============================================================================
 # 🆕 BLOCO DE ENRIQUECIMENTO DE PRODUTO (O Join Mágico)
@@ -198,6 +260,13 @@ try:
     cols_input = [F.col(c) for c in features_backup]
     df_scored = df_scored.withColumn("anomaly_score", predict_udf(F.struct(*cols_input)))
 
+    # Forçar anomalia se for Intercia sem Limite
+    if "alerta_intercia_sem_limite" in df_scored.columns:
+        df_scored = df_scored.withColumn(
+            "anomaly_score",
+            F.when(F.col("alerta_intercia_sem_limite"), -1.0).otherwise(F.col("anomaly_score"))
+        )
+
     print("🚀 V.A.I. aplicada com sucesso (Distribuído)!")
 
 except Exception as e:
@@ -207,6 +276,11 @@ except Exception as e:
         "anomaly_score",
         F.when((F.col('taxa') < 1.5) | (F.col('prazo_medio_titulos') > 60), -1.0).otherwise(1.0)
     )
+    if "alerta_intercia_sem_limite" in df_scored.columns:
+        df_scored = df_scored.withColumn(
+            "anomaly_score",
+            F.when(F.col("alerta_intercia_sem_limite"), -1.0).otherwise(F.col("anomaly_score"))
+        )
 
 # ==============================================================================
 # 🆕 XAI: EXPLICAR O MOTIVO DA ANOMALIA (DIAGNÓSTICO)
@@ -251,9 +325,16 @@ for c in features_para_analisar:
 z_scores_array = F.array(*z_score_structs)
 max_z_struct = F.array_max(z_scores_array)
 
-motivo_expr = F.when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
-               .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
-               .otherwise(F.lit("Desconhecido"))
+# Na explicação, verificar primeiro a regra rígida de Intercia
+if "alerta_intercia_sem_limite" in df_scored.columns:
+    motivo_expr = F.when(F.col("alerta_intercia_sem_limite"), F.lit("Tentativa de Intercia Sem Limite")) \
+                   .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
+                   .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
+                   .otherwise(F.lit("Desconhecido"))
+else:
+    motivo_expr = F.when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
+                   .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
+                   .otherwise(F.lit("Desconhecido"))
 
 df_final = df_scored.withColumn("motivo_principal", motivo_expr)
 
