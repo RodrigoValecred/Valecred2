@@ -38,6 +38,8 @@ class TestSafeExtract(unittest.TestCase):
         # Create malicious zip
         with zipfile.ZipFile(self.malicious_zip_path, 'w') as zf:
             zf.writestr('../evil.txt', 'evil content')
+            zf.writestr('/evil_absolute.txt', 'evil content')
+            zf.writestr('subdir/../../evil_nested.txt', 'evil content')
             zf.writestr('good.txt', 'good content')
 
         # Create safe zip
@@ -56,9 +58,10 @@ class TestSafeExtract(unittest.TestCase):
     def test_cvm_safe_extract(self):
         self._test_safe_extract(CVM_NOTEBOOK_PATH)
 
-    def test_rfb_safe_extract_error_handling(self):
+    def test_rfb_safe_extract(self):
         self._test_safe_extract(RFB_NOTEBOOK_PATH)
 
+    def test_rfb_safe_extract_error_handling(self):
         func_source = extract_function_from_file(RFB_NOTEBOOK_PATH, "safe_extract")
         if not func_source:
              self.fail(f"Function safe_extract not found in {RFB_NOTEBOOK_PATH}")
@@ -107,6 +110,8 @@ class TestSafeExtract(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(self.output_dir, "good.txt")), "good.txt should not be extracted if validation fails")
         self.assertFalse(os.path.exists(os.path.join(self.output_dir, "evil.txt")), "evil.txt should not be extracted")
         self.assertFalse(os.path.exists(os.path.join(self.test_dir, "evil.txt")), "evil.txt should not be extracted outside")
+        self.assertFalse(os.path.exists(os.path.join(self.test_dir, "evil_absolute.txt")), "evil_absolute.txt should not be extracted outside")
+        self.assertFalse(os.path.exists(os.path.join(self.test_dir, "evil_nested.txt")), "evil_nested.txt should not be extracted outside")
 
         # 2. Testa Zip Seguro
         with zipfile.ZipFile(self.safe_zip_path, 'r') as zf:
