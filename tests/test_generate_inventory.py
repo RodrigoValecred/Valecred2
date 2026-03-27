@@ -1,5 +1,80 @@
 import pytest
-from generate_inventory import generate_markdown
+from generate_inventory import generate_markdown, parse_inventory
+
+def test_parse_inventory_empty_file(tmp_path):
+    f = tmp_path / "inventory.md"
+    f.write_text("")
+    inventory = parse_inventory(str(f))
+    assert inventory == {}
+
+
+def test_parse_inventory_happy_path(tmp_path):
+    f = tmp_path / "inventory.md"
+    content = """# Title
+Some text
+
+## Notebooks
+Some text
+
+### NB_Test.Notebook
+- **Description:** A notebook
+- **Input:** None
+
+## Dataflows
+### DF_Test.Dataflow
+- **Description:** A dataflow
+"""
+    f.write_text(content)
+    inventory = parse_inventory(str(f))
+    assert inventory == {
+        "Notebooks": {
+            "NB_Test.Notebook": [
+                "- **Description:** A notebook",
+                "- **Input:** None"
+            ]
+        },
+        "Dataflows": {
+            "DF_Test.Dataflow": [
+                "- **Description:** A dataflow"
+            ]
+        }
+    }
+
+
+def test_parse_inventory_missing_description(tmp_path):
+    f = tmp_path / "inventory.md"
+    content = """## Notebooks
+### NB_Test.Notebook
+"""
+    f.write_text(content)
+    inventory = parse_inventory(str(f))
+    assert inventory == {
+        "Notebooks": {
+            "NB_Test.Notebook": []
+        }
+    }
+
+
+def test_parse_inventory_malformed(tmp_path):
+    f = tmp_path / "inventory.md"
+    content = """### Orphan Asset
+- **Description:** description
+
+## Section
+- **Description:** orphan description
+### Valid Asset
+- **Description:** valid
+"""
+    f.write_text(content)
+    inventory = parse_inventory(str(f))
+    assert inventory == {
+        "Section": {
+            "Valid Asset": [
+                "- **Description:** valid"
+            ]
+        }
+    }
+
 
 def test_generate_markdown_empty_inputs():
     assets = {}
@@ -7,7 +82,7 @@ def test_generate_markdown_empty_inputs():
     md = generate_markdown(assets, inventory)
 
     # Should contain the header and section titles, but no assets
-    assert "# Inventory of Data Assets" in md
+    assert "# Inventário de Ativos de Dados" in md
     assert "## Data Warehouses" in md
     assert "## Lakehouses" in md
     assert "## Dataflows" in md
