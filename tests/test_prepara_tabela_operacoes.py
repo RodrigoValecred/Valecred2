@@ -423,5 +423,46 @@ class TestGetOperacoesSchema(unittest.TestCase):
 
         self.assertIn("Column 'CODOPERACAO' not found in DataFrame", str(cm.exception))
 
+
+from unittest.mock import MagicMock
+
+class TestCheckShouldSkip(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting check_should_skip from {NOTEBOOK_PATH}")
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "check_should_skip")
+
+        if func_source:
+            class MockDeltaTable:
+                @staticmethod
+                def isDeltaTable(spark, path):
+                    return True
+
+            local_scope = {}
+            global_scope = {
+                "FULL_LOAD": False,
+                "DeltaTable": MockDeltaTable
+            }
+            try:
+                exec(func_source, global_scope, local_scope)
+                cls.check_should_skip = staticmethod(local_scope["check_should_skip"])
+            except Exception as e:
+                print(f"Error executing extracted function: {e}")
+                cls.check_should_skip = None
+        else:
+            cls.check_should_skip = None
+            print("WARNING: check_should_skip function not found in file.")
+
+    def test_check_should_skip_exception(self):
+        """Test the exception path in check_should_skip."""
+        if not self.check_should_skip:
+            self.skipTest("Function not found")
+
+        spark_mock = MagicMock()
+        spark_mock.read.format.return_value.load.side_effect = Exception("Mocked exception")
+
+        result = self.check_should_skip(spark_mock, "source_table", "target_table_path")
+        self.assertFalse(result)
+
 if __name__ == '__main__':
     unittest.main()
