@@ -108,5 +108,31 @@ class TestSanitizeColumnName(unittest.TestCase):
         self.assertEqual(self.sanitize_column_name("Address1"), "address1")
         self.assertEqual(self.sanitize_column_name("v2_0"), "v2_0")
 
+        # Test camel case with numbers
+        self.assertEqual(self.sanitize_column_name("Version2_1"), "version2_1")
+        self.assertEqual(self.sanitize_column_name("v2_0_NewVersion"), "v2_0_new_version")
+
+    def test_empty_string(self):
+        """Testa o comportamento com string vazia."""
+        if not self.sanitize_column_name: self.skipTest("Function not found")
+        self.assertEqual(self.sanitize_column_name(""), "")
+        self.assertEqual(self.sanitize_column_name("   "), "")
+
+    def test_non_string_inputs(self):
+        """Testa o comportamento com entradas não-string, que devem ser convertidas."""
+        if not self.sanitize_column_name: self.skipTest("Function not found")
+        self.assertEqual(self.sanitize_column_name(None), "none")
+        self.assertEqual(self.sanitize_column_name(123), "123")
+        self.assertEqual(self.sanitize_column_name(45.67), "45_67")
+        self.assertEqual(self.sanitize_column_name(True), "true")
+
+    def test_messy_strings(self):
+        """Testa strings com muitos espaços, quebras de linha e caracteres especiais."""
+        if not self.sanitize_column_name: self.skipTest("Function not found")
+        messy_str = "  \n  Coluna   Muito\t \n Estranha !@# %& *()  "
+        self.assertEqual(self.sanitize_column_name(messy_str), "coluna_muito_estranha")
+        self.assertEqual(self.sanitize_column_name("A.B.C"), "a_b_c")
+        self.assertEqual(self.sanitize_column_name("---A---B---"), "a_b")
+
 if __name__ == '__main__':
     unittest.main()
