@@ -21,8 +21,6 @@ def parse_inventory(filename):
             inventory[current_section][current_item].append(line)
     return inventory
 
-inventory = parse_inventory('INVENTORY.md')
-
 def find_assets():
     assets = {
         'Lakehouses': [],
@@ -41,8 +39,6 @@ def find_assets():
             elif d.endswith('.Notebook'):
                 assets['Notebooks'].append(d)
     return {k: sorted(v) for k, v in assets.items()}
-
-assets = find_assets()
 
 def generate_markdown(assets, inventory):
     md = []
@@ -71,6 +67,9 @@ def generate_markdown(assets, inventory):
             md.append("\n")
     return "".join(md)
 
-with open('INVENTORY.md', 'w') as f:
-    f.write(generate_markdown(assets, inventory))
-print("Generated new inventory in INVENTORY.md")
+if __name__ == '__main__':
+    inventory = parse_inventory('INVENTORY.md')
+    assets = find_assets()
+    with open('INVENTORY.md', 'w') as f:
+        f.write(generate_markdown(assets, inventory))
+    print("Generated new inventory in INVENTORY.md")
