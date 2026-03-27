@@ -43,7 +43,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, coalesce, lit, sum, avg
+from pyspark.sql.functions import col, coalesce, lit, sum, avg, collect_set, array
 from notebookutils import mssparkutils
 
 # METADATA ********************
@@ -93,7 +93,8 @@ df_titulos_ativos = df_titulos.dropDuplicates(["cod_titulo"]).filter(
 # O risco em aberto utiliza o "valor_devido" em vez de apenas "valor"
 df_risco = df_titulos_ativos.groupBy("cpf_cnpj_sacado").agg(
     sum("valor_devido").alias("valor_risco_em_aberto"),
-    avg("taxa_operacao").alias("taxa_media")
+    avg("taxa_operacao").alias("taxa_media"),
+    collect_set("cod_titulo").alias("titulos_risco")
 )
 
 # METADATA ********************
@@ -156,7 +157,8 @@ df_relatorio = df_limites_base.join(
     col("tipo"),
     col("valor_limite_especifico"),
     coalesce(col("valor_risco_em_aberto"), lit(0.0)).alias("valor_risco_em_aberto"),
-    coalesce(col("taxa_media"), lit(0.0)).alias("taxa_media")
+    coalesce(col("taxa_media"), lit(0.0)).alias("taxa_media"),
+    coalesce(col("titulos_risco"), array()).alias("titulos_risco")
 )
 
 # METADATA ********************
