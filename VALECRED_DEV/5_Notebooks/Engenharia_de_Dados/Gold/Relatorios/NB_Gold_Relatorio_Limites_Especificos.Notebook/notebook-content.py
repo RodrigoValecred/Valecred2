@@ -43,7 +43,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, coalesce, lit, sum, avg
+from pyspark.sql.functions import col, coalesce, lit, sum, avg, when, length, substring
 from notebookutils import mssparkutils
 
 # METADATA ********************
@@ -90,8 +90,14 @@ df_titulos_ativos = df_titulos.dropDuplicates(["cod_titulo"]).filter(
     (col("aceito") == "S")
 ).join(df_ops_filtered, "cod_operacao", "inner")
 
-# O risco em aberto utiliza o "valor_devido" em vez de apenas "valor"
-df_risco = df_titulos_ativos.groupBy("cpf_cnpj_sacado").agg(
+# Extrai a raiz do CNPJ (8 primeiros dígitos) ou mantém o CPF
+df_titulos_ativos = df_titulos_ativos.withColumn(
+    "raiz_cnpj_sacado",
+    when(length(col("cpf_cnpj_sacado")) > 11, substring(col("cpf_cnpj_sacado"), 1, 8)).otherwise(col("cpf_cnpj_sacado"))
+)
+
+# O risco em aberto utiliza o "valor_devido" em vez de apenas "valor" e agrupa pela raiz
+df_risco = df_titulos_ativos.groupBy("raiz_cnpj_sacado").agg(
     sum("valor_devido").alias("valor_risco_em_aberto"),
     avg("taxa_operacao").alias("taxa_media")
 )
@@ -121,10 +127,17 @@ df_grupos_nome = df_grupos.select(
     col("nomegrupo").alias("nome_grupo")
 )
 
+# Dimensão de Sacados dedupilcada pela raiz do CNPJ para manter o nome
+df_sacados_dedup = df_sacados.withColumn(
+    "raiz_cnpj_sacado",
+    when(length(col("cpf_cnpj")) > 11, substring(col("cpf_cnpj"), 1, 8)).otherwise(col("cpf_cnpj"))
+).select("raiz_cnpj_sacado", "nome_sacado").dropDuplicates(["raiz_cnpj_sacado"])
+
 # Base de Limites (Selecionando o valor específico do sacado)
 df_limites_base = df_limites.select(
     col("cod_cliente"),
     col("cpf_cnpj").alias("cpf_cnpj_sacado"),
+    when(length(col("cpf_cnpj")) > 11, substring(col("cpf_cnpj"), 1, 8)).otherwise(col("cpf_cnpj")).alias("raiz_cnpj_sacado"),
     col("tipo"),
     col("valor").alias("valor_limite_especifico")
 )
@@ -146,9 +159,9 @@ df_relatorio = df_limites_base.join(
 ).join(
     df_grupos_nome, "cod_cliente", "left"
 ).join(
-    df_sacados, col("cpf_cnpj_sacado") == df_sacados.cpf_cnpj, "left"
+    df_sacados_dedup, "raiz_cnpj_sacado", "left"
 ).join(
-    df_risco, "cpf_cnpj_sacado", "left"
+    df_risco, "raiz_cnpj_sacado", "left"
 ).select(
     coalesce(col("nome_grupo"), lit("SEM GRUPO")).alias("nome_grupo"),
     col("nome_cliente"),
