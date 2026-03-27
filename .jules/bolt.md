@@ -13,3 +13,7 @@
 ## 2024-03-25 - PySpark Catalyst Plan Re-evaluation with Multiple Actions
 **Learning:** In PySpark workflows (e.g., `NB_Curadoria_Gold.Notebook`), performing multiple actions (like `count()`, `sum()`, `collect()`) on the same DataFrame forces the Catalyst optimizer to re-evaluate the entire logical and physical plan from scratch, resulting in redundant full table scans for every action.
 **Action:** Always explicitly call `.cache()` on the DataFrame before executing multiple actions, and `.unpersist()` immediately after to clear memory. This ensures the data is read into memory once, drastically reducing I/O and execution time.
+
+## 2025-02-28 - PySpark DataFrame count() vs isEmpty()
+**Learning:** Using `df.count() > 0` to check if a DataFrame has records (such as in incremental logic for `NB_Gold_Esteira_Propostas.Notebook`) triggers a full execution of the Catalyst physical plan across all partitions, acting as a massive bottleneck even for empty DataFrames.
+**Action:** Always replace `df.count() > 0` with `not df.isEmpty()`. This restricts the scan operation to evaluating only the first partition and returns immediately upon finding a single record, avoiding full DAG materialization and saving precious computation time.

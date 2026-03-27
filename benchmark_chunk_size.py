@@ -30,22 +30,22 @@ def download_file(chunk_size):
 
 if __name__ == "__main__":
     server = start_server()
-    time.sleep(1) # wait for server to start
+    time.sleep(1) # espera o servidor iniciar
 
     # Aquecimento
     download_file(8192)
 
-    # Measure 8KB chunk size
+    # Mede chunk size de 8KB
     time_8k = download_file(8192)
     print(f"Time with 8KB chunk size: {time_8k:.4f} seconds")
 
-    # Measure 1MB chunk size
+    # Mede chunk size de 1MB
     time_1m = download_file(1048576)
     print(f"Time with 1MB chunk size: {time_1m:.4f} seconds")
 
     print(f"Improvement: {(time_8k - time_1m) / time_8k * 100:.2f}%")
 
-    # Cleanup
+    # Limpeza
     server.shutdown()
     os.remove(TEST_FILE)
     os.remove('downloaded.bin')

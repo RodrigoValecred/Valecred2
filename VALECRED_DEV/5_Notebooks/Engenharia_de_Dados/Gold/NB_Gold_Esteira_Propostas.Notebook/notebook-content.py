@@ -109,13 +109,19 @@ except Exception:
 # Célula 4.2: Leitura e Processamento Incremental
 # ------------------------------------------------
 df_pareceres_incremental = df_pareceres_raw.filter((col("DATAINCLUSAO") > last_watermark) | (col("DATAALTERACAO") > last_watermark)).cache()
-record_count = df_pareceres_incremental.count()
 
 logger.info(f"Colunas da df_pareceres_incremental: {df_pareceres_incremental.columns}")
 
-if record_count > 0:
+# ⚡ Bolt Optimization: Replace count() with isEmpty()
+# 💡 O que: Substituição de `record_count = df_pareceres_incremental.count()` e verificação `> 0` por `has_new_records = not df_pareceres_incremental.isEmpty()`.
+# 🎯 Por que: A ação `.count()` força a avaliação de todo o DataFrame, resultando em um full table scan que atrasa a execução se houver muitos dados ou até mesmo quando há nenhum dado mas muitas partições a serem varridas. `.isEmpty()` realiza apenas uma operação leve (equivalente a `limit(1)`) para checar a presença de registros, contornando a varredura integral.
+# 📊 Impacto: Melhora significativa no tempo de execução do check inicial para incremental, que ocorre diariamente, reduzindo chamadas supérfluas de action no Catalyst Optimizer.
+# 🔬 Medição: Ação avaliada localmente, economizando os segundos da materialização completa do DAG no momento do `count()`.
+has_new_records = not df_pareceres_incremental.isEmpty()
+
+if has_new_records:
     new_watermark = df_pareceres_incremental.agg(max(greatest(coalesce(col("DATAINCLUSAO"), lit(DEFAULT_WATERMARK)), coalesce(col("DATAALTERACAO"), lit(DEFAULT_WATERMARK))))).collect()[0][0]
-    logger.info(f"Registros incrementais: {record_count}. Novo watermark: {new_watermark}")
+    logger.info(f"Novos registros encontrados. Novo watermark: {new_watermark}")
 
     df_replica_pareceres_delta = df_pareceres_incremental.filter(year(col("DATAINCLUSAO")) >= 2024).drop("ENCAMINHAR", "ALERTA", "CODPASTA", "CODTAREFA", "USUAALTERACAO", "DATAALTERACAO").withColumn("OBS", col("OBS").substr(1, 255)).withColumn("codTipoParecer", col("CODTIPOPARECER").cast(LongType())).filter((col("codTipoParecer") == 1) & (col("CPFCNPJ").isNotNull()) & (col("CPFCNPJ") != "") & (col("OBS").isNotNull()) & (col("OBS") != "") & (col("USUAINCLUSAO").isNotNull()) & (col("DATAINCLUSAO").isNotNull())).filter(col("OBS").startswith("STATUS ALTERADO PARA ")).withColumn("STATUS_DO_CLIENTE", trim(substring(col("OBS"), 22, 100))).withColumn("BASE", lit(40).cast(LongType())).select("CODPARECER", "CPFCNPJ", "CODOPERACAO", "DATAINCLUSAO", "USUAINCLUSAO", "STATUS_DO_CLIENTE", "BASE")
 
@@ -193,7 +199,7 @@ if 'df_pareceres_incremental' in locals():
 
 # Célula 4.3: Reconstrução da Esteira e Atualização do Watermark
 # -------------------------------------------------------------
-if record_count > 0 or not spark.catalog.tableExists(target_esteira_table_name):
+if has_new_records or not spark.catalog.tableExists(target_esteira_table_name):
     logger.info("Reconstruindo esteira_de_propostas...")
     df_pareceres_completa = spark.read.table(target_pareceres_status_table_name)
     window_lag = Window.partitionBy("CODCLIENTE").orderBy("DATALOG")

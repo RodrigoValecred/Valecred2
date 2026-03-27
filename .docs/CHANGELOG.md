@@ -2,7 +2,25 @@
 
 ## Change Log
 
-### Changed
+### [2026-03-26]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `PL_Relatorios_Gold_Diaria.DataPipeline` | `VALECRED_DEV/2_Pipelines/PL_Relatorios_Gold_Diaria.DataPipeline/pipeline-content.json` | Creation of daily pipeline for Gold layer reports orchestration. | Added |
+| `PL_Relatorios_Gold_Diaria_v1.2.DataPipeline` | `VALECRED_DEV/2_Pipelines/PL_Relatorios_Gold_Diaria_v1.2.DataPipeline/pipeline-content.json` | Creation of a new version of the daily reports pipeline. | Added |
+| `NB_Gold_Cockpit_KPIs.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Cockpit_KPIs.Notebook/item.metadata.json` | Added KPIs Cockpit notebook in the Gold layer. | Added |
+| `NB_Gold_Empresas_RFB_Target.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Empresas_RFB_Target.Notebook/item.metadata.json` | Added RFB target companies notebook in the Gold layer. | Added |
+| `NB_Gold_Risco_Sacado.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Risco_Sacado.Notebook/notebook-content.py` | Created open risk report by drawee (sacado) and corrected aggregation logic using `valor_devido` instead of `valor`. | Added |
+| `NB_Relatorio_Limites_Vencendo.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Relatorio_Limites_Vencendo.Notebook/notebook-settings.json` | Added expiring limits report notebook. | Added |
+| `NB_Curadoria_Gold.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | Prevented duplication in risk calculation by applying `dropDuplicates(["cod_operacao"])` and `dropDuplicates(["cod_titulo"])` on fact tables. | Changed |
+| `NB_Gold_Carteira_Valor_Diario.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Carteira_Valor_Diario.Notebook/notebook-content.py` | ⚡ Bolt: Removed unnecessary `count()` actions that forced full table scans and caused overhead. | Changed |
+| `NB_Gold_Relatorio_Limites_Especificos.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Limites_Especificos.Notebook/notebook-content.py` | Corrected logic for identifying active titles using `dropDuplicates(["cod_titulo"])`. | Changed |
+| `NB_Prepara_Tabela_Produtos.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Produtos.Notebook/notebook-content.py` | 🧠 Tensor: Optimized PySpark execution plan by replacing a for loop of `withColumn` calls with `withColumns` in product processing. | Changed |
+| Multiple Gold Notebooks | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/` | Moved multiple reporting notebooks (`NB_Analyze_FIDC_Performance`, `NB_Gold_Relatorio_Novos_Clientes`, `NB_Gold_Risco_Cliente`, `NB_Inadimplencia_Mensal`, `NB_Risk_Aggregation`, etc.) from the base Gold directory into the `Relatorios/` folder. | Changed |
+| `test_tables.py` | `test_tables.py` | Added a new utility script (likely for local testing). | Added |
+| `organize2.py` | `organize2.py` | Added a new script to infer notebook dependencies based on read/write patterns. | Added |
+
+### [2026-03-25]
 
 | Component | Path | Description | Change |
 | :--- | :--- | :--- | :--- |
