@@ -38,7 +38,7 @@ class TestTransformOperacoes(unittest.TestCase):
              raise ValueError("Function get_operacoes_schema not found")
 
         local_scope = {}
-        # We need PySpark functions in the scope for `exec` to work
+        # Precisamos das funções do PySpark no escopo para o `exec` funcionar
         exec_scope = {}
         exec("from pyspark.sql.functions import col, when, lit, row_number, concat, coalesce, desc", exec_scope)
         exec("from pyspark.sql.window import Window", exec_scope)
@@ -62,7 +62,7 @@ class TestTransformOperacoes(unittest.TestCase):
             StructField("TTO", StringType(), True),
             StructField("STTO", StringType(), True),
             StructField("DATAALTERACAO", StringType(), True),
-            # Add all columns required by get_operacoes_schema to prevent errors
+            # Adiciona todas as colunas necessárias pelo get_operacoes_schema para evitar erros
             StructField("CODCLIENTE", IntegerType(), True),
             StructField("CODEMPRESA", IntegerType(), True),
             StructField("DATAINCLUSAO", StringType(), True),
@@ -116,7 +116,7 @@ class TestTransformOperacoes(unittest.TestCase):
         self.assertEqual(tto_map[1111111], "ORIGINAL")
 
     def test_transform_operacoes_deduplication(self):
-        # Create test DataFrame with duplicates
+        # Cria DataFrame de teste com duplicatas
         schema = StructType([
             StructField("CODOPERACAO", IntegerType(), True),
             StructField("TTO", StringType(), True),
@@ -156,12 +156,12 @@ class TestTransformOperacoes(unittest.TestCase):
         ])
 
         data = [
-            # ID 100 has two records, we want the latest DATAALTERACAO
+            # ID 100 possui dois registros, queremos a DATAALTERACAO mais recente
             (100, "AA", "1", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1),
-            (100, "AA", "1", "2023-01-05", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # This should be kept
+            (100, "AA", "1", "2023-01-05", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Este deve ser mantido
             # ID 200 tem três registros
             (200, "BB", "2", "2023-01-02", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1),
-            (200, "BB", "2", "2023-01-04", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # This should be kept
+            (200, "BB", "2", "2023-01-04", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Este deve ser mantido
             (200, "BB", "2", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1)
         ]
 
@@ -172,7 +172,7 @@ class TestTransformOperacoes(unittest.TestCase):
         # Verifica deduplicação
         self.assertEqual(result_df.count(), 2)
 
-        # Verify the right rows were kept
+        # Verifica se as linhas corretas foram mantidas
         results = result_df.select("cod_operacao", "data_alteracao").collect()
         date_map = {row["cod_operacao"]: row["data_alteracao"] for row in results}
 

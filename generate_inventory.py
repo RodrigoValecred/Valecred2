@@ -45,7 +45,11 @@ def find_assets():
 assets = find_assets()
 
 def generate_markdown(assets, inventory):
-    md = "# Inventory of Data Assets\n\nThis document provides a detailed inventory of all data assets in the VALECRED project, including Dataflows, Notebooks, Lakehouses, and Warehouses.\n\n"
+    md = "# Inventário de Ativos de Dados
+
+Este documento fornece um inventário detalhado de todos os ativos de dados no projeto VALECRED, incluindo Dataflows, Notebooks, Lakehouses e Warehouses.
+
+"
     for section_name in ['Data Warehouses', 'Lakehouses', 'Dataflows', 'Notebooks']:
         md += f"## {section_name}\n\n"
 

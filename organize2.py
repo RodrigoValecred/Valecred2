@@ -64,7 +64,7 @@ for name, path in notebook_paths.items():
 
         deps_map[name] = {"reads": list(reads), "writes": list(writes)}
 
-# Fix some writes that might be missed based on file name or context
+# Corrige algumas escritas que podem ter sido perdidas com base no nome do arquivo ou contexto
 deps_map['NB_Gold_Dim_Produtos']['writes'] = ['LH_Gold.dim_produtos']
 deps_map['NB_Calendario_Gold']['writes'] = ['LH_Gold.dim_calendario']
 
@@ -76,7 +76,7 @@ for nb, info in deps_map.items():
             if nb != other_nb and read_table in other_info['writes']:
                 dependencies[nb].append(other_nb)
 
-# Deduplicate
+# Desduplica
 for nb in dependencies:
     dependencies[nb] = list(set(dependencies[nb]))
 
