@@ -107,6 +107,12 @@ dfs = [
 ]
 df = reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), dfs)
 
+# ⚡ Bolt: Cache DataFrame antes do count() para evitar reavaliação do plano físico em ações subsequentes
+# 💡 O que: Adicionado `.cache()` ao DataFrame `df` antes da chamada de `.count()` usada para logging.
+# 🎯 Por que: Uma chamada bruta de `.count()` aciona a execução completa do plano do Catalyst. Se o DataFrame for usado novamente a seguir, o plano será reavaliado por inteiro. O `.cache()` previne esse overhead.
+# 📊 Impacto: Evita múltiplas varreduras nas partições das tabelas Bronze e I/O de disco.
+# 🔬 Medição: O tempo de leitura nas dependências será O(1) em execuções após o cache.
+df.cache()
 print(f"Unidas {len(carteira_tables_to_load)} tabelas de carteira. Total de registros: {df.count()}")
 
 # METADATA ********************
@@ -258,6 +264,8 @@ df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(t
 
 print(f"Tabela '{target_table}' salva com sucesso na camada Silver.")
 df_final.display()
+
+df.unpersist()
 
 # METADATA ********************
 

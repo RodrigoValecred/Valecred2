@@ -17,3 +17,7 @@
 ## 2025-02-28 - PySpark DataFrame count() vs isEmpty()
 **Learning:** Using `df.count() > 0` to check if a DataFrame has records (such as in incremental logic for `NB_Gold_Esteira_Propostas.Notebook`) triggers a full execution of the Catalyst physical plan across all partitions, acting as a massive bottleneck even for empty DataFrames.
 **Action:** Always replace `df.count() > 0` with `not df.isEmpty()`. This restricts the scan operation to evaluating only the first partition and returns immediately upon finding a single record, avoiding full DAG materialization and saving precious computation time.
+
+## 2025-03-05 - PySpark count() Logging Overhead Without Caching
+**Learning:** In PySpark workflows (e.g., `NB_Silver_Carteira_PDD.Notebook`), calling `.count()` purely for logging purposes immediately after an expensive operation (like a large `unionByName`) forces eager evaluation of the entire query plan and underlying data scans. Because DataFrames are lazily evaluated, if this DataFrame is used later to derive other tables, Spark will redundantly recalculate the entire lineage from source multiple times.
+**Action:** Always call `.cache()` on the DataFrame before calling a pure-logging `.count()`, and ensure you call `.unpersist()` at the end of the script when the DataFrame is no longer needed. This materializes the data once and reuses it for downstream operations, dramatically reducing disk I/O and total execution time.
