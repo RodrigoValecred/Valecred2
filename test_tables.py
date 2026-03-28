@@ -16,7 +16,7 @@ for path in files:
                 if match:
                     writes.add(match.group(1))
 
-        # Hardcoded check
+        # Verificação estática
         if not writes:
              for line in content.split('\n'):
                  if 'target_table' in line or 'output_table' in line or 'table_name' in line:

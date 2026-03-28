@@ -124,7 +124,7 @@ class MockDataFrame:
             val = None
             if "coalesce" in expr_str:
                 # Extract args
-                # Expected format: coalesce(col(nome_plataforma), col(nome_plataforma_cli), lit(N/D))
+                # Formato esperado: coalesce(col(nome_plataforma), col(nome_plataforma_cli), lit(N/D))
 
                 # Verifica cols
                 if row.get("nome_plataforma") is not None:

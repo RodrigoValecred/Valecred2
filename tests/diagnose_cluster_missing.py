@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when, avg, sum, datediff, current_date
 
-# Initialize Spark
+# Inicializar o Spark
 spark = SparkSession.builder \
     .appName("DiagnoseMissingClients") \
     .master("local[*]") \
@@ -14,11 +14,11 @@ spark = SparkSession.builder \
 # Cliente 3: Tem títulos pagos e abertos (Deve estar no estudo)
 
 data_titulos = [
-    # Client 1 (Paid)
+    # Cliente 1 (Pago)
     (1, "2023-01-01", "2023-01-10", "2023-01-05", 1000.0, 1000.0),
-    # Client 2 (Only Open - No Liquidacao)
+    # Cliente 2 (Apenas Aberto - Sem Liquidação)
     (2, "2023-01-01", "2023-06-01", None, 5000.0, 0.0),
-    # Client 3 (Mixed)
+    # Cliente 3 (Misto)
     (3, "2023-01-01", "2023-01-10", "2023-01-12", 2000.0, 2000.0),
     (3, "2023-02-01", "2023-06-01", None, 3000.0, 0.0),
 ]
@@ -30,7 +30,7 @@ df_titulos = spark.createDataFrame(data_titulos, columns)
 # Reprodução da Lógica Atual
 print("--- Reproducing Logic ---")
 
-# 1.1 Metrics (Paid)
+# 1.1 Métricas (Pago)
 df_pagos = df_titulos.filter(col("liquidacao").isNotNull()) \
     .withColumn("dias_atraso_real", datediff(col("liquidacao"), col("venc_prorrogado")))
 
@@ -38,7 +38,7 @@ df_metrics_pagos = df_pagos.groupBy("cod_cliente").agg(
     avg("dias_atraso_real").alias("media_atraso_historico")
 )
 
-# 1.2 Metrics (Risk - Open)
+# 1.2 Métricas (Risco - Aberto)
 df_aberto = df_titulos.filter(col("liquidacao").isNull()) \
     .withColumn("dias_atraso_atual", datediff(current_date(), col("venc_prorrogado")))
 

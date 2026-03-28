@@ -28,7 +28,7 @@
 # # Notebook de Preparação Silver - Contábil
 # **Objetivo:** Processamento da tabela `tab_lancamentos_contabeis`.
 # 
-# **Estratégia:** Carga Full Overwrite (substituindo lógica incremental anterior para garantir integridade).
+# **Estratégia:** Carga Sobrescrita Completa (substituindo lógica incremental anterior para garantir integridade).
 
 
 # MARKDOWN ********************
@@ -60,7 +60,7 @@ target_lakehouse = "LH_Silver"
 # MARKDOWN ********************
 
 # ## Seção 1: Limpeza de `tab_lancamentos_contabeis`
-# **Objetivo:** Desduplicar, renomear para snake_case e atualizar na Silver (Full Overwrite).
+# **Objetivo:** Desduplicar, renomear para snake_case e atualizar na Silver (Sobrescrita Completa).
 
 # CELL ********************
 

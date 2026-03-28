@@ -60,14 +60,14 @@ class TestUnfoldContactInfo(unittest.TestCase):
         result = self.unfold_contact_info(df, "INPUT_COL", "OUTPUT_COL", ";")
 
         # Verifica first withColumn call (explode + split)
-        # Expected: explode(split(col(INPUT_COL), ;))
+        # Esperado: explode(split(col(INPUT_COL), ;))
         df.withColumn.assert_called_once()
         args, _ = df.withColumn.call_args
         self.assertEqual(args[0], "OUTPUT_COL")
         self.assertEqual(args[1], "explode(split(col(INPUT_COL), ;))")
 
         # Verifica second withColumn call (trim)
-        # Expected: trim(col(OUTPUT_COL))
+        # Esperado: trim(col(OUTPUT_COL))
         df_unfolded.withColumn.assert_called_once()
         args, _ = df_unfolded.withColumn.call_args
         self.assertEqual(args[0], "OUTPUT_COL")

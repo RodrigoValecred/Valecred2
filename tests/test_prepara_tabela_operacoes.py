@@ -63,7 +63,7 @@ class MockDataFrame:
         return self
 
     def withColumn(self, name, col_expr):
-        # Simulates adding a column
+        # Simula a adição de uma coluna
         new_exprs = dict(self.column_expressions)
         new_exprs[name] = col_expr
         if name not in self.columns:
@@ -321,7 +321,7 @@ class TestStandardizeEstudoColumns(unittest.TestCase):
         # Lógica da função:
         # para cand em candidatos: se cand em existente: renomeia e retorna.
         # Portanto a prioridade depende da ordem da lista de candidatos.
-        # Candidates: ["valoremabertort", "risco", ...]
+        # Candidatos: ["valoremabertort", "risco", ...]
 
         df = MockDataFrame(["risco", "valoremabertort"])
         new_df = self.standardize_estudo_columns(df)
@@ -336,7 +336,7 @@ class TestStandardizeEstudoColumns(unittest.TestCase):
     def test_standardize_columns_missing(self):
         if not self.standardize_estudo_columns: self.skipTest("Function not found")
 
-        # Scenario: No risk/limit columns
+        # Cenário: Sem colunas de risco/limite
         df = MockDataFrame(["cod_operacao"])
         new_df = self.standardize_estudo_columns(df)
 
@@ -348,7 +348,7 @@ class TestStandardizeEstudoColumns(unittest.TestCase):
     def test_standardize_columns_already_exists(self):
         if not self.standardize_estudo_columns: self.skipTest("Function not found")
 
-        # Scenario: Target columns already exist (e.g. rerun)
+        # Cenário: Colunas de destino já existem (e.g. rerun)
         df = MockDataFrame(["valor_risco_estudo", "valor_limite_estudo"])
         new_df = self.standardize_estudo_columns(df)
 
@@ -414,7 +414,7 @@ class TestGetOperacoesSchema(unittest.TestCase):
         if not self.get_operacoes_schema:
             self.skipTest("Function not found")
 
-        # Missing "CODOPERACAO"
+        # Faltando "CODOPERACAO"
         input_columns = ["CODCLIENTE", "CODEMPRESA"]
         df = MockDataFrame(input_columns)
 

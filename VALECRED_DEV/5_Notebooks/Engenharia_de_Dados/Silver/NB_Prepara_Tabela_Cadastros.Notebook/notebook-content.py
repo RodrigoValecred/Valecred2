@@ -28,7 +28,7 @@
 # # Notebook de Preparação Silver - Cadastros
 # **Objetivo:** Processamento de tabelas dimensionais e cadastrais (`clientes`, `geral`, `telefones`, `enderecos`, `contratos`, `bridge`, `limites`, `empresas`, `gerentes`, `plataformas`, `status`, `usuarios`, `pareceres`, `sacados`).
 # 
-# **Estratégia:** Carga Full Overwrite (devido ao volume menor e necessidade de garantir integridade referencial completa das dimensões).
+# **Estratégia:** Carga Sobrescrita Completa (devido ao volume menor e necessidade de garantir integridade referencial completa das dimensões).
 
 # MARKDOWN ********************
 
@@ -61,22 +61,22 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         if not DeltaTable.isDeltaTable(spark, target_table_path):
             return False # Destino não existe, prosseguindo
 
-        # Check source max
+        # Verificar máximo da origem
         df_source = spark.read.table(source_table)
         # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         cols_source_map = {c.lower(): c for c in df_source.columns}
         if watermark_col.lower() not in cols_source_map:
-             return False # Cannot check, proceed
+             return False # Não é possível verificar, prosseguindo
 
         actual_col_source = cols_source_map[watermark_col.lower()]
         # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
         max_source = df_source.agg(max(col(actual_col_source))).first()[0]
 
-        # Check target max
+        # Verificar máximo do destino
         df_target = spark.read.format("delta").load(target_table_path)
         cols_target_map = {c.lower(): c for c in df_target.columns}
         if target_watermark_col.lower() not in cols_target_map:
-             return False # Cannot check, proceed
+             return False # Não é possível verificar, prosseguindo
 
         actual_col_target = cols_target_map[target_watermark_col.lower()]
         max_target = df_target.agg(max(col(actual_col_target))).first()[0]
@@ -453,7 +453,7 @@ def process_plataformas():
             .otherwise(lit(None))
         )
 
-    # Support Table Fallback
+    # Alternativa de Tabela de Suporte (Fallback)
     try:
         # Selecionar apenas as colunas necessárias para evitar ambiguidade com a coluna 'plataforma'
         df_sup_gestor = spark.read.table(f"{target_lakehouse}.sup_gestor_de_plataforma") \

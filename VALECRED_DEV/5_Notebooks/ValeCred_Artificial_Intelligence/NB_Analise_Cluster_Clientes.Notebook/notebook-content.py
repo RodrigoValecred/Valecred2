@@ -182,7 +182,7 @@ df_critical = df_features_final.filter(
 df_critical = df_critical.withColumn("perfil_cliente", lit("3. Alerta (Risco de Inadimplência)")) \
                          .withColumn("origem_classificacao", lit("Regra de Negócio (PDD/RN)"))
 
-# ⚡ Bolt: Caching df_critical e df_to_cluster antes do count() para evitar re-computação
+# ⚡ Bolt: Fazer cache de df_critical e df_to_cluster antes do count() para evitar re-computação
 df_critical.cache()
 print(f"Clientes classificados como Risco por Regra: {df_critical.count()}")
 
@@ -219,7 +219,7 @@ if not df_to_cluster.isEmpty():
     # O pedido original era 3 grupos. Já temos o "Alerta".
     # Vamos tentar dividir o resto em "Prime" e "Rentável". K=2.
 
-    # ⚡ Tensor: Early stopping optimization in KMeans
+    # ⚡ Tensor: Otimização de parada antecipada (early stopping) no KMeans
     # 💡 O que: Configurado `maxIter=20`, `tol=1e-3`, e `distanceMeasure="euclidean"` no KMeans.
     # 🎯 Por que: O default do PySpark pode iterar muitas vezes buscando convergência extrema. Limitando as iterações e ajustando a tolerância, o modelo converge muito mais rápido com mínima (ou nenhuma) alteração nos centroides.
     # 📊 Impacto: Acelera o treinamento do KMeans significativamente.

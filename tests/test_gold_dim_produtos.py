@@ -99,7 +99,7 @@ class TestIncorporarProdutosAusentes(unittest.TestCase):
 
             # Asserções
             mock_spark.read.table.assert_called_with("LH_Silver.sup_produtos_ausentes")
-            self.assertEqual(result_df, mock_df_calc) # Should return original df
+            self.assertEqual(result_df, mock_df_calc) # Deve retornar o df original
 
             # Verifica se o aviso foi impresso
             mock_print.assert_called()

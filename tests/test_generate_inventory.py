@@ -152,5 +152,5 @@ def test_generate_markdown_existing_inventory():
     assert "### NB_Existing.Notebook" in md
     assert "- **Description:** This is a test description" in md
     assert "- **Input:** Test input" in md
-    # Should not add the missing description placeholders
+    # Não deve adicionar os espaços reservados de descrição ausente
     assert "(Missing description)" not in md

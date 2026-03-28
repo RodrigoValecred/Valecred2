@@ -56,7 +56,7 @@ class TestTransformOperacoes(unittest.TestCase):
         cls.spark.stop()
 
     def test_transform_operacoes_tto_corrigido(self):
-        # Create test DataFrame
+        # Criar DataFrame de teste
         schema = StructType([
             StructField("CODOPERACAO", IntegerType(), True),
             StructField("TTO", StringType(), True),
@@ -96,9 +96,9 @@ class TestTransformOperacoes(unittest.TestCase):
         ])
 
         data = [
-            (3042074, "XX", "A", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Should be 'CS'
-            (6048450, "YY", "B", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Should be 'CS'
-            (6048449, "ZZ", "C", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Should be 'CS'
+            (3042074, "XX", "A", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Deve ser 'CS'
+            (6048450, "YY", "B", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Deve ser 'CS'
+            (6048449, "ZZ", "C", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Deve ser 'CS'
             (1111111, "ORIGINAL", "D", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1) # Deve permanecer 'ORIGINAL'
         ]
 
@@ -180,7 +180,7 @@ class TestTransformOperacoes(unittest.TestCase):
         self.assertEqual(date_map[200], "2023-01-04")
 
     def test_transform_operacoes_chave_produto(self):
-        # Create test DataFrame
+        # Criar DataFrame de teste
         schema = StructType([
             StructField("CODOPERACAO", IntegerType(), True),
             StructField("TTO", StringType(), True),

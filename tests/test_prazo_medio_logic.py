@@ -95,7 +95,7 @@ class TestPrazoMedioLogic(unittest.TestCase):
         # datediff(vencimento, data_deferimento)
         df_calc_1 = df_joined.withColumn("prazo_original_dias", datediff(col("vencimento"), col("data_deferimento")))
 
-        # 3. Calculate Weighted Value
+        # 3. Calcular Valor Ponderado
         # valor * prazo_original_dias
         df_calc_2 = df_calc_1.withColumn("valor_vezes_prazo_original", col("valor") * col("prazo_original_dias"))
 

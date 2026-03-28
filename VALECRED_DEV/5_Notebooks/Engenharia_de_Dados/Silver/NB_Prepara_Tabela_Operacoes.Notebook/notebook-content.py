@@ -40,7 +40,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
 
 # --- CONFIGURATION ---
-# Definir como True para forçar Full Load (útil para limpar registros deletados da fonte)
+# Definir como True para forçar Carga Completa (útil para limpar registros deletados da fonte)
 FULL_LOAD = True
 # ---------------------
 
@@ -94,28 +94,28 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         if not DeltaTable.isDeltaTable(spark, target_table_path):
             return False # Destino não existe, prosseguindo
 
-        # Check source max
+        # Verificar máximo da origem
         df_source = spark.read.table(source_table)
         # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         cols_source_map = {c.lower(): c for c in df_source.columns}
         if watermark_col.lower() not in cols_source_map:
-             return False # Cannot check, proceed
+             return False # Não é possível verificar, prosseguindo
 
         actual_col_source = cols_source_map[watermark_col.lower()]
         # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
         max_source = df_source.agg(max(col(actual_col_source))).first()[0]
 
-        # Check target max
+        # Verificar máximo do destino
         df_target = spark.read.format("delta").load(target_table_path)
         cols_target_map = {c.lower(): c for c in df_target.columns}
         if target_watermark_col.lower() not in cols_target_map:
-             return False # Cannot check, proceed
+             return False # Não é possível verificar, prosseguindo
 
         actual_col_target = cols_target_map[target_watermark_col.lower()]
         max_target = df_target.agg(max(col(actual_col_target))).first()[0]
 
         # Debug
-        # print(f"Check Skip {source_table} -> {target_table_path}: Source Max {max_source}, Target Max {max_target}")
+        # print(f"Verificar Pulo {source_table} -> {target_table_path}: Máx Origem {max_source}, Máx Destino {max_target}")
 
         if max_source and max_target and max_source <= max_target:
             return True # Fonte não é mais nova que o destino
@@ -338,7 +338,7 @@ def process_devolucoes():
 
 # MARKDOWN ********************
 
-# ## Seção 3: TAC M (Full Load)
+# ## Seção 3: TAC M (Carga Completa)
 # **Estratégia:** Tabela pequena e filtrada por ano (2024+).
 
 # CELL ********************
@@ -506,7 +506,7 @@ def process_pareceres_operacoes():
     # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
     placeholder = "__NEWLINE__"
 
-    # Optimização: Encadeamento de transformações para reduzir nós no plano lógico e overhead
+    # Otimização: Encadeamento de transformações para reduzir nós no plano lógico e overhead
     obs_col = col("parecer_original")
     # 1. Marcar quebras de linha (<br>, </p>, </div>, </li>, </tr>) - Regex case-insensitive
     obs_col = regexp_replace(obs_col, "(?i)<br\\s*/?>|</p>|</div>|</li>|</tr>", placeholder)

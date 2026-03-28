@@ -124,7 +124,7 @@ class TestRelatorioProdutos(unittest.TestCase):
         map_data = [{"cod_operacao": d["cod_operacao"], "nome_plataforma_op": d["nome_plataforma"]} for d in df_ops_unfiltered.data]
         df_map_ops_mock = MockDataFrame("map_ops", ["cod_operacao", "nome_plataforma_op"], map_data)
 
-        # Simula Prorrogação (Fact Table)
+        # Simula Prorrogação (Tabela Fato)
         # Prorrogação para Op 2 (A rejeitada)
         prorrog_data = [
             {"cod_operacao": "2", "valor": 1000, "data_inclusao": "2025-02-01"}

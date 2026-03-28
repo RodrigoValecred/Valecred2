@@ -104,7 +104,7 @@ def transform_esteira_dates(df_esteira, status_mapping):
         )
 
     # Select único com renomeação
-    # Expected cols: cod_cliente, pivot_{clean_name}, min_{clean_name}
+    # Colunas esperadas: cod_cliente, pivot_{clean_name}, min_{clean_name}
     select_exprs = [col("cod_cliente")]
 
     for status, clean_name in status_mapping.items():
@@ -310,11 +310,11 @@ def check_incremental_gold(spark):
             except Exception as e:
                 return None
 
-        # Check Ops
+        # Verificar Ops
         max_silver_ops = get_max_date(source_ops)
         max_gold_ops = get_max_date(target_ops)
 
-        # Check Titulos
+        # Verificar Títulos
         max_silver_titulos = get_max_date(source_titulos)
         max_gold_titulos = get_max_date(target_titulos)
 
@@ -348,7 +348,7 @@ def check_incremental_gold(spark):
     except Exception as e:
         print(f"Erro na verificação incremental: {e}. Prosseguindo por segurança.")
 
-# Execute Incremental Check
+# Executar Verificação Incremental
 check_incremental_gold(spark)
 
 

@@ -150,7 +150,7 @@ def deduplicate_titulos(df, key_columns):
 
 key_columns_titulos = ["CODTITULO"]
 
-# Verifica se a tabela existe e se tem a coluna necessária para incremental (Schema Evolution Check)
+# Verifica se a tabela existe e se tem a coluna necessária para incremental (Verificação de Evolução de Schema)
 is_incremental_possible = False
 if DeltaTable.isDeltaTable(spark, output_path_titulos):
     try:
