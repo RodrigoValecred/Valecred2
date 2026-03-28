@@ -2,6 +2,13 @@
 
 ## Change Log
 
+### [2026-03-28]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `NB_Silver_Carteira_PDD.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Silver_Carteira_PDD.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado `.cache()` ao DataFrame antes do `.count()` para evitar reavaliação completa do plano físico do Catalyst. | Changed |
+| Múltiplos (Testes, Notebooks, Scripts) | `VALECRED_DEV/` e `tests/` | 🌐 Traduzidos comentários do inglês para o Português Brasileiro, preservando termos técnicos e código funcional. | Changed |
+
 ### [2026-03-26]
 
 | Component | Path | Description | Change |
