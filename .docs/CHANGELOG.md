@@ -2,6 +2,18 @@
 
 ## Change Log
 
+### [2026-03-27]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `NB_Gold_Esteira_Propostas.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Esteira_Propostas.Notebook/notebook-content.py` | ⚡ Bolt: Substituído `count()` por `isEmpty()` na checagem de registros incrementais para evitar avaliação de tabela cheia (full table scan), reduzindo chamadas de action no Catalyst Optimizer. | Changed |
+| `NB_Gold_Relatorio_Limites_Especificos.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Limites_Especificos.Notebook/notebook-content.py` | Alterado o agrupamento de risco em aberto para considerar a raiz do CNPJ do sacado (`raiz_cnpj_sacado`), consolidando CPFs ou os primeiros 8 dígitos de CNPJs, e adicionado o cálculo de `taxa_media`. | Changed |
+| `NB_Analise_Cluster_Clientes.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/NB_Analise_Cluster_Clientes.Notebook/notebook-content.py` | 🧠 Tensor: Otimização de early stopping no KMeans configurando `maxIter=20` e `tol=1e-3`. ⚡ Bolt: Realizado o caching dos DataFrames `df_critical` e `df_to_cluster` antes do `count()` para evitar re-computações repetidas. | Changed |
+| `VAI_Inferencia_Online.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Adicionada a regra de detecção de fraude 'Intercia' para verificar tentativas sem limite e corrigida a lógica de clamping (min/max) na barra de progresso do terminal. | Changed |
+| `benchmark_chunk_size.py` & `organize2.py` | `benchmark_chunk_size.py`, `organize2.py` | Traduzidos os comentários para PT-BR para se alinhar ao padrão do projeto. | Changed |
+| `generate_inventory.py` | `generate_inventory.py` | ⚡ Bolt: Otimizada a função `generate_markdown` utilizando `list.append` e `''.join()` em vez de concatenação iterativa de strings (`+=`), visando melhor uso de memória. | Changed |
+| Múltiplos Testes | `tests/` | 🧪 Melhorias contínuas na cobertura de testes: adicionados testes para caminhos de erro (`safe_read_table`, `check_should_skip`), prevenção de path traversal em `safe_extract`, testes de `generate_markdown` e `sanitize_column_name`. | Added/Changed |
+
 ### [2026-03-26]
 
 | Component | Path | Description | Change |
