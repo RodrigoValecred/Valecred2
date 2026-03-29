@@ -2,6 +2,20 @@
 
 ## Change Log
 
+### [2026-03-27]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `NB_Gold_Esteira_Propostas.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Esteira_Propostas.Notebook/notebook-content.py` | ⚡ Bolt: Substituído `count()` por `isEmpty()` para evitar full table scans durante verificações de processamento incremental. | Changed |
+| `NB_Gold_Relatorio_Limites_Especificos.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Limites_Especificos.Notebook/notebook-content.py` | Atualizada lógica de aplicação de limites específicos com base na raiz do CNPJ do sacado. | Changed |
+| `NB_Analise_Cluster_Clientes.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/NB_Analise_Cluster_Clientes.Notebook/notebook-content.py` | 🧠 Tensor: Otimização de early stopping no KMeans (`maxIter=20`, `tol=1e-3`) e caching (`df_critical`, `df_to_cluster`) adicionados. | Changed |
+| `VAI_Inferencia_Online.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Adicionada detecção de fraude 'Intercia' para antecipação sem limite aprovado entre empresas do mesmo grupo econômico. Limitador de overflow na barra de progresso do terminal também aplicado. | Changed |
+| `generate_inventory.py` | `generate_inventory.py` | Refatoração da função `generate_markdown` usando a abordagem de `list.append` e `''.join()` em vez de concatenação de strings para melhorar o desempenho. | Changed |
+| `test_generate_inventory.py` | `tests/test_generate_inventory.py` | Adicionados novos testes cobrindo `parse_inventory` e `generate_markdown`. | Added |
+| Safe Extract Tests | `tests/test_safe_extract.py` | Adicionados testes unitários verificando prevenção de vulnerabilidade Zip Slip. | Changed |
+| Safe Read Table Tests | `tests/test_curadoria_gold_safe_read_table.py` | 🧪 Cobertura adicional em logs/caminhos de erro. | Changed |
+| Sanitize Column Name Tests | `tests/test_dashboard_ux.py` | 🧪 Adicionada cobertura de testes em `sanitize_column_name`. | Changed |
+
 ### [2026-03-26]
 
 | Component | Path | Description | Change |
