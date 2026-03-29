@@ -135,7 +135,13 @@ def process_fechamento_prorrogacao(df_prorrog, df_clientes):
 # Execução
 print("Iniciando Relatório de Fechamento de Prorrogação...")
 df_prorrog_prep, df_clientes = load_and_prepare_data(spark)
-df_relatorio = process_fechamento_prorrogacao(df_prorrog_prep, df_clientes)
+
+# ⚡ Bolt: Cache do DataFrame principal do relatório
+# 💡 O que: Adicionado `.cache()` ao DataFrame `df_relatorio`.
+# 🎯 Por que: O DataFrame `df_relatorio` é usado múltiplas vezes em ações Spark subsequentes (`count().collect()` para o resumo e `saveAsTable()` para salvar na tabela Gold). Sem o cache, o Catalyst reavalia o plano lógico inteiro (incluindo leitura de tabelas, joins e window functions) para cada ação.
+# 📊 Impacto: Evita full table scans redundantes e recálculos custosos, reduzindo significativamente o tempo de execução do notebook.
+# 🔬 Medição: Elimina um job Spark duplicado que processava as mesmas regras de negócio.
+df_relatorio = process_fechamento_prorrogacao(df_prorrog_prep, df_clientes).cache()
 
 # Exibição (Amostra)
 # df_relatorio.show(10, truncate=False)
@@ -175,6 +181,10 @@ display_summary(df_relatorio)
 output_table = "LH_Gold.relatorio_fechamento_prorrogacao"
 df_relatorio.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
 print(f"Relatório salvo em: {output_table}")
+
+# 🧠 OTIMIZAÇÃO BOLT: Liberar memória
+df_relatorio.unpersist()
+print("⚡ Bolt: Cache cleared.")
 
 mssparkutils.notebook.exit("Success")
 
