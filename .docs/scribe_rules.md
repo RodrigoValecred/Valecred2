@@ -19,6 +19,9 @@
 
 ## Chronicle - Knowledge Base
 - Record structural patterns here.
+- Mapping of specific decorators to documentation sections (e.g., @Get() maps to "API Routes").
+- Custom types or Enums that appear frequently.
+- Patterns for ignoring certain internal-only helper functions.
 - Dataflows (`*.Dataflow/mashup.pq`) represent extraction/load layers.
 - Notebooks (`*.Notebook/notebook-content.py`) represent transformation/analysis layers.
 - SQL files (`*.sql`) represent schema changes or analytical queries.

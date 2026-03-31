@@ -2,6 +2,14 @@
 
 ## Change Log
 
+### [2026-03-27]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `tests/test_vai_ux.py` | `tests/test_vai_ux.py` | Adicionados testes unitários para a barra de progresso do VAI. | Added |
+| `tests/test_verify_rfb_url.py` | `tests/test_verify_rfb_url.py` | Adicionado teste para verificar hashes de URLs da Receita Federal. | Added |
+| `update_silver_mashup.py` | `update_silver_mashup.py` | Script para remover a coluna FLOATING do mashup da camada Silver. | Added |
+
 ### [2026-03-26]
 
 | Component | Path | Description | Change |
