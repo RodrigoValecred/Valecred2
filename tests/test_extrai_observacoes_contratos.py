@@ -64,7 +64,7 @@ class TestConverterMoedaBr(unittest.TestCase):
         result = self.converter_moeda_br("valor_br")
 
         # A lógica da função:
-        # 1. regexp_replace(col(col_name), "\.", "")  -> remove thousands separator
+        # 1. regexp_replace(col(col_name), "\.", "")  -> remove o separador de milhares
         # 2. regexp_replace(..., ",", ".")            -> substitui vírgula decimal por ponto
         # 3. .cast("double")                          -> converte para double
 

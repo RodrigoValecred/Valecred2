@@ -348,7 +348,7 @@ def check_incremental_gold(spark):
     except Exception as e:
         print(f"Erro na verificação incremental: {e}. Prosseguindo por segurança.")
 
-# Execute Incremental Check
+# Executar Incremental Check
 check_incremental_gold(spark)
 
 
