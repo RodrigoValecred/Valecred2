@@ -17,3 +17,7 @@
 ## 2025-02-28 - PySpark DataFrame count() vs isEmpty()
 **Learning:** Using `df.count() > 0` to check if a DataFrame has records (such as in incremental logic for `NB_Gold_Esteira_Propostas.Notebook`) triggers a full execution of the Catalyst physical plan across all partitions, acting as a massive bottleneck even for empty DataFrames.
 **Action:** Always replace `df.count() > 0` with `not df.isEmpty()`. This restricts the scan operation to evaluating only the first partition and returns immediately upon finding a single record, avoiding full DAG materialization and saving precious computation time.
+
+## 2025-04-02 - PySpark Catalyst StackOverflow with .withColumnRenamed() Chains
+**Learning:** In PySpark, chaining multiple `.withColumnRenamed()` calls (e.g., more than 10) creates deeply nested `Project` nodes in the Catalyst Logical Plan. This forces the optimizer into excessive recursion during rule evaluation, causing severe performance overhead during plan generation and risking a `StackOverflowError` on large schemas.
+**Action:** Always replace chained `.withColumnRenamed()` operations with a dictionary mapping or list comprehension applied via a single `df.toDF(*new_columns)` projection. This flattens the logical plan DAG to a single `Project` node, saving significant compilation time.
