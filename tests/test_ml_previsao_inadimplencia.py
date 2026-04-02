@@ -62,7 +62,7 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
         # Simula DoubleType
         mock_double_type = MagicMock()
 
-        # --- Execution Context ---
+        # --- Contexto de Execução ---
 
         exec_globals = {
             'pandas_udf': mock_pandas_udf,

@@ -38,12 +38,12 @@ class TestParseDanfe(unittest.TestCase):
         # Simula DataFrame
         mock_df = MagicMock(name="df")
 
-        # Chainable withColumn
+        # withColumn encadeável
         mock_df.withColumn.return_value = mock_df
-        # Chainable withColumnRenamed
+        # withColumnRenamed encadeável
         mock_df.withColumnRenamed.return_value = mock_df
 
-        # Execution context
+        # Contexto de execução
         exec_globals = {
             'col': mock_col,
             'substring': mock_substring,
@@ -76,7 +76,7 @@ class TestParseDanfe(unittest.TestCase):
 
         calls = mock_df.withColumn.call_args_list
 
-        # Collect columns added
+        # Coleta colunas adicionadas
         added_cols = [c[0][0] for c in calls]
         for col_name in expected_cols:
             self.assertIn(col_name, added_cols)

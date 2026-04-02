@@ -86,7 +86,7 @@ class TestProrrogacaoLogic(unittest.TestCase):
         mock_df_final = MagicMock(name="df_final")
         mock_df_transformed.drop.return_value = mock_df_final
 
-        # Global context
+        # Contexto global
         exec_globals = {
             'spark': mock_spark,
             'col': mock_col,

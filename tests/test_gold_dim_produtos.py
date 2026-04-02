@@ -44,12 +44,12 @@ class TestIncorporarProdutosAusentes(unittest.TestCase):
         mock_spark.read.table.return_value = mock_df_ausentes
         mock_df_ausentes.select.return_value = mock_df_ausentes
 
-        # Chainable methods
+        # Métodos encadeáveis
         mock_df_calc.join.return_value = mock_df_calc
         mock_df_calc.withColumn.return_value = mock_df_calc
         mock_df_calc.drop.return_value = mock_df_calc
 
-        # Execution context
+        # Contexto de execução
         exec_globals = {
             'col': mock_col,
             'trim': mock_trim,
@@ -99,7 +99,7 @@ class TestIncorporarProdutosAusentes(unittest.TestCase):
 
             # Asserções
             mock_spark.read.table.assert_called_with("LH_Silver.sup_produtos_ausentes")
-            self.assertEqual(result_df, mock_df_calc) # Should return original df
+            self.assertEqual(result_df, mock_df_calc) # Deve retornar o df original
 
             # Verifica se o aviso foi impresso
             mock_print.assert_called()

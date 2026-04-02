@@ -80,7 +80,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         mock_df_final = MagicMock()
         mock_df_selected.dropDuplicates.return_value = mock_df_final
 
-        # Execution Context (Globals)
+        # Contexto de execução (Globais)
         exec_globals = {
             'col': mock_col,
             'lit': mock_lit,

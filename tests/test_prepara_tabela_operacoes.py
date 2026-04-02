@@ -414,7 +414,7 @@ class TestGetOperacoesSchema(unittest.TestCase):
         if not self.get_operacoes_schema:
             self.skipTest("Function not found")
 
-        # Missing "CODOPERACAO"
+        # "CODOPERACAO" ausente
         input_columns = ["CODCLIENTE", "CODEMPRESA"]
         df = MockDataFrame(input_columns)
 

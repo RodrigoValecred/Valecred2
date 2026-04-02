@@ -48,7 +48,7 @@ class TestDeduplicateClientes(unittest.TestCase):
         mock_row_number.return_value = mock_row_number_obj
         mock_row_number_obj.over.return_value = "ROW_NUMBER_COL"
 
-        # Execution Context
+        # Contexto de execução
         exec_globals = {
             'col': mock_col,
             'Window': mock_window,

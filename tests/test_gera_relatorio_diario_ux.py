@@ -13,7 +13,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         # 1. Prepara Escopo com Dependências
         self.scope = {'pd': pd, 'np': np, 'datetime': datetime}
 
-        # Inject data_hoje
+        # Injeta data_hoje
         self.data_hoje = datetime(2025, 12, 23).date()
         self.scope['data_hoje'] = self.data_hoje
 
@@ -29,7 +29,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             BOLD = ''
         self.scope['Colors'] = MockColors
 
-        # Extract helper function format_currency_br
+        # Extrai função auxiliar format_currency_br
         format_source = extract_function_from_file(NOTEBOOK_PATH, "format_currency_br")
         if format_source:
             exec(format_source, self.scope, self.scope)
@@ -37,7 +37,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             # Simulação de contingência (fallback) se não encontrado (embora devesse estar lá)
             self.scope['format_currency_br'] = lambda x: f"R$ {x:.2f}"
 
-        # Extract prepare_dashboard_data
+        # Extrai prepare_dashboard_data
         prepare_source = extract_function_from_file(NOTEBOOK_PATH, "prepare_dashboard_data")
         if not prepare_source:
              self.fail("Function prepare_dashboard_data not found in notebook")
@@ -47,7 +47,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         except Exception as e:
              self.fail(f"Failed to execute extracted function prepare_dashboard_data: {e}")
 
-        # Extract display_risk_dashboard
+        # Extrai display_risk_dashboard
         source = extract_function_from_file(NOTEBOOK_PATH, "display_risk_dashboard")
         if not source:
             self.fail("Function display_risk_dashboard not found in notebook")
@@ -74,7 +74,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
 
         self.assertEqual(len(view_data), 2)
 
-        # Safe Group
+        # Grupo Seguro
         item0 = view_data[0]
         self.assertEqual(item0['grupo_display'], 'Safe Group')
         self.assertTrue(item0['is_valid_utilization'])
@@ -82,7 +82,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("✅", item0['bar_display']) # Verifica o ícone (Colors simuladas são strings vazias mas o ícone é literal)
         self.assertIn("Seguro", item0['bar_display']) # Verifica o texto de status
 
-        # Risky Group
+        # Grupo de Risco
         item1 = view_data[1]
         self.assertTrue(item1['is_excess'])
         self.assertIn("🚨", item1['bar_display'])
@@ -98,9 +98,9 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             'utilizacao_pct': [10.0, 10.0, 10.0],
             'excesso_valor': [0, 0, 0],
             'validade_limite': [
-                'not-a-date', # Should trigger ValueError
+                'not-a-date', # Deve acionar ValueError
                 None,         # Deve acionar TypeError (ou ValueError dependendo do comportamento de strptime)
-                123.45        # Invalid type
+                123.45        # Tipo inválido
             ]
         })
 
@@ -135,7 +135,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         # Executa a função
         self.display_risk_dashboard(df)
 
-        # Collect all print outputs
+        # Coleta todas as saídas de print
         calls = [args[0] for args, _ in mock_print.call_args_list if args]
         full_output = "\n".join(calls)
 
@@ -149,7 +149,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("✅", full_output)
         self.assertIn("🚨", full_output)
 
-        # Dashboard Summary UX Checks
+        # Verificações UX do Resumo do Dashboard
         self.assertIn("✅ Seguro: 1    ", full_output)
         self.assertIn("🚨 Crítico: 1   ", full_output)
 
@@ -160,7 +160,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
 
     @patch('builtins.print')
     def test_display_risk_dashboard_empty(self, mock_print):
-        # Empty DataFrame
+        # DataFrame vazio
         df = pd.DataFrame(columns=['grupo', 'valor_risco', 'limite_global', 'utilizacao_pct', 'excesso_valor'])
         self.display_risk_dashboard(df)
 
@@ -202,8 +202,8 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             'excesso_valor': [0, 0, 0],
             'validade_limite': [
                 '2025-12-01', # Expirado (Assumindo que self.data_hoje é 2025-12-23)
-                '2025-12-30', # Near (7 days)
-                '2026-06-01'  # Safe
+                '2025-12-30', # Próximo (7 dias)
+                '2026-06-01'  # Seguro
             ]
         })
 
@@ -248,7 +248,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
 
         # Verifica a Lógica de Moeda
         # Apenas verifica se R$ parece aproximadamente correto.
-        # HTML output creates <td>R$ 1.000,00</td> etc.
+        # O HTML de saída cria <td>R$ 1.000,00</td> etc.
         self.assertIn("R$", html)
 
     def test_format_currency_br(self):

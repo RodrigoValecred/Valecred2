@@ -81,14 +81,14 @@ def test_generate_markdown_empty_inputs():
     inventory = {}
     md = generate_markdown(assets, inventory)
 
-    # Should contain the header and section titles, but no assets
+    # Deve conter o cabeçalho e os títulos das seções, mas nenhum ativo
     assert "# Inventário de Ativos de Dados" in md
     assert "## Data Warehouses" in md
     assert "## Lakehouses" in md
     assert "## Dataflows" in md
     assert "## Notebooks" in md
 
-    # Shouldn't contain any asset markdown like "### "
+    # Não deve conter nenhum markdown de ativo como "### "
     assert "### " not in md
 
 
@@ -129,7 +129,7 @@ def test_generate_markdown_missing_inventory_lakehouse():
 
     assert "### LH_Test.Lakehouse" in md
     assert "- **Description:** (Missing description)" in md
-    # Make sure it doesn't have Notebook/Dataflow specific lines
+    # Certifique-se de que não tenha linhas específicas de Notebook/Dataflow
     assert "- **Input:**" not in md
     assert "- **Source:**" not in md
 
@@ -152,5 +152,5 @@ def test_generate_markdown_existing_inventory():
     assert "### NB_Existing.Notebook" in md
     assert "- **Description:** This is a test description" in md
     assert "- **Input:** Test input" in md
-    # Should not add the missing description placeholders
+    # Não deve adicionar os placeholders de descrição ausentes
     assert "(Missing description)" not in md

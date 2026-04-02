@@ -25,11 +25,11 @@ class TestDiagnosticoJuridico(unittest.TestCase):
         if not self.func_source:
             self.skipTest("Function not found")
 
-        # Prepare scope
+        # Prepara o escopo
         def create_mock_col(name):
             m = MagicMock()
             # Precisamos que alias retorne algo que possa ser passado para agg
-            # agg accepts Column objects.
+            # agg aceita objetos Column.
             # Portanto, alias deve retornar um MagicMock também (ou uma string se os mocks de agg aceitarem strings)
             # Vamos retornar uma string para simplificar a depuração, mas como agg é um mock, não importa o que ele retorna, desde que retorne *algo*.
             # Mas espere, alias() é chamado no resultado de max().

@@ -65,7 +65,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
             "DIR COMERCIAL": "dir_comercial"
         }
 
-        # Execution Context
+        # Contexto de execução
         exec_globals = {
             'col': mock_col,
             'max': mock_max,

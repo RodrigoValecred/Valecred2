@@ -22,12 +22,12 @@ def col(name):
     # Define repr e str explícitos para depuração e asserções mais fáceis
     m.__repr__ = lambda x: f"col('{name}')"
     m.__str__ = lambda x: f"col('{name}')"
-    # Implement arithmetic
+    # Implementa aritmética
     m.__mul__ = lambda self, other: MagicMock()
     m.__truediv__ = lambda self, other: MagicMock()
     m.__add__ = lambda self, other: MagicMock()
     m.__sub__ = lambda self, other: MagicMock()
-    # Implement comparisons
+    # Implementa comparações
     m.__gt__ = lambda self, other: MagicMock()
     m.__ge__ = lambda self, other: MagicMock()
     m.__lt__ = lambda self, other: MagicMock()
@@ -53,10 +53,10 @@ def min(c): return MagicMock()
 mock_when_tracker = MagicMock()
 
 def mock_when(condition, value):
-    mock_when_tracker(condition, value) # Track call
+    mock_when_tracker(condition, value) # Rastreia chamada
     m = MagicMock()
     m.otherwise = MagicMock(return_value=m)
-    m.when = MagicMock(return_value=m) # Chainable when
+    m.when = MagicMock(return_value=m) # when encadeável
     return m
 def round(c, scale): return MagicMock()
 def datediff(end, start): return MagicMock()
@@ -106,7 +106,7 @@ NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB
 class TestRelatorioProdutosMensal(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Extract functions once
+        # Extrai funções uma vez
         cls.resolve_code = extract_function_from_file(NOTEBOOK_PATH, "resolve_columns")
         cls.load_code = extract_function_from_file(NOTEBOOK_PATH, "load_and_prepare_data")
         cls.ops_code = extract_function_from_file(NOTEBOOK_PATH, "process_operacoes_stream")
@@ -161,7 +161,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
         self.spark.read.table.side_effect = side_effect
 
-        # Call extracted function
+        # Chama função extraída
         load_and_prepare_data_func = globals()["load_and_prepare_data"]
         result = load_and_prepare_data_func(self.spark)
 
@@ -196,7 +196,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         # Verifica structure
         # Deve juntar com os títulos
         df_ops.join.assert_called()
-        # Should aggregate
+        # Deve agregar
         df_ops.groupBy.assert_called()
 
     def test_mora_data_deferimento_replacement_fix(self):
@@ -214,7 +214,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
         df_baixas.columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]
 
-        # Chainable mocks
+        # Mocks encadeáveis
         df_baixas.filter.return_value = df_baixas
         df_baixas.join.return_value = df_baixas
         df_baixas.withColumn.return_value = df_baixas
@@ -243,7 +243,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         df_mora = MagicMock()
         df_titulos_dates = MagicMock()
 
-        # Chainable mocks
+        # Mocks encadeáveis
         df_mora.join.return_value = df_mora
         df_mora.withColumn.return_value = df_mora
 
