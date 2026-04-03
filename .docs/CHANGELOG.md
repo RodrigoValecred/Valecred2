@@ -2,6 +2,15 @@
 
 ## Change Log
 
+### [2026-04-03]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| CSV Data Loading | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Load_Silver_From_Manual_Uploads.Notebook/notebook-content.py` | 🧠 Tensor: Optimized manual CSV reading by using Spark native distributed reader (`spark.read.csv`) instead of `pd.read_csv`, preventing driver OOM. | Changed |
+| Column Renaming Optimization | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Load_Silver_From_Manual_Uploads.Notebook/notebook-content.py` | ⚡ Bolt: Refactored column sanitization to apply an explicit bulk projection via `df.toDF(*new_columns)` instead of loops with `.withColumnRenamed()` to prevent Catalyst logical plan overhead. | Changed |
+| Codebase Comments Translation | Repository wide | The Translator: Translated remaining English comments to pt-BR across notebooks, scripts, and tests using AST/Tokenize, strictly preserving code integrity and technical terms. | Changed |
+| PySpark Plan Optimization | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` (and related) | ⚡ Bolt: Optimized PySpark Catalyst Plan evaluation via `.cache()` for Window deduplication and before `count()` logs to prevent double evaluation. | Changed |
+
 ### [2026-03-26]
 
 | Component | Path | Description | Change |
