@@ -193,10 +193,10 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         process_operacoes_stream_func = globals()["process_operacoes_stream"]
         result_df = process_operacoes_stream_func(df_ops, df_titulos)
 
-        # Verifica structure
+        # Verifica a estrutura
         # Deve juntar com os títulos
         df_ops.join.assert_called()
-        # Should aggregate
+        # Deve agregar
         df_ops.groupBy.assert_called()
 
     def test_mora_data_deferimento_replacement_fix(self):

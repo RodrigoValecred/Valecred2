@@ -51,7 +51,7 @@ def row_number():
 def min(c): return MagicMock()
 def first(c): return MagicMock()
 
-# 3. Patch modules
+# 3. Patch dos módulos
 sys.modules["pyspark.sql.functions"].col = col
 sys.modules["pyspark.sql.functions"].lit = lit
 sys.modules["pyspark.sql.functions"].broadcast = broadcast_mock

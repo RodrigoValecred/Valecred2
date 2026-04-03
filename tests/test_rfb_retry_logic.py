@@ -92,7 +92,7 @@ def test_download_retry_mechanism():
 
     # Configura side_effect para HEAD e GET:
     # 1. URL Primária -> Lança Exceção (Simula Timeout)
-    # 2. Fallback URL -> Returns 200 OK
+    # 2. URL de Fallback -> Retorna 200 OK
 
     def side_effect(url, **kwargs):
         if url == primary_url:

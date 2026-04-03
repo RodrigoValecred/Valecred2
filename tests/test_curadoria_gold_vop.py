@@ -44,21 +44,21 @@ class TestVOPMetrics(unittest.TestCase):
         cls.spark.stop()
 
     def test_calculate_vop_metrics_edge_cases(self):
-        # Edge cases:
+        # Casos extremos (Edge cases):
         # 1. Empates em VOP (deve escolher um com base na ordenação interna, mas determinístico é melhor, embora row_number().over(orderBy(desc)) gerencie isso)
-        # 2. Multiple clients
+        # 2. Múltiplos clientes
         # 3. Várias entradas para o mesmo dia
         data = [
-            # Client 1: Clear winner
+            # Cliente 1: Vencedor claro
             Row(cod_cliente=1, dia_da_semana_da_operacao=2, dia_da_operacao=10, valor_de_face=100.0),
-            Row(cod_cliente=1, dia_da_semana_da_operacao=3, dia_da_operacao=15, valor_de_face=200.0), # max week 3, max month 15
+            Row(cod_cliente=1, dia_da_semana_da_operacao=3, dia_da_operacao=15, valor_de_face=200.0), # máx semana 3, máx mês 15
 
-            # Client 2: Várias entradas para o mesmo dia should aggregate
+            # Client 2: Várias entradas para o mesmo dia devem agregar
             Row(cod_cliente=2, dia_da_semana_da_operacao=4, dia_da_operacao=20, valor_de_face=50.0),
-            Row(cod_cliente=2, dia_da_semana_da_operacao=4, dia_da_operacao=20, valor_de_face=50.0), # sum = 100
+            Row(cod_cliente=2, dia_da_semana_da_operacao=4, dia_da_operacao=20, valor_de_face=50.0), # soma = 100
             Row(cod_cliente=2, dia_da_semana_da_operacao=5, dia_da_operacao=21, valor_de_face=60.0), # max week 4 (100 > 60)
 
-            # Client 3: Empate nas somas (semana 1=100, semana 2=100), row_number escolhe um (não determinístico qual sem desempate, mas garantimos que um seja escolhido)
+            # Cliente 3: Empate nas somas (semana 1=100, semana 2=100), row_number escolhe um (não determinístico qual sem desempate, mas garantimos que um seja escolhido)
             Row(cod_cliente=3, dia_da_semana_da_operacao=1, dia_da_operacao=1, valor_de_face=100.0),
             Row(cod_cliente=3, dia_da_semana_da_operacao=2, dia_da_operacao=2, valor_de_face=100.0),
         ]

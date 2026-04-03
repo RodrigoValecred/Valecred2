@@ -94,7 +94,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         if not DeltaTable.isDeltaTable(spark, target_table_path):
             return False # Destino não existe, prosseguindo
 
-        # Check source max
+        # Verifica max da origem
         df_source = spark.read.table(source_table)
         # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         cols_source_map = {c.lower(): c for c in df_source.columns}
@@ -105,7 +105,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
         max_source = df_source.agg(max(col(actual_col_source))).first()[0]
 
-        # Check target max
+        # Verifica max do destino
         df_target = spark.read.format("delta").load(target_table_path)
         cols_target_map = {c.lower(): c for c in df_target.columns}
         if target_watermark_col.lower() not in cols_target_map:
@@ -503,7 +503,7 @@ def process_pareceres_operacoes():
             col("cgp.OBS").cast("string").alias("parecer_original") # Mantemos a original a pedido do usuario (cast para string)
         )
 
-    # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
+    # Lógica de Limpeza de HTML (Replicando ReplaceValues do Power Query)
     placeholder = "__NEWLINE__"
 
     # Optimização: Encadeamento de transformações para reduzir nós no plano lógico e overhead

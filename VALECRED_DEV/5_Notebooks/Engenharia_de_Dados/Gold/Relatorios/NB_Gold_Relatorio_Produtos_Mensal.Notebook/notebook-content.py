@@ -723,7 +723,7 @@ df_calcs = df_base_cliente \
 df_cliente_agg = df_calcs.groupBy("cod_cliente").agg(
     sum("total_valor_prazo_op").alias("soma_valor_prazo_cliente"),
     sum("desagio").alias("receita_desagio_cliente"),
-    sum("receita_total_op").alias("soma_receita_total_op"), # Intermediate sum
+    sum("receita_total_op").alias("soma_receita_total_op"), # Soma intermediária
     sum("receita_prorrogacao_op").alias("soma_prorrogacao_op_cliente"),
     sum("receita_prorrogacao_op_2025").alias("soma_prorrogacao_op_2025_cliente"), # Soma da receita de prorrogação (Safra 2025) das operações (para deduzir da receita cliente 2025 e evitar contagem dupla)
     sum("receita_real_op_calc").alias("soma_receita_real_cliente"),

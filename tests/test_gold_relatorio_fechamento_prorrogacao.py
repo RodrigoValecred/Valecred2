@@ -57,10 +57,10 @@ class TestProrrogacaoLogic(unittest.TestCase):
             Row(cod_operacao=101, cod_titulo=1, cod_cliente=10, status_analise='I', data_inclusao=date(2025, 1, 1), valor=100.0),
             Row(cod_operacao=102, cod_titulo=1, cod_cliente=10, status_analise='D', data_inclusao=date(2025, 1, 5), valor=100.0),
 
-            # Case 2: Unrecovered (Rejected only)
+            # Caso 2: Não recuperado (Apenas rejeitados)
             Row(cod_operacao=201, cod_titulo=2, cod_cliente=20, status_analise='I', data_inclusao=date(2025, 1, 2), valor=200.0),
 
-            # Case 3: Normal Accepted
+            # Caso 3: Aceite Normal
             Row(cod_operacao=301, cod_titulo=3, cod_cliente=30, status_analise='D', data_inclusao=date(2025, 1, 3), valor=300.0),
 
             # Case 4: Multiple Rejections then Accepted

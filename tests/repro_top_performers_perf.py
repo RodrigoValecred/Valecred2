@@ -10,10 +10,10 @@ def create_mock_data(spark):
     num_gerentes = 200000  # 200k para garantir diferença visível
     months = 12
 
-    # Gerentes DataFrame
+    # DataFrame de Gerentes
     df_gerentes = spark.range(num_gerentes).select(F.format_string("G%d", "id").alias("id_gerente"))
 
-    # Months DataFrame (cross join resultará em 2.4M de linhas)
+    # DataFrame de Meses (cross join resultará em 2.4M de linhas)
     # Usando range para simular meses
     df_months = spark.range(months).select(F.date_add(F.lit("2023-01-01"), (F.col("id")*30).cast("int")).alias("mes_ref"))
 

@@ -127,11 +127,11 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
             Returns:
                 str: O nome da coluna padronizado.
             """
-            # 1. Normalize unicode characters (accents)
+            # 1. Normalizar caracteres unicode (acentos)
             nfkd_form = unicodedata.normalize('NFKD', str(col_name))
             col_name = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
-            # 2. Handle specific cases
+            # 2. Gerenciar casos específicos
             if col_name.isupper():
                 col_name = col_name.lower()
             else:

@@ -52,7 +52,7 @@ class TestCreateFatoOperacoes(unittest.TestCase):
         mock_to_date = MagicMock(return_value=MagicMock(name="to_date_mock"))
         mock_broadcast = MagicMock(side_effect=lambda x: x)
 
-        # DataFrame Mocks
+        # Mocks do DataFrame
         mock_df_ops = MagicMock()
         mock_df_cal = MagicMock()
         mock_df_prod = MagicMock()

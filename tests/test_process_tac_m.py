@@ -39,10 +39,10 @@ class TestProcessTacM(unittest.TestCase):
         # Simula DataFrame
         mock_df = MagicMock(name="df")
 
-        # Chainable return values
-        # df.withColumn returns df
+        # Valores de retorno encadeáveis
+        # df.withColumn retorna df
         mock_df.withColumn.return_value = mock_df
-        # df.filter returns df
+        # df.filter retorna df
         mock_df.filter.return_value = mock_df
         # df.orderBy returns df
         mock_df.orderBy.return_value = mock_df

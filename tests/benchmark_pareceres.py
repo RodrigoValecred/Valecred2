@@ -5,7 +5,7 @@ from pyspark.sql.functions import col, when
 def benchmark():
     spark = SparkSession.builder.appName("bench").master("local[4]").getOrCreate()
 
-    # Create large dummy dataset
+    # Criar conjunto de dados fictício grande
     num_rows = 100000
     df = spark.range(num_rows).withColumn("obs_normalized", col("id").cast("string"))
 

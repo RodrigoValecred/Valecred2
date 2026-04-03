@@ -117,7 +117,7 @@ class TestRelatorioProdutos(unittest.TestCase):
         # Reproduz a lógica atual: Sem Filtragem
         df_ops_unfiltered = df_ops_raw
 
-        # Create Map
+        # Criar Mapa
         df_map_ops = df_ops_unfiltered.select("cod_operacao", "nome_plataforma")
         # Na simulação do select, apenas mantemos as colunas. O código real as renomeia (alias).
         # Vamos simular o alias manualmente para a verificação do teste

@@ -38,7 +38,7 @@ class TestDashboardUX(unittest.TestCase):
 
         output = f.getvalue()
 
-        # 1. Verifica Header Date Format (DD/MM/YYYY)
+        # 1. Verifica formato da data no cabeçalho (DD/MM/YYYY)
         # "Data de Referência: 23/12/2025"
         self.assertRegex(output, r"Data de Referência: \d{2}/\d{2}/\d{4}")
 

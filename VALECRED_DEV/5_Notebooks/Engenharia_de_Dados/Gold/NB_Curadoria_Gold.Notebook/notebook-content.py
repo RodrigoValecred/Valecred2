@@ -586,7 +586,7 @@ df_join_users = df_gerentes_alias.join(df_usuarios_alias, col("g.cod_usuario") =
 df_join_users_clean = df_join_users.withColumn("cpf_cnpj_clean", regexp_replace(col("g.cpf_cnpj"), "[^0-9]", ""))
 df_geral_clean = df_geral_alias.withColumn("cpf_cnpj_clean", regexp_replace(col("cad.cpf_cnpj"), "[^0-9]", ""))
 
-# Join Fallback
+# Join de Fallback
 df_gerentes_full = df_join_users_clean.join(
     df_geral_clean.select(col("cpf_cnpj_clean"), col("cad.nome").alias("nome_geral")),
     "cpf_cnpj_clean",
@@ -624,7 +624,7 @@ df_operacoes_com_historico = df_operacoes_limpa.join(
     "left"
 ).dropDuplicates(["cod_operacao"])
 
-# Fallback Logic (Earliest Manager)
+# Lógica de Fallback (Primeiro Gerente)
 # Para operações antigas (ex: antes de Junho 2025) onde cod_broker é 0 e a bridge não tem histórico da data exata.
 w_fallback = Window.partitionBy("cod_cliente_bridge").orderBy(col("data_inicio_vigencia").asc())
 df_bridge_fallback = df_bridge_prep.withColumn("rn", row_number().over(w_fallback)) \
@@ -1497,7 +1497,7 @@ df_limites_ep_grupos = df_limites_ep_clientes.join(
     "inner"
 )
 
-# 4. Desduplicação por Grupo (Max Limites)
+# 4. Desduplicação por Grupo (Limites Max)
 # Os limites são repetidos por CNPJ no arquivo. Queremos o limite ÚNICO do GRUPO.
 df_limites_grupo_dedup = df_limites_ep_grupos.groupBy("grupo_economico").agg(
     max("limite").alias("limite_grupo_manual"),

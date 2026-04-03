@@ -108,7 +108,7 @@ df_ops_enriched = df_ops_validas.join(
     "left"
 )
 
-# 4.2 Fallback Logic (Earliest Manager)
+# 4.2 Lógica de Fallback (Primeiro Gerente)
 # Prepara fallback para casos onde a operação é anterior ao histórico da bridge
 w_fallback = Window.partitionBy("cod_cliente").orderBy(col("data_inicio_vigencia").asc())
 df_bridge_fallback = df_bridge.withColumn("rn", row_number().over(w_fallback)) \

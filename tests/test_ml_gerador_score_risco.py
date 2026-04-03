@@ -174,7 +174,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
 
         # Simula entradas
         mock_df_spark = MagicMock()
-        # Simula DataFrame structure
+        # Simula a estrutura do DataFrame
         data = {
             'CPFCNPJ': ['123'],
             'LIQUIDACAO': [None],
@@ -206,7 +206,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn('SCORE_RISCO', result.columns)
         self.assertEqual(result['SCORE_RISCO'].iloc[0], 0.9)
 
-        # Verifica data type downcasting float64 -> float32
+        # Verifica o downcasting do tipo de dado de float64 para float32
         args, kwargs = mock_model.predict_proba.call_args
         X_cliente_passed = args[0]
 
