@@ -2,6 +2,17 @@
 
 ## Change Log
 
+### [2026-03-27]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `VAI_Inferencia_Online.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Fixed progress bar overflow value clamping (`create_progress_bar`). | Changed |
+| `NB_Analise_Cluster_Clientes.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/NB_Analise_Cluster_Clientes.Notebook/notebook-content.py` | 🧠 Tensor: Early stopping optimization in KMeans. | Changed |
+| `test_generate_inventory.py` | `tests/test_generate_inventory.py` | Added test coverage for `parse_inventory`. | Added |
+| `test_prepara_tabela_operacoes.py` | `tests/test_prepara_tabela_operacoes.py` | Added error path test coverage for `check_should_skip`. | Added |
+| `test_safe_extract.py` | `tests/test_safe_extract.py` | Added test cases for missing Zip Slip error handling in `safe_extract`. | Added |
+| `test_load_silver_manual_uploads.py` | `tests/test_load_silver_manual_uploads.py` | Added tests for `sanitize_column_name` function. | Added |
+
 ### [2026-03-26]
 
 | Component | Path | Description | Change |
