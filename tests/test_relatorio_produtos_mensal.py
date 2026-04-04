@@ -233,7 +233,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
             for args, kwargs in df_baixas.withColumn.call_args_list
         )
 
-        self.assertTrue(fix_call_found, "The fix .withColumn('data_deferimento', col('data_baixa')) was not found in process_mora_stream.")
+        self.assertTrue(fix_call_found, "A correção .withColumn('data_deferimento', col('data_baixa')) não foi encontrada em process_mora_stream.")
 
     def test_mora_date_logic_structure(self):
         """

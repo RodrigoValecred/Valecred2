@@ -20,7 +20,7 @@ class MockDataFrame:
         self.data = data # Lista de dicionários
 
     def select(self, *cols):
-        # Very basic select simulation
+        # Simulação muito básica de seleção
         selected_cols = []
         for c in cols:
             if isinstance(c, str):
@@ -47,12 +47,12 @@ class MockDataFrame:
         return True
 
     def join(self, other, on, how='inner'):
-        # Basic join simulation
+        # Simulação básica de join
         joined_data = []
         for row in self.data:
             match = next((r for r in other.data if str(r.get(on)) == str(row.get(on))), None)
             if match:
-                new_row = {**row, **match} # Merge dicts
+                new_row = {**row, **match} # Mesclar dicionários
                 joined_data.append(new_row)
             elif how == 'left':
                 new_row = {**row}
@@ -117,7 +117,7 @@ class TestRelatorioProdutos(unittest.TestCase):
         # Reproduz a lógica atual: Sem Filtragem
         df_ops_unfiltered = df_ops_raw
 
-        # Create Map
+        # Criar Mapa
         df_map_ops = df_ops_unfiltered.select("cod_operacao", "nome_plataforma")
         # Na simulação do select, apenas mantemos as colunas. O código real as renomeia (alias).
         # Vamos simular o alias manualmente para a verificação do teste

@@ -46,7 +46,7 @@ class TestCVMSecurity(unittest.TestCase):
                 if is_requests_call:
                     requests_calls.append(node)
 
-        self.assertTrue(len(requests_calls) > 0, "No requests.get/head calls found in the notebook")
+        self.assertTrue(len(requests_calls) > 0, "Nenhuma chamada requests.get/head encontrada no notebook")
 
         for call in requests_calls:
             keywords = {kw.arg: kw.value for kw in call.keywords}
@@ -94,7 +94,7 @@ class TestCVMSecurity(unittest.TestCase):
                     requests_calls.append(node)
 
         # Verifica se encontramos alguma chamada
-        self.assertTrue(len(requests_calls) > 0, "No requests.get calls found in the notebook")
+        self.assertTrue(len(requests_calls) > 0, "Nenhuma chamada requests.get encontrada no notebook")
 
         for call in requests_calls:
             keywords = {kw.arg: kw.value for kw in call.keywords}
