@@ -1652,19 +1652,28 @@ df_final_blk1 = calculate_funnel_dates(df_funnel).select("*",
         .otherwise(concat(lit("C-"), col("cod_cliente"))).alias("id_limite_credito")
 )
 
-df_final_stg1 = df_final_blk1.drop("risco", "risco_grupo", "risco_comissaria_grupo", "limite_contrato", "limite_grupo_manual", "limite_extra_grupo", "limite_plus_grupo", "limite_comissaria_contrato", "risco_comissaria", "risco_exceto_comissaria", "inadimplencia", "status_do_cliente") \
-    .withColumnRenamed("risco_calc", "risco") \
-    .withColumnRenamed("risco_grupo_calc", "risco_grupo") \
-    .withColumnRenamed("risco_comissaria_grupo_calc", "risco_comissaria_grupo") \
-    .withColumnRenamed("limite_contrato_calc", "limite_contrato") \
-    .withColumnRenamed("limite_grupo_manual_calc", "limite_grupo_manual") \
-    .withColumnRenamed("limite_extra_grupo_calc", "limite_extra_grupo") \
-    .withColumnRenamed("limite_plus_grupo_calc", "limite_plus_grupo") \
-    .withColumnRenamed("limite_comissaria_contrato_calc", "limite_comissaria_contrato") \
-    .withColumnRenamed("risco_comissaria_calc", "risco_comissaria") \
-    .withColumnRenamed("risco_exceto_comissaria_calc", "risco_exceto_comissaria") \
-    .withColumnRenamed("inadimplencia_calc", "inadimplencia") \
-    .withColumnRenamed("status_do_cliente_calc", "status_do_cliente")
+# 🧠 Tensor: Otimização para prevenir "plan explosion" no Catalyst
+# 💡 O que: Substituiu encadeamento de chamadas .withColumnRenamed() em favor de uma única projeção com dicionário de mapeamento e toDF.
+# 🎯 Por que: Encadeamento de renomeações obriga o Catalyst Optimizer a gerar "Project" nodes extremamente profundos no plano lógico, causando alto tempo de compilação.
+# 📊 Impacto: Previne a explosão do plano, reduzindo significativamente o tempo de compilação/otimização da query.
+# 🔬 Medição: Redução massiva de overhead no driver durante compilação do plano Catalyst.
+df_final_stg1_dropped = df_final_blk1.drop("risco", "risco_grupo", "risco_comissaria_grupo", "limite_contrato", "limite_grupo_manual", "limite_extra_grupo", "limite_plus_grupo", "limite_comissaria_contrato", "risco_comissaria", "risco_exceto_comissaria", "inadimplencia", "status_do_cliente")
+rename_map_stg1 = {
+    "risco_calc": "risco",
+    "risco_grupo_calc": "risco_grupo",
+    "risco_comissaria_grupo_calc": "risco_comissaria_grupo",
+    "limite_contrato_calc": "limite_contrato",
+    "limite_grupo_manual_calc": "limite_grupo_manual",
+    "limite_extra_grupo_calc": "limite_extra_grupo",
+    "limite_plus_grupo_calc": "limite_plus_grupo",
+    "limite_comissaria_contrato_calc": "limite_comissaria_contrato",
+    "risco_comissaria_calc": "risco_comissaria",
+    "risco_exceto_comissaria_calc": "risco_exceto_comissaria",
+    "inadimplencia_calc": "inadimplencia",
+    "status_do_cliente_calc": "status_do_cliente"
+}
+new_cols_stg1 = [rename_map_stg1.get(c, c) for c in df_final_stg1_dropped.columns]
+df_final_stg1 = df_final_stg1_dropped.toDF(*new_cols_stg1)
 
 df_final_stg2 = df_final_stg1.select("*",
     greatest(col("limite_contrato"), col("limite_grupo_manual")).alias("limite_calc"),
