@@ -53,10 +53,10 @@ def min(c): return MagicMock()
 mock_when_tracker = MagicMock()
 
 def mock_when(condition, value):
-    mock_when_tracker(condition, value) # Track call
+    mock_when_tracker(condition, value) # Rastreia chamada
     m = MagicMock()
     m.otherwise = MagicMock(return_value=m)
-    m.when = MagicMock(return_value=m) # Chainable when
+    m.when = MagicMock(return_value=m) # when encadeável
     return m
 def round(c, scale): return MagicMock()
 def datediff(end, start): return MagicMock()
@@ -193,10 +193,10 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         process_operacoes_stream_func = globals()["process_operacoes_stream"]
         result_df = process_operacoes_stream_func(df_ops, df_titulos)
 
-        # Verifica structure
+        # Verifica estrutura
         # Deve juntar com os títulos
         df_ops.join.assert_called()
-        # Should aggregate
+        # Deve agregar
         df_ops.groupBy.assert_called()
 
     def test_mora_data_deferimento_replacement_fix(self):

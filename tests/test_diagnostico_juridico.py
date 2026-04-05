@@ -77,7 +77,7 @@ class TestDiagnosticoJuridico(unittest.TestCase):
         self.assertEqual(result, df_titulos)
 
     def test_check_silver_titulos_error(self):
-        """Test error handling when table read fails."""
+        """Testa o tratamento de erros quando a leitura da tabela falha."""
         spark = MagicMock()
 
         # Simula erro

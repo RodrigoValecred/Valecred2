@@ -1340,7 +1340,7 @@ df_info_gestor = df_bridge_atual \
 # Otimização: Reutilizar DataFrame em cache para evitar overhead de I/O e desserialização
 df_ops_validas = df_fato_operacoes.filter(col("status_analise") == "D")
 
-# ⚡ Bolt Optimization: Calculate VOP metrics reusing existing columns
+# ⚡ Bolt: Calcular métricas VOP reutilizando colunas existentes
 df_dia_semana_top, df_dia_mes_top = calculate_vop_metrics(df_ops_validas)
 
 # Métricas Gerais Operações
@@ -1968,7 +1968,7 @@ print(f"HHI Cedente: {hhi_cedente}")
 print(f"HHI Sacado: {hhi_sacado}")
 
 # -------------------------------------------------------------
-# ⚡ Bolt Optimization: Limpeza de Cache (Memory Management)
+# ⚡ Bolt: Limpeza de Cache (Gerenciamento de Memória)
 # Objetivo: Liberar memória dos DataFrames oxigenados cacheados
 # previnindo memory leaks e OOM no cluster Spark.
 # -------------------------------------------------------------

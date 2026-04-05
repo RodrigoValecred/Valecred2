@@ -127,7 +127,7 @@ class TestDecodeHtmlEntities(unittest.TestCase):
         pd.testing.assert_series_equal(self.unescape_udf(s), expected)
 
     def test_no_entities(self):
-        """Test string with no entities."""
+        """Testa string sem entidades."""
         if not self.unescape_udf:
             self.skipTest("Function not found")
 
@@ -454,7 +454,7 @@ class TestCheckShouldSkip(unittest.TestCase):
             print("WARNING: check_should_skip function not found in file.")
 
     def test_check_should_skip_exception(self):
-        """Test the exception path in check_should_skip."""
+        """Testa o caminho de exceção em check_should_skip."""
         if not self.check_should_skip:
             self.skipTest("Function not found")
 

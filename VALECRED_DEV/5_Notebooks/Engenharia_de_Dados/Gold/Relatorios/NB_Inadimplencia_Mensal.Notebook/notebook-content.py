@@ -95,7 +95,7 @@ df_titulos_enrich = df_titulos.join(
 
 # 4. Join com Calendário (Otimizado com Broadcast e Condição)
 # Substitui Cross Join + Filter por Join Condicional
-# ⚡ Bolt Optimization: Usar Broadcast Join com condições em vez de CrossJoin + Filter
+# ⚡ Bolt: Usar Broadcast Join com condições em vez de CrossJoin + Filter
 df_calculo_status = df_titulos_enrich.join(
     broadcast(df_calendario),
     (col("data_analise") <= col("DATA_CORTE")) &

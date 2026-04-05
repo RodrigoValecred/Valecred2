@@ -102,7 +102,7 @@ df_prod = spark.read.table("LH_Gold.dim_produtos").select(
     "produto_informacao_de_mercado"
 )
 
-# ⚡ Bolt Optimization: Removed intermediate count() actions
+# ⚡ Bolt: Remover ações count() intermediárias
 # 💡 O que: Remoção das ações `count()` durante o carregamento dos DataFrames.
 # 🎯 Por que: Ações `count()` forçam a materialização do plano lógico prematuramente, disparando jobs Spark e varreduras completas da tabela sem necessidade no fluxo.
 # 📊 Impacto: Evita múltiplos full table scans, economizando tempo e recursos de processamento antes das agregações reais.
@@ -155,7 +155,7 @@ df_dates = (
     .filter(col("start_date") <= col("end_date"))
 )
 
-# ⚡ Bolt Optimization: Removed intermediate count() action
+# ⚡ Bolt: Remover ação count() intermediária
 # 💡 O que: Remoção da ação `count()` intermediária antes da explosão de datas.
 # 🎯 Por que: A ação `count()` aciona um job Spark separado e um full table scan para contar registros antes de prosseguir, desperdiçando recursos.
 # 📊 Impacto: Elimina um job Spark extra, permitindo que a materialização real ocorra apenas na agregação final (`collect()`).
@@ -243,7 +243,7 @@ print("Salvo com sucesso.")
 # ------------------------------------------
 # Exibe um resumo visual do processamento para o operador
 try:
-    # ⚡ Bolt Optimization: Combine scalar aggregations
+    # ⚡ Bolt: Combinar agregações escalares
     # 💡 O que: Combinou as ações `count()` e `max("data_referencia")` em uma única query `select()`.
     # 🎯 Por que: A execução de múltiplas ações `.count()` ou `.collect()` aciona varreduras completas da tabela e jobs Spark separados. Combiná-las executa ambas as agregações em uma única passagem.
     # 📊 Impacto: Reduz o número de jobs Spark necessários para computar o dashboard de resumo, cortando o tempo de execução desta célula pela metade.

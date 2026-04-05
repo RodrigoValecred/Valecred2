@@ -98,9 +98,9 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             'utilizacao_pct': [10.0, 10.0, 10.0],
             'excesso_valor': [0, 0, 0],
             'validade_limite': [
-                'not-a-date', # Should trigger ValueError
+                'not-a-date', # Deve disparar um ValueError
                 None,         # Deve acionar TypeError (ou ValueError dependendo do comportamento de strptime)
-                123.45        # Invalid type
+                123.45        # Tipo inválido
             ]
         })
 
