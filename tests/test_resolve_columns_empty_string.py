@@ -10,7 +10,7 @@ from tests.notebook_utils import extract_function_from_file
 
 class TestResolveColumns(unittest.TestCase):
     def test_empty_string_treated_as_null(self):
-        # 1. Extract function source
+        # 1. Extrai o código-fonte da função
         notebook_path = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py"
         func_source = extract_function_from_file(notebook_path, "resolve_columns")
 
@@ -30,7 +30,7 @@ class TestResolveColumns(unittest.TestCase):
         mock_trim_instance = MagicMock()
         mock_trim.return_value = mock_trim_instance
 
-        # trim(col) == "" -> condition
+        # trim(col) == "" -> condição
         mock_condition = MagicMock()
         mock_trim_instance.__eq__ = MagicMock(return_value=mock_condition)
 
@@ -54,7 +54,7 @@ class TestResolveColumns(unittest.TestCase):
             "lit": mock_lit
         }
 
-        # 5. Executa function definition
+        # 5. Executa a definição da função
         try:
             exec(func_source, exec_globals)
         except Exception as e:
@@ -62,7 +62,7 @@ class TestResolveColumns(unittest.TestCase):
 
         resolve_columns = exec_globals["resolve_columns"]
 
-        # 6. Call function
+        # 6. Chama a função
         result_df = resolve_columns(mock_df, ["mycol"])
 
         # 7. Asserções

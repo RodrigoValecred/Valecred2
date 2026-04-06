@@ -108,7 +108,7 @@ class TestSanitizeColumnName(unittest.TestCase):
         self.assertEqual(self.sanitize_column_name("Address1"), "address1")
         self.assertEqual(self.sanitize_column_name("v2_0"), "v2_0")
 
-        # Test camel case with numbers
+        # Testa camel case com números
         self.assertEqual(self.sanitize_column_name("Version2_1"), "version2_1")
         self.assertEqual(self.sanitize_column_name("v2_0_NewVersion"), "v2_0_new_version")
 

@@ -26,7 +26,7 @@ def create_mock_data(spark):
 def run_original(spark, df_final_metrics):
     mes_corte = date(2023, 1, 1)
 
-    # 1. Filter & Agg
+    # 1. Filtra & Agrega
     df_perf_12m = df_final_metrics.filter(F.col("mes_ref") >= mes_corte) \
         .groupBy("id_gerente") \
         .agg(F.sum("resultado_operacional").alias("res_acum"))
@@ -49,12 +49,12 @@ def run_original(spark, df_final_metrics):
 def run_optimized(spark, df_final_metrics):
     mes_corte = date(2023, 1, 1)
 
-    # 1. Filter & Agg
+    # 1. Filtra & Agrega
     df_perf_12m = df_final_metrics.filter(F.col("mes_ref") >= mes_corte) \
         .groupBy("id_gerente") \
         .agg(F.sum("resultado_operacional").alias("res_acum"))
 
-    # 2. Quantile & Join (Optimized)
+    # 2. Quantil & Join (Otimizado)
     try:
         corte_top = df_perf_12m.approxQuantile("res_acum", [0.75], 0.01)[0]
 

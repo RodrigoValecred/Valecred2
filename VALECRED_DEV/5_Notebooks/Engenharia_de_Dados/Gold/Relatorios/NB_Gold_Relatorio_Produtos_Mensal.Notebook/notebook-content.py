@@ -333,7 +333,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
 
     return df_stream_mora
 
-# Main Execution Flow
+# Fluxo Principal de Execução
 print("Iniciando Relatório de Produtos Mensal...")
 data = load_and_prepare_data(spark)
 

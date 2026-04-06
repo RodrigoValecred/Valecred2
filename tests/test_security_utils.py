@@ -72,7 +72,7 @@ class TestSafeExtract(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "Zip Slip vulnerability detected"):
             safe_extract(mock_zip, self.extract_path)
 
-        # Case 3: Absolute path
+        # Caso 3: Caminho absoluto
         mock_zip_abs = MockZipFile(['/tmp/evil.txt'])
         with self.assertRaisesRegex(Exception, "Zip Slip vulnerability detected"):
             safe_extract(mock_zip_abs, self.extract_path)

@@ -51,7 +51,7 @@ class TestSilverJurosCorrections(unittest.TestCase):
             'JUROS_CORRECTIONS': test_corrections
         }
 
-        # Load function
+        # Carrega a função
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         apply_juros_corrections = local_scope['apply_juros_corrections']
