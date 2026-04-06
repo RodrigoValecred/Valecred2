@@ -169,8 +169,8 @@ df_previsao_spark = df_mestra_spark
 # Otimização: Mantendo em Spark para inferência distribuída
 
 df_previsao_spark.cache()
-count_previsao = df_previsao_spark.count()
-print(f"Universo de previsão selecionado: {count_previsao} títulos.")
+is_previsao_empty = df_previsao_spark.isEmpty()
+print("Universo de previsão selecionado.")
 df_previsao_spark.show(5)
 
 # METADATA ********************
@@ -229,7 +229,7 @@ except Exception as e:
 # CELL ********************
 
 # Verificando se o DataFrame tem dados para prever
-if count_previsao == 0:
+if is_previsao_empty:
     print("Nenhum título encontrado para o ano de 2025 com os critérios especificados. Encerrando o notebook.")
     dbutils.notebook.exit("Nenhum dado para processar.")
 
