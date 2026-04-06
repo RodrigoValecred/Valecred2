@@ -28,7 +28,7 @@ class TestParseDanfe(unittest.TestCase):
         mock_col = MagicMock(name="col")
         mock_substring = MagicMock(name="substring")
 
-        # Simula comportamento de Column
+        # Simula o comportamento de Column
         def col_side_effect(name):
             m = MagicMock(name=f"col('{name}')")
             return m
@@ -43,7 +43,7 @@ class TestParseDanfe(unittest.TestCase):
         # Chainable withColumnRenamed
         mock_df.withColumnRenamed.return_value = mock_df
 
-        # Execution context
+        # Contexto de execução (Execution Context)
         exec_globals = {
             'col': mock_col,
             'substring': mock_substring,

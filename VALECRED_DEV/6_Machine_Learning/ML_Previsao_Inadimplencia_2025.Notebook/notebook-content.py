@@ -102,8 +102,13 @@ cols_operacoes = {
     "RECEBEBOLETO": "RECEBEBOLETO_OPERACAO"
 }
 
-for old, new in cols_operacoes.items():
-    df_operacoes = df_operacoes.withColumnRenamed(old, new)
+# 🧠 Tensor: Optimize bulk column renaming
+# 💡 What: Replaced iterative .withColumnRenamed() in a for-loop with a single vectorized df.toDF() projection.
+# 🎯 Why: Iteratively calling .withColumnRenamed() creates deeply nested Project nodes in the Catalyst logical plan, leading to high compilation overhead and potential StackOverflowError.
+# 📊 Impact: Drastically reduces the Catalyst query plan depth and compilation time.
+# 🔬 Measurement: Plan compilation overhead for this segment drops from linear O(N) to O(1) in Catalyst.
+new_cols_operacoes = [cols_operacoes.get(c, c) for c in df_operacoes.columns]
+df_operacoes = df_operacoes.toDF(*new_cols_operacoes)
 
 cols_cedentes = {
     "DATAINCLUSAO": "DATAINCLUSAO_CEDENTE",
@@ -119,8 +124,8 @@ cols_cedentes = {
     "RECEBEBOLETO": "RECEBEBOLETO_CEDENTE"
 }
 
-for old, new in cols_cedentes.items():
-    df_cedentes = df_cedentes.withColumnRenamed(old, new)
+new_cols_cedentes = [cols_cedentes.get(c, c) for c in df_cedentes.columns]
+df_cedentes = df_cedentes.toDF(*new_cols_cedentes)
 
 # Realizando os joins
 print("Criando tabela mestra com os joins...")
@@ -164,8 +169,8 @@ df_previsao_spark = df_mestra_spark
 # Otimização: Mantendo em Spark para inferência distribuída
 
 df_previsao_spark.cache()
-count_previsao = df_previsao_spark.count()
-print(f"Universo de previsão selecionado: {count_previsao} títulos.")
+is_previsao_empty = df_previsao_spark.isEmpty()
+print("Universo de previsão selecionado.")
 df_previsao_spark.show(5)
 
 # METADATA ********************
@@ -224,7 +229,7 @@ except Exception as e:
 # CELL ********************
 
 # Verificando se o DataFrame tem dados para prever
-if count_previsao == 0:
+if is_previsao_empty:
     print("Nenhum título encontrado para o ano de 2025 com os critérios especificados. Encerrando o notebook.")
     dbutils.notebook.exit("Nenhum dado para processar.")
 

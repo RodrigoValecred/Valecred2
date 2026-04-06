@@ -81,7 +81,7 @@ def test_generate_markdown_empty_inputs():
     inventory = {}
     md = generate_markdown(assets, inventory)
 
-    # Should contain the header and section titles, but no assets
+    # Deve conter o cabeçalho e os títulos das seções, mas nenhum ativo (asset)
     assert "# Inventário de Ativos de Dados" in md
     assert "## Data Warehouses" in md
     assert "## Lakehouses" in md
@@ -152,5 +152,25 @@ def test_generate_markdown_existing_inventory():
     assert "### NB_Existing.Notebook" in md
     assert "- **Description:** This is a test description" in md
     assert "- **Input:** Test input" in md
-    # Should not add the missing description placeholders
+    # Não deve adicionar os placeholders de descrição ausentes
     assert "(Missing description)" not in md
+
+from unittest.mock import patch
+
+def test_find_assets():
+    # Mocking os.walk
+    with patch('os.walk') as mock_walk:
+        mock_walk.return_value = [
+            ('VALECRED_DEV', ['LH_Test.Lakehouse', 'WH_Test.Warehouse'], []),
+            ('VALECRED_DEV/subdir', ['DF_Test.Dataflow', 'NB_Test.Notebook', 'NotAnAsset'], []),
+        ]
+
+        from generate_inventory import find_assets
+        assets = find_assets()
+
+        assert assets == {
+            'Lakehouses': ['LH_Test.Lakehouse'],
+            'Data Warehouses': ['WH_Test.Warehouse'],
+            'Dataflows': ['DF_Test.Dataflow'],
+            'Notebooks': ['NB_Test.Notebook'],
+        }

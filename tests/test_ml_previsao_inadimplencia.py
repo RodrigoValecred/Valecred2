@@ -46,8 +46,8 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
         # Simula predict_proba para retornar array como [[prob_0, prob_1], ...]
         # Simulamos 2 linhas
         mock_model.predict_proba.return_value = np.array([
-            [0.3, 0.7],  # Row 1: prob_1 = 0.7
-            [0.8, 0.2]   # Row 2: prob_1 = 0.2
+            [0.3, 0.7],  # Linha 1: prob_1 = 0.7
+            [0.8, 0.2]   # Linha 2: prob_1 = 0.2
         ])
         mock_model_broadcast = MagicMock()
         mock_model_broadcast.value = mock_model
@@ -62,7 +62,7 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
         # Simula DoubleType
         mock_double_type = MagicMock()
 
-        # --- Execution Context ---
+        # --- Contexto de Execução ---
 
         exec_globals = {
             'pandas_udf': mock_pandas_udf,
@@ -101,7 +101,7 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
         expected_probs = pd.Series([0.7, 0.2])
         pd.testing.assert_series_equal(result, expected_probs)
 
-        # 2. Verifica Model Call
+        # 2. Verifica a chamada do modelo (Model Call)
         # Verifica se model.predict_proba foi chamado com o DataFrame correto
         mock_model.predict_proba.assert_called_once()
         call_args = mock_model.predict_proba.call_args[0][0] # O primeiro argumento é X

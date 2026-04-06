@@ -15,7 +15,7 @@ sys.modules['pyspark.sql.functions'] = MagicMock()
 sys.modules['pyspark.sql.types'] = MagicMock()
 sys.modules['pyspark.sql.window'] = MagicMock()
 
-# --- Mocking Display ---
+# --- Mocking do Display ---
 # O notebook usa display(), que não está disponível no Python padrão
 def mock_display(obj):
     pass
@@ -38,11 +38,11 @@ class TestDashboardUX(unittest.TestCase):
 
         output = f.getvalue()
 
-        # 1. Verifica Header Date Format (DD/MM/YYYY)
+        # 1. Verifica o Formato de Data do Cabeçalho (DD/MM/YYYY)
         # "Data de Referência: 23/12/2025"
         self.assertRegex(output, r"Data de Referência: \d{2}/\d{2}/\d{4}")
 
-        # 2. Verifica Item Date Format (DD/MM/YYYY) - UX Improvement
+        # 2. Verifica o Formato de Data do Item (DD/MM/YYYY) - Melhoria de UX
         # Agora esperamos encontrar o padrão DD/MM/YYYY na lista de itens, não YYYY-MM-DD
         # e.g., "30/12/2025 (7d)"
         self.assertRegex(output, r"\d{2}/\d{2}/\d{4} \(\d+d\)")

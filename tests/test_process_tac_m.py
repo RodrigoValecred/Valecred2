@@ -23,7 +23,7 @@ class TestProcessTacM(unittest.TestCase):
         self.mock_upper = MagicMock(name="upper")
         self.mock_lit = MagicMock(name="lit")
 
-        # Execution context
+        # Contexto de execução (Execution Context)
         self.exec_globals = {
             'col': self.mock_col,
             'trim': self.mock_trim,
@@ -39,7 +39,7 @@ class TestProcessTacM(unittest.TestCase):
         # Simula DataFrame
         mock_df = MagicMock(name="df")
 
-        # Chainable return values
+        # Valores de retorno encadeáveis
         # df.withColumn returns df
         mock_df.withColumn.return_value = mock_df
         # df.filter returns df
@@ -72,7 +72,7 @@ class TestProcessTacM(unittest.TestCase):
         mock_isin_expr = MagicMock(name="isin_expr")
         mock_col_desc.isin.return_value = mock_isin_expr
 
-        # Variations list
+        # Lista de variações
         tac_variations = ["A", "B"]
 
         # Executa
