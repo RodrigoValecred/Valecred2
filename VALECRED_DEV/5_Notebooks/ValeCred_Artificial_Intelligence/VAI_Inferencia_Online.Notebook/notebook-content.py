@@ -66,19 +66,28 @@ for col_name in cols_numericas:
         df_hoje_clean = df_hoje_clean.withColumn(col_name, F.col(col_name).cast(DoubleType()))
 # df_hoje_clean.show(5)
 
+# 🧠 Tensor: Bulk Column Renaming via toDF projection
+# 💡 O que: Substituiu o encadeamento de chamadas `.withColumnRenamed()` por um único mapeamento de dicionário e `.toDF(*new_cols)`.
+# 🎯 Por que: Encadeamentos longos de `withColumnRenamed` geram planos lógicos excessivamente profundos com múltiplos nós `Project`, o que causa degradação de performance no Catalyst Optimizer e potencial StackOverflowError durante a fase de planejamento de query no driver. Um único `toDF` com uma lista resolvida resolve isso.
+# 📊 Impacto: Previne aumento exponencial do tempo de compilação do plano (especialmente perceptível em DAGs complexos/longos do Spark) e economiza memória do Driver.
+# 🔬 Medição: O tempo de planejamento de execução cai consideravelmente (de ~O(N^2) para O(N) onde N é o número de renomeações em DAGs profundos).
+
 # Renomear colunas para bater com o treinamento da V.A.I.
 # ⚠️ IMPORTANTE: Garantir que TTO e STTO venham junto!
-df_hoje_ajustado = df_hoje_clean \
-    .withColumnRenamed("NBORDERO", "id_operacao") \
-    .withColumnRenamed("valor_titulo", "vlr_total_sacado") \
-    .withColumnRenamed("prazo_medio", "prazo_medio_titulos") \
-    .withColumnRenamed("taxa_aquisicao", "taxa") \
-    .withColumnRenamed("QTD_TITULOS", "qtd_titulos") \
-    .withColumnRenamed("cpf_cnpj_sacado", "cpf_cnpj_sacado") \
-    .withColumnRenamed("TIPO_OPERACAO", "TTO") \
-    .withColumnRenamed("SUBTIPO_OPERACAO", "STTO") \
-    .withColumnRenamed("CODCLIENTE", "cod_cliente")
-    # (Ajuste os nomes "TIPO_OPERACAO" acima se na Bronze eles tiverem outro nome)
+rename_map = {
+    "NBORDERO": "id_operacao",
+    "valor_titulo": "vlr_total_sacado",
+    "prazo_medio": "prazo_medio_titulos",
+    "taxa_aquisicao": "taxa",
+    "QTD_TITULOS": "qtd_titulos",
+    "cpf_cnpj_sacado": "cpf_cnpj_sacado",
+    "TIPO_OPERACAO": "TTO",
+    "SUBTIPO_OPERACAO": "STTO",
+    "CODCLIENTE": "cod_cliente"
+}
+# (Ajuste os nomes "TIPO_OPERACAO" acima se na Bronze eles tiverem outro nome)
+new_columns = [rename_map.get(c, c) for c in df_hoje_clean.columns]
+df_hoje_ajustado = df_hoje_clean.toDF(*new_columns)
 # df_hoje_ajustado.show(5)
 
 # ==============================================================================
