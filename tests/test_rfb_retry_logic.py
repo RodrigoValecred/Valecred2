@@ -64,10 +64,10 @@ def download_logic_snippet(filename, base_dir_download, requests_mock, zipfile_m
                          with zipfile_mock.ZipFile(local_zip_path, 'r') as zip_ref:
                             if zip_ref.testzip() is not None:
                                 raise zipfile.BadZipFile("Teste de integridade falhou (CRC check)")
-                            # Assume safe_extract works
+                            # Assume que safe_extract funciona
 
                     success = True
-                    break  # Exit loop
+                    break  # Sai do loop
                 except zipfile.BadZipFile as e:
                     print(f"ERRO: Arquivo corrompido baixado de {url}. Erro: {e}")
                     continue
@@ -86,13 +86,13 @@ def test_download_retry_mechanism():
     requests_mock = MagicMock()
     zipfile_mock = MagicMock()
 
-    # URL constants
+    # Constantes de URL
     primary_url = "https://dadosabertos.rfb.gov.br/CNPJ/test.zip"
     fallback_url = "http://200.152.38.155/CNPJ/test.zip"
 
     # Configura side_effect para HEAD e GET:
     # 1. URL Primária -> Lança Exceção (Simula Timeout)
-    # 2. Fallback URL -> Returns 200 OK
+    # 2. URL de Contingência (Fallback) -> Retorna 200 OK
 
     def side_effect(url, **kwargs):
         if url == primary_url:
@@ -128,7 +128,7 @@ def test_download_all_fail():
     requests_mock = MagicMock()
     zipfile_mock = MagicMock()
 
-    # Always raise exception
+    # Sempre levanta exceção
     requests_mock.head.side_effect = Exception("ConnectTimeout")
     requests_mock.get.side_effect = Exception("ConnectTimeout")
 
@@ -188,7 +188,7 @@ def test_corrupt_zip_fallback():
     fallback_url = "http://200.152.38.155/CNPJ/test.zip"
 
     # 1. A URL primária retorna um arquivo, MAS ele está corrompido
-    # 2. Fallback URL returns a valid file
+    # 2. URL de Contingência (Fallback) retorna um arquivo válido
 
     def head_side_effect(url, **kwargs):
         return MagicMock(status_code=200)

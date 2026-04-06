@@ -15,6 +15,18 @@
 | **Suíte de Testes (Unitários)** | `tests/` | Repositório agora conta com suíte extensiva de testes via pytest validando curadoria gold, lógica silver, ml, security, ui, entre outros (`test_curadoria_gold_*.py`, `test_ml_*.py`, etc). | Added |
 
 
+### [2026-03-27]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `NB_Analise_Cluster_Clientes.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/NB_Analise_Cluster_Clientes.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado `.cache()` antes do `count()` para otimizar execução do KMeans. 🧠 Tensor: Aplicadas otimizações de early stopping (`maxIter`, `tol`, `distanceMeasure`) no KMeans. | Changed |
+| `generate_inventory.py` | `generate_inventory.py` | ⚡ Bolt: Otimizada a concatenação de strings na função `generate_markdown`. | Changed |
+| `NB_Gold_Esteira_Propostas.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Esteira_Propostas.Notebook/notebook-content.py` | ⚡ Bolt: Substituído `df.count() > 0` por `not df.isEmpty()` para melhorar a performance. | Changed |
+| `VAI_Inferencia_Online.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Implementada regra de detecção de fraude "Intercia" cruzando grupos econômicos e limites aprovados. Corrigido clamping da barra de progresso. | Changed |
+| `NB_Gold_Relatorio_Limites_Especificos.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Limites_Especificos.Notebook/notebook-content.py` | Modificada lógica para calcular limites e agregar risco com base na raiz do CNPJ do sacado. | Changed |
+| Testes Unitários | `tests/` | 🧪 Adicionados múltiplos testes: `parse_inventory`, tratamento de exceção em `check_should_skip`, cobertura de falhas em `safe_read_table`, validação de `sanitize_column_name` e prevenção de Zip Slip em `safe_extract`. | Added |
+| Múltiplos Arquivos | Vários | 🌐 Traduzidos comentários do inglês para o Português Brasileiro conforme regras de estilo. | Changed |
+
 ### [2026-03-26]
 
 | Component | Path | Description | Change |

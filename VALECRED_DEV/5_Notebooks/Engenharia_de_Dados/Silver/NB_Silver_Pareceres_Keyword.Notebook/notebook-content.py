@@ -116,9 +116,9 @@ df_enriched = df_joined_users.join(
 df_clean = df_enriched.withColumn(
     "obs_str", col("OBS").cast("string")
 ).withColumn(
-    "obs_no_html", regexp_replace(col("obs_str"), "<[^>]+>", " ") # Remove HTML tags
+    "obs_no_html", regexp_replace(col("obs_str"), "<[^>]+>", " ") # Remove as tags HTML
 ).withColumn(
-    "obs_clean", trim(regexp_replace(col("obs_no_html"), "\\s+", " ")) # Remove extra spaces
+    "obs_clean", trim(regexp_replace(col("obs_no_html"), "\\s+", " ")) # Remove espaços extras
 ).withColumn(
     "obs_normalized", 
     upper(translate(col("obs_clean"), "áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ", "AAAAAEEEEIIIIOOOOOUUUUCAAAAAEEEEIIIIOOOOOUUUUC"))

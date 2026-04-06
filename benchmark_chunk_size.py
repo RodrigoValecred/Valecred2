@@ -7,7 +7,7 @@ import os
 FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 TEST_FILE = 'test_50mb.bin'
 
-# Create a 50MB dummy file
+# Cria um arquivo mock de 50MB
 with open(TEST_FILE, 'wb') as f:
     f.write(os.urandom(FILE_SIZE))
 

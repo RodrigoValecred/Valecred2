@@ -48,7 +48,7 @@ class TestDeduplicateClientes(unittest.TestCase):
         mock_row_number.return_value = mock_row_number_obj
         mock_row_number_obj.over.return_value = "ROW_NUMBER_COL"
 
-        # Execution Context
+        # Contexto de execução (Execution Context)
         exec_globals = {
             'col': mock_col,
             'Window': mock_window,
@@ -82,7 +82,7 @@ class TestDeduplicateClientes(unittest.TestCase):
         # 2. withColumn "rn"
         mock_df.withColumn.assert_called_with("rn", "ROW_NUMBER_COL")
 
-        # 3. filter
+        # 3. Filtra (filter)
         # filter(col("rn") == 1) -> filter(mock_filter_expr)
         mock_df_with_col.filter.assert_called_with(mock_filter_expr)
 

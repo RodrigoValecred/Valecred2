@@ -94,7 +94,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         if not DeltaTable.isDeltaTable(spark, target_table_path):
             return False # Destino não existe, prosseguindo
 
-        # Check source max
+        # Verifica o máximo da origem
         df_source = spark.read.table(source_table)
         # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         cols_source_map = {c.lower(): c for c in df_source.columns}
@@ -105,7 +105,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
         max_source = df_source.agg(max(col(actual_col_source))).first()[0]
 
-        # Check target max
+        # Verifica o máximo do destino
         df_target = spark.read.format("delta").load(target_table_path)
         cols_target_map = {c.lower(): c for c in df_target.columns}
         if target_watermark_col.lower() not in cols_target_map:
@@ -115,7 +115,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         max_target = df_target.agg(max(col(actual_col_target))).first()[0]
 
         # Debug
-        # print(f"Check Skip {source_table} -> {target_table_path}: Source Max {max_source}, Target Max {max_target}")
+        # print(f"Verifica Skip {source_table} -> {target_table_path}: Origem Máx {max_source}, Destino Máx {max_target}")
 
         if max_source and max_target and max_source <= max_target:
             return True # Fonte não é mais nova que o destino
@@ -205,7 +205,7 @@ def process_incremental_operacoes(source_table, output_path, key_columns_operaco
 
     print(f"Calculando Watermark Operações no driver: {last_watermark_val}...")
 
-    # 2. Read Bronze Filtered
+    # 2. Lê a Bronze Filtrada
     df_bronze_ops = spark.read.table(source_table) \
         .filter((col("DATAINCLUSAO") >= lit(last_watermark_val)) | (col("DATAALTERACAO") >= lit(last_watermark_val)))
 
@@ -503,7 +503,7 @@ def process_pareceres_operacoes():
             col("cgp.OBS").cast("string").alias("parecer_original") # Mantemos a original a pedido do usuario (cast para string)
         )
 
-    # HTML Cleaning Logic (Replicating Power Query ReplaceValues)
+    # Lógica de Limpeza de HTML (Replicando Power Query ReplaceValues)
     placeholder = "__NEWLINE__"
 
     # Optimização: Encadeamento de transformações para reduzir nós no plano lógico e overhead
@@ -706,10 +706,10 @@ def process_tarifas_esporadicas():
     df_tarifas = spark.read.table(f"{source_lakehouse}.tab_operacoes_tarifas_extras")
     df_usuarios = spark.read.table(f"{source_lakehouse}.cad_usuarios")
 
-    # Filter Year >= 2024
+    # Filtra Ano >= 2024
     df_filtered = df_tarifas.filter(year(col("DATAINCLUSAO")) >= 2024)
 
-    # Join Users (Left) & Filter Analyst
+    # Join de Usuários (Left) & Filtra Analista
     # Nota: Usando aliases para evitar ambiguidade se USUAINCLUSAO existe em ambos (embora aqui façamos join nela)
     df_joined = df_filtered.alias("t").join(df_usuarios.alias("u"), col("t.USUAINCLUSAO") == col("u.CODUSUARIO"), "left") \
         .filter((col("u.NOME") != "RONALDO DANILO UREI GOBBI") | col("u.NOME").isNull())
