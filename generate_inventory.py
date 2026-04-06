@@ -22,22 +22,20 @@ def parse_inventory(filename):
     return inventory
 
 def find_assets():
-    assets = {
-        'Lakehouses': [],
-        'Data Warehouses': [],
-        'Dataflows': [],
-        'Notebooks': [],
+    suffix_map = {
+        '.Lakehouse': 'Lakehouses',
+        '.Warehouse': 'Data Warehouses',
+        '.Dataflow': 'Dataflows',
+        '.Notebook': 'Notebooks',
     }
+    assets = {v: [] for v in suffix_map.values()}
+
     for root, dirs, files in os.walk('VALECRED_DEV'):
         for d in dirs:
-            if d.endswith('.Lakehouse'):
-                assets['Lakehouses'].append(d)
-            elif d.endswith('.Warehouse'):
-                assets['Data Warehouses'].append(d)
-            elif d.endswith('.Dataflow'):
-                assets['Dataflows'].append(d)
-            elif d.endswith('.Notebook'):
-                assets['Notebooks'].append(d)
+            for suffix, asset_type in suffix_map.items():
+                if d.endswith(suffix):
+                    assets[asset_type].append(d)
+                    break
     return {k: sorted(v) for k, v in assets.items()}
 
 def generate_markdown(assets, inventory):

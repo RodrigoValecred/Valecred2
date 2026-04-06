@@ -211,7 +211,7 @@ else:
     if total_count > 0:
         df_cliente.groupBy('TARGET').count().withColumn('pct', col('count') / total_count).show()
 
-# ⚡ Bolt Optimization: Free memory
+# ⚡ Bolt Optimization: Libera memória (Free memory)
 df_filtrado.unpersist()
 print("⚡ Bolt: Cache cleared.")
 

@@ -44,7 +44,7 @@ from pyspark.sql.functions import col, to_date, regexp_replace
 # --- Configurações ---
 MIRRORS = [
     "https://dadosabertos.rfb.gov.br/CNPJ/",
-    "https://github.com/jonathands/dados-abertos-receita-cnpj/releases/download/2024.09/" # Fallback GitHub seguro
+    "https://github.com/jonathands/dados-abertos-receita-cnpj/releases/download/2024.09/" # Alternativa (Fallback) segura via GitHub
 ]
 
 # Diretórios no Lakehouse (Files API)
@@ -184,7 +184,7 @@ def download_and_extract(filename, base_dir_download, base_dir_extract):
                         f.write(chunk)
                 print(f"Download concluído com sucesso: {local_zip_path}")
                 download_success = True
-                break  # Sair do loop de mirrors se sucesso
+                break  # Sair do loop de mirrors em caso de sucesso
             else:
                 print(f"Falha ao baixar de {url}. Status Code: {response.status_code}")
 

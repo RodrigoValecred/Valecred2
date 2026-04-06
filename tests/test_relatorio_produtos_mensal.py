@@ -53,7 +53,7 @@ def min(c): return MagicMock()
 mock_when_tracker = MagicMock()
 
 def mock_when(condition, value):
-    mock_when_tracker(condition, value) # Track call
+    mock_when_tracker(condition, value) # Rastreia a chamada
     m = MagicMock()
     m.otherwise = MagicMock(return_value=m)
     m.when = MagicMock(return_value=m) # Chainable when
@@ -106,7 +106,7 @@ NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB
 class TestRelatorioProdutosMensal(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Extract functions once
+        # Extrai as funções uma vez
         cls.resolve_code = extract_function_from_file(NOTEBOOK_PATH, "resolve_columns")
         cls.load_code = extract_function_from_file(NOTEBOOK_PATH, "load_and_prepare_data")
         cls.ops_code = extract_function_from_file(NOTEBOOK_PATH, "process_operacoes_stream")
@@ -161,7 +161,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
         self.spark.read.table.side_effect = side_effect
 
-        # Call extracted function
+        # Chama a função extraída
         load_and_prepare_data_func = globals()["load_and_prepare_data"]
         result = load_and_prepare_data_func(self.spark)
 

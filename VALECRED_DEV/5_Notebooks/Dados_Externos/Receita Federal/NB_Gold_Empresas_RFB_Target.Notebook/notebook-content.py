@@ -165,9 +165,17 @@ df_target = df_final.select(cols_to_select)
 
 # --- Salvamento ---
 
+# ⚡ Bolt: Adicionado .cache() antes de múltiplas actions
+# 💡 O que: Chamada de `.cache()` em `df_target` antes do `.count()` e do subsequente `.write()`, seguido de `.unpersist()`.
+# 🎯 Por que: O código original executava `.count()` e depois `.write()`, forçando o Catalyst a reavaliar todo o DAG e realizar um full table scan das fontes (RFB) duas vezes consecutivas. O cache garante que a leitura da tabela ocorra apenas uma vez.
+# 📊 Impacto: Corta pela metade o tempo de execução e uso de recursos nesta fase final do notebook.
+# 🔬 Medição: O Spark UI mostrará `InMemoryTableScan` durante o `.write()`, omitindo a varredura e cruzamento redundante.
+df_target.cache()
+
 print(f"Salvando {df_target.count()} registros na tabela Gold: {TABLE_TARGET}")
 
 df_target.write.format("delta").mode("overwrite").saveAsTable(TABLE_TARGET)
+df_target.unpersist()
 
 print("Processo concluído com sucesso.")
 

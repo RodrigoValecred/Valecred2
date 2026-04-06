@@ -50,7 +50,7 @@ class TestUnfoldContactInfo(unittest.TestCase):
     def test_unfold_logic(self):
         """Testa a lógica principal: explode(split) e então trim."""
         df = MagicMock()
-        # Mocking method chaining
+        # Mocking do method chaining
         df_unfolded = MagicMock()
         df_cleaned = MagicMock()
 
@@ -66,7 +66,7 @@ class TestUnfoldContactInfo(unittest.TestCase):
         self.assertEqual(args[0], "OUTPUT_COL")
         self.assertEqual(args[1], "explode(split(col(INPUT_COL), ;))")
 
-        # Verifica second withColumn call (trim)
+        # Verifica a segunda chamada withColumn (trim)
         # Expected: trim(col(OUTPUT_COL))
         df_unfolded.withColumn.assert_called_once()
         args, _ = df_unfolded.withColumn.call_args
@@ -83,7 +83,7 @@ class TestUnfoldContactInfo(unittest.TestCase):
         # Usa um delimitador seguro como "," para evitar confusão de regex no teste
         self.unfold_contact_info(df, "INPUT_COL", "OUTPUT_COL", ",")
 
-        # Verifica split uses correct delimiter
+        # Verifica se split usa o delimitador correto
         self.mock_split.assert_called_with("col(INPUT_COL)", ",")
 
 if __name__ == '__main__':

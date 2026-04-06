@@ -8,6 +8,38 @@
 | :--- | :--- | :--- | :--- |
 | `NB_Silver_Carteira_PDD.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Silver_Carteira_PDD.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado `.cache()` ao DataFrame antes do `.count()` para evitar reavaliação completa do plano físico do Catalyst. | Changed |
 | Múltiplos (Testes, Notebooks, Scripts) | `VALECRED_DEV/` e `tests/` | 🌐 Traduzidos comentários do inglês para o Português Brasileiro, preservando termos técnicos e código funcional. | Changed |
+### [2026-04-03]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| CSV Data Loading | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Load_Silver_From_Manual_Uploads.Notebook/notebook-content.py` | 🧠 Tensor: Optimized manual CSV reading by using Spark native distributed reader (`spark.read.csv`) instead of `pd.read_csv`, preventing driver OOM. | Changed |
+| Column Renaming Optimization | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Load_Silver_From_Manual_Uploads.Notebook/notebook-content.py` | ⚡ Bolt: Refactored column sanitization to apply an explicit bulk projection via `df.toDF(*new_columns)` instead of loops with `.withColumnRenamed()` to prevent Catalyst logical plan overhead. | Changed |
+| Codebase Comments Translation | Repository wide | The Translator: Translated remaining English comments to pt-BR across notebooks, scripts, and tests using AST/Tokenize, strictly preserving code integrity and technical terms. | Changed |
+| PySpark Plan Optimization | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` (and related) | ⚡ Bolt: Optimized PySpark Catalyst Plan evaluation via `.cache()` for Window deduplication and before `count()` logs to prevent double evaluation. | Changed |
+### [2026-04-06]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| **Notebooks Gold** | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/` | Múltiplos notebooks adicionados (ex: `NB_Gold_Relatorio_Produtos_Mensal.Notebook`, `NB_Inadimplencia_Mensal.Notebook`, `NB_Risk_Aggregation.Notebook`). Foco em agregação e geração de relatórios de risco, clientes e limites. | Added |
+| **Notebooks Silver** | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/` | Conjunto massivo de notebooks para preparação, carga e curadoria (ex: `NB_Prepara_Tabela_Cadastros.Notebook`, `NB_Silver_Carteira_PDD.Notebook`, `NB_Generic_Silver.Notebook`). | Added |
+| **Notebooks Machine Learning (V.A.I)** | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/` | Notebooks e Experimentos ML adicionados (ex: `01-Treino_Risco_Semanal.Notebook`, `NB_Analise_Cluster_Clientes.Notebook`, `VAI_Inferencia_Online.Notebook`). | Added |
+| **Modelos Preditivos** | `VALECRED_DEV/6_Machine_Learning/` | Notebooks para inferência de risco e inadimplência (ex: `ML_Gerador_Score_Risco.Notebook`, `ML_Previsao_Inadimplencia_2025.Notebook`). | Added |
+| **Dashboards / Relatórios** | `VALECRED_DEV/7_Reports/` e `VALECRED_DEV/8_RealTime/` | Relatório PBI (`RP_Dashboards_Inativos.Report`) e scripts KQL / KPI TV adicionados. | Added |
+| **Scripts Utilitários** | Raiz do Projeto | Adicionados scripts de automação/benchmark: `benchmark_chunk_size.py`, `generate_inventory.py`, `optimize_hhi.py`, `update_silver_mashup.py`, etc. | Added |
+| **Suíte de Testes (Unitários)** | `tests/` | Repositório agora conta com suíte extensiva de testes via pytest validando curadoria gold, lógica silver, ml, security, ui, entre outros (`test_curadoria_gold_*.py`, `test_ml_*.py`, etc). | Added |
+
+
+### [2026-03-27]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `NB_Analise_Cluster_Clientes.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/NB_Analise_Cluster_Clientes.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado `.cache()` antes do `count()` para otimizar execução do KMeans. 🧠 Tensor: Aplicadas otimizações de early stopping (`maxIter`, `tol`, `distanceMeasure`) no KMeans. | Changed |
+| `generate_inventory.py` | `generate_inventory.py` | ⚡ Bolt: Otimizada a concatenação de strings na função `generate_markdown`. | Changed |
+| `NB_Gold_Esteira_Propostas.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Esteira_Propostas.Notebook/notebook-content.py` | ⚡ Bolt: Substituído `df.count() > 0` por `not df.isEmpty()` para melhorar a performance. | Changed |
+| `VAI_Inferencia_Online.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Implementada regra de detecção de fraude "Intercia" cruzando grupos econômicos e limites aprovados. Corrigido clamping da barra de progresso. | Changed |
+| `NB_Gold_Relatorio_Limites_Especificos.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Limites_Especificos.Notebook/notebook-content.py` | Modificada lógica para calcular limites e agregar risco com base na raiz do CNPJ do sacado. | Changed |
+| Testes Unitários | `tests/` | 🧪 Adicionados múltiplos testes: `parse_inventory`, tratamento de exceção em `check_should_skip`, cobertura de falhas em `safe_read_table`, validação de `sanitize_column_name` e prevenção de Zip Slip em `safe_extract`. | Added |
+| Múltiplos Arquivos | Vários | 🌐 Traduzidos comentários do inglês para o Português Brasileiro conforme regras de estilo. | Changed |
 
 ### [2026-03-26]
 

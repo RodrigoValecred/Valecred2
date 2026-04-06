@@ -191,7 +191,7 @@ class TestDeduplicateTitulos(unittest.TestCase):
         from pyspark.sql.functions import col, greatest, row_number
         from pyspark.sql.window import Window
 
-        # Create execution context
+        # Cria o contexto de execução
         exec_globals = {
             'col': col,
             'greatest': greatest,

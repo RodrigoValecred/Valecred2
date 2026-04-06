@@ -53,7 +53,7 @@ class SilverIngestor:
         self.bronze_db = bronze_db
         self.silver_db = silver_db
 
-        # Security: Validate table name against allowlist
+        # Segurança: Valida o nome da tabela contra a allowlist
         if allowed_tables is None:
             raise ValueError("allowed_tables must be provided for security.")
 
