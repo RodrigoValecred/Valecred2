@@ -44,7 +44,7 @@ class TestVOPMetrics(unittest.TestCase):
         cls.spark.stop()
 
     def test_calculate_vop_metrics_edge_cases(self):
-        # Edge cases:
+        # Casos extremos (Edge cases):
         # 1. Empates em VOP (deve escolher um com base na ordenação interna, mas determinístico é melhor, embora row_number().over(orderBy(desc)) gerencie isso)
         # 2. Multiple clients
         # 3. Várias entradas para o mesmo dia
@@ -95,7 +95,7 @@ class TestVOPMetrics(unittest.TestCase):
         self.assertIn(res_semana[2].dia_semana_mais_vop, [1, 2])
 
     def test_calculate_vop_metrics_empty(self):
-        # Edge case: Empty dataframe
+        # Caso extremo (Edge case): DataFrame vazio
         from pyspark.sql.types import StructType, StructField, IntegerType, DoubleType
         schema = StructType([
             StructField("cod_cliente", IntegerType(), True),

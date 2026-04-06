@@ -30,7 +30,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
             if name not in col_mocks:
                 m = MagicMock(name=f"col({name})")
                 # Quando alias é chamado, retorna um novo mock mas mantém o rastreamento?
-                # Actually alias usually returns a Column object.
+                # Na verdade, alias geralmente retorna um objeto Column.
                 m.alias = MagicMock(return_value=MagicMock(name=f"col({name}).alias"))
                 col_mocks[name] = m
             return col_mocks[name]
@@ -65,7 +65,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
             "DIR COMERCIAL": "dir_comercial"
         }
 
-        # Execution Context
+        # Contexto de execução (Execution Context)
         exec_globals = {
             'col': mock_col,
             'max': mock_max,
@@ -87,7 +87,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
         mock_grouped.pivot.assert_called()
         args, _ = mock_grouped.pivot.call_args
         self.assertEqual(args[0], "status_do_cliente")
-        self.assertEqual(set(args[1]), set(status_mapping.keys())) # Verifica list content
+        self.assertEqual(set(args[1]), set(status_mapping.keys())) # Verifica o conteúdo da lista
 
         # 2. Verifica Aggregation (Single Pass)
         mock_pivoted.agg.assert_called_once()

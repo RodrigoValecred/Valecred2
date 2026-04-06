@@ -52,7 +52,7 @@ class TestStatusRiscoExpr(unittest.TestCase):
             'current_date': mock_current_date,
         }
 
-        # Load function
+        # Carrega a função
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         get_status_risco_expr = local_scope['get_status_risco_expr']

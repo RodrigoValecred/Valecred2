@@ -184,7 +184,7 @@ df_exploded = df_dates.withColumn(
 # Agregação Diária por Empresa e Cliente + Plataforma e Produto
 # Soma do Valor Nominal dos títulos ativos naquele dia
 
-# ⚡ Bolt: Cache DataFrame after expensive explode operation
+# ⚡ Bolt: Cache do DataFrame após operação pesada de explode
 # 💡 O que: Adicionado `.cache()` ao DataFrame `df_daily_agg`.
 # 🎯 Por que: `df_daily_agg` sofre múltiplas ações (uma escrita e duas coletas para o dashboard). Sem cache, o Catalyst reavalia o plano lógico e reexecuta o dispendioso `explode` três vezes, gerando scans redundantes de tabelas.
 # 📊 Impacto: Evita recálculos massivos (I/O e CPU) do histórico diário de títulos, acelerando drasticamente as etapas subsequentes.

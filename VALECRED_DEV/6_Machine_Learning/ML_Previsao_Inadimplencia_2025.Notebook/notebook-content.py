@@ -102,8 +102,13 @@ cols_operacoes = {
     "RECEBEBOLETO": "RECEBEBOLETO_OPERACAO"
 }
 
-for old, new in cols_operacoes.items():
-    df_operacoes = df_operacoes.withColumnRenamed(old, new)
+# 🧠 Tensor: Optimize bulk column renaming
+# 💡 What: Replaced iterative .withColumnRenamed() in a for-loop with a single vectorized df.toDF() projection.
+# 🎯 Why: Iteratively calling .withColumnRenamed() creates deeply nested Project nodes in the Catalyst logical plan, leading to high compilation overhead and potential StackOverflowError.
+# 📊 Impact: Drastically reduces the Catalyst query plan depth and compilation time.
+# 🔬 Measurement: Plan compilation overhead for this segment drops from linear O(N) to O(1) in Catalyst.
+new_cols_operacoes = [cols_operacoes.get(c, c) for c in df_operacoes.columns]
+df_operacoes = df_operacoes.toDF(*new_cols_operacoes)
 
 cols_cedentes = {
     "DATAINCLUSAO": "DATAINCLUSAO_CEDENTE",
@@ -119,8 +124,8 @@ cols_cedentes = {
     "RECEBEBOLETO": "RECEBEBOLETO_CEDENTE"
 }
 
-for old, new in cols_cedentes.items():
-    df_cedentes = df_cedentes.withColumnRenamed(old, new)
+new_cols_cedentes = [cols_cedentes.get(c, c) for c in df_cedentes.columns]
+df_cedentes = df_cedentes.toDF(*new_cols_cedentes)
 
 # Realizando os joins
 print("Criando tabela mestra com os joins...")

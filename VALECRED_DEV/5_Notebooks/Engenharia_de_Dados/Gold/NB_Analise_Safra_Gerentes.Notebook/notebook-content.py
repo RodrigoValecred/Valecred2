@@ -98,23 +98,32 @@ print("Calculando Carteira e Risco (Histórico)...")
 # 3.1 Expandir Bridge de Clientes no Tempo
 # Join Calendar com Bridge
 # Cliente C foi atendido por Gerente G no Mês M se [Inicio, Fim] engloba Mês M
-df_bridge_hist = df_bridge.crossJoin(F.broadcast(df_calendar_months)) \
-    .filter(
-        (F.col("data_referencia") >= F.trunc("data_inicio_vigencia", "MM")) &
-        (F.col("data_referencia") <= F.col("data_fim_vigencia"))
-    ) \
-    .select("cod_cliente", "cod_gerente", "data_referencia", "ultimo_dia_mes")
+# ⚡ Bolt Optimization: Usar Broadcast Join condicional em vez de CrossJoin + Filter
+# 💡 O que: Substituiu .crossJoin() seguido de .filter() por um .join() condicional com broadcast.
+# 🎯 Por que: crossJoin seguido de filter força o Spark a materializar o produto cartesiano antes de filtrar. Embutir as condições no join interno permite que o Catalyst otimize a execução e evite a explosão de registros.
+# 📊 Impacto: Acelera o agrupamento e reduz drasticamente o uso de memória eliminando a necessidade de materializar o cross join.
+df_bridge_hist = df_bridge.join(
+    F.broadcast(df_calendar_months),
+    (F.col("data_referencia") >= F.trunc("data_inicio_vigencia", "MM")) &
+    (F.col("data_referencia") <= F.col("data_fim_vigencia")),
+    "inner"
+).select("cod_cliente", "cod_gerente", "data_referencia", "ultimo_dia_mes")
 
 # 3.2 Títulos Abertos no Mês
 # Titulo T do Cliente C estava aberto em M se:
 # Inclusao <= UltimoDiaMes E (Liquidacao > UltimoDiaMes OU Liquidacao É NULO)
 # E Status != Cancelado/Recusado (status_deferimento='Sim')
+# ⚡ Bolt Optimization: Usar Broadcast Join condicional em vez de CrossJoin + Filter
+# 💡 O que: Substituiu .crossJoin() seguido de .filter() por um .join() condicional com broadcast para df_titulos_hist.
+# 🎯 Por que: O mesmo problema do Cartesian Join afeta esta etapa. O inner join explícito com condição previne a materialização O(N*M) na memória.
+# 📊 Impacto: Previne Out-Of-Memory (OOM) no driver e workers ao cruzar milhares de títulos com meses, garantindo desempenho rápido e escalável.
 df_titulos_hist = df_titulos.filter(F.col("status_deferimento") == "Sim") \
     .select("cod_titulo", "cod_operacao", "valor_devido", "venc_prorrogado", "data_inclusao", "liquidacao", "cod_cliente") \
-    .crossJoin(F.broadcast(df_calendar_months)) \
-    .filter(
+    .join(
+        F.broadcast(df_calendar_months),
         (F.col("data_inclusao") <= F.col("ultimo_dia_mes")) &
-        ((F.col("liquidacao") > F.col("ultimo_dia_mes")) | (F.col("liquidacao").isNull()))
+        ((F.col("liquidacao") > F.col("ultimo_dia_mes")) | (F.col("liquidacao").isNull())),
+        "inner"
     )
 
 # 3.3 Calcular Atraso e PDD do Título naquele Mês

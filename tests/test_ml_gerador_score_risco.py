@@ -28,9 +28,9 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
     def setUp(self):
         # Simula pyspark.sql.functions.col
         self.mock_col = MagicMock()
-        self.mock_col.return_value = MagicMock() # Column object
+        self.mock_col.return_value = MagicMock() # Objeto Column
 
-        # Simula display
+        # Simula o display
         self.mock_display = MagicMock()
 
         # Simula classe Colors
@@ -72,7 +72,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn("[GREEN]", res_min)
         self.assertIn("✅", res_min)
         self.assertIn("0.00", res_min)
-        # 0 filled, 10 empty
+        # 0 preenchidos, 10 vazios
         self.assertIn("░" * 10, res_min)
 
         # Testa máximo de restrição (e.g., > 1.0 -> 1.0)
@@ -80,7 +80,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn("[RED]", res_max)
         self.assertIn("🚨", res_max)
         self.assertIn("1.00", res_max)
-        # 10 filled, 0 empty
+        # 10 preenchidos, 0 vazios
         self.assertIn("█" * 10, res_max)
 
         # Testa Baixo Risco (< 0.15)
@@ -88,7 +88,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn("[GREEN]", res_low)
         self.assertIn("✅", res_low)
         self.assertIn("0.10", res_low)
-        # 10 * 0.10 = 1 filled, 9 empty
+        # 10 * 0.10 = 1 preenchido, 9 vazios
         self.assertIn("█", res_low)
         self.assertIn("░" * 9, res_low)
 
@@ -97,7 +97,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn("[YELLOW]", res_med)
         self.assertIn("⚠️", res_med)
         self.assertIn("0.25", res_med)
-        # 10 * 0.25 = 2 filled, 8 empty
+        # 10 * 0.25 = 2 preenchidos, 8 vazios
         self.assertIn("█" * 2, res_med)
         self.assertIn("░" * 8, res_med)
 
@@ -106,7 +106,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn("[RED]", res_high)
         self.assertIn("🚨", res_high)
         self.assertIn("0.50", res_high)
-        # 10 * 0.50 = 5 filled, 5 empty
+        # 10 * 0.50 = 5 preenchidos, 5 vazios
         self.assertIn("█" * 5, res_high)
         self.assertIn("░" * 5, res_high)
 
@@ -206,7 +206,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn('SCORE_RISCO', result.columns)
         self.assertEqual(result['SCORE_RISCO'].iloc[0], 0.9)
 
-        # Verifica data type downcasting float64 -> float32
+        # Verifica o downcasting do tipo de dado float64 -> float32
         args, kwargs = mock_model.predict_proba.call_args
         X_cliente_passed = args[0]
 
@@ -237,7 +237,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
 
     def test_gerar_score_e_alertas_integration(self):
         self.context['spark'] = MagicMock()
-        # Extract all three functions
+        # Extrai todas as três funções
         try:
             source_calc = extract_function_from_file(NOTEBOOK_PATH, "calcular_score_cliente")
             source_exib = extract_function_from_file(NOTEBOOK_PATH, "exibir_analise_risco")
