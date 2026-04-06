@@ -18,13 +18,13 @@ class TestSerproOptimization(unittest.TestCase):
         serpro_biddings_df = mock_biddings_df
 
         # Original: serpro_bidding_numbers = [row['Número Licitação'] para linha em serpro_biddings_df.select('Número Licitação').distinct().collect()]
-        # New:
+        # Novo:
         serpro_bidding_numbers_df = serpro_biddings_df.select('Número Licitação').distinct()
 
         df = mock_df
-        # Simulate loop
+        # Simula loop
         # Original: filtered_df = df.filter(col("Número Licitação").isin(serpro_bidding_numbers))
-        # New:
+        # Novo:
         filtered_df = df.join(serpro_bidding_numbers_df, on="Número Licitação", how="left_semi")
         # ---------------------------------------------------------
 
@@ -55,13 +55,13 @@ class TestSerproOptimization(unittest.TestCase):
         serpro_contracts_df = mock_contracts_df
 
         # Original: serpro_contract_numbers = [row['Número Contrato'] para linha em serpro_contracts_df.select('Número Contrato').distinct().collect()]
-        # New:
+        # Novo:
         serpro_contract_numbers_df = serpro_contracts_df.select('Número Contrato').distinct()
 
         df = mock_df
-        # Simulate loop
+        # Simula loop
         # Original: filtered_df = df.filter(col("Número Contrato").isin(serpro_contract_numbers))
-        # New:
+        # Novo:
         filtered_df = df.join(serpro_contract_numbers_df, on="Número Contrato", how="left_semi")
         # ---------------------------------------------------------
 

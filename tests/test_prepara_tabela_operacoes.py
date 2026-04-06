@@ -63,7 +63,7 @@ class MockDataFrame:
         return self
 
     def withColumn(self, name, col_expr):
-        # Simulates adding a column
+        # Simula a adição de uma coluna
         new_exprs = dict(self.column_expressions)
         new_exprs[name] = col_expr
         if name not in self.columns:

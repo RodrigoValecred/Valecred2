@@ -77,7 +77,7 @@ class TestDimEmpresas(unittest.TestCase):
             self.mock_regexp_replace(self.mock_col("cnpj"), "[^0-9]", "")
         )
 
-        # First join (existing correct one)
+        # Primeiro join (o existente e correto)
         df_j = df_e_clean.alias("e").join(
             df_c.alias("c"),
             self.mock_col("e.cnpj_clean") == self.mock_col("c.cpf_cnpj"),
@@ -88,7 +88,7 @@ class TestDimEmpresas(unittest.TestCase):
         # Simulando a lógica CORRIGIDA
         df_j_final = df_j.join(
             df_a.alias("a"),
-            # Corrected join condition
+            # Condição do join corrigida
             self.mock_col("e.cod_empresa") == self.mock_col("a.cod_empresa"),
             "left"
         )
@@ -103,7 +103,7 @@ class TestDimEmpresas(unittest.TestCase):
                 self.mock_col("e.cnpj"),
                 self.mock_col("e.cod_empresa"),
                 self.mock_col("c.nome").alias("nome_original"),
-                # Corrected column
+                # Coluna corrigida
                 self.mock_col("a.apelido_empresa").alias("empresa"),
                 self.mock_col("TIPO")
             )

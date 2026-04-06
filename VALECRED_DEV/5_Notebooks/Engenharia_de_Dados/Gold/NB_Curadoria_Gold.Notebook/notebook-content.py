@@ -310,11 +310,11 @@ def check_incremental_gold(spark):
             except Exception as e:
                 return None
 
-        # Check Ops
+        # Verifica Ops
         max_silver_ops = get_max_date(source_ops)
         max_gold_ops = get_max_date(target_ops)
 
-        # Check Titulos
+        # Verifica Títulos
         max_silver_titulos = get_max_date(source_titulos)
         max_gold_titulos = get_max_date(target_titulos)
 
@@ -348,7 +348,7 @@ def check_incremental_gold(spark):
     except Exception as e:
         print(f"Erro na verificação incremental: {e}. Prosseguindo por segurança.")
 
-# Execute Incremental Check
+# Executa a verificação incremental (Incremental Check)
 check_incremental_gold(spark)
 
 
@@ -586,7 +586,7 @@ df_join_users = df_gerentes_alias.join(df_usuarios_alias, col("g.cod_usuario") =
 df_join_users_clean = df_join_users.withColumn("cpf_cnpj_clean", regexp_replace(col("g.cpf_cnpj"), "[^0-9]", ""))
 df_geral_clean = df_geral_alias.withColumn("cpf_cnpj_clean", regexp_replace(col("cad.cpf_cnpj"), "[^0-9]", ""))
 
-# Join Fallback
+# Join de contingência (Fallback)
 df_gerentes_full = df_join_users_clean.join(
     df_geral_clean.select(col("cpf_cnpj_clean"), col("cad.nome").alias("nome_geral")),
     "cpf_cnpj_clean",
@@ -1340,7 +1340,7 @@ df_info_gestor = df_bridge_atual \
 # Otimização: Reutilizar DataFrame em cache para evitar overhead de I/O e desserialização
 df_ops_validas = df_fato_operacoes.filter(col("status_analise") == "D")
 
-# ⚡ Bolt Optimization: Calculate VOP metrics reusing existing columns
+# ⚡ Bolt Optimization: Calcula métricas VOP reutilizando colunas existentes
 df_dia_semana_top, df_dia_mes_top = calculate_vop_metrics(df_ops_validas)
 
 # Métricas Gerais Operações
@@ -1523,7 +1523,7 @@ df_base = deduplicate_clientes_staging(df_base_raw)
 # ⚡ Otimização Bolt: Usando DF único combinado em vez de DFs divididos max/min
 df_esteira_pivot_prep = df_esteira_combined.withColumnRenamed("cod_cliente", "cod_cliente_pivot")
 
-# Join Chain
+# Cadeia de Joins (Join Chain)
 
 # Taxa Cadastro (Power BI Requirement)
 # ⚡ Otimização Bolt: Reutilizar df_client_rate em cache da Seção 1.2 para evitar escanear df_contratos novamente.
@@ -1981,7 +1981,7 @@ print(f"HHI Sacado: {hhi_sacado}")
 # -------------------------------------------------------------
 # ⚡ Bolt Optimization: Limpeza de Cache (Memory Management)
 # Objetivo: Liberar memória dos DataFrames oxigenados cacheados
-# previnindo memory leaks e OOM no cluster Spark.
+# prevenindo vazamentos de memória (memory leaks) e OOM no cluster Spark.
 # -------------------------------------------------------------
 print("\nIniciando limpeza de cache (unpersist)...")
 try:

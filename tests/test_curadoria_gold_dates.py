@@ -48,7 +48,7 @@ class TestFunnelDates(unittest.TestCase):
             'coalesce': mock_coalesce,
         }
 
-        # Load function
+        # Carrega a função
         local_scope = {}
         exec(self.func_source, exec_globals, local_scope)
         calculate_funnel_dates = local_scope['calculate_funnel_dates']

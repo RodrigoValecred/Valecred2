@@ -36,9 +36,9 @@ class MockDataFrame:
         for row in self.data:
             new_row = {}
             for c in selected_cols:
-                # Handle aliasing roughly (e.g., "col.alias" -> col)
+                # Gerencia aliasing de forma rudimentar (ex., "col.alias" -> col)
                 # Mas aqui assumimos nomes simples ou apenas mantemos as chaves existentes se presentes
-                clean_c = c.split(" as ")[0] # extremely basic
+                clean_c = c.split(" as ")[0] # extremamente básico
 
                 # Verifica diretamente
                 if clean_c in row:
@@ -61,7 +61,7 @@ class MockDataFrame:
     def filter(self, condition):
         print(f"Filtering {self.name} with {condition}")
         # Filtro simplista para `data_fim_vigencia == '9999-12-31'`
-        # Condition str: "data_fim_vigencia == 9999-12-31"
+        # String de condição: "data_fim_vigencia == 9999-12-31"
         cond_str = str(condition)
         if "data_fim_vigencia" in cond_str and "9999-12-31" in cond_str:
              new_data = [d for d in self.data if str(d.get("data_fim_vigencia")) == "9999-12-31"]
@@ -88,14 +88,14 @@ class MockDataFrame:
                 for row in self.data:
                     match = next((r for r in other.data if str(r.get(right_col)) == str(row.get(left_col))), None)
                     if match:
-                        new_row = {**row, **match} # Merge dicts
+                        new_row = {**row, **match} # Mescla (Merge) dicionários
                         joined_data.append(new_row)
                     elif how == 'left':
                         new_row = {**row}
                         joined_data.append(new_row)
 
         elif isinstance(on, str):
-             # Simple key join
+             # Join por chave simples
              key = on
              print(f"Join key: {key}")
              for row in self.data:
@@ -112,7 +112,7 @@ class MockDataFrame:
         return MockDataFrame(f"joined_{self.name}_{other.name}", all_cols, joined_data)
 
     def withColumn(self, name, col_expr):
-        # Simulate adding a column
+        # Simula a adição de uma coluna
         new_cols = self.columns + [name]
 
         expr_str = str(col_expr.name)
@@ -123,8 +123,8 @@ class MockDataFrame:
             new_row = row.copy()
             val = None
             if "coalesce" in expr_str:
-                # Extract args
-                # Expected format: coalesce(col(nome_plataforma), col(nome_plataforma_cli), lit(N/D))
+                # Extrai os argumentos (args)
+                # Formato esperado: coalesce(col(nome_plataforma), col(nome_plataforma_cli), lit(N/D))
 
                 # Verifica cols
                 if row.get("nome_plataforma") is not None:
@@ -181,7 +181,7 @@ class TestFallbackPlataforma(unittest.TestCase):
         plataformas_data = [{"cod_agencia": "100", "nome_plataforma": "Platform Correct"}]
         df_plataformas = MockDataFrame("plataformas", ["cod_agencia", "nome_plataforma"], plataformas_data)
 
-        # 2. Build Client-Platform Map
+        # 2. Constrói o Map Cliente-Plataforma
         # Join Bridge -> Gerente -> Plataforma
         print("\n--- Building Map ---")
         df_bg = df_bridge.filter(col("data_fim_vigencia") == "9999-12-31") \
@@ -202,7 +202,7 @@ class TestFallbackPlataforma(unittest.TestCase):
         ]
         df_prorrog_enrich = MockDataFrame("prorrog_enrich", ["cod_operacao", "cod_cliente", "nome_plataforma"], prorrog_data)
 
-        # 4. Join Prorrog + Client Map
+        # Join Prorrog + Client Map
         print("\n--- Joining Final ---")
         df_final = df_prorrog_enrich.join(df_cli_plat, "cod_cliente", "left")
 
