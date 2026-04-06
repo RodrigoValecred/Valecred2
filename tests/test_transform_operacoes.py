@@ -27,7 +27,7 @@ class TestTransformOperacoes(unittest.TestCase):
             .getOrCreate()
         cls.spark.sparkContext.setLogLevel("ERROR")
 
-        # 2. Extract `transform_operacoes`
+        # 2. Extrai `transform_operacoes`
         func_source = extract_function_from_file(NOTEBOOK_PATH, "transform_operacoes")
         if not func_source:
             raise ValueError(f"Function transform_operacoes not found in {NOTEBOOK_PATH}")
@@ -43,11 +43,11 @@ class TestTransformOperacoes(unittest.TestCase):
         exec("from pyspark.sql.functions import col, when, lit, row_number, concat, coalesce, desc", exec_scope)
         exec("from pyspark.sql.window import Window", exec_scope)
 
-        # Load helper function
+        # Carrega a função helper
         exec(schema_source, exec_scope, local_scope)
         exec_scope["get_operacoes_schema"] = local_scope["get_operacoes_schema"]
 
-        # Load main function
+        # Carrega a função principal
         exec(func_source, exec_scope, local_scope)
         cls.transform_operacoes = staticmethod(local_scope["transform_operacoes"])
 
@@ -56,7 +56,7 @@ class TestTransformOperacoes(unittest.TestCase):
         cls.spark.stop()
 
     def test_transform_operacoes_tto_corrigido(self):
-        # Create test DataFrame
+        # Cria um DataFrame de teste
         schema = StructType([
             StructField("CODOPERACAO", IntegerType(), True),
             StructField("TTO", StringType(), True),
@@ -106,7 +106,7 @@ class TestTransformOperacoes(unittest.TestCase):
 
         result_df = self.transform_operacoes(df, ["CODOPERACAO"])
 
-        # Verify TTO values
+        # Verifica os valores TTO
         results = result_df.select("cod_operacao", "tto").collect()
         tto_map = {row["cod_operacao"]: row["tto"] for row in results}
 
@@ -180,7 +180,7 @@ class TestTransformOperacoes(unittest.TestCase):
         self.assertEqual(date_map[200], "2023-01-04")
 
     def test_transform_operacoes_chave_produto(self):
-        # Create test DataFrame
+        # Cria um DataFrame de teste
         schema = StructType([
             StructField("CODOPERACAO", IntegerType(), True),
             StructField("TTO", StringType(), True),
@@ -221,14 +221,14 @@ class TestTransformOperacoes(unittest.TestCase):
 
         data = [
             (1, "CM", "EB", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1),
-            (2, "PR", None, "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Null STTO
+            (2, "PR", None, "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # STTO nulo
         ]
 
         df = self.spark.createDataFrame(data, schema)
 
         result_df = self.transform_operacoes(df, ["CODOPERACAO"])
 
-        # Verify chave_produto
+        # Verifica chave_produto
         results = result_df.select("cod_operacao", "chave_produto").collect()
         chave_map = {row["cod_operacao"]: row["chave_produto"] for row in results}
 

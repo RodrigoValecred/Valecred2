@@ -97,7 +97,7 @@ print("Aplicando enriquecimento de gerentes via Bridge (Strict + Fallback)...")
 
 df_bridge_prep = df_bridge.withColumnRenamed("cod_cliente", "cod_cliente_bridge")
 
-# 4.1 Strict Join (Date Match)
+# 4.1 Strict Join (Correspondência de Data)
 # Join com Bridge baseado na data da análise
 # Otimização: Uso de Broadcast Join (Bridge é pequena) e coluna pré-calculada
 df_ops_enriched = df_ops_validas.join(

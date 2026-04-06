@@ -82,7 +82,7 @@ class TestPrazoMedioLogic(unittest.TestCase):
         df_ops.select.return_value = df_ops_select
         df_titulos.join.return_value = df_titulos_joined
         df_titulos_joined.withColumn.return_value = df_titulos_calc # First calc
-        df_titulos_calc.withColumn.return_value = df_titulos_calc # Second calc
+        df_titulos_calc.withColumn.return_value = df_titulos_calc # Segundo cálculo
         df_titulos_calc.groupBy.return_value.agg.return_value = df_titulos_agg
 
         # --- LÓGICA DE SIMULAÇÃO ---
@@ -91,11 +91,11 @@ class TestPrazoMedioLogic(unittest.TestCase):
         # Precisamos de data_deferimento das operações
         df_joined = df_titulos.join(df_ops.select("cod_operacao", "data_deferimento"), "cod_operacao", "inner")
 
-        # 2. Calculate Prazo Original
+        # 2. Calcula o Prazo Original
         # datediff(vencimento, data_deferimento)
         df_calc_1 = df_joined.withColumn("prazo_original_dias", datediff(col("vencimento"), col("data_deferimento")))
 
-        # 3. Calculate Weighted Value
+        # 3. Calcula o Valor Ponderado
         # valor * prazo_original_dias
         df_calc_2 = df_calc_1.withColumn("valor_vezes_prazo_original", col("valor") * col("prazo_original_dias"))
 

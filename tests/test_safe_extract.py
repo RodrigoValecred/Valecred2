@@ -35,14 +35,14 @@ class TestSafeExtract(unittest.TestCase):
         self.output_dir = os.path.join(self.test_dir, "output")
         os.makedirs(self.output_dir)
 
-        # Create malicious zip
+        # Cria um arquivo zip malicioso
         with zipfile.ZipFile(self.malicious_zip_path, 'w') as zf:
             zf.writestr('../evil.txt', 'evil content')
             zf.writestr('/evil_absolute.txt', 'evil content')
             zf.writestr('subdir/../../evil_nested.txt', 'evil content')
             zf.writestr('good.txt', 'good content')
 
-        # Create safe zip
+        # Cria um arquivo zip seguro
         with zipfile.ZipFile(self.safe_zip_path, 'w') as zf:
             zf.writestr('safe.txt', 'safe content')
             zf.writestr('subdir/nested.txt', 'nested content')

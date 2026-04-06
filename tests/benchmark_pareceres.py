@@ -5,7 +5,7 @@ from pyspark.sql.functions import col, when
 def benchmark():
     spark = SparkSession.builder.appName("bench").master("local[4]").getOrCreate()
 
-    # Create large dummy dataset
+    # Cria um grande conjunto de dados mock
     num_rows = 100000
     df = spark.range(num_rows).withColumn("obs_normalized", col("id").cast("string"))
 
@@ -14,7 +14,7 @@ def benchmark():
         "K6": "6", "K7": "7", "K8": "8", "K9": "9", "K10": "0"
     }
 
-    # Method 1: Iterative withColumn
+    # Método 1: Iterativo com withColumn
     t0 = time.time()
     df_iter = df
     for col_name, search_term in keywords.items():
@@ -25,7 +25,7 @@ def benchmark():
     df_iter.write.mode("overwrite").parquet("/tmp/bench_iter")
     t1 = time.time()
 
-    # Method 2: Consolidated select
+    # Método 2: Seleção (select) consolidada
     t2 = time.time()
     expr_list = [
         when(col("obs_normalized").contains(search_term), 1).otherwise(0).alias(col_name.lower())
