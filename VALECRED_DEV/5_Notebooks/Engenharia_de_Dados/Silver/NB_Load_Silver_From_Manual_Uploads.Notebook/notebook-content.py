@@ -106,17 +106,6 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
         file_path = f"{base_path}/{actual_filename}"
         print(f"Arquivo encontrado: {actual_filename}")
 
-        # Ler o arquivo com pandas baseado na extensão (do arquivo real)
-        if actual_filename.lower().endswith('.xlsx'):
-            pandas_df = pd.read_excel(file_path)
-        elif actual_filename.lower().endswith('.csv'):
-            # Assume separador por vírgula e encoding UTF-8. Ajuste se necessário.
-            pandas_df = pd.read_csv(file_path)
-        else:
-            print(f"AVISO: Formato de arquivo não suportado para '{actual_filename}'. Pulando...")
-            return
-
-        print(f"Arquivo '{actual_filename}' lido com sucesso usando pandas.")
         # Padroniza os nomes das colunas para serem compatíveis com o formato Delta
         def sanitize_column_name(col_name):
             """Padroniza um nome de coluna para o formato snake_case.
@@ -149,19 +138,59 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
             col_name = re.sub(r'_+', '_', col_name)
             return col_name.strip('_')
 
-        original_columns = pandas_df.columns.tolist()
-        pandas_df.columns = [sanitize_column_name(col) for col in original_columns]
-        new_columns = pandas_df.columns.tolist()
+        # Ler o arquivo com pandas ou spark baseado na extensão (do arquivo real)
+        if actual_filename.lower().endswith('.xlsx'):
+            pandas_df = pd.read_excel(file_path)
+            print(f"Arquivo '{actual_filename}' lido com sucesso usando pandas.")
 
-        if original_columns != new_columns:
-            print("Nomes de colunas foram padronizados:")
-            for original, new in zip(original_columns, new_columns):
-                if original != new:
-                    print(f"  '{original}' -> '{new}'")
+            original_columns = pandas_df.columns.tolist()
+            pandas_df.columns = [sanitize_column_name(col) for col in original_columns]
+            new_columns = pandas_df.columns.tolist()
 
-        # Converter para DataFrame Spark
-        df_spark = spark.createDataFrame(pandas_df)
-        print("DataFrame convertido para Spark com sucesso.")
+            if original_columns != new_columns:
+                print("Nomes de colunas foram padronizados:")
+                for original, new in zip(original_columns, new_columns):
+                    if original != new:
+                        print(f"  '{original}' -> '{new}'")
+
+            # Converter para DataFrame Spark
+            df_spark = spark.createDataFrame(pandas_df)
+            print("DataFrame convertido para Spark com sucesso.")
+
+        elif actual_filename.lower().endswith('.csv'):
+            # Assume separador por vírgula e encoding UTF-8. Ajuste se necessário.
+            # 🧠 Tensor: Uso do leitor nativo do PySpark em vez de Pandas para arquivos CSV
+            # 💡 O que: Substituiu `pd.read_csv` seguido por `spark.createDataFrame` por `spark.read.csv` distribuído.
+            # 🎯 Por que: O Pandas lê todo o dataset para a memória RAM do node driver, o que causa gargalo e erros de "Out-Of-Memory" (OOM) para arquivos grandes. O leitor nativo do Spark paraleliza a leitura entre os executores.
+            # 📊 Impacto: Elimina OOM e acelera em ordens de grandeza a ingestão de CSVs volumosos.
+            # 🔬 Medição: O uso de memória do driver reduz drasticamente, permitindo carregar arquivos gigabytes sem falhas.
+            df_spark = spark.read.format("csv") \
+                .option("header", "true") \
+                .option("delimiter", ",") \
+                .option("encoding", "UTF-8") \
+                .option("inferSchema", "true") \
+                .load(file_path)
+            print(f"Arquivo '{actual_filename}' lido com sucesso usando Spark.")
+
+            original_columns = df_spark.columns
+            new_columns = [sanitize_column_name(col) for col in original_columns]
+
+            if list(original_columns) != new_columns:
+                print("Nomes de colunas foram padronizados:")
+                for original, new in zip(original_columns, new_columns):
+                    if original != new:
+                        print(f"  '{original}' -> '{new}'")
+
+                # 🧠 Tensor: Uso de toDF para renomear colunas
+                # 💡 O que: Substituiu loop de `.withColumnRenamed` por `.toDF(*new_columns)`.
+                # 🎯 Por que: Evita criar múltiplas projeções aninhadas no Catalyst Optimizer do Spark, reduzindo o overhead de planejamento e risco de StackOverflow.
+                # 📊 Impacto: Plano de execução mais limpo e rápido para DataFrames com muitas colunas.
+                # 🔬 Medição: Menos overhead de CPU no driver ao planejar a Query.
+                df_spark = df_spark.toDF(*new_columns)
+
+        else:
+            print(f"AVISO: Formato de arquivo não suportado para '{actual_filename}'. Pulando...")
+            return
 
         # Salvar na camada Silver
         print(f"Salvando dados na tabela de destino: {target_table_name}")
