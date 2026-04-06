@@ -107,6 +107,12 @@ dfs = [
 ]
 df = reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), dfs)
 
+# ⚡ Bolt Optimization: Cache dataframe to prevent re-evaluation on downstream actions
+# 💡 O que: Adicionado `df.cache()` ao DataFrame resultante de uniões múltiplas que é usado para log.
+# 🎯 Por que: A ação `.count()` força a materialização do DataFrame. Sem o `.cache()`, todas as leituras e uniões seriam reexecutadas quando o DataFrame for usado nas agregações e filtragens seguintes.
+# 📊 Impacto: Evita a re-leitura completa de N tabelas (onde N é o número de carteiras), resultando em tempo de execução drasticamente menor e I/O reduzido.
+# 🔬 Medição: Elimina múltiplos estágios repetitivos no Spark UI, de O(N) operações de leitura para O(1).
+df.cache()
 print(f"Unidas {len(carteira_tables_to_load)} tabelas de carteira. Total de registros: {df.count()}")
 
 # METADATA ********************
@@ -258,6 +264,9 @@ df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(t
 
 print(f"Tabela '{target_table}' salva com sucesso na camada Silver.")
 df_final.display()
+
+# Limpar memória
+df.unpersist()
 
 # METADATA ********************
 

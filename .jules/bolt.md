@@ -18,6 +18,9 @@
 **Learning:** Using `df.count() > 0` to check if a DataFrame has records (such as in incremental logic for `NB_Gold_Esteira_Propostas.Notebook`) triggers a full execution of the Catalyst physical plan across all partitions, acting as a massive bottleneck even for empty DataFrames.
 **Action:** Always replace `df.count() > 0` with `not df.isEmpty()`. This restricts the scan operation to evaluating only the first partition and returns immediately upon finding a single record, avoiding full DAG materialization and saving precious computation time.
 
+## 2025-03-05 - PySpark Eager Evaluation due to .count() Logging
+**Learning:** In PySpark workflows, adding `.count()` calls to combined/union DataFrames purely for logging purposes forces an eager evaluation of the lineage up to that point. Without explicitly caching the DataFrame first, this can double the I/O and processing time when the same DataFrame is later used in transformations.
+**Action:** Before calling `.count()` on intermediate DataFrames for logging, explicitly insert `df.cache()` (along with a documented Bolt optimization block) and make sure to append `df.unpersist()` after the final operation involving the dataframe to preserve optimal DAG evaluation paths and memory usage.
 ## 2025-04-02 - PySpark Catalyst StackOverflow with .withColumnRenamed() Chains
 **Learning:** In PySpark, chaining multiple `.withColumnRenamed()` calls (e.g., more than 10) creates deeply nested `Project` nodes in the Catalyst Logical Plan. This forces the optimizer into excessive recursion during rule evaluation, causing severe performance overhead during plan generation and risking a `StackOverflowError` on large schemas.
 **Action:** Always replace chained `.withColumnRenamed()` operations with a dictionary mapping or list comprehension applied via a single `df.toDF(*new_columns)` projection. This flattens the logical plan DAG to a single `Project` node, saving significant compilation time.
