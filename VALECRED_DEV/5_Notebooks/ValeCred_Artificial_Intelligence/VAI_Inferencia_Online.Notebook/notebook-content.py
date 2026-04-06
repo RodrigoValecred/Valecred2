@@ -394,7 +394,10 @@ print("📊 RESUMO DO PROCESSAMENTO")
 print("="*40)
 
 def create_progress_bar(percentage, width=20):
-    # Limita o valor preenchido para garantir que a largura da barra de progresso seja consistente
+    """
+    Cria uma barra de progresso textual com clamping de valores.
+    """
+    # Limita o valor entre 0 e 100 para evitar erros de largura (Bug fix: negative clamping)
     clamped_pct = max(0.0, min(100.0, float(percentage)))
 
     filled = int((width * clamped_pct) / 100)
