@@ -169,8 +169,13 @@ df_previsao_spark = df_mestra_spark
 # Otimização: Mantendo em Spark para inferência distribuída
 
 df_previsao_spark.cache()
-is_previsao_empty = df_previsao_spark.isEmpty()
-print("Universo de previsão selecionado.")
+
+# 🧠 Tensor: Replace .count() with .isEmpty()
+# 💡 O que: Substituiu a contagem total de registros (df.count()) por uma verificação de vazio (df.isEmpty()).
+# 🎯 Por que: Em PySpark, `.count()` força a materialização completa e varredura de todas as partições do DataFrame, mesmo que só precisemos saber se ele tem dados. `.isEmpty()` é muito mais eficiente, parando na primeira partição com dados (equivalente a um limit(1)), economizando tempo de CPU e I/O.
+# 📊 Impacto: Otimiza o tempo da verificação inicial, evitando o overhead do full table scan no cluster. A materialização do `.cache()` ocorrerá de forma mais eficiente (lazy) na primeira ação subsequente (ex: `.show()` ou na própria UDF distribuída).
+is_empty_previsao = df_previsao_spark.isEmpty()
+print(f"Universo de previsão selecionado (vazio: {is_empty_previsao}).")
 df_previsao_spark.show(5)
 
 # METADATA ********************
@@ -229,7 +234,7 @@ except Exception as e:
 # CELL ********************
 
 # Verificando se o DataFrame tem dados para prever
-if is_previsao_empty:
+if is_empty_previsao:
     print("Nenhum título encontrado para o ano de 2025 com os critérios especificados. Encerrando o notebook.")
     dbutils.notebook.exit("Nenhum dado para processar.")
 
