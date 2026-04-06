@@ -48,7 +48,7 @@ class TestJoinClienteDimensions(unittest.TestCase):
         # Configura joins para retornar um mock encadeável
         # Não precisamos ser muito rigorosos sobre os valores de retorno desde que tenham .join() e .drop()
 
-        # Execution Context
+        # Contexto de execução (Execution Context)
         exec_globals = {
             'col': MagicMock(),
             'lit': MagicMock(),
