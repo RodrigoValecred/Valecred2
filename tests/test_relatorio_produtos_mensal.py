@@ -19,6 +19,7 @@ sys.modules["notebookutils"] = MagicMock() # Para mssparkutils
 # 2. Define Funções de Simulação para imitar o comportamento do PySpark
 def col(name):
     m = MagicMock()
+    m.name = name
     # Define repr e str explícitos para depuração e asserções mais fáceis
     m.__repr__ = lambda x: f"col('{name}')"
     m.__str__ = lambda x: f"col('{name}')"
@@ -37,11 +38,13 @@ def col(name):
     m.alias = MagicMock(return_value=m)
     m.isNull = MagicMock(return_value=MagicMock())
     m.isNotNull = MagicMock(return_value=MagicMock())
+    m.cast = MagicMock(return_value=m)
     return m
 
 def lit(val):
     m = MagicMock()
     m.__repr__ = lambda x: f"lit({val})"
+    m.cast = MagicMock(return_value=m)
     return m
 
 def sum(c): return MagicMock()
@@ -49,6 +52,7 @@ def avg(c): return MagicMock()
 def count(c): return MagicMock()
 def max(c): return MagicMock()
 def min(c): return MagicMock()
+
 # Precisamos de uma maneira de rastrear chamadas para 'when'
 mock_when_tracker = MagicMock()
 
@@ -58,6 +62,7 @@ def mock_when(condition, value):
     m.otherwise = MagicMock(return_value=m)
     m.when = MagicMock(return_value=m) # Chainable when
     return m
+
 def round(c, scale): return MagicMock()
 def datediff(end, start): return MagicMock()
 def coalesce(*cols):
@@ -118,10 +123,19 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
             if code:
                 # Adiciona mock_when como 'when' ao contexto de execução
                 globals()['when'] = mock_when
+                globals()['col'] = col
+                globals()['lit'] = lit
+                globals()['year'] = year
+                globals()['coalesce'] = coalesce
+                globals()['datediff'] = datediff
+                globals()['trunc'] = trunc
+                globals()['sum'] = sum
+                globals()['count'] = count
                 exec(code, globals())
 
     def setUp(self):
         self.spark = MagicMock()
+        mock_when_tracker.reset_mock()
 
     def test_historical_mapping_fix(self):
         """
@@ -199,86 +213,100 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         # Should aggregate
         df_ops.groupBy.assert_called()
 
-    def test_mora_data_deferimento_replacement_fix(self):
+    def test_mora_stream_filtering(self):
         """
-        Confirma que data_deferimento é atualizado para usar o valor de data_baixa em process_mora_stream.
+        Verifica se a filtragem por ano >= 2025 e juros > 0 é aplicada.
         """
-        # Garante que as funções foram extraídas
-        self.assertIsNotNone(self.mora_code, "Failed to extract process_mora_stream")
-
-        # Simula Entradas
         df_baixas = MagicMock(name="df_baixas")
         df_map_ops = MagicMock(name="df_map_ops")
         df_cli_plat_map = MagicMock(name="df_cli_plat_map")
         df_titulos = MagicMock(name="df_titulos")
+        granular_cols = ["cod_cliente"]
 
-        df_baixas.columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]
-
-        # Chainable mocks
+        # Configurar encadeamento
         df_baixas.filter.return_value = df_baixas
         df_baixas.join.return_value = df_baixas
         df_baixas.withColumn.return_value = df_baixas
+        df_baixas.drop.return_value = df_baixas
+        df_baixas.select.return_value = df_baixas
+        df_baixas.groupBy.return_value.agg.return_value = df_baixas
         df_baixas.withColumnRenamed.return_value = df_baixas
-
-        # Deve incluir todas as colunas usadas em resolve_columns e groupBy
-        granular_cols = ["nbordero", "nome_plataforma", "chave_produto", "data_deferimento", "cod_cliente", "floating", "prazo_medio_ponderado_dias"]
+        df_baixas.columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento", "cod_cliente"]
 
         process_mora_stream_func = globals()["process_mora_stream"]
-        result_df = process_mora_stream_func(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, granular_cols)
+        process_mora_stream_func(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, granular_cols)
 
-        # Verifica a CORREÇÃO: .withColumn("data_deferimento", col("data_baixa"))
-        # Buscamos especificamente pela chamada onde data_deferimento é definido como data_baixa.
-        fix_call_found = any(
-            args[0] == "data_deferimento" and "col('data_baixa')" in str(args[1])
-            for args, kwargs in df_baixas.withColumn.call_args_list
-        )
+        # Verifica se filter foi chamado pelo menos duas vezes (ano e juros)
+        self.assertGreaterEqual(df_baixas.filter.call_count, 2)
 
-        self.assertTrue(fix_call_found, "The fix .withColumn('data_deferimento', col('data_baixa')) was not found in process_mora_stream.")
-
-    def test_mora_date_logic_structure(self):
+    def test_mora_stream_date_logic(self):
         """
-        Valida a estrutura da lógica de data Mora garantindo manipulação de data robusta.
-        Verifica especificamente se 'data_referencia_mora' usa uma verificação de ano > 1900.
+        Verifica a lógica de data_referencia_mora e dias_atraso.
         """
-        df_mora = MagicMock()
-        df_titulos_dates = MagicMock()
+        df_baixas = MagicMock(name="df_baixas")
+        df_map_ops = MagicMock(name="df_map_ops")
+        df_cli_plat_map = MagicMock(name="df_cli_plat_map")
+        df_titulos = MagicMock(name="df_titulos")
+        granular_cols = ["cod_cliente"]
 
-        # Chainable mocks
-        df_mora.join.return_value = df_mora
-        df_mora.withColumn.return_value = df_mora
+        # Configurar encadeamento
+        df_baixas.filter.return_value = df_baixas
+        df_baixas.join.return_value = df_baixas
+        df_baixas.withColumn.return_value = df_baixas
+        df_baixas.drop.return_value = df_baixas
+        df_baixas.select.return_value = df_baixas
+        df_baixas.groupBy.return_value.agg.return_value = df_baixas
+        df_baixas.withColumnRenamed.return_value = df_baixas
+        df_baixas.columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento", "cod_cliente"]
 
-        # --- LÓGICA SOB TESTE ---
-        # Replica a lógica melhorada do notebook
-        df_mora_enrich_venc = df_mora.join(df_titulos_dates, "cod_titulo", "left")
+        # Simular df_titulos.select
+        df_titulos_dates = MagicMock(name="df_titulos_dates")
+        df_titulos.select.return_value = df_titulos_dates
 
-        df_mora_calc = df_mora_enrich_venc \
-            .withColumn("data_referencia_mora",
-                        mock_when(year(col("venc_prorrogado")) > 1900, col("venc_prorrogado"))
-                        .otherwise(col("data_vencimento"))
-            ) \
-            .withColumn("dias_atraso",
-                        mock_when(col("data_baixa").isNull() | col("data_referencia_mora").isNull(), 0)
-                        .when(year(col("data_baixa")) <= 1900, 0)
-                        .when(year(col("data_referencia_mora")) <= 1900, 0)
-                        .otherwise(datediff(col("data_baixa"), col("data_referencia_mora")))
-            )
+        process_mora_stream_func = globals()["process_mora_stream"]
+        process_mora_stream_func(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, granular_cols)
 
-        # --- ASSERTIONS ---
-        # Verifica se withColumn foi chamado para 'data_referencia_mora'
-        # E verifica se 'when' foi chamado.
+        # Verifica se withColumn foi chamado para as colunas de data/atraso
+        column_calls = [args[0] for args, kwargs in df_baixas.withColumn.call_args_list]
+        self.assertIn("data_referencia_mora", column_calls)
+        self.assertIn("dias_atraso", column_calls)
+
+        # Verifica se 'when' foi usado para a lógica de data > 1900
+        # A primeira chamada ao mock_when_tracker deve ser para data_referencia_mora
+        # logic: when(year(col("venc_prorrogado")) > 1900, col("venc_prorrogado"))
         self.assertTrue(mock_when_tracker.called)
 
-        # Podemos inspecionar os argumentos passados para mock_when
-        # call_args_list[0] deve ser a verificação 'year(venc_prorrogado) > 1900'
-        first_call_args = mock_when_tracker.call_args_list[0]
-        condition_arg = first_call_args[0][0] # O objeto de condição (Simulação)
+    def test_mora_stream_aggregations(self):
+        """
+        Verifica as agregações e cálculos de colunas finais.
+        """
+        df_baixas = MagicMock(name="df_baixas")
+        df_map_ops = MagicMock(name="df_map_ops")
+        df_cli_plat_map = MagicMock(name="df_cli_plat_map")
+        df_titulos = MagicMock(name="df_titulos")
+        granular_cols = ["cod_cliente"]
 
-        # Não podemos afirmar facilmente a estrutura de simulação da condição sem inspeção profunda,
-        # mas podemos verificar se o código de teste (que reflete o código do notebook) foi executado sem erro
-        # e chamou nossas funções simuladas.
+        # Configurar encadeamento
+        df_baixas.filter.return_value = df_baixas
+        df_baixas.join.return_value = df_baixas
+        df_baixas.withColumn.return_value = df_baixas
+        df_baixas.drop.return_value = df_baixas
+        df_baixas.select.return_value = df_baixas
+        df_baixas.groupBy.return_value.agg.return_value = df_baixas
+        df_baixas.withColumnRenamed.return_value = df_baixas
+        df_baixas.columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento", "cod_cliente"]
 
-        # Isso confirma que o fluxo lógico é python válido e usa corretamente as simulações da API Spark.
-        pass
+        process_mora_stream_func = globals()["process_mora_stream"]
+        process_mora_stream_func(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, granular_cols)
+
+        # Verifica se groupBy foi chamado com as colunas esperadas
+        df_baixas.groupBy.assert_called()
+
+        # Verifica se os cálculos finais foram feitos via withColumn
+        column_calls = [args[0] for args, kwargs in df_baixas.withColumn.call_args_list]
+        self.assertIn("prazo_medio", column_calls)
+        self.assertIn("prazo_medio_total", column_calls)
+        self.assertIn("taxa_media", column_calls)
 
 if __name__ == "__main__":
     unittest.main()
