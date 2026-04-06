@@ -1,6 +1,6 @@
-# Inventory of Data Assets
+# Inventário de Ativos de Dados
 
-This document provides a detailed inventory of all data assets in the VALECRED project, including Dataflows, Notebooks, Lakehouses, and Warehouses.
+Este documento fornece um inventário detalhado de todos os ativos de dados no projeto VALECRED, incluindo Dataflows, Notebooks, Lakehouses e Warehouses.
 
 ## Data Warehouses
 
