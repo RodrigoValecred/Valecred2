@@ -66,7 +66,7 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
 
         exec_globals = {
             'pandas_udf': mock_pandas_udf,
-            'DoubleType': lambda: mock_double_type, # Called as DoubleType()
+            'DoubleType': lambda: mock_double_type, # Chamado como DoubleType()
             'pd': pd,
             'features_broadcast': mock_features_broadcast,
             'model_broadcast': mock_model_broadcast

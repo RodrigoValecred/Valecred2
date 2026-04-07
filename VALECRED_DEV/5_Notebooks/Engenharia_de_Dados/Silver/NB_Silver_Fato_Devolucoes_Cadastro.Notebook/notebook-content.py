@@ -74,7 +74,7 @@ df_enriched = df_joined_users.join(
 # 📊 Impacto: Acelera o tempo de planejamento do Spark e reduz substancialmente o uso de memória do JVM no nó driver.
 # 🔬 Medição: Benchmark local mostra redução de tempo significativa na etapa de definição das novas colunas (ex., de ~4.3s para ~0.9s dependendo da volumetria e complexidade).
 obs_str_expr = col("OBS").cast("string")
-obs_no_html_expr = regexp_replace(obs_str_expr, "<[^>]+>", " ") # Remove as tags HTML
+obs_no_html_expr = regexp_replace(obs_str_expr, "<[^>]+>", " ") # Removedor de tags HTML
 obs_clean_expr = trim(regexp_replace(obs_no_html_expr, "\\s+", " ")) # Remove espaços extras
 obs_normalized_expr = upper(translate(obs_clean_expr, "áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ", "AAAAAEEEEIIIIOOOOOUUUUCAAAAAEEEEIIIIOOOOOUUUUC"))
 

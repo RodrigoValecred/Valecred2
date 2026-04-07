@@ -38,7 +38,7 @@ class TestFunnelDates(unittest.TestCase):
 
         # Simula DataFrame
         mock_df = MagicMock(name="df")
-        # withColumn returns df
+        # withColumn retorna df
         mock_df.withColumn.return_value = mock_df
 
         # Globais de execução
@@ -59,7 +59,7 @@ class TestFunnelDates(unittest.TestCase):
         # Verification
         self.assertEqual(result_df, mock_df)
 
-        # Verifica specific transformations
+        # Verifique transformações específicas
         # .withColumn("data_aprovacao", greatest(col("pivot_checklist"), col("pivot_assinatura")))
 
         # Verifica se greatest foi chamado para data_aprovacao

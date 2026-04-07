@@ -20,7 +20,7 @@ class MockDataFrame:
         self.data = data # Lista de dicionários
 
     def select(self, *cols):
-        # Very basic select simulation
+        # Simulação de seleção muito básica
         selected_cols = []
         for c in cols:
             if isinstance(c, str):

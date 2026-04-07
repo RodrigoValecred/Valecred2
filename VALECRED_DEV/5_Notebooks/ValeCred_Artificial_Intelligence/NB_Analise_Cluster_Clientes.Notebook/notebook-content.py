@@ -66,7 +66,7 @@ except Exception as e:
 
 # CELL ********************
 
-# ## 1. Feature Engineering (Com Flags de Risco)
+# ## 1. Engenharia de Recursos (Com Flags de Risco)
 
 print("Calculando métricas e flags de risco...")
 
@@ -219,7 +219,7 @@ if not df_to_cluster.isEmpty():
     # O pedido original era 3 grupos. Já temos o "Alerta".
     # Vamos tentar dividir o resto em "Prime" e "Rentável". K=2.
 
-    # ⚡ Tensor: Early stopping optimization in KMeans
+    # ⚡ Tensor: otimização de parada antecipada no KMeans
     # 💡 O que: Configurado `maxIter=20`, `tol=1e-3`, e `distanceMeasure="euclidean"` no KMeans.
     # 🎯 Por que: O default do PySpark pode iterar muitas vezes buscando convergência extrema. Limitando as iterações e ajustando a tolerância, o modelo converge muito mais rápido com mínima (ou nenhuma) alteração nos centroides.
     # 📊 Impacto: Acelera o treinamento do KMeans significativamente.

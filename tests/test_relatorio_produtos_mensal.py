@@ -22,7 +22,7 @@ def col(name):
     # Define repr e str explícitos para depuração e asserções mais fáceis
     m.__repr__ = lambda x: f"col('{name}')"
     m.__str__ = lambda x: f"col('{name}')"
-    # Implement arithmetic
+    # Implementar aritmética
     m.__mul__ = lambda self, other: MagicMock()
     m.__truediv__ = lambda self, other: MagicMock()
     m.__add__ = lambda self, other: MagicMock()
@@ -56,7 +56,7 @@ def mock_when(condition, value):
     mock_when_tracker(condition, value) # Rastreia a chamada
     m = MagicMock()
     m.otherwise = MagicMock(return_value=m)
-    m.when = MagicMock(return_value=m) # Chainable when
+    m.when = MagicMock(return_value=m) # Encadeável quando
     return m
 def round(c, scale): return MagicMock()
 def datediff(end, start): return MagicMock()
@@ -196,7 +196,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         # Verifica structure
         # Deve juntar com os títulos
         df_ops.join.assert_called()
-        # Should aggregate
+        # Deve agregar
         df_ops.groupBy.assert_called()
 
     def test_mora_data_deferimento_replacement_fix(self):
@@ -214,7 +214,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
         df_baixas.columns = ["cod_operacao", "data_baixa", "juros", "valor_pago", "data_vencimento"]
 
-        # Chainable mocks
+        # Simulações encadeáveis
         df_baixas.filter.return_value = df_baixas
         df_baixas.join.return_value = df_baixas
         df_baixas.withColumn.return_value = df_baixas
@@ -243,7 +243,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
         df_mora = MagicMock()
         df_titulos_dates = MagicMock()
 
-        # Chainable mocks
+        # Simulações encadeáveis
         df_mora.join.return_value = df_mora
         df_mora.withColumn.return_value = df_mora
 
@@ -265,7 +265,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
 
         # --- ASSERTIONS ---
         # Verifica se withColumn foi chamado para 'data_referencia_mora'
-        # E verifica se 'when' foi chamado.
+        # E verifique se 'when' foi chamado.
         self.assertTrue(mock_when_tracker.called)
 
         # Podemos inspecionar os argumentos passados para mock_when

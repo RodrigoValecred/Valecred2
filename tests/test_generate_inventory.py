@@ -57,7 +57,7 @@ def test_parse_inventory_missing_description(tmp_path):
 
 def test_parse_inventory_malformed(tmp_path):
     f = tmp_path / "inventory.md"
-    content = """### Orphan Asset
+    content = """### Ativo órfão
 - **Description:** description
 
 ## Section
@@ -88,7 +88,7 @@ def test_generate_markdown_empty_inputs():
     assert "## Dataflows" in md
     assert "## Notebooks" in md
 
-    # Shouldn't contain any asset markdown like "### "
+    # Não deve conter nenhuma redução de ativos como "### "
     assert "### " not in md
 
 
@@ -129,7 +129,7 @@ def test_generate_markdown_missing_inventory_lakehouse():
 
     assert "### LH_Test.Lakehouse" in md
     assert "- **Description:** (Missing description)" in md
-    # Make sure it doesn't have Notebook/Dataflow specific lines
+    # Verifique se não há linhas específicas do Notebook/Dataflow
     assert "- **Input:**" not in md
     assert "- **Source:**" not in md
 

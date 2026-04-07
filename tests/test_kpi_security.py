@@ -51,8 +51,8 @@ class TestKPISecurity(unittest.TestCase):
                     if isinstance(value_arg, ast.Constant) and isinstance(value_arg.value, str):
                         self.fail(f"CRITICAL: Hardcoded password detected! Found: .option('password', '{value_arg.value}')")
 
-            # Verifica kwargs (improvável para spark .option mas possível em python)
-            # Spark .option(key, value) usually positional
+            # Verifique kwargs (improvável para Spark .option mas possível em python)
+            # Spark .option(key, value) geralmente posicional
 
         # Garante que encontramos a chamada option (para o teste não passar falsamente por perder o código)
         self.assertTrue(found_password_option, "Did not find any .option('password', ...) call. Code structure might have changed.")

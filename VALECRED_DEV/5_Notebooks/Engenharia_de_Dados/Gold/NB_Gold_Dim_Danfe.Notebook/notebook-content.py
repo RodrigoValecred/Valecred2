@@ -71,7 +71,7 @@ def parse_danfe(df):
     Analisa a chave DANFE em seus componentes.
     Espera uma coluna chamada 'CHAVEDANFE'.
     """
-    # Substring em Spark é 1-based.
+    # Substring no Spark é baseado em 1.
     return df \
         .withColumn("uf", substring(col("CHAVEDANFE"), 1, 2)) \
         .withColumn("aamm", substring(col("CHAVEDANFE"), 3, 4)) \

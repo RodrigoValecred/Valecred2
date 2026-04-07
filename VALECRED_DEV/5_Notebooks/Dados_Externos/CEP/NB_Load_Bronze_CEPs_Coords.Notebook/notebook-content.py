@@ -90,7 +90,7 @@ df_pandas.columns = [c.lower().replace(" ", "_").strip() for c in df_pandas.colu
 
 # CELL ********************
 
-# As strings latitude e longitude vêm commo sting com vírgula.
+# As strings latitude e longitude vêm como sting com vírgula.
 # Precisamos converter para float.
 def converte_para_float(valor):
     if pd.isna(valor):
@@ -109,7 +109,7 @@ def converte_para_float(valor):
 
 # CELL ********************
 
-# Utilizando list comrehensions nativo Python para performance
+# Utilizando list comprehensions nativo Python para performance
 if "latitude" in df_pandas.columns:
     df_pandas["latitude"] = [converte_para_float(x) for x in df_pandas["latitude"]]
 if "longitude" in df_pandas.columns:

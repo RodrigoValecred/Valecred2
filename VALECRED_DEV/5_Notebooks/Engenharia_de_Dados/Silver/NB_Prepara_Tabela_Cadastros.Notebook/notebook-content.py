@@ -66,7 +66,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         cols_source_map = {c.lower(): c for c in df_source.columns}
         if watermark_col.lower() not in cols_source_map:
-             return False # Cannot check, proceed
+             return False # Não é possível verificar, prossiga
 
         actual_col_source = cols_source_map[watermark_col.lower()]
         # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
@@ -76,7 +76,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         df_target = spark.read.format("delta").load(target_table_path)
         cols_target_map = {c.lower(): c for c in df_target.columns}
         if target_watermark_col.lower() not in cols_target_map:
-             return False # Cannot check, proceed
+             return False # Não é possível verificar, prossiga
 
         actual_col_target = cols_target_map[target_watermark_col.lower()]
         max_target = df_target.agg(max(col(actual_col_target))).first()[0]
@@ -180,7 +180,7 @@ def process_cadastro_geral():
         .select("cpf_cnpj", "nome", "sigla")
 
     # Validação rápida
-    # df_cadastros_clean.show(5, truncate=False)
+    # df_cadastros_clean.show(5, truncar=Falso)
     df_cadastros_clean.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_cad_geral_pf_pj_limpa")
     return df_cadastros_clean
 
@@ -461,7 +461,7 @@ def process_plataformas():
 
         df_joined = df_calc.join(df_sup_gestor, on="cod_agencia", how="left")
 
-        # Coalesce: Hardcoded -> Support Table -> "NÃO ATRIBUÍDO"
+        # Coalescer: Codificado -> Tabela de Suporte -> "NÃO ATRIBUÍDO"
         df_final = df_joined.withColumn("gestor_da_plataforma",
             coalesce(col("gestor_hardcoded"), col("gestor_da_plataforma"), lit("NÃO ATRIBUÍDO"))
         )

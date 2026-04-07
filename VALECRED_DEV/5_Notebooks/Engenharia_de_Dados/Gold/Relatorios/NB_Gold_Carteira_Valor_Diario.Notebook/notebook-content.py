@@ -102,7 +102,7 @@ df_prod = spark.read.table("LH_Gold.dim_produtos").select(
     "produto_informacao_de_mercado"
 )
 
-# ⚡ Bolt Optimization: Removed intermediate count() actions
+# ⚡ Otimização de Bolt: ações de contagem intermediária () removidas
 # 💡 O que: Remoção das ações `count()` durante o carregamento dos DataFrames.
 # 🎯 Por que: Ações `count()` forçam a materialização do plano lógico prematuramente, disparando jobs Spark e varreduras completas da tabela sem necessidade no fluxo.
 # 📊 Impacto: Evita múltiplos full table scans, economizando tempo e recursos de processamento antes das agregações reais.
@@ -155,7 +155,7 @@ df_dates = (
     .filter(col("start_date") <= col("end_date"))
 )
 
-# ⚡ Bolt Optimization: Removed intermediate count() action
+# ⚡ Otimização de Bolt: ação de contagem intermediária () removida
 # 💡 O que: Remoção da ação `count()` intermediária antes da explosão de datas.
 # 🎯 Por que: A ação `count()` aciona um job Spark separado e um full table scan para contar registros antes de prosseguir, desperdiçando recursos.
 # 📊 Impacto: Elimina um job Spark extra, permitindo que a materialização real ocorra apenas na agregação final (`collect()`).

@@ -28,7 +28,7 @@
 # **Processo:**
 # 1.  Download dos arquivos ZIP (Empresas0-9, Estabelecimentos0-9).
 # 2.  Extração dos arquivos CSV.
-# 3.  Leitura com Spark (Schema manual).
+# 3. Leitura com Spark (manual de esquema).
 # 4.  Salvamento em Delta (LH_Bronze).
 
 # CELL ********************
@@ -129,7 +129,7 @@ def safe_extract(zip_ref, path):
 
     for member in zip_ref.namelist():
         # Resolver o caminho completo do membro
-        # Nota: os.path.join descartará 'target_path' se 'member' for absoluto
+        # Nota: os.path.join descartará 'target_path' se 'member' para absoluto
         member_path = os.path.join(target_path, member)
         # Normalizar o caminho do membro para resolver '..' e '.'
         abs_member_path = os.path.abspath(member_path)

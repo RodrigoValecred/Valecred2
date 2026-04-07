@@ -108,7 +108,7 @@ df_ops_enriched = df_ops_validas.join(
     "left"
 )
 
-# 4.2 Fallback Logic (Earliest Manager)
+# 4.2 Lógica de Contingência (gerente mais antigo)
 # Prepara fallback para casos onde a operação é anterior ao histórico da bridge
 w_fallback = Window.partitionBy("cod_cliente").orderBy(col("data_inicio_vigencia").asc())
 df_bridge_fallback = df_bridge.withColumn("rn", row_number().over(w_fallback)) \
@@ -121,7 +121,7 @@ df_ops_enriched_2 = df_ops_enriched.join(
     "left"
 )
 
-# 4.3 Final Broker Selection
+# 4.3 Seleção Final do Corretor
 # Regra de Ouro (Descoberta): O campo cod_gerente (cod_broker) da tab_operacoes só começou a ser preenchido em 06/2025.
 # Portanto, a prioridade deve ser a Bridge (Histórico de Vigência).
 # Prioridade Atualizada: 1. Bridge Strict > 2. Broker Original (se válido) > 3. Bridge Fallback

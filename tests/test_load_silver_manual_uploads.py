@@ -43,7 +43,7 @@ class TestSanitizeColumnName(unittest.TestCase):
         self.assertIsNotNone(self.sanitize_column_name, "Function sanitize_column_name not found or failed to load.")
 
     def test_standard_snake_case(self):
-        """Test simple snake_case strings (should remain unchanged)."""
+        """Teste strings simples de snake_case (devem permanecer inalteradas)."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
         self.assertEqual(self.sanitize_column_name("simple_column"), "simple_column")
         self.assertEqual(self.sanitize_column_name("id"), "id")
@@ -61,7 +61,7 @@ class TestSanitizeColumnName(unittest.TestCase):
         if not self.sanitize_column_name: self.skipTest("Function not found")
         self.assertEqual(self.sanitize_column_name("NomeCliente"), "nome_cliente")
         self.assertEqual(self.sanitize_column_name("DataDeNascimento"), "data_de_nascimento")
-        # lowerCamelCase
+        # inferiorCamelCase
         self.assertEqual(self.sanitize_column_name("nomeCliente"), "nome_cliente")
 
     def test_special_characters(self):
@@ -92,7 +92,7 @@ class TestSanitizeColumnName(unittest.TestCase):
         self.assertEqual(self.sanitize_column_name("CODIGO"), "codigo")
 
     def test_mixed_cases_complex(self):
-        """Test complex mixed cases."""
+        """Teste casos mistos complexos."""
         if not self.sanitize_column_name: self.skipTest("Function not found")
         # 'Some_Mixed_Case' -> 'some_mixed_case' (lógica CamelCase aplica-se às partes)
         # 'Some' -> 'some', '_', 'Mixed' -> '_mixed' ...

@@ -190,7 +190,7 @@ if is_incremental_possible:
     
     # 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_titulos.isEmpty():
-        # 3. Desduplicar o batch incremental
+        # 3. Desduplicar o lote incremental
         df_dedup = deduplicate_titulos(df_bronze_titulos, key_columns_titulos)
             
         df_final_batch = select_titulos(df_dedup)

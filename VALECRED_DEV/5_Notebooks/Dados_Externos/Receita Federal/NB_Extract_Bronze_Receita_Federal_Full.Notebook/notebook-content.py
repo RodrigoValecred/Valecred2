@@ -39,7 +39,7 @@
 # **Processo:**
 # 1.  Download dos arquivos ZIP (Empresas0-9, Estabelecimentos0-9).
 # 2.  Extração dos arquivos CSV.
-# 3.  Leitura com Spark (Schema manual).
+# 3. Leitura com Spark (manual de esquema).
 # 4.  Salvamento em Delta (LH_Bronze).
 
 # CELL ********************

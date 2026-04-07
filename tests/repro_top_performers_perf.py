@@ -42,7 +42,7 @@ def run_original(spark, df_final_metrics):
     # 3. Flag usando isin
     df_res = df_final_metrics.withColumn("is_top_performer", F.col("id_gerente").isin(top_performers))
 
-    # Force evaluation
+    # Avaliação de força
     count = df_res.filter(F.col("is_top_performer") == True).count()
     return count
 
@@ -75,7 +75,7 @@ def run_optimized(spark, df_final_metrics):
         print(f"Error in optimized: {e}")
         df_res = df_final_metrics.withColumn("is_top_performer", F.lit(False))
 
-    # Force evaluation
+    # Avaliação de força
     count = df_res.filter(F.col("is_top_performer") == True).count()
     return count
 

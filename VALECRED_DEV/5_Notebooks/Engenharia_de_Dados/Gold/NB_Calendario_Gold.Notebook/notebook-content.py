@@ -139,7 +139,7 @@ try:
     end_date = "2030-12-31"
 
     if min_date_row and min_date_row[0][0]:
-        start_date = str(min_date_row[0][0]).split(' ')[0] # Garantir yyyy-MM-dd se for timestamp
+        start_date = str(min_date_row[0][0]).split(' ')[0] # Garantir aaaa-MM-dd se para carimbo de data/hora
 
     if max_date_row and max_date_row[0][0]:
         end_date = str(max_date_row[0][0]).split(' ')[0]
@@ -179,8 +179,8 @@ df_calendario_base = df_dates.withColumn("ano", year("data")) \
 # O Dataflow original: Date.DayOfWeek([data], Day.Monday) + 1. Isso resulta em 1=Monday, 7=Sunday.
 # Spark dayofweek: 1=Sunday, 2=Monday... 7=Saturday.
 # Conversão:
-# Spark 2 (Mon) -> 1
-# Spark 3 (Tue) -> 2
+# Faísca 2 (seg) -> 1
+# Faísca 3 (terça-feira) -> 2
 # ...
 # Spark 7 (Sat) -> 6
 # Spark 1 (Sun) -> 7

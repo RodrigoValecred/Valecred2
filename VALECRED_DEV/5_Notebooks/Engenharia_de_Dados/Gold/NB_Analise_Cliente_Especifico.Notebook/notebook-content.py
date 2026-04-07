@@ -84,7 +84,7 @@ df_operacoes = df_operacoes.withColumnRenamed("TTO", "TTO_OPERACAO")
 df_operacoes = df_operacoes.withColumnRenamed("CODRATING", "CODRATING_OPERACAO")
 df_cedentes = df_cedentes.withColumnRenamed("CODRATING", "CODRATING_CEDENTE")
 
-# 🧠 TENSOR OPTIMIZATION: Predicate Pushdown e Inner Joins
+# 🧠 OTIMIZAÇÃO DE TENSOR: Predicate Pushdown e Inner Joins
 # Aplicando filtros diretamente nas tabelas fonte ANTES do join para reduzir drasticamente o volume de dados.
 # Usar INNER JOINs significa que filtrar df_cedentes por CPFCNPJ automaticamente filtra as operações e títulos.
 print(f"Filtrando dados para o cliente {CLIENTE_CPFCNPJ} e aplicando regras de negócio em Spark antes dos joins...")
@@ -211,7 +211,7 @@ else:
     if total_count > 0:
         df_cliente.groupBy('TARGET').count().withColumn('pct', col('count') / total_count).show()
 
-# ⚡ Bolt Optimization: Libera memória (Free memory)
+# ⚡ Otimização de Bolt: Libera memória (memória livre)
 df_filtrado.unpersist()
 print("⚡ Bolt: Cache cleared.")
 

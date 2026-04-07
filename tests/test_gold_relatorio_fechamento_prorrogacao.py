@@ -53,17 +53,17 @@ class TestProrrogacaoLogic(unittest.TestCase):
     def _test_prorrogacao_recovery_logic(self):
         # Sample Data
         data = [
-            # Case 1: Recovered (Rejected -> Accepted)
+            # Caso 1: Recuperado (Rejeitado -> Aceito)
             Row(cod_operacao=101, cod_titulo=1, cod_cliente=10, status_analise='I', data_inclusao=date(2025, 1, 1), valor=100.0),
             Row(cod_operacao=102, cod_titulo=1, cod_cliente=10, status_analise='D', data_inclusao=date(2025, 1, 5), valor=100.0),
 
-            # Case 2: Unrecovered (Rejected only)
+            # Caso 2: Não recuperado (somente rejeitado)
             Row(cod_operacao=201, cod_titulo=2, cod_cliente=20, status_analise='I', data_inclusao=date(2025, 1, 2), valor=200.0),
 
-            # Case 3: Normal Accepted
+            # Caso 3: Normal Aceito
             Row(cod_operacao=301, cod_titulo=3, cod_cliente=30, status_analise='D', data_inclusao=date(2025, 1, 3), valor=300.0),
 
-            # Case 4: Multiple Rejections then Accepted
+            # Caso 4: Múltiplas rejeições e então aceitas
             Row(cod_operacao=401, cod_titulo=4, cod_cliente=40, status_analise='I', data_inclusao=date(2025, 1, 1), valor=400.0),
             Row(cod_operacao=402, cod_titulo=4, cod_cliente=40, status_analise='I', data_inclusao=date(2025, 1, 2), valor=400.0),
             Row(cod_operacao=403, cod_titulo=4, cod_cliente=40, status_analise='D', data_inclusao=date(2025, 1, 4), valor=400.0),

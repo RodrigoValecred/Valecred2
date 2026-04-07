@@ -104,15 +104,15 @@ def transform_esteira_dates(df_esteira, status_mapping):
         )
 
     # Select único com renomeação
-    # Expected cols: cod_cliente, pivot_{clean_name}, min_{clean_name}
+    # Colunas esperadas: cod_cliente, pivot_{clean_name}, min_{clean_name}
     select_exprs = [col("cod_cliente")]
 
     for status, clean_name in status_mapping.items():
-        # Max -> pivot_{clean_name}
+        # Máx. -> pivot_{nome_limpo}
         col_max = f"{status}_max"
         select_exprs.append(col(col_max).alias(f"pivot_{clean_name}"))
 
-        # Min -> min_{clean_name} (Standardized)
+        # Min -> min_{clean_name} (padronizado)
         col_min = f"{status}_min"
         select_exprs.append(col(col_min).alias(f"min_{clean_name}"))
 
@@ -283,7 +283,7 @@ def check_incremental_gold(spark):
     Se não houver novos dados, sai do notebook.
     """
     try:
-        # Silver Tables (Source)
+        # Mesas de Prata (Fonte)
         source_ops = TableNames.SILVER_STAGING_OPERACOES_LIMPA
         source_titulos = TableNames.SILVER_STAGING_TITULOS_LIMPA
 
@@ -520,7 +520,7 @@ df_motivos_indeferimento = safe_read_table(spark, TableNames.SILVER_SUP_MOTIVOS_
 print("Carregando Estudo Operacoes (Silver)...")
 df_estudo_operacoes = spark.read.table(TableNames.SILVER_STAGING_ESTUDO_OPERACOES)
 
-# Escrow (Silver)
+# Garantia (prata)
 print("Carregando Escrow (Silver)...")
 df_escrow = get_escrow_data(spark, TableNames.SILVER_STAGING_OPERACOES_ESCROW)
 
@@ -624,7 +624,7 @@ df_operacoes_com_historico = df_operacoes_limpa.join(
     "left"
 ).dropDuplicates(["cod_operacao"])
 
-# Fallback Logic (Earliest Manager)
+# Lógica Contingência (gerente mais antigo)
 # Para operações antigas (ex: antes de Junho 2025) onde cod_broker é 0 e a bridge não tem histórico da data exata.
 w_fallback = Window.partitionBy("cod_cliente_bridge").orderBy(col("data_inicio_vigencia").asc())
 df_bridge_fallback = df_bridge_prep.withColumn("rn", row_number().over(w_fallback)) \
@@ -1010,7 +1010,7 @@ df_devolucoes_small = df_devolucoes.select(col("cod_titulo"), col("cod_operacao"
 df_ultima_conf_small = df_ultima_conf.select(col("cod_titulo"), col("confirmacao").alias("confirmado_por")).dropDuplicates(["cod_titulo"])
 df_protestos_small = df_protestos.select("cod_titulo", "status_protesto").dropDuplicates(["cod_titulo"])
 
-# Flag Juridico
+# Bandeira Jurídica
 df_juridico_flag = df_relatorio_juridico.select("cod_titulo").distinct().withColumn("status_enviado_juridico", lit(True))
 
 # Extrair CEP do sacado
@@ -1205,7 +1205,7 @@ df_ops_pr = df_operacoes_source.filter(col("tto") == "PR")
 # Colunas que podem não existir no DF Silver (Ignorando erro se não existirem)
 df_ops_pr_clean = df_ops_pr.drop(*COLS_TO_REMOVE_PR)
 
-# Join com Boletos (LH_Silver.staging_boletos_titulos)
+# Cadastre-se com Boletos (LH_Silver.staging_boletos_titulos)
 # Precisamos carregar a tabela boletos, pois não foi carregada no início explicitamente (apenas df_titulos_limpa)
 print("Carregando Boletos (Silver)...")
 df_boletos_titulos = safe_read_table(spark, TableNames.SILVER_STAGING_BOLETOS_TITULOS, fallback_df=df_titulos_limpa.filter(col("t_doc") == "BL"))
@@ -1227,7 +1227,7 @@ df_boletos_select = df_boletos_titulos.select(
 df_joined_pr = df_ops_pr_clean.join(df_boletos_select, "cod_operacao", "left")
 
 # Expandido já feito pelo select.
-# Remover colunas finais: STATUSANALISE, STATUSACEITE, TTO
+# Removendo colunas finais: STATUSANALISE, STATUSACEITE, TTO
 df_final_pr = df_joined_pr.drop("status_analise", "status_aceite", "tto")
 
 target_nova_fato_prorrogacao = TableNames.GOLD_FATO_OPERACOES_PRORROGACAO
@@ -1258,7 +1258,7 @@ df_ops_rc = df_operacoes_source.filter(
     (col("status_aceite") == "A")
 )
 
-# Remover colunas: TOTADVAL, TOTTAXAADM, DATAACEITE
+# Removedor de colunas: TOTADVAL, TOTTAXAADM, DATAACEITE
 # Mapeamento: valor_advalorem, valor_taxa_adm, data_aceite
 df_ops_rc_clean = df_ops_rc.drop("valor_advalorem", "valor_taxa_adm", "data_aceite")
 
@@ -1303,7 +1303,7 @@ from pyspark.sql.functions import sum, min, count, current_date, round, floor, d
 # Sup Status Clientes (Silver)
 df_sup_status = spark.read.table(TableNames.SILVER_SUP_STATUS_DE_CLIENTES_DA_ESTEIRA)
 
-# Prepare Cad Clientes Status
+# Preparar Status de Clientes Cad
 # Bronze: CODSTATUSCLIENTE
 # Silver: codstatuscliente (normalizado de CODSTATUSCLIENTE pelo loader de upload manual)
 df_status_cad_prep = df_cad_clientes_bronze.join(
@@ -1321,7 +1321,7 @@ if "cod_cliente" not in df_grupos_prep.columns and "codcliente" in df_grupos_pre
      df_grupos_prep = df_grupos_prep.withColumnRenamed("codcliente", "cod_cliente")
 df_grupos_prep = df_grupos_prep.select("cod_cliente", "grupo_economico")
 
-# 6.0.1: Info Gestor (Para join final)
+# 6.0.1: Info Gestor (Para ingresso final)
 df_bridge_atual = df_bridge_gerente.filter(col("data_fim_vigencia") == "9999-12-31")
 # Join com df_gerentes_enrich (criada na Seção 1.2) para obter nome_gerente correto
 df_info_gestor = df_bridge_atual \
@@ -1482,7 +1482,7 @@ df_limites_agg = df_contratos.filter(col("status") == "A") \
 # 1. Normalizar CNPJ para Join com Clientes
 df_limites_ep_prep = df_limites_extra_plus.withColumn("cnpj_clean", regexp_replace(col("cnpj"), "[^0-9]", ""))
 
-# 2. Join com Staging Clientes para obter cod_cliente
+# 2. Junte-se ao Staging Clientes para obter cod_cliente
 df_limites_ep_clientes = df_limites_ep_prep.join(
     df_clientes_staging.select(col("cpf_cnpj").alias("cnpj_clean"), "cod_cliente"),
     "cnpj_clean",
@@ -1523,7 +1523,7 @@ df_base = deduplicate_clientes_staging(df_base_raw)
 # ⚡ Otimização Bolt: Usando DF único combinado em vez de DFs divididos max/min
 df_esteira_pivot_prep = df_esteira_combined.withColumnRenamed("cod_cliente", "cod_cliente_pivot")
 
-# Cadeia de Joins (Join Chain)
+# Cadeia de Joins
 
 # Taxa Cadastro (Power BI Requirement)
 # ⚡ Otimização Bolt: Reutilizar df_client_rate em cache da Seção 1.2 para evitar escanear df_contratos novamente.
@@ -1979,7 +1979,7 @@ print(f"HHI Cedente: {hhi_cedente}")
 print(f"HHI Sacado: {hhi_sacado}")
 
 # -------------------------------------------------------------
-# ⚡ Bolt Optimization: Limpeza de Cache (Memory Management)
+# ⚡ Bolt Optimization: Limpeza de Cache (Gerenciamento de Memória)
 # Objetivo: Liberar memória dos DataFrames oxigenados cacheados
 # prevenindo vazamentos de memória (memory leaks) e OOM no cluster Spark.
 # -------------------------------------------------------------

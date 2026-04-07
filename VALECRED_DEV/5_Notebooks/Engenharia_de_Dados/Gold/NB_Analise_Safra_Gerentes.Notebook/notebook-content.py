@@ -96,7 +96,7 @@ df_receita = df_ops.withColumn("data_referencia_op", F.trunc("data_analise", "MM
 print("Calculando Carteira e Risco (Histórico)...")
 
 # 3.1 Expandir Bridge de Clientes no Tempo
-# Join Calendar com Bridge
+# Junte-se ao Calendário com Bridge
 # Cliente C foi atendido por Gerente G no Mês M se [Inicio, Fim] engloba Mês M
 # ⚡ Bolt Optimization: Usar Broadcast Join condicional em vez de CrossJoin + Filter
 # 💡 O que: Substituiu .crossJoin() seguido de .filter() por um .join() condicional com broadcast.
@@ -286,7 +286,7 @@ def train_model(pdf):
 
 df_recentes_spark = df_with_bench.filter(F.col("mob") <= 24).select("id_gerente", "mob", "rogm")
 
-# Apply parallel processing
+# Aplicar processamento paralelo
 df_proj = df_recentes_spark.groupby("id_gerente").applyInPandas(train_model, schema=result_schema)
 
 # Save results

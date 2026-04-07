@@ -112,11 +112,11 @@ df_enriched = df_joined_users.join(
 
 # Limpeza e Normalização do Texto do Parecer
 
-# Converter OBS (binary/string) para string, remover HTML e normalizar
+# Converter OBS (binário/string) para string, remover HTML e normalizar
 df_clean = df_enriched.withColumn(
     "obs_str", col("OBS").cast("string")
 ).withColumn(
-    "obs_no_html", regexp_replace(col("obs_str"), "<[^>]+>", " ") # Remove as tags HTML
+    "obs_no_html", regexp_replace(col("obs_str"), "<[^>]+>", " ") # Removedor de tags HTML
 ).withColumn(
     "obs_clean", trim(regexp_replace(col("obs_no_html"), "\\s+", " ")) # Remove espaços extras
 ).withColumn(

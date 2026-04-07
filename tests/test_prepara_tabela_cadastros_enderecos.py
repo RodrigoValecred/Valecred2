@@ -42,7 +42,7 @@ class TestProcessEnderecos(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # Encerra a SparkSession
+        # Abra o SparkSession
         cls.spark.stop()
 
     def test_process_enderecos_cidade_regex_with_pyspark(self):
@@ -87,7 +87,7 @@ class TestProcessEnderecos(unittest.TestCase):
         ]
         df_bronze = self.spark.createDataFrame(bronze_data_full, schema=schema_bronze)
 
-        # O process_enderecos usa: spark.read.table(f"{source_lakehouse}.cad_enderecos")
+        # O process_enderecos EUA: Spark.read.table(f"{source_lakehouse}.cad_enderecos")
         mock_read = MagicMock()
         mock_read.table.return_value = df_bronze
         mock_spark.read = mock_read

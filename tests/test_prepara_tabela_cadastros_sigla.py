@@ -77,7 +77,7 @@ class TestSiglaExpr(unittest.TestCase):
             'upper': mock_upper,
             'regexp_replace': mock_regexp_replace,
             'split': mock_split,
-            'array_filter': mock_array_filter, # O notebook importa filter como array_filter
+            'array_filter': mock_array_filter, # O notebook importa filtro como array_filter
             'transform': mock_transform,
             'array_join': mock_array_join,
             'length': mock_length,

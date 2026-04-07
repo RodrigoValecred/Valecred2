@@ -93,7 +93,7 @@ df_titulos_filtered = df_titulos.dropDuplicates(["cod_titulo"]) \
 )
 
 # Join para consolidar as regras
-# ⚡ Bolt Optimization: Caching dataframe before count action to prevent double DAG evaluation
+# ⚡ Otimização de Bolt: armazenamento em cache do DataFrame antes da ação de contagem para evitar avaliação dupla de DAG
 # 💡 O que: Adicionado .cache() em df_carteira antes da ação de count() e .unpersist() após o saveAsTable.
 # 🎯 Por que: A ação .count() no log força a avaliação total do plano físico do Catalyst. Como o mesmo DataFrame é salvo logo em seguida, o Spark reavaliaria todo o histórico (joins, filtros) novamente sem o cache.
 # 📊 Impacto: Elimina o gargalo de materialização dupla, o que poupa IO de arquivos Delta e processamento.

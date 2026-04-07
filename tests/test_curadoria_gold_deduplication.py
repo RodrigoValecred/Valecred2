@@ -74,12 +74,12 @@ class TestDeduplicateClientes(unittest.TestCase):
         result = deduplicate_clientes_staging(mock_df)
 
         # Asserções
-        # 1. Window Specification
+        # 1. Especificação da janela
         mock_window.partitionBy.assert_called_with("cpf_cnpj")
         # Garante que orderBy foi chamado com ordens decrescentes
         mock_window_spec.orderBy.assert_called()
 
-        # 2. withColumn "rn"
+        # 2. comColuna "rn"
         mock_df.withColumn.assert_called_with("rn", "ROW_NUMBER_COL")
 
         # 3. Filtra (filter)

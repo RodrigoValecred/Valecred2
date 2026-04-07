@@ -107,7 +107,7 @@ dfs = [
 ]
 df = reduce(lambda df1, df2: df1.unionByName(df2, allowMissingColumns=True), dfs)
 
-# ⚡ Bolt Optimization: Cache dataframe to prevent re-evaluation on downstream actions
+# ⚡ Otimização de Bolt: cache de DataFrame para evitar reavaliação em ações downstream
 # 💡 O que: Adicionado `df.cache()` ao DataFrame resultante de uniões múltiplas que é usado para log.
 # 🎯 Por que: A ação `.count()` força a materialização do DataFrame. Sem o `.cache()`, todas as leituras e uniões seriam reexecutadas quando o DataFrame for usado nas agregações e filtragens seguintes.
 # 📊 Impacto: Evita a re-leitura completa de N tabelas (onde N é o número de carteiras), resultando em tempo de execução drasticamente menor e I/O reduzido.

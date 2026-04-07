@@ -94,7 +94,7 @@ df_tto_alias = df_tto.select(trim(col("CODTTO")).alias("CODTTO"), col("DESCRICAO
 df_stto_alias = df_stto.select(trim(col("CODSTTO")).alias("CODSTTO"), col("DESCRICAO").alias("desc_subtipo"))
 
 
-# Join robusto com Trim nas chaves
+# join robusto com Trim nas chaves
 df_desc = df_prod_base \
     .join(broadcast(df_tto_alias), trim(df_prod_base.tto) == df_tto_alias.CODTTO, "left") \
     .join(broadcast(df_stto_alias), trim(df_prod_base.stto) == df_stto_alias.CODSTTO, "left") \
@@ -172,7 +172,7 @@ df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(o
 print(f"Tabela '{output_path}' criada com sucesso.")
 
 # Visualização de verificação (Top 10)
-# df_final.show(10, truncate=False)
+# df_final.show(10, truncar=Falso)
 
 # METADATA ********************
 
