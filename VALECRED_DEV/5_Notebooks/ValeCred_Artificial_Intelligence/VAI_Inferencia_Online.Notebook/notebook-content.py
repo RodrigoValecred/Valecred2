@@ -213,7 +213,7 @@ features_backup = [
 
 features_para_analisar = [
     'vlr_total_sacado', 'prazo_medio_titulos', 'taxa',
-    'concentracao_operacao', 'ratio_alavancagem_interna'
+    'concentracao_operacao', 'ratio_alavancagem_interna', 'pagava_em_dia_agora_atrasa', 'aumento_atraso_dias', 'aumento_recompras', 'mudanca_segmento'
 ]
 
 # 1. Garantir que colunas existem e tratar nulos (Spark)
@@ -317,7 +317,11 @@ mapa_nomes = {
     'prazo_medio_titulos': 'Prazo Fora do Comum',
     'taxa': 'Taxa Fora do Padrão',
     'concentracao_operacao': 'Concentração Excessiva',
-    'ratio_alavancagem_interna': 'Alavancagem (Liquidez)'
+    'ratio_alavancagem_interna': 'Alavancagem (Liquidez)',
+    'pagava_em_dia_agora_atrasa': 'Mudança de Comportamento (Atraso)',
+    'aumento_atraso_dias': 'Aumento no Atraso em Dias',
+    'aumento_recompras': 'Aumento de Recompras (L4)',
+    'mudanca_segmento': 'Mudança de Segmento do Sacado'
 }
 
 z_score_structs = []

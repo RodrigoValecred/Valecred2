@@ -82,6 +82,37 @@ df_full = df_join_ops.join(
 df_full = df_full.fillna(0, subset=["cod_produto_ia"])
 
 df_features = df_full.join(df_pagamentos, on="cpf_cnpj_sacado", how="left")
+
+# Calcular Tendência de Pagamento e Atraso
+df_pagos = df_titulos.filter(F.col("liquidacao").isNotNull())     .withColumn("dias_atraso_real", F.datediff(F.col("liquidacao"), F.coalesce(F.col("venc_prorrogado"), F.col("vencimento"))))     .withColumn("dias_desde_pagamento", F.datediff(F.current_date(), F.col("liquidacao")))
+
+df_trend_recent = df_pagos.filter(F.col("dias_desde_pagamento") <= 90)     .groupBy("cpf_cnpj_sacado").agg(
+        F.avg("dias_atraso_real").alias("media_atraso_90d"),
+        F.max("dias_atraso_real").alias("max_atraso_90d")
+    )
+
+df_trend_old = df_pagos.filter((F.col("dias_desde_pagamento") > 90) & (F.col("dias_desde_pagamento") <= 180))     .groupBy("cpf_cnpj_sacado").agg(
+        F.avg("dias_atraso_real").alias("media_atraso_180d"),
+        F.max("dias_atraso_real").alias("max_atraso_180d")
+    )
+
+df_features = df_features.join(df_trend_recent, on="cpf_cnpj_sacado", how="left")     .join(df_trend_old, on="cpf_cnpj_sacado", how="left")     .fillna(0, subset=["media_atraso_90d", "media_atraso_180d", "max_atraso_90d", "max_atraso_180d"])     .withColumn("aumento_atraso_dias", F.col("media_atraso_90d") - F.col("media_atraso_180d"))     .withColumn("pagava_em_dia_agora_atrasa", F.when((F.col("max_atraso_180d") <= 0) & (F.col("max_atraso_90d") > 0), 1.0).otherwise(0.0))
+
+# Calcular Recompras
+try:
+    df_recompras = spark.table("spark_catalog.LH_Gold.fato_operacoes_recompra")
+    df_titulos_recompra = df_titulos.select("cod_operacao", "cpf_cnpj_sacado").dropDuplicates()
+    df_recompras_sacado = df_recompras.join(df_titulos_recompra, on="cod_operacao", how="inner")         .filter(F.datediff(F.current_date(), F.col("data_analise")) <= 180)         .groupBy("cpf_cnpj_sacado").agg(F.sum("valor").alias("aumento_recompras"))
+
+    df_features = df_features.join(df_recompras_sacado, on="cpf_cnpj_sacado", how="left").fillna(0, subset=["aumento_recompras"])
+except:
+    print("Aviso: LH_Gold.fato_operacoes_recompra não encontrada, definindo aumento_recompras como 0")
+    df_features = df_features.withColumn("aumento_recompras", F.lit(0.0))
+
+# Mudança de Segmento (Placeholder/Simplificado para IA)
+df_features = df_features.withColumn("mudanca_segmento", F.lit(0.0))
+
+
 # df_features.show(5)
 
 # D. Feature Engineering (Janelas de Exposição)
@@ -120,7 +151,11 @@ feature_cols = [
     'exposicao_acumulada',
     'concentracao_operacao',
     'cod_produto_ia',
-    'ratio_cobertura_liquidez'
+    'ratio_cobertura_liquidez',
+    'pagava_em_dia_agora_atrasa',
+    'aumento_atraso_dias',
+    'aumento_recompras',
+    'mudanca_segmento'
 ]
 
 print("📉 Gerando amostra para treinamento (Performance)...")
@@ -186,7 +221,11 @@ print("💾 Salvando Perfil Analítico Unificado (Gold) via Spark...")
 df_perfil_unificado_spark = df_features_spark.groupBy("cpf_cnpj_sacado").agg(
     F.max("exposicao_acumulada").alias("exposicao_maxima_historica"),
     F.mean("prazo_medio_titulos").alias("prazo_medio_historico"),
-    F.max("media_pagamento_mensal").alias("media_pagamento_mensal")
+    F.max("media_pagamento_mensal").alias("media_pagamento_mensal"),
+    F.max("pagava_em_dia_agora_atrasa").alias("pagava_em_dia_agora_atrasa"),
+    F.max("aumento_atraso_dias").alias("aumento_atraso_dias"),
+    F.max("aumento_recompras").alias("aumento_recompras"),
+    F.max("mudanca_segmento").alias("mudanca_segmento")
 )
 
 # Tratamento de Nulos e Tipos (Equivalente ao Pandas)
@@ -200,7 +239,11 @@ df_perfil_unificado_spark = df_perfil_unificado_spark.fillna(0)
 df_perfil_unificado_spark = df_perfil_unificado_spark.withColumns({
     "exposicao_maxima_historica": F.col("exposicao_maxima_historica").cast("double"),
     "prazo_medio_historico": F.col("prazo_medio_historico").cast("double"),
-    "media_pagamento_mensal": F.when(F.col("media_pagamento_mensal") == 0, 1.0).otherwise(F.col("media_pagamento_mensal").cast("double"))
+    "media_pagamento_mensal": F.when(F.col("media_pagamento_mensal") == 0, 1.0).otherwise(F.col("media_pagamento_mensal").cast("double")),
+    "pagava_em_dia_agora_atrasa": F.col("pagava_em_dia_agora_atrasa").cast("double"),
+    "aumento_atraso_dias": F.col("aumento_atraso_dias").cast("double"),
+    "aumento_recompras": F.col("aumento_recompras").cast("double"),
+    "mudanca_segmento": F.col("mudanca_segmento").cast("double")
 })
 
 # Garantia Final de Nulos
