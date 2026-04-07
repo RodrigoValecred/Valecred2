@@ -169,11 +169,20 @@ def display_summary(df):
     except Exception as e:
         print(f"Resumo indisponível: {e}")
 
+
+# ⚡ Bolt Optimization: Cache dataframe to prevent double evaluation of complex DAG
+# 💡 O que: Adicionado df_relatorio.cache() antes das múltiplas ações subsequentes e .unpersist() ao final.
+# 🎯 Por que: display_summary() invoca .count() e .collect(), e saveAsTable() invoca outra action de escrita. Sem cache, todo o DAG (que inclui window functions e joins pesados) é avaliado duas vezes.
+# 📊 Impacto: Corta o tempo de execução e uso de I/O de disco quase pela metade, poupando a engine de re-processar regras custosas de prorrogação.
+# 🔬 Measurement: No Spark UI, a ação de salvamento mostrará InMemoryTableScan em vez de recalcular todo o stage.
+df_relatorio.cache()
+
 display_summary(df_relatorio)
 
 # Salvar
 output_table = "LH_Gold.relatorio_fechamento_prorrogacao"
 df_relatorio.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
+df_relatorio.unpersist()
 print(f"Relatório salvo em: {output_table}")
 
 mssparkutils.notebook.exit("Success")
