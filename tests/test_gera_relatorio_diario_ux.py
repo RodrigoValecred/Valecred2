@@ -149,7 +149,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn("✅", full_output)
         self.assertIn("🚨", full_output)
 
-        # Dashboard Summary UX Checks
+        # Verificações de UX do resumo do painel
         self.assertIn("✅ Seguro: 1    ", full_output)
         self.assertIn("🚨 Crítico: 1   ", full_output)
 
@@ -202,7 +202,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
             'excesso_valor': [0, 0, 0],
             'validade_limite': [
                 '2025-12-01', # Expirado (Assumindo que self.data_hoje é 2025-12-23)
-                '2025-12-30', # Near (7 days)
+                '2025-12-30', # Perto (7 dias)
                 '2026-06-01'  # Safe
             ]
         })
@@ -241,9 +241,9 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         html = styler.to_html()
 
         # Verifica a Lógica CSS
-        # 20% -> Green (#ccffcc)
+        # 20% -> Verde (#ccffcc)
         self.assertIn("#ccffcc", html)
-        # 200% -> Red (#ffcccc)
+        # 200% -> Vermelho (#ffcccc)
         self.assertIn("#ffcccc", html)
 
         # Verifica a Lógica de Moeda
@@ -257,7 +257,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         self.assertIn('format_currency_br', self.scope)
         format_func = self.scope['format_currency_br']
 
-        # Testa caminhos felizes (happy paths)
+        # Testa caminhos felizes
         self.assertEqual(format_func(1234.56), "R$ 1.234,56")
         self.assertEqual(format_func(100), "R$ 100,00")
         self.assertEqual(format_func(0), "R$ 0,00")

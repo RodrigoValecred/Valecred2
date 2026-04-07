@@ -35,7 +35,7 @@ import mlflow
 import mlflow.sklearn
 
 # ==============================================================================
-# 1. ENGENHARIA DE DADOS (SPARK) - A BASE ROBUSTA
+# 1. ENGENHARIA DE DADOS (SPARK) - UMA BASE ROBUSTA
 # ==============================================================================
 print("1. Iniciando Engenharia de Dados...")
 
@@ -111,7 +111,7 @@ print("2. Iniciando Treinamento da IA...")
 # Usamos uma amostra representativa para treinar o Isolation Forest,
 # evitando OOM no driver e reduzindo tempo de transferência.
 # Limitamos a 500k linhas ou 50% dos dados, o que for menor.
-# Definir as Features
+# Definir como recursos
 feature_cols = [
     'vlr_total_sacado', 
     'prazo_medio_titulos', 
@@ -126,7 +126,7 @@ feature_cols = [
 print("📉 Gerando amostra para treinamento (Performance)...")
 spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
 
-# 🧠 Tensor: Select required columns before .toPandas()
+# 🧠 Tensor: Selecione as colunas necessárias antes de .toPandas()
 # 💡 O que: Seleciona as features estritamente necessárias antes da conversão para Pandas.
 # 🎯 Por que: Transferir todas as colunas da tabela do JVM/Spark para o driver Python via rede desperdiça muita memória e CPU. Selecionar apenas o necessário reduz o payload.
 # 📊 Impacto: Acelera o `.toPandas()` em mais de 4x.
@@ -157,11 +157,11 @@ float64_cols = df_pandas.select_dtypes(include=['float64']).columns
 if len(float64_cols) > 0:
     df_pandas[float64_cols] = df_pandas[float64_cols].astype('float32')
 
-# Treinamento (Isolation Forest)
+# Treinamento (Floresta de Isolamento)
 # contamination=0.02 (2% de anomalias)
 model = IsolationForest(n_estimators=100, contamination=0.02, random_state=42, n_jobs=-1)
 
-# Fit e Predict
+# Ajustar e Prever
 df_pandas['anomaly_score'] = model.fit_predict(df_pandas[feature_cols])
 
 print("✅ Modelo treinado com sucesso!")

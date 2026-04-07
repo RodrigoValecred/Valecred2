@@ -127,7 +127,7 @@ class TestDecodeHtmlEntities(unittest.TestCase):
         pd.testing.assert_series_equal(self.unescape_udf(s), expected)
 
     def test_no_entities(self):
-        """Test string with no entities."""
+        """String de teste sem entidades."""
         if not self.unescape_udf:
             self.skipTest("Function not found")
 
@@ -219,7 +219,7 @@ class TestNormalizeCol(unittest.TestCase):
         self.assertIsNotNone(self.normalize_col, "Function normalize_col not found or failed to load.")
 
     def test_standard_snake_case(self):
-        """Test simple snake_case strings (should remain unchanged)."""
+        """Teste strings simples de Snake_case (devem permanecer inalteradas)."""
         if not self.normalize_col: self.skipTest("Function not found")
         self.assertEqual(self.normalize_col("simple_column"), "simple_column")
         self.assertEqual(self.normalize_col("id"), "id")
@@ -237,7 +237,7 @@ class TestNormalizeCol(unittest.TestCase):
         if not self.normalize_col: self.skipTest("Function not found")
         self.assertEqual(self.normalize_col("NomeCliente"), "nome_cliente")
         self.assertEqual(self.normalize_col("DataDeNascimento"), "data_de_nascimento")
-        # lowerCamelCase
+        # inferiorCamelCase
         self.assertEqual(self.normalize_col("nomeCliente"), "nome_cliente")
 
     def test_special_characters(self):
@@ -348,7 +348,7 @@ class TestStandardizeEstudoColumns(unittest.TestCase):
     def test_standardize_columns_already_exists(self):
         if not self.standardize_estudo_columns: self.skipTest("Function not found")
 
-        # Scenario: Target columns already exist (e.g. rerun)
+        # Cenário: as colunas de destino já existem (por exemplo, nova execução)
         df = MockDataFrame(["valor_risco_estudo", "valor_limite_estudo"])
         new_df = self.standardize_estudo_columns(df)
 
@@ -414,7 +414,7 @@ class TestGetOperacoesSchema(unittest.TestCase):
         if not self.get_operacoes_schema:
             self.skipTest("Function not found")
 
-        # Missing "CODOPERACAO"
+        # Faltando "CODOPERACAO"
         input_columns = ["CODCLIENTE", "CODEMPRESA"]
         df = MockDataFrame(input_columns)
 
@@ -454,7 +454,7 @@ class TestCheckShouldSkip(unittest.TestCase):
             print("WARNING: check_should_skip function not found in file.")
 
     def test_check_should_skip_exception(self):
-        """Test the exception path in check_should_skip."""
+        """Teste o caminho da exceção em check_should_skip."""
         if not self.check_should_skip:
             self.skipTest("Function not found")
 

@@ -91,7 +91,7 @@ class TestProcessTacM(unittest.TestCase):
         # 3. Verifica trim(upper(...))
         self.mock_trim.assert_called_with(mock_upper_obj)
 
-        # 4. Verifica withColumn("descricao", trim(...))
+        # 4. Verifique comColumn("descricao", trim(...))
         mock_df.withColumn.assert_any_call("descricao", mock_trim_obj)
 
         # 5. Verifica filter(isin)
@@ -100,7 +100,7 @@ class TestProcessTacM(unittest.TestCase):
         # Verifica o filter chamado com o resultado de isin
         mock_df.filter.assert_called_with(mock_isin_expr)
 
-        # 6. Verifica withColumn("descricao", lit("TAC M"))
+        # 6. Verifique comColumn("descricao", lit("TAC M"))
         self.mock_lit.assert_called_with("TAC M")
         mock_df.withColumn.assert_any_call("descricao", self.mock_lit.return_value)
 

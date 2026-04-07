@@ -66,7 +66,7 @@ class TestCVMSecurity(unittest.TestCase):
         with open(filepath, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Clean magic commands
+        # Comandos mágicos limpos
         lines = content.splitlines()
         clean_lines = []
         for line in lines:
@@ -165,7 +165,7 @@ class TestCVMPeriodValidation(unittest.TestCase):
                     self.validate_periodo(p)
 
     def test_invalid_types(self):
-        """Test non-string inputs."""
+        """Teste entradas sem string."""
         invalid_cases = [202501, None, ["202501"], 123456]
         for p in invalid_cases:
             with self.subTest(periodo=p):

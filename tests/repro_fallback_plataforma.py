@@ -95,7 +95,7 @@ class MockDataFrame:
                         joined_data.append(new_row)
 
         elif isinstance(on, str):
-             # Join por chave simples
+             # Cadastre-se por chave simples
              key = on
              print(f"Join key: {key}")
              for row in self.data:
@@ -182,7 +182,7 @@ class TestFallbackPlataforma(unittest.TestCase):
         df_plataformas = MockDataFrame("plataformas", ["cod_agencia", "nome_plataforma"], plataformas_data)
 
         # 2. Constrói o Map Cliente-Plataforma
-        # Join Bridge -> Gerente -> Plataforma
+        # Entre no Bridge -> Gerente -> Plataforma
         print("\n--- Building Map ---")
         df_bg = df_bridge.filter(col("data_fim_vigencia") == "9999-12-31") \
             .join(df_gerentes, col("cod_gerente") == col("cod_broker"))
@@ -202,7 +202,7 @@ class TestFallbackPlataforma(unittest.TestCase):
         ]
         df_prorrog_enrich = MockDataFrame("prorrog_enrich", ["cod_operacao", "cod_cliente", "nome_plataforma"], prorrog_data)
 
-        # Join Prorrog + Client Map
+        # Junte-se ao Prorrog + Mapa do Cliente
         print("\n--- Joining Final ---")
         df_final = df_prorrog_enrich.join(df_cli_plat, "cod_cliente", "left")
 

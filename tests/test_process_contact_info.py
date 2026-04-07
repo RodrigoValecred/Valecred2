@@ -50,7 +50,7 @@ class TestUnfoldContactInfo(unittest.TestCase):
     def test_unfold_logic(self):
         """Testa a lógica principal: explode(split) e então trim."""
         df = MagicMock()
-        # Mocking do method chaining
+        # Zombar do encadeamento de métodos
         df_unfolded = MagicMock()
         df_cleaned = MagicMock()
 
@@ -59,15 +59,15 @@ class TestUnfoldContactInfo(unittest.TestCase):
 
         result = self.unfold_contact_info(df, "INPUT_COL", "OUTPUT_COL", ";")
 
-        # Verifica first withColumn call (explode + split)
-        # Expected: explode(split(col(INPUT_COL), ;))
+        # Verifique primeiro a chamada withColumn (explodir + dividir)
+        # Esperado: explodir(split(col(INPUT_COL), ;))
         df.withColumn.assert_called_once()
         args, _ = df.withColumn.call_args
         self.assertEqual(args[0], "OUTPUT_COL")
         self.assertEqual(args[1], "explode(split(col(INPUT_COL), ;))")
 
         # Verifica a segunda chamada withColumn (trim)
-        # Expected: trim(col(OUTPUT_COL))
+        # Esperado: trim(col(OUTPUT_COL))
         df_unfolded.withColumn.assert_called_once()
         args, _ = df_unfolded.withColumn.call_args
         self.assertEqual(args[0], "OUTPUT_COL")

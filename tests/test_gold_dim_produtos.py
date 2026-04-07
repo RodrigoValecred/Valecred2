@@ -44,7 +44,7 @@ class TestIncorporarProdutosAusentes(unittest.TestCase):
         mock_spark.read.table.return_value = mock_df_ausentes
         mock_df_ausentes.select.return_value = mock_df_ausentes
 
-        # Chainable methods
+        # Métodos encadeáveis
         mock_df_calc.join.return_value = mock_df_calc
         mock_df_calc.withColumn.return_value = mock_df_calc
         mock_df_calc.drop.return_value = mock_df_calc

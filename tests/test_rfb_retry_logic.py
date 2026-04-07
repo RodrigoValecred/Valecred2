@@ -220,7 +220,7 @@ def test_corrupt_zip_fallback():
     mock_zip_instance_corrupt.testzip.return_value = "corrupt_file.txt" # retorna o nome do primeiro arquivo ruim
 
     mock_zip_instance_valid = MagicMock()
-    mock_zip_instance_valid.testzip.return_value = None # None means no bad files
+    mock_zip_instance_valid.testzip.return_value = None # Nenhum significa que não há arquivos ruins
 
     # Precisamos que o gerenciador de contexto ZipFile retorne essas instâncias sequencialmente
     # zipfile_mock.ZipFile.return_value.__enter__.side_effect = [mock_zip_instance_corrupt, mock_zip_instance_valid]

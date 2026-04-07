@@ -38,9 +38,9 @@ class TestParseDanfe(unittest.TestCase):
         # Simula DataFrame
         mock_df = MagicMock(name="df")
 
-        # Chainable withColumn
+        # Encadeável com coluna
         mock_df.withColumn.return_value = mock_df
-        # Chainable withColumnRenamed
+        # Encadeamento comColumnRenomeado
         mock_df.withColumnRenamed.return_value = mock_df
 
         # Contexto de execução (Execution Context)
@@ -76,12 +76,12 @@ class TestParseDanfe(unittest.TestCase):
 
         calls = mock_df.withColumn.call_args_list
 
-        # Collect columns added
+        # Coletar colunas adicionadas
         added_cols = [c[0][0] for c in calls]
         for col_name in expected_cols:
             self.assertIn(col_name, added_cols)
 
-        # 2. Verifica substring calls
+        # 2. Verifique chamadas de substring
         self.assertEqual(mock_substring.call_count, len(expected_cols))
 
         substring_calls = mock_substring.call_args_list
@@ -104,7 +104,7 @@ class TestParseDanfe(unittest.TestCase):
 
         self.assertEqual(expected_params, found_params, "Mismatch in substring parameters")
 
-        # 3. Verifica withColumnRenamed
+        # 3. Verifique comColumnRenamed
         mock_df.withColumnRenamed.assert_called_once_with("CHAVEDANFE", "chave_danfe")
 
         # 4. Verifica se col foi chamado com CHAVEDANFE pelo menos uma vez

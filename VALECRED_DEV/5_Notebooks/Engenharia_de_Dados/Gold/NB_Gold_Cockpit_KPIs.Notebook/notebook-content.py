@@ -17,7 +17,7 @@
 
 # MARKDOWN ********************
 
-# # Notebook Gold Cockpit KPIs
+# # KPIs do Notebook Gold Cockpit
 # **Objetivo:** Criar tabela Gold_Cockpit_KPIs com agregação de KPIs de risco e inadimplência.
 # **Origem:** Tabelas Silver (Titulos, Operacoes, Clientes).
 

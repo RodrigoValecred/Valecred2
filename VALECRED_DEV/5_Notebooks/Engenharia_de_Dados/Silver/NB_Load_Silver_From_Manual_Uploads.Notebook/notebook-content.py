@@ -46,7 +46,7 @@
 # CELL ********************
 
 %pip install openpyxl
-#python -m pip install --upgrade pip
+#python -m pip instalar --upgrade pip
 
 # METADATA ********************
 
@@ -78,7 +78,7 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
     Args:
         source_filename (str): O nome do arquivo a ser lido (ex: 'sup_regiao.xlsx').
         target_table_name (str): O nome completo da tabela de destino no formato
-                                 `lakehouse.tabela` (ex: 'LH_Silver.sup_regiao').
+`lakehouse.tabela` (ex: 'LH_Silver.sup_regiao').
     """
     base_path = "/lakehouse/default/Files/manual_uploads"
     
@@ -116,7 +116,7 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
             Returns:
                 str: O nome da coluna padronizado.
             """
-            # 1. Normalize unicode characters (accents)
+            # 1. Normalize caracteres Unicode (acentos)
             nfkd_form = unicodedata.normalize('NFKD', str(col_name))
             col_name = u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
@@ -128,7 +128,7 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
                 s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', col_name)
                 col_name = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
 
-            # 4. Lowercase
+            # 4. Letras minúsculas
             col_name = col_name.lower()
 
             # 5. Substituir caracteres não-alfanuméricos (exceto underscore) por underscore
@@ -153,7 +153,7 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
                     if original != new:
                         print(f"  '{original}' -> '{new}'")
 
-            # Converter para DataFrame Spark
+            # Conversor para DataFrame Spark
             df_spark = spark.createDataFrame(pandas_df)
             print("DataFrame convertido para Spark com sucesso.")
 

@@ -65,7 +65,7 @@ print("Iniciando construção da dim_empresas...")
 # 1. Leitura dos dados
 df_empresas = spark.read.table("LH_Silver.staging_empresas")
 
-# Explicit Safety Filter (Garante apenas IDs desejados mesmo se staging tiver mais)
+# Filtro de Segurança Explícito (Garanta apenas IDs desejados mesmo se staging tiver mais)
 df_empresas = df_empresas.filter(col("cod_empresa").isin([6, 14, 24, 25]))
 
 df_cadastros = spark.read.table("LH_Silver.staging_cad_geral_pf_pj_limpa")

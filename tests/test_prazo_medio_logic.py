@@ -81,7 +81,7 @@ class TestPrazoMedioLogic(unittest.TestCase):
         # Configura Cadeias
         df_ops.select.return_value = df_ops_select
         df_titulos.join.return_value = df_titulos_joined
-        df_titulos_joined.withColumn.return_value = df_titulos_calc # First calc
+        df_titulos_joined.withColumn.return_value = df_titulos_calc # Primeiro cálculo
         df_titulos_calc.withColumn.return_value = df_titulos_calc # Segundo cálculo
         df_titulos_calc.groupBy.return_value.agg.return_value = df_titulos_agg
 
@@ -116,7 +116,7 @@ class TestPrazoMedioLogic(unittest.TestCase):
         # Já que criamos um mock de datediff para retornar um MagicMock nomeado, podemos verificar as chamadas de withColumn.
 
         calls = df_titulos_joined.withColumn.call_args_list
-        # Expecting call("prazo_original_dias", datediff_result)
+        # Esperando chamada ("prazo_original_dias", datediff_result)
         # Podemos apenas verificar se a sequência de operações foi executada nos objetos.
 
         # Vamos confiar no fluxo se o código executou sem erros nas simulações.

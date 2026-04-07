@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Define paths
+# Definir caminhos
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SERPRO_NOTEBOOK_PATH = os.path.join(
     REPO_ROOT,

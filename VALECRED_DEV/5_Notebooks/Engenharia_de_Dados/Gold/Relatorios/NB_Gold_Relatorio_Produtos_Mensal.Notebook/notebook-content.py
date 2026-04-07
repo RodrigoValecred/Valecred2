@@ -118,7 +118,7 @@ def load_and_prepare_data(spark):
     df_plataformas = spark.read.table("LH_Silver.staging_plataformas")
 
     # Criar mapa Cliente -> Plataforma Atual
-    # Join: Bridge -> Gerente -> Plataforma
+    # Cadastre-se: Bridge -> Gerente -> Plataforma
     df_cli_plat_map = df_bridge.join(df_gerentes.alias("g"), df_bridge.cod_gerente == col("g.cod_broker"), "left") \
         .join(df_plataformas.alias("p"), col("g.cod_agencia") == col("p.cod_agencia"), "left") \
         .select(df_bridge.cod_cliente, col("p.nome_plataforma").alias("nome_plataforma_cli")) \
@@ -357,7 +357,7 @@ print("Streams processados.")
 # 3. Consolidação e Enriquecimento
 print("Consolidando dados...")
 
-# Union dos Streams
+# União dos Streams
 df_union = df_stream_ops.unionByName(df_stream_prorrog).unionByName(df_stream_mora)
 
 # Join com Dimensão Clientes para obter nome e grupo econômico
@@ -532,7 +532,7 @@ try:
         print("Aviso: status_analise não encontrada em staging_operacoes_prorrogacao_limpa. Filtro não aplicado.")
 
     # Agregar por Título (para evitar explosão de linhas no join de Título)
-    # 1. Total Revenue per Title
+    # 1. Receita total por título
     # 2. Receita de 2025 por Título (para Lógica de Dedução do Cliente)
     df_prorrogacao_silver_agg = df_prorrogacao_silver.groupBy("cod_titulo").agg(
         sum("juros").alias("receita_prorrogacao_titulo"),
@@ -695,7 +695,7 @@ else:
 # Otimização (Bolt ⚡): Substituir funções de Window por GroupBy + Join para agregações de clientes
 # Isso evita o embaralhamento (shuffling) custoso de window em todas as operações de um cliente (O(N*W) -> O(N)).
 
-# 4.1 Pre-aggregation calculations (Row-level)
+# 4.1 Cálculos de pré-agregação (nível de linha)
 df_calcs = df_base_cliente \
     .withColumn("produto_final", coalesce(col("produto_informacao_de_mercado"), lit("PRODUTO NÃO IDENTIFICADO"))) \
     .withColumn("prazo_medio_mora_op",

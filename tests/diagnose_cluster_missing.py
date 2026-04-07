@@ -18,7 +18,7 @@ data_titulos = [
     (1, "2023-01-01", "2023-01-10", "2023-01-05", 1000.0, 1000.0),
     # Client 2 (Only Open - No Liquidacao)
     (2, "2023-01-01", "2023-06-01", None, 5000.0, 0.0),
-    # Client 3 (Mixed)
+    # Cliente 3 (Misto)
     (3, "2023-01-01", "2023-01-10", "2023-01-12", 2000.0, 2000.0),
     (3, "2023-02-01", "2023-06-01", None, 3000.0, 0.0),
 ]
@@ -30,7 +30,7 @@ df_titulos = spark.createDataFrame(data_titulos, columns)
 # Reprodução da Lógica Atual
 print("--- Reproducing Logic ---")
 
-# 1.1 Metrics (Paid)
+# 1.1 Métricas (pagas)
 df_pagos = df_titulos.filter(col("liquidacao").isNotNull()) \
     .withColumn("dias_atraso_real", datediff(col("liquidacao"), col("venc_prorrogado")))
 

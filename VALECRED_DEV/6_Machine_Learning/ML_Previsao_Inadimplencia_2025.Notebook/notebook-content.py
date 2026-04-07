@@ -22,7 +22,7 @@
 
 # MARKDOWN ********************
 
-# # Fabric notebook source
+# # Fonte de notebook de tecido
 
 # MARKDOWN ********************
 
@@ -105,8 +105,8 @@ cols_operacoes = {
 # 🧠 Tensor: Optimize bulk column renaming
 # 💡 What: Replaced iterative .withColumnRenamed() in a for-loop with a single vectorized df.toDF() projection.
 # 🎯 Why: Iteratively calling .withColumnRenamed() creates deeply nested Project nodes in the Catalyst logical plan, leading to high compilation overhead and potential StackOverflowError.
-# 📊 Impact: Drastically reduces the Catalyst query plan depth and compilation time.
-# 🔬 Measurement: Plan compilation overhead for this segment drops from linear O(N) to O(1) in Catalyst.
+# 📊 Impacto: reduz drasticamente a profundidade do plano de consulta do Catalyst e o tempo de compilação.
+# 🔬 Medição: a sobrecarga de compilação do plano para este segmento cai de O(N) linear para O(1) no Catalyst.
 new_cols_operacoes = [cols_operacoes.get(c, c) for c in df_operacoes.columns]
 df_operacoes = df_operacoes.toDF(*new_cols_operacoes)
 
@@ -170,7 +170,7 @@ df_previsao_spark = df_mestra_spark
 
 df_previsao_spark.cache()
 
-# 🧠 Tensor: Replace .count() with .isEmpty()
+# 🧠 Tensor: Substitua .count() por .isEmpty()
 # 💡 O que: Substituiu a contagem total de registros (df.count()) por uma verificação de vazio (df.isEmpty()).
 # 🎯 Por que: Em PySpark, `.count()` força a materialização completa e varredura de todas as partições do DataFrame, mesmo que só precisemos saber se ele tem dados. `.isEmpty()` é muito mais eficiente, parando na primeira partição com dados (equivalente a um limit(1)), economizando tempo de CPU e I/O.
 # 📊 Impacto: Otimiza o tempo da verificação inicial, evitando o overhead do full table scan no cluster. A materialização do `.cache()` ocorrerá de forma mais eficiente (lazy) na primeira ação subsequente (ex: `.show()` ou na própria UDF distribuída).
@@ -253,7 +253,7 @@ def predict_proba_udf(*cols):
 
     # 🧠 Tensor: Downcast numeric columns (float64 -> float32)
     # 💡 O que: Converte todas as colunas float64 no DataFrame Pandas para float32 antes da inferência do modelo.
-    # 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita o overhead
+    # 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita a sobrecarga
     #         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória
     #         do DataFrame durante a execução.
     # 📊 Impacto: Reduz pela metade o uso de memória para features numéricas (ex., de ~154MB para ~78MB por 1M de linhas).

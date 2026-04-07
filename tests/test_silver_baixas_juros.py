@@ -30,7 +30,7 @@ class TestSilverJurosCorrections(unittest.TestCase):
         mock_df = MagicMock(name="df")
         mock_df.columns = ["JUROS"] # Simula existência de colunas
 
-        # Simula encadeamento de when().when().otherwise()
+        # Simulação de encadeamento de when().when().otherwise()
         mock_when_ret = MagicMock(name="when_ret")
         mock_otherwise_ret = MagicMock(name="otherwise_ret")
 
@@ -76,7 +76,7 @@ class TestSilverJurosCorrections(unittest.TestCase):
         mock_df = MagicMock(name="df")
         mock_df.columns = ["juros"] # Simula existência de colunas (lowercase)
 
-        # Simula encadeamento de when().when().otherwise()
+        # Simulação de encadeamento de when().when().otherwise()
         mock_when_ret = MagicMock(name="when_ret")
         mock_otherwise_ret = MagicMock(name="otherwise_ret")
 

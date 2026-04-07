@@ -49,7 +49,7 @@ class TestVOPMetrics(unittest.TestCase):
         # 2. Multiple clients
         # 3. Várias entradas para o mesmo dia
         data = [
-            # Client 1: Clear winner
+            # Cliente 1: vencedor claro
             Row(cod_cliente=1, dia_da_semana_da_operacao=2, dia_da_operacao=10, valor_de_face=100.0),
             Row(cod_cliente=1, dia_da_semana_da_operacao=3, dia_da_operacao=15, valor_de_face=200.0), # max week 3, max month 15
 

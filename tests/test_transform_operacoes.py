@@ -96,9 +96,9 @@ class TestTransformOperacoes(unittest.TestCase):
         ])
 
         data = [
-            (3042074, "XX", "A", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Should be 'CS'
-            (6048450, "YY", "B", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Should be 'CS'
-            (6048449, "ZZ", "C", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Should be 'CS'
+            (3042074, "XX", "A", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Deve ser 'CS'
+            (6048450, "YY", "B", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Deve ser 'CS'
+            (6048449, "ZZ", "C", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1), # Deve ser 'CS'
             (1111111, "ORIGINAL", "D", "2023-01-01", 1, 1, "2023-01-01", "2023-01-01", "A", "A", 1, "A", "A", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1, 1, 1, 1, 0.0, 0.0, 0.0, 1, 0.0, 1, 0.0, 0.0, 1) # Deve permanecer 'ORIGINAL'
         ]
 
@@ -122,7 +122,7 @@ class TestTransformOperacoes(unittest.TestCase):
             StructField("TTO", StringType(), True),
             StructField("STTO", StringType(), True),
             StructField("DATAALTERACAO", StringType(), True),
-            # Required columns
+            # Colunas obrigatórias
             StructField("CODCLIENTE", IntegerType(), True),
             StructField("CODEMPRESA", IntegerType(), True),
             StructField("DATAINCLUSAO", StringType(), True),
@@ -186,7 +186,7 @@ class TestTransformOperacoes(unittest.TestCase):
             StructField("TTO", StringType(), True),
             StructField("STTO", StringType(), True),
             StructField("DATAALTERACAO", StringType(), True),
-            # Required columns
+            # Colunas obrigatórias
             StructField("CODCLIENTE", IntegerType(), True),
             StructField("CODEMPRESA", IntegerType(), True),
             StructField("DATAINCLUSAO", StringType(), True),

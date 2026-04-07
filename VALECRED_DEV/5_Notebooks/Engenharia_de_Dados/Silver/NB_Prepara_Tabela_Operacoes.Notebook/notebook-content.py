@@ -99,7 +99,7 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         cols_source_map = {c.lower(): c for c in df_source.columns}
         if watermark_col.lower() not in cols_source_map:
-             return False # Cannot check, proceed
+             return False # Não é possível verificar, prossiga
 
         actual_col_source = cols_source_map[watermark_col.lower()]
         # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
@@ -109,13 +109,13 @@ def check_should_skip(spark, source_table, target_table_path, watermark_col="dat
         df_target = spark.read.format("delta").load(target_table_path)
         cols_target_map = {c.lower(): c for c in df_target.columns}
         if target_watermark_col.lower() not in cols_target_map:
-             return False # Cannot check, proceed
+             return False # Não é possível verificar, prossiga
 
         actual_col_target = cols_target_map[target_watermark_col.lower()]
         max_target = df_target.agg(max(col(actual_col_target))).first()[0]
 
         # Debug
-        # print(f"Verifica Skip {source_table} -> {target_table_path}: Origem Máx {max_source}, Destino Máx {max_target}")
+        # imprimir(f"Verifica Skip {source_table} -> {target_table_path}: Origem Máx {max_source}, Destino Máx {max_target}")
 
         if max_source and max_target and max_source <= max_target:
             return True # Fonte não é mais nova que o destino
@@ -211,7 +211,7 @@ def process_incremental_operacoes(source_table, output_path, key_columns_operaco
 
     # 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
     if not df_bronze_ops.isEmpty():
-        # 3. Transform & Deduplicate Batch
+        # 3. Transformar e desduplicar lote
         df_final_batch = transform_operacoes(df_bronze_ops, key_columns_operacoes)
 
         # 4. Merge
@@ -427,7 +427,7 @@ def process_estudo_op():
 
     df_estudo = spark.read.table(source_table)
 
-    # Apply normalization
+    # Aplicar normalização
     new_cols = [col(c).alias(normalize_col(c)) for c in df_estudo.columns]
     df_estudo_clean = df_estudo.select(new_cols)
 
@@ -510,7 +510,7 @@ def process_pareceres_operacoes():
     obs_col = col("parecer_original")
     # 1. Marcar quebras de linha (<br>, </p>, </div>, </li>, </tr>) - Regex case-insensitive
     obs_col = regexp_replace(obs_col, "(?i)<br\\s*/?>|</p>|</div>|</li>|</tr>", placeholder)
-    # 2. Remover TODAS as tags HTML restantes
+    # 2. Remova TODAS das tags HTML restantes
     obs_col = regexp_replace(obs_col, "<[^>]+>", " ")
     # 3. Decodificar caracteres especiais (Pandas UDF)
     obs_col = unescape_udf(obs_col)
@@ -615,7 +615,7 @@ def process_tab_operacoes_prorrogacao():
         print(f"Skipping {target_table} (No new data)")
         return
 
-    # 1. Source Data
+    # 1. Dados de origem
     df_prorrogacao = spark.read.table(source_table)
 
     # 2. Dependencies (Silver)
@@ -638,17 +638,17 @@ def process_tab_operacoes_prorrogacao():
      .withColumnRenamed("datainclusao", "data_inclusao")
 
     # 4. Joins
-    # Left Join com Títulos
+    # Esquerda Junte-se com Títulos
     df_joined_1 = df_prorrogacao_norm.join(df_titulos, "cod_titulo", "left_outer")
 
-    # Left Join com Operacoes
+    # Left Join com Operações
     df_joined_2 = df_joined_1.join(df_operacoes, "cod_operacao", "left_outer")
 
-    # 5. Transformations
+    # 5. Transformações
     # Extrair Dados (Parte de data de data_inclusao)
     df_transformed = df_joined_2.withColumn("data", to_date(col("data_inclusao")))
 
-    # 6. Select e Drop (Remover) Colunas
+    # 6. Selecione e Solte (Remover) Colunas
     # O usuário solicitou remover: TARIFA, USUAINCLUSAO, DATAALTERACAO, USUAALTERACAO, VALORDEVIDO, VALORPROR, VALORBOLETO
     # Colunas estão em lowercase (mas não snake_case com underscores) pelo passo 3: tarifa, usuainclusao, dataalteracao, usuaalteracao, valordevido, valorpror, valorboleto
     columns_to_drop = [
@@ -714,7 +714,7 @@ def process_tarifas_esporadicas():
     df_joined = df_filtered.alias("t").join(df_usuarios.alias("u"), col("t.USUAINCLUSAO") == col("u.CODUSUARIO"), "left") \
         .filter((col("u.NOME") != "RONALDO DANILO UREI GOBBI") | col("u.NOME").isNull())
 
-    # Select & Transform
+    # Selecione e transforme
     df_final = df_joined.select(
         col("t.CODOPERACAO").alias("cod_operacao"),
         col("t.DESCRICAO").alias("descricao"),

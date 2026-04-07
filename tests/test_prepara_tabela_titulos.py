@@ -164,7 +164,7 @@ class TestSelectTitulos(unittest.TestCase):
         expected_vencimento_efetivo = "coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')) AS vencimento_efetivo"
         self.assertIn(expected_vencimento_efetivo, args_str, "Missing or incorrect vencimento_efetivo expression")
 
-        # dias_atraso usa datediff e when
+        # dias_atraso EUA datado e quando
         expected_dias_atraso = "when(col('LIQUIDACAO').isNotNull(), datediff(col('LIQUIDACAO'), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')))).otherwise(datediff(current_date(), coalesce(col('VENCPRORROGADO'), col('VENCIMENTO')))) AS dias_atraso"
         self.assertIn(expected_dias_atraso, args_str, "Missing or incorrect dias_atraso expression")
 
@@ -212,7 +212,7 @@ class TestDeduplicateTitulos(unittest.TestCase):
             (2, "2023-02-01", "2023-02-02", "2023-02-20", "C"),
             (2, "2023-02-01", "2023-02-15", None, "D"),
 
-            # Título 3 - Only one row
+            # Título 3 - Apenas uma linha
             (3, "2023-03-01", "2023-03-01", None, "E")
         ]
 

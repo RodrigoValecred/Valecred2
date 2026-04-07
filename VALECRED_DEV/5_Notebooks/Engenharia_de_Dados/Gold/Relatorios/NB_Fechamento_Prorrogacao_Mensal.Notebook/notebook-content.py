@@ -138,7 +138,7 @@ df_prorrog_prep, df_clientes = load_and_prepare_data(spark)
 df_relatorio = process_fechamento_prorrogacao(df_prorrog_prep, df_clientes)
 
 # Exibição (Amostra)
-# df_relatorio.show(10, truncate=False)
+# df_relatorio.show(10, truncar=Falso)
 
 # DASHBOARD RÁPIDO DE SAÍDA (UX)
 def display_summary(df):

@@ -66,7 +66,7 @@ for col_name in cols_numericas:
         df_hoje_clean = df_hoje_clean.withColumn(col_name, F.col(col_name).cast(DoubleType()))
 # df_hoje_clean.show(5)
 
-# 🧠 Tensor: Bulk Column Renaming via toDF projection
+# 🧠 Tensor: renomeação de coluna em massa via projeção toDF
 # 💡 O que: Substituiu o encadeamento de chamadas `.withColumnRenamed()` por um único mapeamento de dicionário e `.toDF(*new_cols)`.
 # 🎯 Por que: Encadeamentos longos de `withColumnRenamed` geram planos lógicos excessivamente profundos com múltiplos nós `Project`, o que causa degradação de performance no Catalyst Optimizer e potencial StackOverflowError durante a fase de planejamento de query no driver. Um único `toDF` com uma lista resolvida resolve isso.
 # 📊 Impacto: Previne aumento exponencial do tempo de compilação do plano (especialmente perceptível em DAGs complexos/longos do Spark) e economiza memória do Driver.
@@ -235,7 +235,7 @@ for col_name in features_backup + features_para_analisar:
         df_scored = df_scored.fillna(0.0, subset=[actual_col_name])
 
 # ==============================================================================
-# 2. BUSCA DINÂMICA DO CÉREBRO DA V.A.I. (MLflow)
+# 2. BUSCA DINÂMICA DO CÉREBRO DA V.A.I. (MLfluxo)
 # ==============================================================================
 
 NOME_EXPERIMENTO = "VAI_Treinamento_Semanal"
@@ -439,13 +439,13 @@ def display_terminal_dashboard(metrics):
 
         print(f" {' '*cw} ") # Spacer
 
-        # Progress Bar
+        # Barra de progresso
         bar = create_progress_bar(percent_risco, width=25)
         print(f"  Risco: {bar:<39} ")
 
         print(f" {' '*cw} ") # Spacer
 
-        # Top Reasons
+        # Principais razões
         if risco_alto > 0 and top_motivos:
             print("─" * W)
             print(f" {'🔍 TOP 3 MOTIVOS DE RISCO':^{cw}} ")

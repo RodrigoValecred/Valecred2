@@ -796,7 +796,7 @@ def clean_obs(col_name):
     # Assume que se for binário, spark lê como binário ou string.
     # Se for string, apenas substitui. Se for binário, precisa de decode.
     # O padrão seguro é cast para string e replaces.
-    # O Dataflow usava Text.FromBinary(_, 1252), indicando encoding cp1252.
+    # O Dataflow usava Text.FromBinary(_, 1252), diminuindo a codificação cp1252.
     return regexp_replace(
         regexp_replace(col(col_name).cast("string"), "&ccedil;", "ç"),
         "&atilde;", "ã"

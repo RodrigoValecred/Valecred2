@@ -26,7 +26,7 @@
 # MARKDOWN ********************
 
 # # Notebook Gold: Dimensão Gerentes
-# **Objetivo:** Construir a tabela `LH_Gold.dim_gerentes` a partir de tabelas Silver (`staging_gerentes`, `staging_usuarios`, etc.).
+# **Objetivo:** Construir uma tabela `LH_Gold.dim_gerentes` a partir das tabelas Silver (`staging_gerentes`, `staging_usuarios`, etc.).
 # 
 # **Dependências:** `NB_Prepara_Tabela_Cadastros` (Silver).
 

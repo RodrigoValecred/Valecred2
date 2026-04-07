@@ -63,7 +63,7 @@ def safe_extract(zip_ref, path):
 
     for member in zip_ref.namelist():
         # Resolver o caminho (path) completo do membro
-        # Nota: os.path.join descartará 'target_path' se 'member' for absoluto
+        # Nota: os.path.join descartará 'target_path' se 'member' para absoluto
         member_path = os.path.join(target_path, member)
         # Normalizar o caminho do membro para resolver '..' e '.'
         abs_member_path = os.path.abspath(member_path)

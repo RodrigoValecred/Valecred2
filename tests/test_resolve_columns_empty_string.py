@@ -77,10 +77,10 @@ class TestResolveColumns(unittest.TestCase):
         mock_trim_instance.__eq__.assert_called_with("")
 
         # Verifica when(condição, None)
-        # when(mock_condition, None)
+        # quando(mock_condition, Nenhum)
         mock_when.assert_any_call(mock_condition, None)
 
-        # Verifica otherwise(col("mycol"))
+        # Verifique o contrário(col("mycol"))
         mock_when_instance.otherwise.assert_called_with(mock_col_instance)
 
         # Verifica coalesce(RESULT_EXPRESSION, col("mycol_op"))

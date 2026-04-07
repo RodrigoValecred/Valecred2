@@ -16,7 +16,7 @@ class TestDimEmpresas(unittest.TestCase):
         # Redefine simulações globais para garantir o isolamento do teste
         pyspark.sql.functions.reset_mock()
 
-        # Simula Spark Session
+        # Sessão Simula Spark
         self.spark = MagicMock()
 
         # Simula DataFrames

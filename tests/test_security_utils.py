@@ -14,7 +14,7 @@ def safe_extract(zip_ref, path):
 
     for member in zip_ref.namelist():
         # Resolve o caminho completo do membro
-        # Nota: os.path.join descartará 'target_path' se 'member' for absoluto
+        # Nota: os.path.join descartará 'target_path' se 'member' para tudo
         member_path = os.path.join(target_path, member)
         # Normaliza o caminho do membro para resolver '..' e '.'
         abs_member_path = os.path.abspath(member_path)
@@ -67,7 +67,7 @@ class TestSafeExtract(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "Zip Slip vulnerability detected"):
             safe_extract(mock_zip, self.extract_path)
 
-        # Case 2: Nested traversal
+        # Caso 2: travessia aninhada
         mock_zip = MockZipFile(['folder/../../evil.txt'])
         with self.assertRaisesRegex(Exception, "Zip Slip vulnerability detected"):
             safe_extract(mock_zip, self.extract_path)

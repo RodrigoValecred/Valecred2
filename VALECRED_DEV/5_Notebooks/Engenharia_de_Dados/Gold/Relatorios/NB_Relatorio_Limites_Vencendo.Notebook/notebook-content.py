@@ -91,7 +91,7 @@ df_final_source = df_joined_1.join(
 
 # Seleção e Transformação de Colunas
 # O usuário solicitou uma tabela simples com chaves CODCLIENTE/cod_cliente e CPFCNPJ/cpf_cnpj
-# 'nome_fantasia' removed as per user request/schema availability
+# 'nome_fantasia' removido conforme solicitação do usuário/disponibilidade do esquema
 df_relatorio = df_final_source.select(
     col("cod_cliente"),
     col("cpf_cnpj"),
