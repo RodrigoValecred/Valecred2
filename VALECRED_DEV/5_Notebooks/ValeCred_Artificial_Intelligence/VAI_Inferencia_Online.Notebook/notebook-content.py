@@ -179,21 +179,28 @@ if df_perfil:
     df_enrich = df_enrich.fillna(0, subset=["exposicao_maxima_historica", "prazo_medio_historico"])
     df_enrich = df_enrich.fillna(1.0, subset=["media_pagamento_mensal"])
     
+    # Identificar sacado novo (sem histórico ou com exposição zero)
+    df_enrich = df_enrich.withColumn(
+        "is_sacado_novo",
+        F.when(F.col("exposicao_maxima_historica") == 0, F.lit(True)).otherwise(F.lit(False))
+    )
+
     # Calcular as features na hora (Usando os dados que vieram do perfil)
     df_enrich = df_enrich.withColumn(
         "exposicao_acumulada", 
         F.col("exposicao_maxima_historica") + F.col("vlr_total_sacado")
     ).withColumn(
         "concentracao_operacao",
-        F.col("vlr_total_sacado") / F.col("exposicao_acumulada")
+        F.when(F.col("is_sacado_novo"), F.lit(0.0)).otherwise(F.col("vlr_total_sacado") / F.col("exposicao_acumulada"))
     ).withColumn(
         "ratio_cobertura_liquidez",
         F.col("vlr_total_sacado") / F.col("media_pagamento_mensal")
     )
 else:
     # Fallback se não tiver tabela Gold (primeira execução da vida)
-    df_enrich = df_enrich_produto.withColumn("exposicao_acumulada", F.col("vlr_total_sacado")) \
-                             .withColumn("concentracao_operacao", F.lit(1.0)) \
+    df_enrich = df_enrich_produto.withColumn("is_sacado_novo", F.lit(True)) \
+                             .withColumn("exposicao_acumulada", F.col("vlr_total_sacado")) \
+                             .withColumn("concentracao_operacao", F.lit(0.0)) \
                              .withColumn("ratio_cobertura_liquidez", F.lit(0.0))
 
 # --- INFERÊNCIA DISTRIBUÍDA (SPARK) ---
@@ -269,11 +276,18 @@ try:
     cols_input = [F.col(c) for c in features_backup]
     df_scored = df_scored.withColumn("anomaly_score", predict_udf(F.struct(*cols_input)))
 
-    # Forçar anomalia se for Intercia sem Limite
+    # Forçar anomalia se for Intercia sem Limite ou Sacado Novo
     if "alerta_intercia_sem_limite" in df_scored.columns:
         df_scored = df_scored.withColumn(
             "anomaly_score",
-            F.when(F.col("alerta_intercia_sem_limite"), -1.0).otherwise(F.col("anomaly_score"))
+            F.when(F.col("alerta_intercia_sem_limite"), -1.0)
+             .when(F.col("is_sacado_novo"), -1.0)
+             .otherwise(F.col("anomaly_score"))
+        )
+    else:
+        df_scored = df_scored.withColumn(
+            "anomaly_score",
+            F.when(F.col("is_sacado_novo"), -1.0).otherwise(F.col("anomaly_score"))
         )
 
     print("🚀 V.A.I. aplicada com sucesso (Distribuído)!")
@@ -288,7 +302,14 @@ except Exception as e:
     if "alerta_intercia_sem_limite" in df_scored.columns:
         df_scored = df_scored.withColumn(
             "anomaly_score",
-            F.when(F.col("alerta_intercia_sem_limite"), -1.0).otherwise(F.col("anomaly_score"))
+            F.when(F.col("alerta_intercia_sem_limite"), -1.0)
+             .when(F.col("is_sacado_novo"), -1.0)
+             .otherwise(F.col("anomaly_score"))
+        )
+    else:
+        df_scored = df_scored.withColumn(
+            "anomaly_score",
+            F.when(F.col("is_sacado_novo"), -1.0).otherwise(F.col("anomaly_score"))
         )
 
 # ==============================================================================
@@ -334,14 +355,16 @@ for c in features_para_analisar:
 z_scores_array = F.array(*z_score_structs)
 max_z_struct = F.array_max(z_scores_array)
 
-# Na explicação, verificar primeiro a regra rígida de Intercia
+# Na explicação, verificar primeiro a regra rígida de Intercia e Sacado Novo
 if "alerta_intercia_sem_limite" in df_scored.columns:
     motivo_expr = F.when(F.col("alerta_intercia_sem_limite"), F.lit("Tentativa de Intercia Sem Limite")) \
+                   .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
                    .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
                    .otherwise(F.lit("Desconhecido"))
 else:
-    motivo_expr = F.when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
+    motivo_expr = F.when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
+                   .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
                    .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
                    .otherwise(F.lit("Desconhecido"))
 
