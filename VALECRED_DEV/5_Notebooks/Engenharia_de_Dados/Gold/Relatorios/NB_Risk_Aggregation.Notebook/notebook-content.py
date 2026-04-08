@@ -53,18 +53,27 @@ df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa")
 
 # Renomeando colunas (necessário antes do filtro se usar nome novo, mas aqui usamos colunas originais se possivel ou novas)
 # O codigo original renomeava TTO -> TTO_OPERACAO e depois filtrava TTO_OPERACAO. Vamos manter o padrao.
-df_operacoes = df_operacoes.withColumnRenamed("EXIGECANHOTO", "EXIGECANHOTO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("EXIGECONFIRMACAO", "EXIGECONFIRMACAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("TTO", "TTO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("DATAINCLUSAO", "DATAINCLUSAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("USUAINCLUSAO", "USUAINCLUSAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("DATAALTERACAO", "DATAALTERACAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("USUAALTERACAO", "USUAALTERACAO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("CODRATING", "CODRATING_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("PREIMPRESSO", "PREIMPRESSO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("BOLETOESPECIAL", "BOLETOESPECIAL_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("TARIFARECOMPRA", "TARIFARECOMPRA_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("RECEBEBOLETO", "RECEBEBOLETO_OPERACAO")
+# 🧠 Tensor: Optimize bulk column renaming
+# 💡 What: Replaced iterative .withColumnRenamed() with a single vectorized df.toDF() projection.
+# 🎯 Why: Iteratively calling .withColumnRenamed() creates deeply nested Project nodes in the Catalyst logical plan, leading to high compilation overhead and potential StackOverflowError.
+# 📊 Impact: Reduce drastically the depth of the Catalyst query plan and compilation time.
+# 🔬 Measurement: Plan compilation overhead for this segment drops from linear O(N) to O(1) in Catalyst.
+cols_operacoes = {
+    "EXIGECANHOTO": "EXIGECANHOTO_OPERACAO",
+    "EXIGECONFIRMACAO": "EXIGECONFIRMACAO_OPERACAO",
+    "TTO": "TTO_OPERACAO",
+    "DATAINCLUSAO": "DATAINCLUSAO_OPERACAO",
+    "USUAINCLUSAO": "USUAINCLUSAO_OPERACAO",
+    "DATAALTERACAO": "DATAALTERACAO_OPERACAO",
+    "USUAALTERACAO": "USUAALTERACAO_OPERACAO",
+    "CODRATING": "CODRATING_OPERACAO",
+    "PREIMPRESSO": "PREIMPRESSO_OPERACAO",
+    "BOLETOESPECIAL": "BOLETOESPECIAL_OPERACAO",
+    "TARIFARECOMPRA": "TARIFARECOMPRA_OPERACAO",
+    "RECEBEBOLETO": "RECEBEBOLETO_OPERACAO"
+}
+new_cols_operacoes = [cols_operacoes.get(c, c) for c in df_operacoes.columns]
+df_operacoes = df_operacoes.toDF(*new_cols_operacoes)
 
 # Aplicando filtros de operacoes imediatamente
 df_operacoes = df_operacoes.filter(
@@ -89,17 +98,26 @@ df_cad_geral = spark.read.table("LH_Silver.staging_cad_geral_limpa")
 
 # (Operacoes ja foi renomeada acima para permitir o filtro antecipado)
 
-df_cedentes = df_cedentes.withColumnRenamed("DATAINCLUSAO", "DATAINCLUSAO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("USUAINCLUSAO", "USUAINCLUSAO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("DATAALTERACAO", "DATAALTERACAO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("USUAALTERACAO", "USUAALTERACAO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("CODRATING", "CODRATING_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("PEFIN", "PEFIN_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("BAIXADOPEFIN", "BAIXADOPEFIN_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("PREIMPRESSO", "PREIMPRESSO_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("BOLETOESPECIAL", "BOLETOESPECIAL_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("TARIFARECOMPRA", "TARIFARECOMPRA_CEDENTE")
-df_cedentes = df_cedentes.withColumnRenamed("RECEBEBOLETO", "RECEBEBOLETO_CEDENTE")
+# 🧠 Tensor: Optimize bulk column renaming
+# 💡 What: Replaced iterative .withColumnRenamed() with a single vectorized df.toDF() projection.
+# 🎯 Why: Iteratively calling .withColumnRenamed() creates deeply nested Project nodes in the Catalyst logical plan, leading to high compilation overhead and potential StackOverflowError.
+# 📊 Impact: Reduce drastically the depth of the Catalyst query plan and compilation time.
+# 🔬 Measurement: Plan compilation overhead for this segment drops from linear O(N) to O(1) in Catalyst.
+cols_cedentes = {
+    "DATAINCLUSAO": "DATAINCLUSAO_CEDENTE",
+    "USUAINCLUSAO": "USUAINCLUSAO_CEDENTE",
+    "DATAALTERACAO": "DATAALTERACAO_CEDENTE",
+    "USUAALTERACAO": "USUAALTERACAO_CEDENTE",
+    "CODRATING": "CODRATING_CEDENTE",
+    "PEFIN": "PEFIN_CEDENTE",
+    "BAIXADOPEFIN": "BAIXADOPEFIN_CEDENTE",
+    "PREIMPRESSO": "PREIMPRESSO_CEDENTE",
+    "BOLETOESPECIAL": "BOLETOESPECIAL_CEDENTE",
+    "TARIFARECOMPRA": "TARIFARECOMPRA_CEDENTE",
+    "RECEBEBOLETO": "RECEBEBOLETO_CEDENTE"
+}
+new_cols_cedentes = [cols_cedentes.get(c, c) for c in df_cedentes.columns]
+df_cedentes = df_cedentes.toDF(*new_cols_cedentes)
 
 df_mestra_spark = df_titulos.join(df_operacoes, on="CODOPERACAO", how="left")
 df_mestra_spark = df_mestra_spark.join(df_cedentes, on="CODCLIENTE", how="left")
