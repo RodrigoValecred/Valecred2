@@ -177,6 +177,20 @@ df_enrich_produto = df_enrich_produto.fillna(0, subset=["cod_produto_ia"])
 # CONTINUAÇÃO DO FLUXO NORMAL (Perfil e Cálculos)
 # ==============================================================================
 
+# Identificar Cedente Novo (Primeira Operação do Cliente)
+try:
+    df_ops_hist = spark.table("LH_Gold.fato_operacoes").filter(F.col("status_aceite") == "A")
+    df_cedente_hist = df_ops_hist.groupBy("cod_cliente").agg(F.count("*").alias("qtd_operacoes_historicas"))
+    df_enrich_produto = df_enrich_produto.join(df_cedente_hist, on="cod_cliente", how="left")
+    df_enrich_produto = df_enrich_produto.fillna(0, subset=["qtd_operacoes_historicas"])
+    df_enrich_produto = df_enrich_produto.withColumn(
+        "is_cedente_novo",
+        F.when(F.col("qtd_operacoes_historicas") > 0, F.lit(False)).otherwise(F.lit(True))
+    )
+except Exception as e:
+    print(f"⚠️ Não foi possível verificar histórico do cedente: {e}")
+    df_enrich_produto = df_enrich_produto.withColumn("is_cedente_novo", F.lit(False))
+
 if df_perfil:
     df_enrich = df_enrich_produto.join(df_perfil, on="cpf_cnpj_sacado", how="left")
     
@@ -286,13 +300,16 @@ try:
         df_scored = df_scored.withColumn(
             "anomaly_score",
             F.when(F.col("alerta_intercia_sem_limite"), -1.0)
+             .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .otherwise(F.col("anomaly_score"))
         )
     else:
         df_scored = df_scored.withColumn(
             "anomaly_score",
-            F.when(F.col("is_sacado_novo"), -1.0).otherwise(F.col("anomaly_score"))
+            F.when(F.col("is_cedente_novo"), -1.0)
+             .when(F.col("is_sacado_novo"), -1.0)
+             .otherwise(F.col("anomaly_score"))
         )
 
     print("🚀 V.A.I. aplicada com sucesso (Distribuído)!")
@@ -308,13 +325,16 @@ except Exception as e:
         df_scored = df_scored.withColumn(
             "anomaly_score",
             F.when(F.col("alerta_intercia_sem_limite"), -1.0)
+             .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .otherwise(F.col("anomaly_score"))
         )
     else:
         df_scored = df_scored.withColumn(
             "anomaly_score",
-            F.when(F.col("is_sacado_novo"), -1.0).otherwise(F.col("anomaly_score"))
+            F.when(F.col("is_cedente_novo"), -1.0)
+             .when(F.col("is_sacado_novo"), -1.0)
+             .otherwise(F.col("anomaly_score"))
         )
 
 # ==============================================================================
@@ -374,12 +394,14 @@ max_z_struct = F.array_max(z_scores_array)
 # Na explicação, verificar primeiro a regra rígida de Intercia e Sacado Novo
 if "alerta_intercia_sem_limite" in df_scored.columns:
     motivo_expr = F.when(F.col("alerta_intercia_sem_limite"), F.lit("Tentativa de Intercia Sem Limite")) \
+                   .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
                    .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
                    .otherwise(F.lit("Desconhecido"))
 else:
-    motivo_expr = F.when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
+    motivo_expr = F.when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
+                   .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
                    .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
                    .otherwise(F.lit("Desconhecido"))
