@@ -18,7 +18,7 @@ class TestPreparaTabelaContabilSelect(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Mock class for PySpark 'col'
+        # Classe Mock para o 'col' do PySpark
         class MockColumn(str):
             def __new__(cls, name, cast_type=None, alias_name=None):
                 obj = super().__new__(cls, name)
@@ -73,11 +73,11 @@ class TestPreparaTabelaContabilSelect(unittest.TestCase):
         df_mock.select.return_value = "mocked_dataframe_result"
 
         # Execução
-        # Since we load the function with exec, it behaves as a normal function, not a bound method.
-        # But we attached it to cls, so calling self.select_lancamentos passes `self` implicitly.
-        # To fix this, we should call it via its class or simply store it globally or not call it as a bound method.
+        # Como carregamos a função com exec, ela se comporta como uma função normal, não como um bound method.
+        # Mas nós a anexamos ao cls, então chamar self.select_lancamentos passa `self` implicitamente.
+        # Para corrigir isso, devemos chamá-la através de sua classe ou simplesmente armazená-la globalmente ou não chamá-la como um bound method.
 
-        # We can extract it from the class
+        # Podemos extraí-la da classe
         func = self.__class__.select_lancamentos
 
         result = func(df_mock)

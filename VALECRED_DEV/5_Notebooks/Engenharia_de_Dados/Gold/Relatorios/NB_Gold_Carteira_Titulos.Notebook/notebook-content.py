@@ -83,6 +83,12 @@ df_titulos_filtered = df_titulos.filter(
 # Join para consolidar as regras
 df_carteira = df_titulos_filtered.join(df_ops_filtered, "cod_operacao", "inner")
 
+# ⚡ Otimização Bolt: Adicionado .cache() em df_carteira antes da ação de count() e .unpersist() após o saveAsTable.
+# 💡 O que: Adicionado .cache() em df_carteira antes da ação de count() e .unpersist() após o saveAsTable.
+# 🎯 Por que: A ação .count() no log força a avaliação total do plano físico do Catalyst. Como o mesmo DataFrame é salvo logo em seguida, o Spark reavaliaria todo o histórico (joins, filtros) novamente sem o cache.
+# 📊 Impacto: Evita recálculos massivos (I/O e CPU), acelerando as etapas subsequentes.
+# 🔬 Medição: O Spark UI demonstrará InMemoryTableScan durante a etapa de escrita, em vez de FileScan seguido de joins.
+df_carteira.cache()
 print(f"Títulos na carteira elegíveis: {df_carteira.count()}")
 
 # METADATA ********************
@@ -102,6 +108,7 @@ target_table = "LH_Gold.carteira_de_titulos"
 print(f"Salvando em {target_table}...")
 
 df_carteira.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table)
+df_carteira.unpersist()
 
 print("Salvo com sucesso.")
 
