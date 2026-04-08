@@ -120,7 +120,7 @@ class TestTransformEsteiraDates(unittest.TestCase):
 
         col_mocks["PROPOSTA_min"].alias.assert_called_with("PROPOSTA")
 
-        # 5. Verifica Returns
+        # 5. Verifica Retornos
         self.assertEqual(result, mock_df_max)
         # Asserção para min removida
 

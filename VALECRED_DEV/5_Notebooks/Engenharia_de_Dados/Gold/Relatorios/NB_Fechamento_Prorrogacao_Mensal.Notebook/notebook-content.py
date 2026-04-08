@@ -170,7 +170,7 @@ def display_summary(df):
         print(f"Resumo indisponível: {e}")
 
 
-# ⚡ Bolt Optimization: Cache dataframe to prevent double evaluation of complex DAG
+# ⚡ Bolt Optimization: Fazer cache do dataframe para prevenir avaliação dupla da DAG complexa
 # 💡 O que: Adicionado df_relatorio.cache() antes das múltiplas ações subsequentes e .unpersist() ao final.
 # 🎯 Por que: display_summary() invoca .count() e .collect(), e saveAsTable() invoca outra action de escrita. Sem cache, todo o DAG (que inclui window functions e joins pesados) é avaliado duas vezes.
 # 📊 Impacto: Corta o tempo de execução e uso de I/O de disco quase pela metade, poupando a engine de re-processar regras custosas de prorrogação.
