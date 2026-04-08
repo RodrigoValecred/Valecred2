@@ -354,7 +354,14 @@ for c in features_para_analisar:
     
     z_expr = F.abs((F.col(c) - F.lit(mean_val)) / F.lit(std_val))
     friendly_name = mapa_nomes.get(c, c)
-    z_score_structs.append(F.struct(z_expr.alias("z_score"), F.lit(friendly_name).alias("reason")))
+    mean_val_safe = float(mean_val) if mean_val is not None else 0.0
+
+    detailed_reason = F.concat(
+        F.lit(f"{friendly_name} (Valor: "),
+        F.round(F.col(c), 2).cast(StringType()),
+        F.lit(f", Padrão: {round(mean_val_safe, 2)})")
+    )
+    z_score_structs.append(F.struct(z_expr.alias("z_score"), detailed_reason.alias("reason")))
 
 z_scores_array = F.array(*z_score_structs)
 max_z_struct = F.array_max(z_scores_array)
