@@ -142,10 +142,15 @@ try:
         "left"
     ).fillna(0.0, subset=["valor_limite_intercia"])
 
-    # Flag de golpe: É do grupo E cliente não tem limite para ele
+    # Flag de golpe: É do grupo E cliente não tem limite para ele (Apenas para operações 'Normal')
     df_hoje_ajustado = df_hoje_verificacao.withColumn(
         "alerta_intercia_sem_limite",
-        F.when(F.col("is_empresa_grupo") & (F.col("valor_limite_intercia") <= 0), F.lit(True)).otherwise(F.lit(False))
+        F.when(
+            F.col("is_empresa_grupo") &
+            (F.col("valor_limite_intercia") <= 0) &
+            (F.col("TTO") == "Normal"),
+            F.lit(True)
+        ).otherwise(F.lit(False))
     )
 except Exception as e:
     print(f"⚠️ Não foi possível carregar regras de Intercia: {e}")
