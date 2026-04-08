@@ -35,6 +35,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, coalesce, lit, sum
 from notebookutils import mssparkutils
@@ -67,34 +68,45 @@ workspaces = res_groups.json().get('value', [])
 
 full_inventory = []
 
-print(f"Iniciando varredura em {len(workspaces)} workspaces...")
-
-for ws in workspaces:
+def fetch_reports_from_ws(ws):
+    """Função auxiliar para buscar relatórios de um workspace específico via API."""
     ws_id = ws.get('id')
     ws_name = ws.get('name')
-    # 3. Chamada específica para os relatórios DESTE workspace (ws_id)
     url_rep = f"https://api.powerbi.com/v1.0/myorg/groups/{ws_id}/reports"
-    res_rep = requests.get(url_rep, headers=headers)
     
-    if res_rep.status_code == 200:
-        reports_in_ws = res_rep.json().get('value', [])
+    inventory_items = []
+    try:
+        res_rep = requests.get(url_rep, headers=headers)
+        if res_rep.status_code == 200:
+            reports_in_ws = res_rep.json().get('value', [])
+            for r in reports_in_ws:
+                inventory_items.append({
+                    "WorkspaceName": ws_name,
+                    "WorkspaceId": ws_id,
+                    "ReportName": r.get('name'),
+                    "ReportId": r.get('id'),
+                    "DatasetId": r.get('datasetId'),
+                    "WebUrl": r.get('webUrl'),
+                    "EmbedUrl": r.get('embedUrl'),
+                    "IsReadOnly": r.get('isReadOnly'),
+                    "Ambiente": "PROD" if "PROD" in ws_name.upper() else "DEV/UAT"
+                })
+        else:
+            print(f"Não foi possível ler o workspace: {ws_name} (Status: {res_rep.status_code})")
+    except Exception as e:
+        print(f"Erro ao acessar reports do workspace {ws_name}: {str(e)}")
         
-        # Só adicionamos se houver relatórios de fato
-        for r in reports_in_ws:
-            full_inventory.append({
-                "WorkspaceName": ws_name,
-                "WorkspaceId": ws_id,
-                "ReportName": r.get('name'),
-                "ReportId": r.get('id'),
-                "DatasetId": r.get('datasetId'),
-                "WebUrl": r.get('webUrl'),
-                "EmbedUrl": r.get('embedUrl'),
-                "IsReadOnly": r.get('isReadOnly'),
-                # Atribuindo tag de ambiente para sua análise de FIDC
-                "Ambiente": "PROD" if "PROD" in ws_name.upper() else "DEV/UAT"
-            })
-    else:
-        print(f"Não foi possível ler o workspace: {ws_name} (Status: {res_rep.status_code})")
+    return inventory_items
+
+print(f"Iniciando varredura paralela em {len(workspaces)} workspaces...")
+
+# Usando ThreadPoolExecutor para paralelizar as chamadas de I/O bloqueante (requests HTTP)
+with ThreadPoolExecutor(max_workers=10) as executor:
+    results = list(executor.map(fetch_reports_from_ws, workspaces))
+
+# Achatar a lista de listas em full_inventory
+for report_list in results:
+    full_inventory.extend(report_list)
 
 # METADATA ********************
 
