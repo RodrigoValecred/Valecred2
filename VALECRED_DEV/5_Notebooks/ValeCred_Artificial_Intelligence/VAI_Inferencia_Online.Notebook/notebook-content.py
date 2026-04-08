@@ -142,10 +142,15 @@ try:
         "left"
     ).fillna(0.0, subset=["valor_limite_intercia"])
 
-    # Flag de golpe: É do grupo E cliente não tem limite para ele
+    # Flag de golpe: É do grupo E cliente não tem limite para ele (Apenas para operações 'Normal')
     df_hoje_ajustado = df_hoje_verificacao.withColumn(
         "alerta_intercia_sem_limite",
-        F.when(F.col("is_empresa_grupo") & (F.col("valor_limite_intercia") <= 0), F.lit(True)).otherwise(F.lit(False))
+        F.when(
+            F.col("is_empresa_grupo") &
+            (F.col("valor_limite_intercia") <= 0) &
+            (F.col("TTO") == "Normal"),
+            F.lit(True)
+        ).otherwise(F.lit(False))
     )
 except Exception as e:
     print(f"⚠️ Não foi possível carregar regras de Intercia: {e}")
@@ -354,7 +359,14 @@ for c in features_para_analisar:
     
     z_expr = F.abs((F.col(c) - F.lit(mean_val)) / F.lit(std_val))
     friendly_name = mapa_nomes.get(c, c)
-    z_score_structs.append(F.struct(z_expr.alias("z_score"), F.lit(friendly_name).alias("reason")))
+    mean_val_safe = float(mean_val) if mean_val is not None else 0.0
+
+    detailed_reason = F.concat(
+        F.lit(f"{friendly_name} (Valor: "),
+        F.round(F.col(c), 2).cast(StringType()),
+        F.lit(f", Padrão: {round(mean_val_safe, 2)})")
+    )
+    z_score_structs.append(F.struct(z_expr.alias("z_score"), detailed_reason.alias("reason")))
 
 z_scores_array = F.array(*z_score_structs)
 max_z_struct = F.array_max(z_scores_array)
