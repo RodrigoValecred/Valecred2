@@ -102,9 +102,9 @@ cols_operacoes = {
     "RECEBEBOLETO": "RECEBEBOLETO_OPERACAO"
 }
 
-# 🧠 Tensor: Optimize bulk column renaming
-# 💡 What: Replaced iterative .withColumnRenamed() in a for-loop with a single vectorized df.toDF() projection.
-# 🎯 Why: Iteratively calling .withColumnRenamed() creates deeply nested Project nodes in the Catalyst logical plan, leading to high compilation overhead and potential StackOverflowError.
+# 🧠 Tensor: Otimizar a renomeação de colunas em massa
+# 💡 O que: Substituiu o .withColumnRenamed() iterativo em um loop for por uma única projeção df.toDF() vetorizada.
+# 🎯 Por que: Chamar iterativamente .withColumnRenamed() cria nós Project profundamente aninhados no plano lógico do Catalyst, levando a um alto overhead de compilação e potencial StackOverflowError.
 # 📊 Impacto: reduz drasticamente a profundidade do plano de consulta do Catalyst e o tempo de compilação.
 # 🔬 Medição: a sobrecarga de compilação do plano para este segmento cai de O(N) linear para O(1) no Catalyst.
 new_cols_operacoes = [cols_operacoes.get(c, c) for c in df_operacoes.columns]
