@@ -2,6 +2,15 @@
 
 ## Change Log
 
+### [2026-04-08]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| Preparação Tabela Contábil (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Contabil.Notebook/notebook-content.py` | 🧠 Tensor: Adicionado `.cache()` e `.unpersist()` ao DataFrame `df_dedup` (Window function) para evitar re-execução de particionamento e shuffles redundantes. | Changed |
+| Carteira de Títulos (Gold) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Carteira_Titulos.Notebook/notebook-content.py` | ⚡ Bolt: Caching do dataframe antes do `count()` e `.unpersist()` após para prevenir reavaliação dupla do DAG do Catalyst. | Changed |
+| Carga Carteira PDD (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Silver_Carteira_PDD.Notebook/notebook-content.py` | ⚡ Bolt: Cache do DataFrame resultante de uniões antes da ação `count()` para evitar re-leitura de múltiplas carteiras. | Changed |
+| CSV Data Loading | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Load_Silver_From_Manual_Uploads.Notebook/notebook-content.py` | 🧠 Tensor: Uso do leitor nativo distribuído do PySpark (`spark.read.csv`) em vez de Pandas para evitar OOM; Otimização de renomeação de colunas com `.toDF()`. | Changed |
+| Testes Unitários | `tests/test_relatorio_produtos_mensal.py` | 🧪 Adicionados testes unitários abrangentes para o processamento de Mora Mensal. | Added |
 ### [2026-04-03]
 
 | Component | Path | Description | Change |
