@@ -2,6 +2,12 @@
 
 ## Change Log
 
+### [2026-04-08]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| Power BI API Inventory | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/testes.Notebook/notebook-content.py` | ⚡ Bolt: Refatorada a busca de relatórios por workspace para utilizar `ThreadPoolExecutor`, paralelizando as chamadas de API e reduzindo drasticamente o tempo de execução. | Changed |
+
 ### [2026-04-03]
 
 | Component | Path | Description | Change |
