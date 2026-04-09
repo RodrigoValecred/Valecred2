@@ -299,7 +299,7 @@ def process_limites():
 
     # 🧠 Tensor: Substituir chamadas iterativas de .withColumn() por uma única projeção .select()
     # 💡 O que: Substituiu um encadeamento de chamadas .withColumn() e .withColumnRenamed() em favor de uma única projeção via .select(*expr_list).
-    # 🎯 Por que: Iterar sobre .withColumn() obriga o Catalyst Optimizer a gerar e analisar um plano de execução de Spark cada vez maior a cada iteração, o que leva à "explosão do plano" (plan explosion) e overhead massivo. A validação `.lower()` em múltiplas colunas simultâneas evita colisões de caso (ambiguidade).
+    # 🎯 Por que: Iterar sobre .withColumn() obriga o Catalyst Optimizer a gerar e analisar um plano de execução de Spark cada vez maior a cada iteração, o que leva à "explosão do plano" e overhead massivo. A validação `.lower()` em múltiplas colunas simultâneas evita colisões de caso (ambiguidade).
     # 📊 Impacto: Previne a explosão do plano, reduz o tempo de otimização de queries, tornando a fase de compilação do pipeline de dados quase instantânea e reduzindo o consumo de memória do driver.
     # 🔬 Medição: O benchmark (`profile_tensor_fix.py`) documentou uma redução no tempo de planejamento de 5.97s para 0.70s (~8x mais rápido).
 

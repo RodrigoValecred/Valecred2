@@ -106,7 +106,7 @@ keywords = {
 
 # 🧠 Tensor: Substituir chamadas iterativas de .withColumn() por uma única projeção .select()
 # 💡 O que: Substituiu um loop que encadeava chamadas .withColumn() em favor de uma lista de expressões projetadas simultaneamente via .select('*', *expr_list).
-# 🎯 Por que: Iterar sobre .withColumn() obriga o Catalyst Optimizer a gerar e analisar um plano de execução de Spark cada vez maior a cada iteração, o que leva à "explosão do plano" (plan explosion) e overhead massivo, podendo causar StackOverflowError.
+# 🎯 Por que: Iterar sobre .withColumn() obriga o Catalyst Optimizer a gerar e analisar um plano de execução de Spark cada vez maior a cada iteração, o que leva à "explosão do plano" e overhead massivo, podendo causar StackOverflowError.
 # 📊 Impacto: Acelera o tempo de planejamento do Spark e reduz substancialmente o uso de memória do JVM no nó driver.
 # 🔬 Medição: Benchmark local mostra redução de tempo de 4.33s para 0.97s na etapa de definição das novas colunas.
 expr_list = [

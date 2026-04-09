@@ -167,7 +167,7 @@ df_target = df_final.select(cols_to_select)
 
 # ⚡ Bolt: Adicionado .cache() antes de múltiplas actions
 # 💡 O que: Chamada de `.cache()` em `df_target` antes do `.count()` e do subsequente `.write()`, seguido de `.unpersist()`.
-# 🎯 Por que: O código original executava `.count()` e depois `.write()`, forçando o Catalyst a reavaliar todo o DAG e realizar um full table scan das fontes (RFB) duas vezes consecutivas. O cache garante que a leitura da tabela ocorra apenas uma vez.
+# 🎯 Por que: O código original executava `.count()` e depois `.write()`, forçando o Catalyst a reavaliar todo o DAG e realizar uma varredura completa de tabela das fontes (RFB) duas vezes consecutivas. O cache garante que a leitura da tabela ocorra apenas uma vez.
 # 📊 Impacto: Corta pela metade o tempo de execução e uso de recursos nesta fase final do notebook.
 # 🔬 Medição: O Spark UI mostrará `InMemoryTableScan` durante o `.write()`, omitindo a varredura e cruzamento redundante.
 df_target.cache()

@@ -102,7 +102,7 @@ df_limpo = df_trata_nome \
 # ==============================================================================
 # 🧠 Tensor: Substituir encadeamento de .withColumn() por uma única expressão consolidada
 # 💡 O que: Substituiu múltiplos blocos .withColumn() em cadeia por uma única expressão concatenada encadeando todas as formatações e regexps.
-# 🎯 Por que: Chamar .withColumn() repetidamente cria planos lógicos (Logical Plan) profundos no PySpark. Cada iteração força o Catalyst Optimizer a gerar e validar novos nós ("Project"), causando "Plan Explosion", overhead massivo, e degradação geral de performance (ou Out-Of-Memory em DAGs complexos).
+# 🎯 Por que: Chamar .withColumn() repetidamente cria planos lógicos (Logical Plan) profundos no PySpark. Cada iteração força o Catalyst Optimizer a gerar e validar novos nós ("Project"), causando "explosão do plano", overhead massivo, e degradação geral de performance (ou esgotamento de memória em DAGs complexos).
 # 📊 Impacto: Otimiza drásticamente o parser do Catalyst. Plan depth (Project nodes) reduzido de 7 nós para apenas 1 nó.
 # 🔬 Medição: Benchmarking customizado via DataFrame mock mostra que o tempo de execução caiu de 3.08s para 0.48s (uma aceleração de ~6x) e a validação de outputs demonstrou diferença zero (0).
 

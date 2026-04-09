@@ -97,7 +97,7 @@ df_titulos_filtered = df_titulos.dropDuplicates(["cod_titulo"]) \
 # 💡 O que: Adicionado .cache() em df_carteira antes da ação de count() e .unpersist() após o saveAsTable.
 # 🎯 Por que: A ação .count() no log força a avaliação total do plano físico do Catalyst. Como o mesmo DataFrame é salvo logo em seguida, o Spark reavaliaria todo o histórico (joins, filtros) novamente sem o cache.
 # 📊 Impacto: Elimina o gargalo de materialização dupla, o que poupa IO de arquivos Delta e processamento.
-# 🔬 Measurement: O plano físico no Spark UI demonstrará InMemoryTableScan para o saveAsTable ao invés de ler do disco novamente.
+# 🔬 Medição: O plano físico no Spark UI demonstrará InMemoryTableScan para o saveAsTable ao invés de ler do disco novamente.
 df_carteira = df_titulos_filtered.join(df_ops_filtered, "cod_operacao", "inner").cache()
 
 print(f"Titulos na carteira elegíveis: {df_carteira.count()}")
