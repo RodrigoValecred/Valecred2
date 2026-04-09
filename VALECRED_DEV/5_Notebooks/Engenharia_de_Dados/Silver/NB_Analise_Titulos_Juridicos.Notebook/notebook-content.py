@@ -61,6 +61,13 @@ df_juridico_events = df_cobranca.filter(col("CODOCORCOBRANCA") == 26) \
         col("OBSERVACAO").alias("observacao_cobranca")
     )
 
+# ⚡ Bolt: Cache DataFrame antes do .count() de log
+# 💡 O que: Adicionado df_juridico_events.cache() antes da ação count() e .unpersist() no final.
+# 🎯 Por que: A chamada .count() força a avaliação eager de todo o plano Catalyst. Como df_juridico_events é usado em um join depois, sem o cache a leitura da Bronze e os filtros seriam executados duas vezes.
+# 📊 Impacto: Evita reavaliação redundante do DAG (full table scan e filtros), reduzindo significativamente o I/O e o tempo total de processamento.
+# 🔬 Medição: Elimina do Spark UI o estágio duplicado para carregamento da tabela tab_titulos_cobranca.
+df_juridico_events.cache()
+
 count_events = df_juridico_events.count()
 print(f"Total de registros de envio ao jurídico encontrados: {count_events}")
 
@@ -96,6 +103,9 @@ if count_events > 0:
 
 else:
     print("Nenhum registro encontrado com CODOCORCOBRANCA = 26.")
+
+# Limpeza de cache para economizar memória do cluster
+df_juridico_events.unpersist()
 
 # METADATA ********************
 
