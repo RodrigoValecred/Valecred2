@@ -36,7 +36,6 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 import requests
 from concurrent.futures import ThreadPoolExecutor
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, coalesce, lit, sum
 from notebookutils import mssparkutils
 

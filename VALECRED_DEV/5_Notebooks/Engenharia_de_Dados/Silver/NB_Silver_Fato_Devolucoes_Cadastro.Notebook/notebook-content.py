@@ -31,7 +31,6 @@
 
 # CELL ********************
 
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when, lit, upper, regexp_replace, translate, trim, date_format
 
 # CELL ********************
