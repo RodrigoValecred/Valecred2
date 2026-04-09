@@ -44,7 +44,7 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, greatest, max
 )
-from pyspark.sql.utils import AnalysisException
+
 from notebookutils import mssparkutils
 
 source_lakehouse = "LH_Bronze"
