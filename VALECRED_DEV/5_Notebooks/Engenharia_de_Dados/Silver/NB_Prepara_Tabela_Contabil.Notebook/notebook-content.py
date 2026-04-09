@@ -42,7 +42,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.window import Window
 from pyspark.sql.functions import (
-    row_number, col, when, lit, greatest, max
+    row_number, col, lit, greatest, max
 )
 
 from notebookutils import mssparkutils
