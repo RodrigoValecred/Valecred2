@@ -173,7 +173,7 @@ df_previsao_spark.cache()
 # 🧠 Tensor: Substitua .count() por .isEmpty()
 # 💡 O que: Substituiu a contagem total de registros (df.count()) por uma verificação de vazio (df.isEmpty()).
 # 🎯 Por que: Em PySpark, `.count()` força a materialização completa e varredura de todas as partições do DataFrame, mesmo que só precisemos saber se ele tem dados. `.isEmpty()` é muito mais eficiente, parando na primeira partição com dados (equivalente a um limit(1)), economizando tempo de CPU e I/O.
-# 📊 Impacto: Otimiza o tempo da verificação inicial, evitando o overhead do full table scan no cluster. A materialização do `.cache()` ocorrerá de forma mais eficiente (lazy) na primeira ação subsequente (ex: `.show()` ou na própria UDF distribuída).
+# 📊 Impacto: Otimiza o tempo da verificação inicial, evitando o overhead da varredura completa de tabela no cluster. A materialização do `.cache()` ocorrerá de forma mais eficiente (lazy) na primeira ação subsequente (ex: `.show()` ou na própria UDF distribuída).
 is_empty_previsao = df_previsao_spark.isEmpty()
 print(f"Universo de previsão selecionado (vazio: {is_empty_previsao}).")
 df_previsao_spark.show(5)
@@ -324,7 +324,7 @@ df_resultado_final.write.format("delta").mode("overwrite").saveAsTable(table_nam
 print(f"Resultados salvos com sucesso na tabela: {table_name}")
 
 # ⚡ Otimização Bolt: Explicitamente remover (unpersist) do cache o DataFrame após o processamento ser concluído.
-# 🧠 Tensor/Memory: Isso recupera memória do cluster e previne erros de Out-Of-Memory (OOM) e degradação
+# 🧠 Tensor/Memory: Isso recupera memória do cluster e previne erros de esgotamento de memória (esgotamento de memória) e degradação
 #                   de performance durante uso interativo subsequente ou sequências de pipeline longas.
 df_previsao_spark.unpersist()
 

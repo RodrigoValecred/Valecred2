@@ -1918,7 +1918,7 @@ df_titulos_carteira = df_fato_titulos_final
 # Critério: Título aceito (status_deferimento='Sim') e em aberto (liquidacao is Null)
 # ⚡ Otimização Bolt: Fazer cache de df_carteira_ativa antes de múltiplas agregações
 # 💡 O que: Adicionado .cache() ao DataFrame df_carteira_ativa que é usado em múltiplas ações de collect() subsequentes para cálculos de HHI.
-# 🎯 Por que: Evita que o Catalyst reavalie todo o plano físico e faça full table scans redundantes na tabela fato para cada agregação de HHI.
+# 🎯 Por que: Evita que o Catalyst reavalie todo o plano físico e faça varredura completa de tabelas redundantes na tabela fato para cada agregação de HHI.
 # 📊 Impacto: Reduz o tempo de execução e uso de I/O em múltiplas ações no mesmo DataFrame.
 # 🔬 Medição: O plano físico mostrará InMemoryTableScan em vez de FileScan após a primeira ação.
 df_carteira_ativa = df_titulos_carteira.filter(
@@ -1981,7 +1981,7 @@ print(f"HHI Sacado: {hhi_sacado}")
 # -------------------------------------------------------------
 # ⚡ Bolt Optimization: Limpeza de Cache (Gerenciamento de Memória)
 # Objetivo: Liberar memória dos DataFrames oxigenados cacheados
-# prevenindo vazamentos de memória (memory leaks) e OOM no cluster Spark.
+# prevenindo vazamentos de memória (memory leaks) e esgotamento de memória no cluster Spark.
 # -------------------------------------------------------------
 print("\nIniciando limpeza de cache (unpersist)...")
 try:

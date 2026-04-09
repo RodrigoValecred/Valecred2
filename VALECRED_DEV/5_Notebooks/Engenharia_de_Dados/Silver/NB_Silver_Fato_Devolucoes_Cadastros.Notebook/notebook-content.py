@@ -109,7 +109,7 @@ df_enriched = df_joined_users.join(
 
 # ⚡ Bolt: Substituir chamadas iterativas de .withColumn() por uma única projeção .select()
 # 💡 O que: Substituiu um encadeamento de chamadas .withColumn() em favor de uma lista de expressões projetadas simultaneamente via .select('*', *expr_list).
-# 🎯 Por que: Iterar sobre .withColumn() obriga o Catalyst Optimizer a gerar e analisar um plano de execução de Spark cada vez maior a cada iteração, o que leva à "explosão do plano" (plan explosion) e overhead massivo, podendo causar StackOverflowError.
+# 🎯 Por que: Iterar sobre .withColumn() obriga o Catalyst Optimizer a gerar e analisar um plano de execução de Spark cada vez maior a cada iteração, o que leva à "explosão do plano" e overhead massivo, podendo causar StackOverflowError.
 # 📊 Impacto: Acelera o tempo de planejamento do Spark e reduz substancialmente o uso de memória do JVM no nó driver.
 # 🔬 Medição: Benchmark local mostra redução de tempo significativa na etapa de definição das novas colunas (ex., de ~4.3s para ~0.9s dependendo da volumetria e complexidade).
 obs_str_expr = col("OBS").cast("string")

@@ -98,7 +98,7 @@ def fetch_reports_from_ws(ws):
         
     return inventory_items
 
-print(f"Iniciando varredura paralela em {len(workspaces)} workspaces...")
+print(f"Inicianda varredura paralela em {len(workspaces)} workspaces...")
 
 # Usando ThreadPoolExecutor para paralelizar as chamadas de I/O bloqueante (requests HTTP)
 with ThreadPoolExecutor(max_workers=10) as executor:

@@ -53,11 +53,11 @@ df_operacoes = spark.read.table("LH_Silver.staging_operacoes_limpa")
 
 # Renomeando colunas (necessário antes do filtro se usar nome novo, mas aqui usamos colunas originais se possivel ou novas)
 # O codigo original renomeava TTO -> TTO_OPERACAO e depois filtrava TTO_OPERACAO. Vamos manter o padrao.
-# 🧠 Tensor: Optimize bulk column renaming
-# 💡 What: Replaced iterative .withColumnRenamed() with a single vectorized df.toDF() projection.
-# 🎯 Why: Iteratively calling .withColumnRenamed() creates deeply nested Project nodes in the Catalyst logical plan, leading to high compilation overhead and potential StackOverflowError.
-# 📊 Impact: Reduce drastically the depth of the Catalyst query plan and compilation time.
-# 🔬 Measurement: Plan compilation overhead for this segment drops from linear O(N) to O(1) in Catalyst.
+# 🧠 Tensor: Otimização de renomeação de colunas em massa
+# 💡 O que: Substituiu o .withColumnRenamed() iterativo por uma única projeção vetorizada df.toDF().
+# 🎯 Por que: Chamar iterativamente .withColumnRenamed() cria nós Project profundamente aninhados no plano lógico do Catalyst, levando a um alto overhead de compilação e potencial StackOverflowError.
+# 📊 Impacto: Reduz drasticamente a profundidade do plano de consulta do Catalyst e o tempo de compilação.
+# 🔬 Medição: O overhead de compilação do plano para este segmento cai de linear O(N) para O(1) no Catalyst.
 cols_operacoes = {
     "EXIGECANHOTO": "EXIGECANHOTO_OPERACAO",
     "EXIGECONFIRMACAO": "EXIGECONFIRMACAO_OPERACAO",
@@ -98,11 +98,11 @@ df_cad_geral = spark.read.table("LH_Silver.staging_cad_geral_limpa")
 
 # (Operacoes ja foi renomeada acima para permitir o filtro antecipado)
 
-# 🧠 Tensor: Optimize bulk column renaming
-# 💡 What: Replaced iterative .withColumnRenamed() with a single vectorized df.toDF() projection.
-# 🎯 Why: Iteratively calling .withColumnRenamed() creates deeply nested Project nodes in the Catalyst logical plan, leading to high compilation overhead and potential StackOverflowError.
-# 📊 Impact: Reduce drastically the depth of the Catalyst query plan and compilation time.
-# 🔬 Measurement: Plan compilation overhead for this segment drops from linear O(N) to O(1) in Catalyst.
+# 🧠 Tensor: Otimização de renomeação de colunas em massa
+# 💡 O que: Substituiu o .withColumnRenamed() iterativo por uma única projeção vetorizada df.toDF().
+# 🎯 Por que: Chamar iterativamente .withColumnRenamed() cria nós Project profundamente aninhados no plano lógico do Catalyst, levando a um alto overhead de compilação e potencial StackOverflowError.
+# 📊 Impacto: Reduz drasticamente a profundidade do plano de consulta do Catalyst e o tempo de compilação.
+# 🔬 Medição: O overhead de compilação do plano para este segmento cai de linear O(N) para O(1) no Catalyst.
 cols_cedentes = {
     "DATAINCLUSAO": "DATAINCLUSAO_CEDENTE",
     "USUAINCLUSAO": "USUAINCLUSAO_CEDENTE",

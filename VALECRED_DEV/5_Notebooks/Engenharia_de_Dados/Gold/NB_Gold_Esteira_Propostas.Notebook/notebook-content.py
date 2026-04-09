@@ -114,7 +114,7 @@ logger.info(f"Colunas da df_pareceres_incremental: {df_pareceres_incremental.col
 
 # ⚡ Otimização de Bolt: Substitui count() por isEmpty()
 # 💡 O que: Substituição de `record_count = df_pareceres_incremental.count()` e verificação `> 0` por `has_new_records = not df_pareceres_incremental.isEmpty()`.
-# 🎯 Por que: A ação `.count()` força a avaliação de todo o DataFrame, resultando em um full table scan que atrasa a execução se houver muitos dados ou até mesmo quando há nenhum dado mas muitas partições a serem varridas. `.isEmpty()` realiza apenas uma operação leve (equivalente a `limit(1)`) para checar a presença de registros, contornando a varredura integral.
+# 🎯 Por que: A ação `.count()` força a avaliação de todo o DataFrame, resultando em uma varredura completa de tabela que atrasa a execução se houver muitos dados ou até mesmo quando há nenhum dado mas muitas partições a serem varridas. `.isEmpty()` realiza apenas uma operação leve (equivalente a `limit(1)`) para checar a presença de registros, contornando a varredura integral.
 # 📊 Impacto: Melhora significativa no tempo de execução do check inicial para incremental, que ocorre diariamente, reduzindo chamadas supérfluas de action no Catalyst Optimizer.
 # 🔬 Medição: Ação avaliada localmente, economizando os segundos da materialização completa do DAG no momento do `count()`.
 has_new_records = not df_pareceres_incremental.isEmpty()

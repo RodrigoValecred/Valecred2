@@ -161,8 +161,8 @@ def load_manual_file_to_bronze(source_filename, target_table_name):
             # Assume separador por vírgula e encoding UTF-8. Ajuste se necessário.
             # 🧠 Tensor: Uso do leitor nativo do PySpark em vez de Pandas para arquivos CSV
             # 💡 O que: Substituiu `pd.read_csv` seguido por `spark.createDataFrame` por `spark.read.csv` distribuído.
-            # 🎯 Por que: O Pandas lê todo o dataset para a memória RAM do node driver, o que causa gargalo e erros de "Out-Of-Memory" (OOM) para arquivos grandes. O leitor nativo do Spark paraleliza a leitura entre os executores.
-            # 📊 Impacto: Elimina OOM e acelera em ordens de grandeza a ingestão de CSVs volumosos.
+            # 🎯 Por que: O Pandas lê todo o dataset para a memória RAM do node driver, o que causa gargalo e erros de "esgotamento de memória" para arquivos grandes. O leitor nativo do Spark paraleliza a leitura entre os executores.
+            # 📊 Impacto: Elimina esgotamento de memória e acelera em ordens de grandeza a ingestão de CSVs volumosos.
             # 🔬 Medição: O uso de memória do driver reduz drasticamente, permitindo carregar arquivos gigabytes sem falhas.
             df_spark = spark.read.format("csv") \
                 .option("header", "true") \
