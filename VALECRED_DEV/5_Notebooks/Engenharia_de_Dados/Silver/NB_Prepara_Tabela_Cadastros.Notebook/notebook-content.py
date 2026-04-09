@@ -43,7 +43,7 @@ from pyspark.sql.window import Window
 from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
-    lead, date_add, lag, max, coalesce, date_sub, transform, 
+    lead, lag, max, coalesce, date_sub, transform, 
     filter as array_filter, split, array_join, array_contains,
     months_between, current_date, round
 )

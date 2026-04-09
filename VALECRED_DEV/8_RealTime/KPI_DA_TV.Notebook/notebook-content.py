@@ -12,7 +12,6 @@
 # CELL ********************
 
 from pyspark.sql import functions as F
-from pyspark.sql.window import Window
 from notebookutils import mssparkutils
 
 # 1. Configuração de conexão (Substitua pelos seus dados do MySQL)

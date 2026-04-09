@@ -54,7 +54,6 @@ from pyspark.sql.functions import (
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
 from notebookutils import mssparkutils
-import datetime
 import re
 import unicodedata
 import pandas as pd

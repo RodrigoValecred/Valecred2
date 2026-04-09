@@ -52,7 +52,6 @@ from pyspark.sql.utils import AnalysisException
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
 from notebookutils import mssparkutils
-import datetime
 
 source_lakehouse = "LH_Bronze"
 target_lakehouse = "LH_Silver"
