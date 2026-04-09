@@ -48,7 +48,6 @@ import os
 import shutil
 import pandas as pd
 from datetime import datetime, timedelta
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, lit, max, concat
 from pyspark.sql.types import StringType
 from pyspark.sql.utils import AnalysisException
