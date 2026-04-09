@@ -44,7 +44,7 @@ silver_lh = "LH_Silver"
 # --- INÍCIO DO CÓDIGO ---
 import re
 
-from pyspark.sql.functions import col, lit
+from pyspark.sql.functions import lit
 from delta.tables import DeltaTable
 
 class SilverIngestor:
