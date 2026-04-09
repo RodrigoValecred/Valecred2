@@ -6,6 +6,8 @@
 
 | Component | Path | Description | Change |
 | :--- | :--- | :--- | :--- |
+| VAI_Inferencia_Online | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Add new flag `is_cedente_novo` and update anomaly message for new clients | Changed |
+| VAI_Inferencia_Online | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Restrict Intercia Sem Limite alert to 'Normal' products | Changed |
 | Power BI API Inventory | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/testes.Notebook/notebook-content.py` | ⚡ Bolt: Refatorada a busca de relatórios por workspace para utilizar `ThreadPoolExecutor`, paralelizando as chamadas de API e reduzindo drasticamente o tempo de execução. | Changed |
 
 | Preparação Tabela Contábil (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Contabil.Notebook/notebook-content.py` | 🧠 Tensor: Adicionado `.cache()` e `.unpersist()` ao DataFrame `df_dedup` (Window function) para evitar re-execução de particionamento e shuffles redundantes. | Changed |
