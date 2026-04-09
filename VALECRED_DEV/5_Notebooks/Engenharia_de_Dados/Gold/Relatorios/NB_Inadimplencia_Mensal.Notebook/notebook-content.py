@@ -25,7 +25,7 @@
 
 # CELL ********************
 
-from pyspark.sql.functions import col, lit, explode, sequence, to_date, last_day, when, sum as _sum, months_between, expr, broadcast
+from pyspark.sql.functions import col, lit, explode, sequence, to_date, last_day, when, sum as _sum, months_between, expr, broadcast, current_date
 
 # METADATA ********************
 
@@ -38,11 +38,9 @@ from pyspark.sql.functions import col, lit, explode, sequence, to_date, last_day
 
 # 1. Definir o Período de Análise (ex: Últimos 12 meses até hoje)
 # Gera uma linha para cada fim de mês: 2024-01-31, 2024-02-29...
-df_calendario = spark.sql("""
-    SELECT explode(
-        sequence(to_date('2024-01-01'), current_date(), interval 1 month)
-    ) as inicio_mes
-""").select(last_day("inicio_mes").alias("DATA_CORTE"))
+df_calendario = spark.range(1).select(
+    explode(sequence(to_date(lit('2024-01-01')), current_date(), expr("interval 1 month"))).alias("inicio_mes")
+).select(last_day("inicio_mes").alias("DATA_CORTE"))
 
 # METADATA ********************
 
