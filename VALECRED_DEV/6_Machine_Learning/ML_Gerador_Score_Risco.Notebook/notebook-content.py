@@ -40,7 +40,6 @@
 
 import os
 import joblib
-import pandas as pd
 from pyspark.sql.functions import col
 
 # Configuração
