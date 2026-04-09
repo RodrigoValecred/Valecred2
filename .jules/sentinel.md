@@ -44,3 +44,7 @@
 **Vulnerability:** The `safe_extract` function in the Receita Federal data extraction notebook (`NB_Extract_Bronze_Receita_Federal_Full.Notebook`) caught generic exceptions (`try...except Exception as e:`) and only printed the error message when failing to extract a zip file, allowing execution to silently proceed with missing or corrupted data.
 **Learning:** Security controls (like Zip Slip prevention during extraction) must implement 'fail securely' principles. Catching generic exceptions and silencing them via standard output leaks internal details and causes downstream pipelines to fail in unpredictable ways, bypassing the fail-fast mechanism.
 **Prevention:** Do not swallow generic exceptions in critical data parsing or extraction functions. Allow exceptions to bubble up or raise explicit errors to halt execution and alert operators immediately when a security or integrity failure occurs. Ensure unit tests assert `assertRaises` rather than checking for printed error messages.
+
+## 2024-04-09 - [Tracking Abandoned Files]
+**Rule:** When exploring the codebase, actively track and document any unused or abandoned files, templates, or scripts that are no longer referenced by active pipelines or documentation (such as dummy notebooks like `KPI_DA_TV.Notebook` or `KQL_Scripts.KQLQueryset`).
+**Action:** Do not immediately delete these files unless instructed. Instead, flag them and optionally update `INVENTORY.md` or a tracking file to indicate their unused status so the user can decide to delete them later.
