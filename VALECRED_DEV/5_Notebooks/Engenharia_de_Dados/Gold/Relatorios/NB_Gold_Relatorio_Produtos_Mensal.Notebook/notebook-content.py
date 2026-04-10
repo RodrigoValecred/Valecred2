@@ -119,8 +119,8 @@ def load_and_prepare_data(spark):
 
     # Criar mapa Cliente -> Plataforma Atual
     # Cadastre-se: Bridge -> Gerente -> Plataforma
-    df_cli_plat_map = df_bridge.join(df_gerentes.alias("g"), df_bridge.cod_gerente == col("g.cod_broker"), "left") \
-        .join(df_plataformas.alias("p"), col("g.cod_agencia") == col("p.cod_agencia"), "left") \
+    df_cli_plat_map = df_bridge.join(broadcast(df_gerentes.alias("g")), df_bridge.cod_gerente == col("g.cod_broker"), "left") \
+        .join(broadcast(df_plataformas.alias("p")), col("g.cod_agencia") == col("p.cod_agencia"), "left") \
         .select(df_bridge.cod_cliente, col("p.nome_plataforma").alias("nome_plataforma_cli")) \
         .filter(col("nome_plataforma_cli").isNotNull()) \
         .dropDuplicates(["cod_cliente"])
@@ -231,7 +231,7 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
     # Contingência de Atributos Faltantes (Data, Plataforma)
     # Estratégia Plataforma: 1. Operação Original, 2. Plataforma Atual do Cliente, 3. "N/D"
     df_prorrog_enrich = df_prorrog_enrich \
-        .join(df_cli_plat_map, "cod_cliente", "left") \
+        .join(broadcast(df_cli_plat_map), "cod_cliente", "left") \
         .withColumn("data_deferimento", coalesce(col("data_deferimento"), to_date(col("data_inclusao")))) \
         .withColumn("nome_plataforma", coalesce(col("nome_plataforma"), col("nome_plataforma_cli"), lit("N/D"))) \
         .drop("nome_plataforma_cli")
@@ -284,7 +284,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
     # AJUSTE SOLICITADO: Para Mora, data_deferimento deve ser a data do pagamento (data_baixa)
     # Aplicar também contingência de plataforma
     df_mora_enrich = df_mora_enrich \
-        .join(df_cli_plat_map, "cod_cliente", "left") \
+        .join(broadcast(df_cli_plat_map), "cod_cliente", "left") \
         .withColumn("data_deferimento", coalesce(col("data_deferimento"), col("data_baixa"))) \
         .withColumn("nome_plataforma", coalesce(col("nome_plataforma"), col("nome_plataforma_cli"), lit("N/D"))) \
         .drop("nome_plataforma_cli")
@@ -294,7 +294,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
     # Verificar datas nulas ou inválidas (ex: ano 0001) para evitar prazos gigantes
     # Usar Vencimento Prorrogado se disponível (via join com titulos)
     df_titulos_dates = df_titulos.select(col("cod_titulo"), col("venc_prorrogado"))
-    df_mora_enrich_venc = df_mora_enrich.join(df_titulos_dates, "cod_titulo", "left")
+    df_mora_enrich_venc = df_mora_enrich.join(broadcast(df_titulos_dates), "cod_titulo", "left")
 
     df_mora_calc = df_mora_enrich_venc \
         .withColumn("data_referencia_mora",
@@ -361,7 +361,7 @@ print("Consolidando dados...")
 df_union = df_stream_ops.unionByName(df_stream_prorrog).unionByName(df_stream_mora)
 
 # Join com Dimensão Clientes para obter nome e grupo econômico
-df_union_clientes = df_union.join(df_clientes, "cod_cliente", "left")
+df_union_clientes = df_union.join(broadcast(df_clientes), "cod_cliente", "left")
 
 df_final = df_union_clientes \
     .select(
@@ -479,7 +479,7 @@ try:
         .filter(to_date(col("data_analise")) <= "2025-12-31")
 
     # Fazer join com Dim Gerentes
-    df_ops_rc = df_ops_rc.join(df_gerentes, "cod_broker", "left")
+    df_ops_rc = df_ops_rc.join(broadcast(df_gerentes), "cod_broker", "left")
 
     # Deduplicar/Agregar por Operação
     df_ops_rc_agg = df_ops_rc.groupBy("cod_operacao").agg(
@@ -678,15 +678,20 @@ if "receita_prorrogacao_op_2025" not in df_base.columns:
     df_base = df_base.withColumn("receita_prorrogacao_op_2025", lit(0))
 
 # Join com Dados do Cliente (Risco e Nome)
-df_base_cliente = df_base.join(df_clientes, "cod_cliente", "left")
+# 🧠 Tensor: Aplicar broadcast join nas dimensões para evitar shuffle pesado no cluster
+# 💡 O que: Passar `df_clientes`, `df_score` e `df_prorrogacao_agg` usando a função de otimização `broadcast()`.
+# 🎯 Por que: `df_base` representa a tabela fato (muito volumosa) e `df_clientes` (ou score/prorrogacao) são pequenas dimensões. Fazer join normal forçaria o Spark a particionar e reorganizar grandes blocos pela rede. Em vez disso, enviar pequenas tabelas inteiras na memória aos executors elimina totalmente o custo do shuffle.
+# 📊 Impacto: Otimiza as junções pesadas de final de pipe, reduzindo a contenção de rede e caindo o process time severamente.
+# 🔬 Medição: A árvore de consultas (DAG) mostrará BroadcastHashJoin substituindo o custoso SortMergeJoin nos joins de Dimensão.
+df_base_cliente = df_base.join(broadcast(df_clientes), "cod_cliente", "left")
 
 if df_score:
-    df_base_cliente = df_base_cliente.join(df_score, "cod_cliente", "left")
+    df_base_cliente = df_base_cliente.join(broadcast(df_score), "cod_cliente", "left")
 else:
     df_base_cliente = df_base_cliente.withColumn("qualidade_cliente", lit(None))
 
 if df_prorrogacao_agg:
-    df_base_cliente = df_base_cliente.join(df_prorrogacao_agg, "cod_cliente", "left")
+    df_base_cliente = df_base_cliente.join(broadcast(df_prorrogacao_agg), "cod_cliente", "left")
 else:
     df_base_cliente = df_base_cliente.withColumn("receita_tarifa_prorrogacao_cliente", lit(0))
 
@@ -735,7 +740,12 @@ df_cliente_agg = df_calcs.groupBy("cod_cliente").agg(
 )
 
 # 4.3 Join e Cálculos Finais
-df_report = df_calcs.join(df_cliente_agg, "cod_cliente", "left") \
+# 🧠 Tensor: Aplicar broadcast join na tabela agregada de clientes
+# 💡 O que: Usar `broadcast(df_cliente_agg)` para evitar que o join acione um novo shuffle global e degradação de performance no final da query.
+# 🎯 Por que: `df_calcs` continua com nível de fato volumoso. `df_cliente_agg` já foi agrupado (tamanho pequeno correspondente a N clientes). Assim, ele deve ser transmitido pela rede (broadcast).
+# 📊 Impacto: Diminui notavelmente o tempo de CPU e uso da rede final.
+# 🔬 Medição: Elimina o último e maior SortMergeJoin no execution plan final.
+df_report = df_calcs.join(broadcast(df_cliente_agg), "cod_cliente", "left") \
     .withColumn("receita_total_cliente", col("soma_receita_total_op") + (coalesce(col("receita_tarifa_prorrogacao_cliente"), lit(0)) - coalesce(col("soma_prorrogacao_op_2025_cliente"), lit(0)))) \
     .withColumn("custo_financeiro_cliente", coalesce(col("custo_financeiro_cliente_sum"), lit(0))) \
     .withColumn("spread_cliente", coalesce(col("spread_cliente_sum"), lit(0))) \
