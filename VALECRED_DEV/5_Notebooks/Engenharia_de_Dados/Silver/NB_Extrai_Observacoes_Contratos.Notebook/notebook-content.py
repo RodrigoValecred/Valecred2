@@ -84,53 +84,39 @@ pat_extra_informal = r"(?i)Limite\s+(?:extra\s+desconto|NO).{0,200}?\binformal.{
 # CELL ********************
 
 # 3. Transformação "TRADUZINDO" seu SQL para PySpark
-df_silver = df_bronze.withColumn(
-    # Passo A: Decodificar (Igual ao CONVERT ... USING latin1)
-    # Se a coluna no Lakehouse já for String mas estiver bagunçada, o decode converte binário corretamente
-    "obs_decodificada", 
-    decode(col("OBSERVACOES"), "ISO-8859-1") 
-).withColumn(
-    # Passo Auxiliar: Criar um texto formatado para leitura humana no Power BI (OBS_TRATADA)
-    # Retém quebras de linha existentes e formata tópicos e seções
-    "texto_formatado",
-    trim(
+obs_decodificada_expr = decode(col("OBSERVACOES"), "ISO-8859-1")
+texto_formatado_expr = trim(
+    regexp_replace(
         regexp_replace(
             regexp_replace(
                 regexp_replace(
                     regexp_replace(
-                        regexp_replace(
-                            col("obs_decodificada"),
-                            "[\t\u00A0]+", " "
-                        ),
-                        r"\s+-\s+", "\n- "
+                        obs_decodificada_expr,
+                        "[\t\u00A0]+", " "
                     ),
-                    r"(?i)(OBSERVAÇÕES PARA AS OPERAÇÕES:)", "\n\n$1\n"
+                    r"\s+-\s+", "\n- "
                 ),
-                r"(?i)(CONDIÇÕES PARA O GRUPO)", "\n\n$1\n"
+                r"(?i)(OBSERVAÇÕES PARA AS OPERAÇÕES:)", "\n\n$1\n"
             ),
-            r"(?i)(#STATUSDIRETORIA)", "\n\n$1"
-        )
+            r"(?i)(CONDIÇÕES PARA O GRUPO)", "\n\n$1\n"
+        ),
+        r"(?i)(#STATUSDIRETORIA)", "\n\n$1"
     )
-).withColumn(
-    # Passo B: Limpar (Igual ao REPLACE \r e \n por espaço)
-    # Adicionando replace para NBSP (\u00A0) e tabulações para garantir o match (Usado para Regex)
-    "texto_limpo", 
-    trim(regexp_replace(col("obs_decodificada"), "[\r\n\t\u00A0]+", " "))
-).withColumn(
-    # Passo C: Extrair os valores (Regex)
-    "raw_limite_geral", regexp_extract(col("texto_limpo"), pat_geral, 1)
-).withColumn(
-    "raw_limite_comissaria", regexp_extract(col("texto_limpo"), pat_comissaria, 1)
-).withColumn(
-    "raw_limite_intercompany", regexp_extract(col("texto_limpo"), pat_inter, 1)
-).withColumn(
-    "raw_limite_fomento", regexp_extract(col("texto_limpo"), pat_fomento, 1)
-).withColumn(
-    "raw_limite_plus", regexp_extract(col("texto_limpo"), pat_plus, 1)
-).withColumn(
-    "raw_limite_extra_formal", regexp_extract(col("texto_limpo"), pat_extra_formal, 1)
-).withColumn(
-    "raw_limite_extra_informal", regexp_extract(col("texto_limpo"), pat_extra_informal, 1)
+)
+texto_limpo_expr = trim(regexp_replace(obs_decodificada_expr, "[\r\n\t\u00A0]+", " "))
+
+df_silver = df_bronze.select(
+    "*",
+    obs_decodificada_expr.alias("obs_decodificada"),
+    texto_formatado_expr.alias("texto_formatado"),
+    texto_limpo_expr.alias("texto_limpo"),
+    regexp_extract(texto_limpo_expr, pat_geral, 1).alias("raw_limite_geral"),
+    regexp_extract(texto_limpo_expr, pat_comissaria, 1).alias("raw_limite_comissaria"),
+    regexp_extract(texto_limpo_expr, pat_inter, 1).alias("raw_limite_intercompany"),
+    regexp_extract(texto_limpo_expr, pat_fomento, 1).alias("raw_limite_fomento"),
+    regexp_extract(texto_limpo_expr, pat_plus, 1).alias("raw_limite_plus"),
+    regexp_extract(texto_limpo_expr, pat_extra_formal, 1).alias("raw_limite_extra_formal"),
+    regexp_extract(texto_limpo_expr, pat_extra_informal, 1).alias("raw_limite_extra_informal")
 )
 
 # METADATA ********************
