@@ -2,6 +2,37 @@
 
 ## Change Log
 
+### [2026-04-09]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| Dados_Externos | `VALECRED_DEV/5_Notebooks/Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Dados_Externos | `VALECRED_DEV/5_Notebooks/Dados_Externos/Receita Federal/NB_Gold_Empresas_RFB_Target.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Dados_Externos | `VALECRED_DEV/5_Notebooks/Dados_Externos/Receita Federal/NB_Load_Bronze_Receita_Federal_Full.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Carteira_Titulos.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Esteira_Propostas.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Gold/Relatorios | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Fechamento_Prorrogacao_Mensal.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Gold/Relatorios | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Inadimplencia_Mensal.Notebook/notebook-content.py` | 🔒 Security: Prevenção de SQL Injection substituindo spark.sql pela API do DataFrame. | Changed |
+| Engenharia_de_Dados/Gold/Relatorios | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Risk_Aggregation.Notebook/notebook-content.py` | 🧠 Tensor: Otimização de renomeação em massa de colunas (substituindo withColumnRenamed iterativo por toDF) para evitar overhead do plano Catalyst. | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Analise_Titulos_Juridicos.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado df.cache() e .unpersist() antes do count() para evitar varredura dupla (full table scan) no cluster. | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Generic_Silver.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Load_Silver_From_Manual_Uploads.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Cadastros.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Contabil.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Produtos.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Titulos.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Silver_Fato_Devolucoes_Cadastro.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Silver_Fato_Devolucoes_Cadastros.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Silver_Pareceres_Keyword.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Engenharia_de_Dados/Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Silver_Pareceres_Keywords.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Machine_Learning | `VALECRED_DEV/6_Machine_Learning/ML_Gerador_Score_Risco.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| Machine_Learning | `VALECRED_DEV/6_Machine_Learning/ML_Previsao_Inadimplencia_2025.Notebook/notebook-content.py` | Tradução e padronização dos comentários técnicos para o português (pt-BR) / Remoção de imports não utilizados (code health). | Changed |
+| RealTime | `VALECRED_DEV/8_RealTime/KPI_DA_TV.Notebook/.platform` | Notebook de RealTime Dashboard removido. | Removed |
+| RealTime | `VALECRED_DEV/8_RealTime/KPI_DA_TV.Notebook/notebook-content.py` | Notebook de RealTime Dashboard removido. | Removed |
+| RealTime | `VALECRED_DEV/8_RealTime/KQL_Scripts.KQLQueryset/.platform` | Removido componente KQL_Scripts. | Removed |
+
 ### [2026-04-08]
 
 | Component | Path | Description | Change |
