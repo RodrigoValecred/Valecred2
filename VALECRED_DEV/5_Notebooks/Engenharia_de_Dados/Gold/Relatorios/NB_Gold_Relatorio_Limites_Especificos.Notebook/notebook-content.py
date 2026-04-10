@@ -43,7 +43,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, coalesce, lit, sum, avg, when, length, substring
+from pyspark.sql.functions import col, coalesce, lit, sum, avg, when, length, substring, broadcast
 from notebookutils import mssparkutils
 
 # METADATA ********************
@@ -154,12 +154,17 @@ df_limites_base = df_limites.select(
 # 4. Cruzamento e Consolidação (Join)
 print("Realizando joins para montar a tabela final...")
 
+# 🧠 Tensor: Aplicado broadcast() a tabelas de dimensão em junções sequenciais
+# 💡 O que: Usar `broadcast(df_clientes_nome)`, `broadcast(df_grupos_nome)` e `broadcast(df_sacados_dedup)` nos joins com `df_limites_base`.
+# 🎯 Por que: Evita shuffle global caro através da rede nas junções quando a tabela base de limites cresce ou DataFrames das dimensões cabem em memória, mantendo performance no Catalyst.
+# 📊 Impacto: Diminuição drástica no I/O e comunicação no cluster, mantendo processamento localizado nos executors sem shuffle de tabelas grandes.
+# 🔬 Medição: Elimina SortMergeJoin e aciona BroadcastHashJoin no plano físico de execução.
 df_relatorio = df_limites_base.join(
-    df_clientes_nome, "cod_cliente", "left"
+    broadcast(df_clientes_nome), "cod_cliente", "left"
 ).join(
-    df_grupos_nome, "cod_cliente", "left"
+    broadcast(df_grupos_nome), "cod_cliente", "left"
 ).join(
-    df_sacados_dedup, "raiz_cnpj_sacado", "left"
+    broadcast(df_sacados_dedup), "raiz_cnpj_sacado", "left"
 ).join(
     df_risco, "raiz_cnpj_sacado", "left"
 ).select(
