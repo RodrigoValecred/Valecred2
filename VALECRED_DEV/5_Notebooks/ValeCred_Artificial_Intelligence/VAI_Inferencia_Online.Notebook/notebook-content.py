@@ -400,9 +400,9 @@ for c in features_para_analisar:
     if std_val == 0 or std_val is None:
         std_val = 1.0
     
-    z_expr = F.abs((F.col(c) - F.lit(mean_val)) / F.lit(std_val))
-    friendly_name = mapa_nomes.get(c, c)
     mean_val_safe = float(mean_val) if mean_val is not None else 0.0
+    z_expr = F.abs((F.col(c) - F.lit(mean_val_safe)) / F.lit(std_val))
+    friendly_name = mapa_nomes.get(c, c)
 
     detailed_reason = F.concat(
         F.lit(f"{friendly_name} (Valor: "),
