@@ -54,10 +54,10 @@ df_ops = spark.read.table("LH_Gold.fato_operacoes")
 df_titulos = spark.read.table("LH_Gold.fato_titulos")
 df_bridge = spark.read.table("LH_Silver.bridge_cliente_gerente")
 
-# Garantir que data_contratacao existe (Fallback se não foi criado no Silver ainda)
+# Garantir que data_contratacao existe (Contingência se não foi criado no Silver ainda)
 if "data_contratacao" not in df_gerentes.columns:
     print("AVISO: data_contratacao não encontrada. Usando dummy para teste ou tentando inferir.")
-    # Fallback: tentar usar join com usuario ou data default
+    # Contingência: tentar usar join com usuario ou data default
     df_gerentes = df_gerentes.withColumn("data_contratacao", F.lit("2023-01-01").cast(DateType()))
 
 # CELL ********************

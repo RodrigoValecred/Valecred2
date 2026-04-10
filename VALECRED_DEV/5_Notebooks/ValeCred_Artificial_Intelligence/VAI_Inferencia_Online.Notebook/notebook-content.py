@@ -216,7 +216,7 @@ if df_perfil:
         F.col("vlr_total_sacado") / F.col("media_pagamento_mensal")
     )
 else:
-    # Fallback se não tiver tabela Gold (primeira execução da vida)
+    # Contingência se não tiver tabela Gold (primeira execução da vida)
     df_enrich = df_enrich_produto.withColumn("is_sacado_novo", F.lit(True)) \
                              .withColumn("exposicao_acumulada", F.col("vlr_total_sacado")) \
                              .withColumn("concentracao_operacao", F.lit(0.0)) \

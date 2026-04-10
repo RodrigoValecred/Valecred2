@@ -61,7 +61,7 @@ print("Fazendo Join das tabelas...")
 df_gerentes_with_users = df_gerentes.alias("g") \
     .join(df_usuarios_staging.alias("u"), col("g.cod_usuario") == col("u.cod_usuario"), "left")
 
-# Join com Cadastro Geral (Prioridade 2 - Fallback via CPF/CNPJ)
+# Join com Cadastro Geral (Prioridade 2 - Contingência via CPF/CNPJ)
 # Tratamento de CPF/CNPJ para garantir match (apenas números)
 df_gerentes_clean_cpf = df_gerentes_with_users \
     .withColumn("cpf_cnpj_clean", regexp_replace(col("g.cpf_cnpj"), "[^0-9]", ""))

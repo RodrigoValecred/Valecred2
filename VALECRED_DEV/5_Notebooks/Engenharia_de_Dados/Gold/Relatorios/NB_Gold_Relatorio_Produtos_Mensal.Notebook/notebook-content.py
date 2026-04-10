@@ -111,7 +111,7 @@ def load_and_prepare_data(spark):
     # Fato Baixas (para Mora Realizada)
     df_baixas = spark.read.table("LH_Gold.fato_baixas")
 
-    # Dados para Fallback de Plataforma (Quando a operação não tem informação)
+    # Dados para Contingência de Plataforma (Quando a operação não tem informação)
     print("Carregando tabelas para fallback de plataforma (Silver)...")
     df_bridge = spark.read.table("LH_Silver.bridge_cliente_gerente").filter(col("data_fim_vigencia") == "9999-12-31")
     df_gerentes = spark.read.table("LH_Silver.staging_gerentes")
@@ -228,7 +228,7 @@ def process_prorrogacoes_stream(df_prorrog, df_map_ops, df_cli_plat_map, granula
     # Resolver Ambiguidade de Colunas (nbordero, plataforma, etc.)
     df_prorrog_enrich = resolve_columns(df_prorrog_joined, granular_cols)
 
-    # Fallback de Atributos Faltantes (Data, Plataforma)
+    # Contingência de Atributos Faltantes (Data, Plataforma)
     # Estratégia Plataforma: 1. Operação Original, 2. Plataforma Atual do Cliente, 3. "N/D"
     df_prorrog_enrich = df_prorrog_enrich \
         .join(df_cli_plat_map, "cod_cliente", "left") \
@@ -282,7 +282,7 @@ def process_mora_stream(df_baixas, df_map_ops, df_cli_plat_map, df_titulos, gran
     df_mora_enrich = resolve_columns(df_mora_joined, granular_cols)
 
     # AJUSTE SOLICITADO: Para Mora, data_deferimento deve ser a data do pagamento (data_baixa)
-    # Aplicar também fallback de plataforma
+    # Aplicar também contingência de plataforma
     df_mora_enrich = df_mora_enrich \
         .join(df_cli_plat_map, "cod_cliente", "left") \
         .withColumn("data_deferimento", coalesce(col("data_deferimento"), col("data_baixa"))) \

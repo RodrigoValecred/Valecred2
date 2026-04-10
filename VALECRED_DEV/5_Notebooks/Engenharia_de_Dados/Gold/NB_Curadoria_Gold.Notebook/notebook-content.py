@@ -574,7 +574,7 @@ df_client_rate = df_contratos.filter(col("status") == 'A') \
 # PRE-CALCULO: Gerente Enriquecido (Nome e Comissão)
 # df_gerentes tem cod_broker, cod_usuario, taxa_comissao (adicionado na Preparação Silver)
 # df_usuarios tem cod_usuario, nome
-# Refatorado para incluir fallback de nome via Cadastro Geral (Fix Broker 7/71)
+# Refatorado para incluir contingência de nome via Cadastro Geral (Fix Broker 7/71)
 df_gerentes_alias = df_gerentes.alias("g")
 df_usuarios_alias = df_usuarios.alias("u")
 df_geral_alias = df_geral_pf_pj_limpa.alias("cad")
@@ -586,7 +586,7 @@ df_join_users = df_gerentes_alias.join(df_usuarios_alias, col("g.cod_usuario") =
 df_join_users_clean = df_join_users.withColumn("cpf_cnpj_clean", regexp_replace(col("g.cpf_cnpj"), "[^0-9]", ""))
 df_geral_clean = df_geral_alias.withColumn("cpf_cnpj_clean", regexp_replace(col("cad.cpf_cnpj"), "[^0-9]", ""))
 
-# Join de contingência (Fallback)
+# Join de contingência
 df_gerentes_full = df_join_users_clean.join(
     df_geral_clean.select(col("cpf_cnpj_clean"), col("cad.nome").alias("nome_geral")),
     "cpf_cnpj_clean",
@@ -637,7 +637,7 @@ df_operacoes_com_fallback = df_operacoes_com_historico.join(
     "left"
 )
 
-# Prioridade Atualizada: 1. Bridge Strict > 2. Broker Original (se válido) > 3. Bridge Fallback
+# Prioridade Atualizada: 1. Bridge Strict > 2. Broker Original (se válido) > 3. Bridge Contingência
 df_operacoes_com_gerente = df_operacoes_com_fallback.withColumn(
     "cod_broker",
     when(col("cod_gerente").isNotNull(), col("cod_gerente"))
@@ -1067,7 +1067,7 @@ df_classificacao = df_dates_final.withColumn("dias_atraso", datediff(current_dat
 df_status_1 = df_classificacao.withColumn("status_deferimento", when((col("aceito") == "S") & (col("status_aceite") == "A") & (col("status_analise") == "D"), "Sim").otherwise("Não"))
 df_status_2 = df_status_1.withColumn("status_clean", when(col("produto_com_intercia") == "DESCONTO", "NORMAL").otherwise("CLEAN"))
 
-# Lógica de Confirmacao usando coluna Bronze ou Fallback (Alternativa)
+# Lógica de Confirmacao usando coluna Bronze ou Contingência (Alternativa)
 df_conf = df_status_2.withColumn("confirmacao", when(col("doc_confirmado") == "N", "Atenção").when(col("doc_confirmado") == "S", None).when(col("doc_confirmado") == "C", "Positivo").when(col("doc_confirmado") == "P", "Problema").when(col("doc_confirmado") == "A", "Alerta").when(col("doc_confirmado").isNull(), "Não Contatado").when(col("doc_confirmado").isin("E", "AZ"), "Eletrônico").otherwise(col("doc_confirmado")))
 df_ordem = df_conf.withColumn("ordem_confirmacao", when(col("confirmacao") == "Não Contatado", 5).when(col("confirmacao") == "Atenção", 2).when(col("confirmacao") == "Eletrônico", 0).when(col("confirmacao") == "Positivo", 1).when(col("confirmacao") == "Alerta", 3).when(col("confirmacao") == "Problema", 4).otherwise(None))
 
@@ -1533,7 +1533,7 @@ if "df_client_rate" in locals():
         col("taxa_cadastro_cliente").alias("taxa_cadastro")
     )
 else:
-    # Fallback (Contingência) se executado interativamente fora de ordem
+    # Contingência se executado interativamente fora de ordem
     df_client_rate_gold = df_contratos.filter(col("status") == 'A').groupBy("cod_cliente").agg(max("fator").alias("taxa_cadastro")).withColumnRenamed("cod_cliente", "cod_cliente_rate")
 
 def join_cliente_dimensions(
@@ -1904,10 +1904,10 @@ print("\nIniciando cálculo do HHI da Carteira...")
 
 # Garantindo acesso aos DataFrames base (caso a execução não seja sequencial na sessão interativa)
 if "df_fato_titulos_final" not in locals():
-    # Fallback (Contingência) apenas se executado interativamente/fora de ordem
+    # Contingência apenas se executado interativamente/fora de ordem
     df_fato_titulos_final = spark.read.table(TableNames.GOLD_FATO_TITULOS)
 if "df_fato_operacoes" not in locals():
-    # Fallback (Contingência) apenas se executado interativamente/fora de ordem
+    # Contingência apenas se executado interativamente/fora de ordem
     df_fato_operacoes = spark.read.table(TableNames.GOLD_FATO_OPERACOES)
 
 # Join para obter cod_cliente para cada título

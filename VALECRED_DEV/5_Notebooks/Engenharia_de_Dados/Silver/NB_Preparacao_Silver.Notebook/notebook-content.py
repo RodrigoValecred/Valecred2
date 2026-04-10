@@ -919,7 +919,7 @@ print("\nIniciando processamento de staging_boletos_titulos...")
 # Lê da staging_titulos_limpa que já está em cache ou salva no lakehouse
 df_titulos_limpa = spark.table("LH_Silver.staging_titulos_limpa")
 
-# Garante que usamos nomes snake_case, mas tem uma verificação de fallback caso a tabela não tenha sido atualizada
+# Garante que usamos nomes snake_case, mas tem uma verificação de contingência caso a tabela não tenha sido atualizada
 # O padrão agora é snake_case (t_doc, data_inclusao)
 df_boletos = df_titulos_limpa \
     .filter(col("t_doc") == "BL") \

@@ -34,7 +34,7 @@ class TestRelatorioDiarioUX(unittest.TestCase):
         if format_source:
             exec(format_source, self.scope, self.scope)
         else:
-            # Simulação de contingência (fallback) se não encontrado (embora devesse estar lá)
+            # Simulação de contingência se não encontrado (embora devesse estar lá)
             self.scope['format_currency_br'] = lambda x: f"R$ {x:.2f}"
 
         # Extrai prepare_dashboard_data

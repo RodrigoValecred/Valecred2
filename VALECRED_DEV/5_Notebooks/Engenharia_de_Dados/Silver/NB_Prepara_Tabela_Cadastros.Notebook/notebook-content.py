@@ -453,7 +453,7 @@ def process_plataformas():
             .otherwise(lit(None))
         )
 
-    # Tabela de Suporte Alternativa (Fallback)
+    # Tabela de Suporte Alternativa (Contingência)
     try:
         # Selecionar apenas as colunas necessárias para evitar ambiguidade com a coluna 'plataforma'
         df_sup_gestor = spark.read.table(f"{target_lakehouse}.sup_gestor_de_plataforma") \
@@ -611,7 +611,7 @@ def process_sacados_enriquecida(df_geral=None, df_enderecos=None, df_emails=None
         .filter(year(col("DATAINCLUSAO")) >= 2021) \
         .select(col("CPFCNPJSACADO").alias("cpf_cnpj")).distinct()
 
-    # Joins - Fallback (Contingência) para leitura de tabela se DFs não forem fornecidos
+    # Joins - Contingência para leitura de tabela se DFs não forem fornecidos
     if df_geral is None: df_geral = spark.read.table(f"{target_lakehouse}.staging_cad_geral_pf_pj_limpa")
     if df_enderecos is None: df_enderecos = spark.read.table(f"{target_lakehouse}.staging_enderecos_limpa")
     if df_emails is None: df_emails = spark.read.table(f"{target_lakehouse}.staging_emails_agg")

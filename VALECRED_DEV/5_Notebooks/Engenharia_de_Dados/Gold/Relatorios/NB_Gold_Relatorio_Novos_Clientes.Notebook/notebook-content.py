@@ -44,7 +44,7 @@
 # *   Contagem: O grupo vale apenas 1 cliente.
 # *   Gerente: O gerente atribuído é aquele responsável pela primeira operação do grupo/cliente.
 #     *   **Enriquecimento (Strict):** Caso a operação não tenha gerente (cod_broker=0), busca na bridge pela data da operação.
-#     *   **Enriquecimento (Fallback):** Se a operação for anterior ao histórico da bridge, assume o primeiro gerente registrado para o cliente.
+#     *   **Enriquecimento (Contingência):** Se a operação for anterior ao histórico da bridge, assume o primeiro gerente registrado para o cliente.
 
 # CELL ********************
 
@@ -109,7 +109,7 @@ df_ops_enriched = df_ops_validas.join(
 )
 
 # 4.2 Lógica de Contingência (gerente mais antigo)
-# Prepara fallback para casos onde a operação é anterior ao histórico da bridge
+# Prepara contingência para casos onde a operação é anterior ao histórico da bridge
 w_fallback = Window.partitionBy("cod_cliente").orderBy(col("data_inicio_vigencia").asc())
 df_bridge_fallback = df_bridge.withColumn("rn", row_number().over(w_fallback)) \
     .filter(col("rn") == 1) \
@@ -124,7 +124,7 @@ df_ops_enriched_2 = df_ops_enriched.join(
 # 4.3 Seleção Final do Corretor
 # Regra de Ouro (Descoberta): O campo cod_gerente (cod_broker) da tab_operacoes só começou a ser preenchido em 06/2025.
 # Portanto, a prioridade deve ser a Bridge (Histórico de Vigência).
-# Prioridade Atualizada: 1. Bridge Strict > 2. Broker Original (se válido) > 3. Bridge Fallback
+# Prioridade Atualizada: 1. Bridge Strict > 2. Broker Original (se válido) > 3. Bridge Contingência
 df_ops_final_broker = df_ops_enriched_2.withColumn(
     "cod_broker_final",
     when(col("cod_gerente").isNotNull(), col("cod_gerente"))

@@ -100,7 +100,7 @@ try:
 
 except Exception as e:
     print(f"Erro ao ler feriados ou tabela inexistente: {e}")
-    # Fallback para criar dataframe vazio se falhar, para não quebrar o notebook (mas idealmente deve existir)
+    # Contingência para criar dataframe vazio se falhar, para não quebrar o notebook (mas idealmente deve existir)
     from pyspark.sql.types import StructType, StructField, DateType, StringType, BooleanType
     schema = StructType([
         StructField("data_feriado", DateType(), True),

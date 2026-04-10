@@ -67,7 +67,7 @@ print("Carregando tabelas Gold...")
 df_ops_source = spark.read.table("LH_Gold.fato_operacoes")
 
 # Seleção Robusta de Colunas: Gerenciar evolução de schema (taxa_operacao introduzida em atualização recente)
-# Fallback para taxa_cadastro se taxa_operacao estiver ausente (evita quebra em ambientes desatualizados)
+# Contingência para taxa_cadastro se taxa_operacao estiver ausente (evita quebra em ambientes desatualizados)
 if "taxa_operacao" in df_ops_source.columns:
     print("Using 'taxa_operacao' for risk calculation.")
     col_taxa = col("taxa_operacao")
