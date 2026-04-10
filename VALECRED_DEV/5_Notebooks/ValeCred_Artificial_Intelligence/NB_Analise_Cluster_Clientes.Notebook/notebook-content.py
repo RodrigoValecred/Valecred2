@@ -93,7 +93,7 @@ df_aberto = df_titulos.filter(col("liquidacao").isNull()) \
 # Assumindo que 'chave_produto' em fato_titulos contém 'RN' ou similar.
 # Se não, precisaríamos join com fato_operacoes. Vamos assumir que 'chave_produto' == 'RN' é válido.
 # Se chave_produto não existir, usar tto (se disponível).
-col_produto = "chave_produto" if "chave_produto" in df_aberto.columns else "tto" # Fallback
+col_produto = "chave_produto" if "chave_produto" in df_aberto.columns else "tto" # Contingência
 
 df_metrics_risco = df_aberto.groupBy("cod_cliente").agg(
     sum(when(col("dias_atraso_atual") > 5, col("valor_devido")).otherwise(0)).alias("saldo_inadimplente_atual"),
@@ -139,7 +139,7 @@ df_features_final = df_features.withColumn("tendencia_atraso", col("media_atraso
 print("⚡ Tensor: Caching df_features_final to prevent re-computation...")
 start_cache = time.time()
 df_features_final.cache()
-count_features = df_features_final.count() # Force materialization
+count_features = df_features_final.count() # Força a materialização
 print(f"⚡ Tensor: Feature store cached. Count: {count_features}. Time: {time.time() - start_cache:.2f}s")
 
 # METADATA ********************

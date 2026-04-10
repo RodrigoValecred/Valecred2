@@ -44,7 +44,7 @@ from pyspark.sql.functions import col, to_date, regexp_replace
 # --- Configurações ---
 MIRRORS = [
     "https://dadosabertos.rfb.gov.br/CNPJ/",
-    "https://github.com/jonathands/dados-abertos-receita-cnpj/releases/download/2024.09/" # Alternativa (Fallback) segura via GitHub
+    "https://github.com/jonathands/dados-abertos-receita-cnpj/releases/download/2024.09/" # Alternativa (Contingência) segura via GitHub
 ]
 
 # Diretórios no Lakehouse (Files API)

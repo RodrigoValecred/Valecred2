@@ -17,7 +17,7 @@ except ImportError:
     try:
         from tests.notebook_utils import extract_function_from_file
     except ImportError:
-        # Alternativa (fallback) caso nenhum funcione (ex: ambiente estrito)
+        # Alternativa (Contingência) caso nenhum funcione (ex: ambiente estrito)
         # Assumiremos que notebook_utils pode ser importado se estivermos no diretório tests
         sys.path.append(os.path.join(current_dir, '..'))
         from tests.notebook_utils import extract_function_from_file

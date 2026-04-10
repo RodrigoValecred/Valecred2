@@ -92,7 +92,7 @@ def test_download_retry_mechanism():
 
     # Configura side_effect para HEAD e GET:
     # 1. URL Primária -> Lança Exceção (Simula Timeout)
-    # 2. URL de Contingência (Fallback) -> Retorna 200 OK
+    # 2. URL de Contingência -> Retorna 200 OK
 
     def side_effect(url, **kwargs):
         if url == primary_url:
@@ -121,7 +121,7 @@ def test_download_retry_mechanism():
     assert success is True
 
     # Verifica se chamadas foram feitas
-    # Verifica se a contingência (fallback) foi tentada
+    # Verifica se a contingência foi tentada
     requests_mock.get.assert_called_with(fallback_url, headers=ANY, verify=True, stream=True, timeout=120)
 
 def test_download_all_fail():
@@ -188,7 +188,7 @@ def test_corrupt_zip_fallback():
     fallback_url = "http://200.152.38.155/CNPJ/test.zip"
 
     # 1. A URL primária retorna um arquivo, MAS ele está corrompido
-    # 2. URL de Contingência (Fallback) retorna um arquivo válido
+    # 2. URL de Contingência retorna um arquivo válido
 
     def head_side_effect(url, **kwargs):
         return MagicMock(status_code=200)

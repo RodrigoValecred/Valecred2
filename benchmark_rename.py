@@ -9,11 +9,11 @@ def old_way():
     for i in range(50):
         df = df.withColumn(f"col_{i}", df["id"])
 
-    # Do the renaming
+    # Realiza a renomeação
     for i in range(50):
         df = df.withColumnRenamed(f"col_{i}", f"new_col_{i}")
 
-    # Force catalyst evaluation
+    # Força a avaliação do catalyst
     return df.explain(extended=False)
 
 def new_way():
@@ -21,12 +21,12 @@ def new_way():
     for i in range(50):
         df = df.withColumn(f"col_{i}", df["id"])
 
-    # Do the renaming
+    # Realiza a renomeação
     cols_map = {f"col_{i}": f"new_col_{i}" for i in range(50)}
     new_cols = [cols_map.get(c, c) for c in df.columns]
     df = df.toDF(*new_cols)
 
-    # Force catalyst evaluation
+    # Força a avaliação do catalyst
     return df.explain(extended=False)
 
 print("Old way:")

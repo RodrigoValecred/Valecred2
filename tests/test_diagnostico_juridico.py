@@ -25,7 +25,7 @@ class TestDiagnosticoJuridico(unittest.TestCase):
         if not self.func_source:
             self.skipTest("Function not found")
 
-        # Prepare scope
+        # Prepara o escopo
         def create_mock_col(name):
             m = MagicMock()
             # Precisamos que alias retorne algo que possa ser passado para agg
