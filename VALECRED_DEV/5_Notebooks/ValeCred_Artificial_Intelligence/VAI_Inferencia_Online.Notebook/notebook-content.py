@@ -417,14 +417,14 @@ max_z_struct = F.array_max(z_scores_array)
 # Na explicação, verificar primeiro a regra rígida de Intercia e Sacado Novo
 if "alerta_intercia_sem_limite" in df_scored.columns:
     motivo_expr = F.when(F.col("alerta_intercia_sem_limite"), F.lit("Tentativa de Intercia Sem Limite")) \
-                   .when(F.col("alerta_excesso_tranche"), F.lit("EXCESSO NA TRANCHE")) \
+                   .when(F.col("alerta_excesso_tranche"), F.lit("Excesso na Tranche")) \
                    .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
                    .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
                    .otherwise(F.lit("Desconhecido"))
 else:
-    motivo_expr = F.when(F.col("alerta_excesso_tranche"), F.lit("EXCESSO NA TRANCHE")) \
+    motivo_expr = F.when(F.col("alerta_excesso_tranche"), F.lit("Excesso na Tranche")) \
                    .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
