@@ -45,7 +45,7 @@
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
-from pyspark.sql.functions import col, when, current_date, date_add, datediff, lit
+from pyspark.sql.functions import col, when, current_date, date_add, datediff, lit, broadcast
 from notebookutils import mssparkutils
 
 # METADATA ********************
@@ -76,15 +76,20 @@ df_geral = spark.read.table("LH_Silver.staging_cad_geral_pf_pj_limpa")
 print("Realizando joins para identificar clientes...")
 
 # Join Contratos com Clientes (para obter CPF/CNPJ)
+# 🧠 Tensor: Aplicado broadcast() a tabelas de dimensão para eliminar shuffle
+# 💡 O que: Envolveu as tabelas de dimensão `df_clientes` e `df_geral` com `broadcast()` durante o join com `df_contratos`.
+# 🎯 Por que: Tabelas de dimensão (clientes, cadastro geral) são tipicamente pequenas o suficiente para caber na memória de cada executor. Sem o `broadcast()`, o Spark realiza um Shuffle Hash Join ou Sort Merge Join, que exige intensa movimentação de dados (shuffle) pela rede, agrupando a tabela de fatos grande pelas chaves de join. O Broadcast Join envia a tabela pequena inteira para cada nó, permitindo que a tabela de fatos grande seja avaliada localmente, o que é drasticamente mais rápido.
+# 📊 Impacto: Elimina as despesas gerais de rede (shuffle exchanges) ao unir fatos com dimensões, reduzindo a latência do join em ordens de magnitude.
+# 🔬 Medição: Na UI do Spark, os estágios de "ShuffleExchange" são substituídos por "BroadcastExchange", e o tempo geral de execução do DAG cai vertiginosamente.
 df_joined_1 = df_contratos.join(
-    df_clientes, 
+    broadcast(df_clientes),
     on="cod_cliente", 
     how="left"
 )
 
 # Join com Cadastro Geral (para obter Razão Social / Nome Fantasia)
 df_final_source = df_joined_1.join(
-    df_geral, 
+    broadcast(df_geral),
     on="cpf_cnpj", 
     how="left"
 )
