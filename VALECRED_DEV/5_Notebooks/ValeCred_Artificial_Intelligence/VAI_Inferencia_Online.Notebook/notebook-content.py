@@ -157,6 +157,25 @@ except Exception as e:
     df_hoje_ajustado = df_hoje_ajustado.withColumn("alerta_intercia_sem_limite", F.lit(False))
 
 # ==============================================================================
+# 🆕 VERIFICAÇÃO DE EXCESSO NA TRANCHE
+# ==============================================================================
+try:
+    print("🔍 Verificando regras de Tranche...")
+    df_contratos = spark.table("LH_Silver.staging_contratos_clientes_limpa")
+    df_contratos_tranche = df_contratos.filter(F.col("status") == "A").groupBy("cod_cliente").agg(F.max("tranche").alias("tranche_contrato"))
+    df_hoje_ajustado = df_hoje_ajustado.join(df_contratos_tranche, "cod_cliente", "left").fillna(0.0, subset=["tranche_contrato"])
+    df_hoje_ajustado = df_hoje_ajustado.withColumn(
+        "alerta_excesso_tranche",
+        F.when(
+            (F.col("tranche_contrato") > 0) & (F.col("vlr_total_sacado") > F.col("tranche_contrato")),
+            F.lit(True)
+        ).otherwise(F.lit(False))
+    )
+except Exception as e:
+    print(f"⚠️ Não foi possível carregar regras de Tranche: {e}")
+    df_hoje_ajustado = df_hoje_ajustado.withColumn("alerta_excesso_tranche", F.lit(False))
+
+# ==============================================================================
 # 🆕 BLOCO DE ENRIQUECIMENTO DE PRODUTO (O Join Mágico)
 # ==============================================================================
 # 1. Tratamento de Nulos para o Join (STTO nulo vira vazio, igual na Dimensão)
@@ -300,6 +319,7 @@ try:
         df_scored = df_scored.withColumn(
             "anomaly_score",
             F.when(F.col("alerta_intercia_sem_limite"), -1.0)
+             .when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .otherwise(F.col("anomaly_score"))
@@ -307,7 +327,8 @@ try:
     else:
         df_scored = df_scored.withColumn(
             "anomaly_score",
-            F.when(F.col("is_cedente_novo"), -1.0)
+            F.when(F.col("alerta_excesso_tranche"), -1.0)
+             .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .otherwise(F.col("anomaly_score"))
         )
@@ -325,6 +346,7 @@ except Exception as e:
         df_scored = df_scored.withColumn(
             "anomaly_score",
             F.when(F.col("alerta_intercia_sem_limite"), -1.0)
+             .when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .otherwise(F.col("anomaly_score"))
@@ -332,7 +354,8 @@ except Exception as e:
     else:
         df_scored = df_scored.withColumn(
             "anomaly_score",
-            F.when(F.col("is_cedente_novo"), -1.0)
+            F.when(F.col("alerta_excesso_tranche"), -1.0)
+             .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .otherwise(F.col("anomaly_score"))
         )
@@ -394,13 +417,15 @@ max_z_struct = F.array_max(z_scores_array)
 # Na explicação, verificar primeiro a regra rígida de Intercia e Sacado Novo
 if "alerta_intercia_sem_limite" in df_scored.columns:
     motivo_expr = F.when(F.col("alerta_intercia_sem_limite"), F.lit("Tentativa de Intercia Sem Limite")) \
+                   .when(F.col("alerta_excesso_tranche"), F.lit("EXCESSO NA TRANCHE")) \
                    .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
                    .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
                    .otherwise(F.lit("Desconhecido"))
 else:
-    motivo_expr = F.when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
+    motivo_expr = F.when(F.col("alerta_excesso_tranche"), F.lit("EXCESSO NA TRANCHE")) \
+                   .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
                    .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
