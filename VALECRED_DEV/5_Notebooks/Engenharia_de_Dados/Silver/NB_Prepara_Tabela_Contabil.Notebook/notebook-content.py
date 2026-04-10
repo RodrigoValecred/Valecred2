@@ -121,30 +121,36 @@ if raw_count > 0:
     df_dedup = df_with_latest.withColumn("row_num", row_number().over(windowSpec)) \
         .filter(col("row_num") == 1).drop("row_num", "DATA_MAIS_RECENTE").cache()
 
-    dedup_count = df_dedup.count()
-    print(f"DEBUG: Registros após deduplicação: {dedup_count}")
-
-    # 3. Selecionar Colunas e Renomear
-    df_final = select_lancamentos(df_dedup).orderBy(col("data_inclusao").desc())
-
-    final_count = df_final.count()
-    print(f"DEBUG: Registros finais para escrita: {final_count}")
-
-    # 4. Escrita (Overwrite)
     try:
-        df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table_full_name)
-        print("Operação de escrita (overwrite) concluída com sucesso.")
-        
-        # Verificação pós-escrita
-        actual_count = spark.read.table(target_table_full_name).count()
-        print(f"DEBUG: Contagem final na tabela destino ({target_table_full_name}): {actual_count}")
-        
-        if actual_count != final_count:
-            print(f"ALERTA: Discrepância detectada! Esperado: {final_count}, Encontrado: {actual_count}")
+        dedup_count = df_dedup.count()
+        print(f"DEBUG: Registros após deduplicação: {dedup_count}")
+
+        # 3. Selecionar Colunas e Renomear
+        df_final = select_lancamentos(df_dedup).orderBy(col("data_inclusao").desc())
+
+        final_count = df_final.count()
+        print(f"DEBUG: Registros finais para escrita: {final_count}")
+
+        # 4. Escrita (Overwrite)
+        try:
+            df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table_full_name)
+            print("Operação de escrita (overwrite) concluída com sucesso.")
             
+            # Verificação pós-escrita
+            actual_count = spark.read.table(target_table_full_name).count()
+            print(f"DEBUG: Contagem final na tabela destino ({target_table_full_name}): {actual_count}")
+
+            if actual_count != final_count:
+                print(f"ALERTA: Discrepância detectada! Esperado: {final_count}, Encontrado: {actual_count}")
+
+        except Exception as e:
+            print(f"ERRO FATAL ao escrever na tabela destino: {e}")
+            df_dedup.unpersist()
+            mssparkutils.notebook.exit(f"Write Failed: {e}")
     except Exception as e:
-        print(f"ERRO FATAL ao escrever na tabela destino: {e}")
-        mssparkutils.notebook.exit(f"Write Failed: {e}")
+        print(f"ERRO FATAL durante o processamento após o cache: {e}")
+        df_dedup.unpersist()
+        mssparkutils.notebook.exit(f"Processing Failed: {e}")
     finally:
         # Limpar memória
         df_dedup.unpersist()
