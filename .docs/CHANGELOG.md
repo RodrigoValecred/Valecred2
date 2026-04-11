@@ -2,6 +2,19 @@
 
 ## Change Log
 
+### [2026-04-11]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| VAI_Inferencia_Online | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | fix: prevent 'Desconhecido' XAI motive by safe-guarding null mean values in Z-score calculation | Changed |
+| VAI_Inferencia_Online | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | feat: monitor 'EXCESSO NA TRANCHE' reason in V.A.I | Changed |
+| Relatório Limites Específicos (Gold) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Limites_Especificos.Notebook/notebook-content.py` | 🧠 Tensor: Broadcast Joins for Limits Specifics Report | Changed |
+| Preparação Tabela Contábil (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Contabil.Notebook/notebook-content.py` | ⚡ Bolt: Fix caching memory leak in Contábil | Changed |
+| Extrai Observações Contratos (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Extrai_Observacoes_Contratos.Notebook/notebook-content.py` | ⚡ Bolt: Flatten deep PySpark Catalyst logical plan in NB_Extrai_Observacoes_Contratos | Changed |
+| Relatório Produtos Mensal & Relatório Limites Vencendo (Gold) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py`, `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Relatorio_Limites_Vencendo.Notebook/notebook-content.py` | 🧠 Tensor: Optimize dimensions with Broadcast Joins | Changed |
+| Testes Unitários | `tests/test_download_and_extract.py` | Add unit tests for download_and_extract function in RFB notebook | Added |
+| Testes Unitários | `tests/test_silver_carteira_pdd_safe_load.py` | Add unit tests for safe_load_table function | Added |
+| Carga CVM (Bronze) | `VALECRED_DEV/5_Notebooks/Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py` | ⚡ Bolt: Increase chunk size for CVM downloads | Changed |
 ### [2026-04-08]
 
 | Component | Path | Description | Change |
