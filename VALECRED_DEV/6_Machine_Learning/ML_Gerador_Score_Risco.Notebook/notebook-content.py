@@ -199,7 +199,7 @@ def calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_feat
     # 2. Preparar dados para o modelo
     X_cliente = df_cliente_pandas[model_features].copy()
 
-    # 🧠 Tensor: Downcast numeric columns (float64 -> float32)
+    # 🧠 Tensor: Fazer o downcast de colunas numéricas (float64 -> float32)
     # 💡 O que: Converte todas as colunas float64 no DataFrame Pandas para float32 antes da inferência do modelo.
     # 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita o overhead
     #         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória

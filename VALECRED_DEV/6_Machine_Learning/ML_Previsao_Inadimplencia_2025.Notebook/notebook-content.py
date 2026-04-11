@@ -251,7 +251,7 @@ def predict_proba_udf(*cols):
     features = features_broadcast.value
     X = pd.DataFrame(dict(zip(features, cols)))
 
-    # 🧠 Tensor: Downcast numeric columns (float64 -> float32)
+    # 🧠 Tensor: Fazer o downcast de colunas numéricas (float64 -> float32)
     # 💡 O que: Converte todas as colunas float64 no DataFrame Pandas para float32 antes da inferência do modelo.
     # 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita a sobrecarga
     #         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória
