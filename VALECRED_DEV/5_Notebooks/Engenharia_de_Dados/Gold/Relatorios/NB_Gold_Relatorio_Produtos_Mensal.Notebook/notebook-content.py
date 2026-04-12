@@ -506,7 +506,13 @@ try:
     # Union
     df_ops = df_ops_normal.select(common_cols).unionByName(df_ops_rc_agg.select(common_cols), allowMissingColumns=True) \
         .dropDuplicates(["cod_operacao"])
-    print(f"Adicionadas operações de recompra. Total combinado: {df_ops.count()}")
+
+    # 🧠 Tensor: Remove redundant count logging
+    # 💡 What: Removed `.count()` from the print statement after the union.
+    # 🎯 Why: Using `.count()` purely for logging purposes on an intermediate DataFrame forces an eager evaluation of the DAG.
+    # 📊 Impact: Prevents redundant full-table scans, significantly reducing processing time and I/O overhead since df_ops is used in subsequent operations.
+    # 🔬 Measurement: Spark execution DAG will no longer show a separate job materializing the union solely for the count log.
+    print("Adicionadas operações de recompra.")
 
 except Exception as e:
     print(f"Aviso: Não foi possível carregar fato_operacoes_recompra ({e}). Usando apenas operações normais.")
