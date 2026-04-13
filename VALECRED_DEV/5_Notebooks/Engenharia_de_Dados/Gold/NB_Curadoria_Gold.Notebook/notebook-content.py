@@ -664,7 +664,12 @@ df_titulos_candidates = df_operacoes_candidates.join(df_titulos_limpa, on="cod_o
 # Fazer join apenas das chaves DANFE para títulos relevantes
 df_matches = df_titulos_candidates.join(df_chave_danfe, df_titulos_candidates.cod_titulo == df_chave_danfe.CODTITULO, how="inner")
 
-df_vcount = df_matches.groupBy("cod_operacao").count()
+# ⚡ Otimização Bolt: Adicionar .cache() na agregação df_vcount para evitar shuffles redundantes
+# 💡 O que: Inserido .cache() no DataFrame `df_vcount` que será utilizado no `.join()` com `df_operacoes_com_gerente`
+# 🎯 Por que: A ação de agregação `.count()` associada à operação `.join()` subsequente pode causar reavaliação eager (eager evaluation) do plano Catalyst e forçar o Spark a ler e agregar os dados de `df_matches` mais de uma vez. O `.cache()` interrompe essa reavaliação na agregação.
+# 📊 Impacto: Diminui o uso de I/O em re-leituras completas, resultando em menor tempo de execução no stage do join de Operações Enriquecidas.
+# 🔬 Medição: O Spark UI mostrará operações de join lendo diretamente do cache na memória no bloco de Enriquecimento de Operações.
+df_vcount = df_matches.groupBy("cod_operacao").count().cache()
 df_com_vcount = df_operacoes_com_gerente.join(df_vcount, on="cod_operacao", how="left")
 
 
@@ -928,6 +933,7 @@ df_operacoes_enriquecida = df_operacoes_enriquecida.join(df_titulos_agg, "cod_op
     .withColumn("prazo_medio_total", coalesce(col("prazo_medio_ponderado_dias"), col("prazo_medio") + coalesce(col("floating"), lit(0))))
 
 df_fato_operacoes = create_fato_operacoes(df_operacoes_enriquecida, df_dim_calendario, df_dim_produto).dropDuplicates(["cod_operacao"]).cache()
+df_vcount.unpersist()
 
 output_path_fato_operacoes = TableNames.GOLD_FATO_OPERACOES
 df_fato_operacoes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_fato_operacoes)

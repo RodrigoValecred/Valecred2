@@ -504,8 +504,12 @@ try:
     ]
 
     # Union
+    # ⚡ Otimização Bolt: Adicionado cache em união de operações para não afetar steps de log
+    # 💡 O que: Adicionado .cache() no dataframe `df_ops` logo após o `.unionByName` e antes do `.count()` de log. Foi adicionado `.unpersist()` mais ao final (não aplicável, já que fica no runtime do notebook de job, mas como boas práticas, vamos cachear).
+    # 🎯 Por que: Como df_ops sofre um join com grandes agregados, sem o cache a ação de `.count()` já provocou leitura extra. E o uso posterior dobra o I/O da camada Gold.
+    # 📊 Impacto: Evita recálculos de Union+agg e DropDuplicates.
     df_ops = df_ops_normal.select(common_cols).unionByName(df_ops_rc_agg.select(common_cols), allowMissingColumns=True) \
-        .dropDuplicates(["cod_operacao"])
+        .dropDuplicates(["cod_operacao"]).cache()
     print(f"Adicionadas operações de recompra. Total combinado: {df_ops.count()}")
 
 except Exception as e:
@@ -855,6 +859,7 @@ df_menores_taxas = df_top_clientes.filter(col("volume_operado_cliente") > 10000)
 # Salvar Tabela Gold (Granularidade: Operação)
 output_table = "LH_Gold.relatorio_rentabilidade_clientes_2025"
 df_report.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
+df_ops.unpersist()
 print(f"Relatório detalhado salvo em: {output_table}")
 
 mssparkutils.notebook.exit("Success")

@@ -231,7 +231,10 @@ try:
             "correio_eletronico"
         ]
 
-        df_resultado_final = df_opportunities.select(cols_final)
+        # ⚡ Otimização Bolt: Adicionado cache em dataframe cruzado com log
+        # 💡 O que: Inserido .cache() no dataframe `df_resultado_final` e .unpersist() no final
+        # 🎯 Por que: Uma ação count() forçava a leitura da CVM (Bronze) cruzada com a Gold. Ao cachear, economizamos I/O no .saveAsTable() subsequente.
+        df_resultado_final = df_opportunities.select(cols_final).cache()
 
         table_cvm_target = "LH_Gold.fato_empresas_target_cvm_concentracao"
 
