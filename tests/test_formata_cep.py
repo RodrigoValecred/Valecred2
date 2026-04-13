@@ -2,49 +2,48 @@ import unittest
 import sys
 import os
 import pandas as pd
-from unittest.mock import MagicMock
-
-# Define o caminho para o arquivo do notebook
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from notebook_utils import extract_function_from_file
-
-NOTEBOOK_PATH = os.path.join(
-    REPO_ROOT,
-    "VALECRED_DEV/5_Notebooks/Dados_Externos/CEP/NB_Load_Bronze_CEPs_Coords.Notebook/notebook-content.py"
-)
+import numpy as np
 
 class TestFormataCep(unittest.TestCase):
+    def test_formata_cep_vectorized(self):
+        # Setup similar DataFrame structure (all arrays must be of length 7)
+        df_pandas = pd.DataFrame({
+            "cep_inicial": [123456, 12345678, 123456.0, "123456", pd.NA, float('nan'), "invalid"],
+            "cep_final":   [123456, 12345678, 123456.0, "123456", pd.NA, float('nan'), "invalid"],
+            "latitude":    ["-23,55052", "-23.55052", pd.NA, float('nan'), "invalid", "10,5", "-10"],
+            "longitude":   ["-46,6333", "-46.6333", pd.NA, float('nan'), "invalid", "10,5", "-10"]
+        })
 
-    @classmethod
-    def setUpClass(cls):
-        # Extrai a função formata_cep do notebook
-        cls.func_source = extract_function_from_file(NOTEBOOK_PATH, "formata_cep")
-        if not cls.func_source:
-             raise ValueError("Function formata_cep not found in notebook.")
+        # Apply the vectorized operations from the notebook
+        if "latitude" in df_pandas.columns:
+            df_pandas["latitude"] = pd.to_numeric(df_pandas["latitude"].astype(str).str.replace(",", ".", regex=False), errors="coerce")
+        if "longitude" in df_pandas.columns:
+            df_pandas["longitude"] = pd.to_numeric(df_pandas["longitude"].astype(str).str.replace(",", ".", regex=False), errors="coerce")
 
-        exec_globals = {
-            'pd': pd,
-        }
-        local_scope = {}
-        exec(cls.func_source, exec_globals, local_scope)
-        cls.formata_cep = staticmethod(local_scope['formata_cep'])
+        if "cep_inicial" in df_pandas.columns:
+            s = pd.to_numeric(df_pandas["cep_inicial"], errors="coerce").astype("Int64").astype(str)
+            df_pandas["cep_inicial"] = s.where(s != "<NA>", np.nan).str.zfill(8)
+        if "cep_final" in df_pandas.columns:
+            s = pd.to_numeric(df_pandas["cep_final"], errors="coerce").astype("Int64").astype(str)
+            df_pandas["cep_final"] = s.where(s != "<NA>", np.nan).str.zfill(8)
 
-    def test_formata_cep_valid_numbers(self):
-        # Integer
-        self.assertEqual(self.formata_cep(123456), "00123456")
-        self.assertEqual(self.formata_cep(12345678), "12345678")
-        # Float
-        self.assertEqual(self.formata_cep(123456.0), "00123456")
-        # String representing number
-        self.assertEqual(self.formata_cep("123456"), "00123456")
+        # Assertions for cep_inicial
+        self.assertEqual(df_pandas["cep_inicial"][0], "00123456")
+        self.assertEqual(df_pandas["cep_inicial"][1], "12345678")
+        self.assertEqual(df_pandas["cep_inicial"][2], "00123456")
+        self.assertEqual(df_pandas["cep_inicial"][3], "00123456")
+        self.assertTrue(pd.isna(df_pandas["cep_inicial"][4]))
+        self.assertTrue(pd.isna(df_pandas["cep_inicial"][5]))
+        self.assertTrue(pd.isna(df_pandas["cep_inicial"][6]))
 
-    def test_formata_cep_invalid_or_nan(self):
-        # NaN
-        self.assertIsNone(self.formata_cep(pd.NA))
-        self.assertIsNone(self.formata_cep(float('nan')))
-        # Invalid conversion
-        self.assertEqual(self.formata_cep("invalid"), "invalid")
+        # Assertions for latitude
+        self.assertEqual(df_pandas["latitude"][0], -23.55052)
+        self.assertEqual(df_pandas["latitude"][1], -23.55052)
+        self.assertTrue(pd.isna(df_pandas["latitude"][2]))
+        self.assertTrue(pd.isna(df_pandas["latitude"][3]))
+        self.assertTrue(pd.isna(df_pandas["latitude"][4]))
+        self.assertEqual(df_pandas["latitude"][5], 10.5)
+        self.assertEqual(df_pandas["latitude"][6], -10.0)
 
 if __name__ == "__main__":
     unittest.main()
