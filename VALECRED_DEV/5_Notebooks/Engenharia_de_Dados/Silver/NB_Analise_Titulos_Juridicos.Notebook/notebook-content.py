@@ -66,12 +66,13 @@ df_juridico_events = df_cobranca.filter(col("CODOCORCOBRANCA") == 26) \
 # 🎯 Por que: A chamada .count() força a avaliação eager de todo o plano Catalyst. Como df_juridico_events é usado em um join depois, sem o cache a leitura da Bronze e os filtros seriam executados duas vezes.
 # 📊 Impacto: Evita reavaliação redundante do DAG (full table scan e filtros), reduzindo significativamente o I/O e o tempo total de processamento.
 # 🔬 Medição: Elimina do Spark UI o estágio duplicado para carregamento da tabela tab_titulos_cobranca.
-df_juridico_events.cache()
-
-count_events = df_juridico_events.count()
-print(f"Total de registros de envio ao jurídico encontrados: {count_events}")
-
-if count_events > 0:
+# ⚡ Otimização de Bolt: Remove lazy count em log e substitui condicional por isEmpty
+# 💡 O que: Trocou `df_juridico_events.cache(); count_events = df_juridico_events.count(); if count_events > 0:` por `if not df_juridico_events.isEmpty():` e chama cache apenas se for processar dados.
+# 🎯 Por que: A chamada `.count()` aciona uma avaliação completa mesmo para partições vazias para retornar o total de registros. `.isEmpty()` processa apenas 1 partição e retorna imediato, não necessitando de cache para esse check rápido em runs incrementais sem evento. O log explícito .count() foi removido pois a tabela final imprime total no fim.
+# 📊 Impacto: Otimiza a execução de pipelines incrementais quando não existem eventos novos sem gastar I/O.
+if not df_juridico_events.isEmpty():
+    df_juridico_events.cache()
+    print(f"Registros de envio ao jurídico encontrados. Prosseguindo...")
     # 3. Carregar tabela de Títulos (Silver) para enriquecimento
     df_titulos = spark.read.table("LH_Silver.staging_titulos_limpa")
     

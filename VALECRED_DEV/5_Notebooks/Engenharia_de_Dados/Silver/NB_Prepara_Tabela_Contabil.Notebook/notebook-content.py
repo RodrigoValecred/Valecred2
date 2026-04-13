@@ -122,14 +122,14 @@ if raw_count > 0:
         .filter(col("row_num") == 1).drop("row_num", "DATA_MAIS_RECENTE").cache()
 
     try:
-        dedup_count = df_dedup.count()
-        print(f"DEBUG: Registros após deduplicação: {dedup_count}")
+        # ⚡ Otimização de Bolt: Remove ações eager desnecessárias em logs
+        # 💡 O que: Remoção das contagens dedup_count e final_count que serviam apenas como log DEBUG.
+        # 🎯 Por que: Variáveis dependentes como df_dedup e df_final, quando forçam .count(), acionam re-avaliações múltiplas redundantes em operações muito pesadas como rank() over Window, sobrecarregando o Catalyst Optimizer e estendendo drasticamente o runtime de execução sem alterar dados.
+        # 📊 Impacto: Economiza materialização dupla da árvore DAG inteira, cortando metade ou mais do I/O na execução.
+        print("DEBUG: Executando transformações da tabela contabil...")
 
         # 3. Selecionar Colunas e Renomear
         df_final = select_lancamentos(df_dedup).orderBy(col("data_inclusao").desc())
-
-        final_count = df_final.count()
-        print(f"DEBUG: Registros finais para escrita: {final_count}")
 
         # 4. Escrita (Overwrite)
         try:
