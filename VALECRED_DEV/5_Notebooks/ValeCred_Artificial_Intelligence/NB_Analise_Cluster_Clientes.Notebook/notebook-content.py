@@ -189,7 +189,9 @@ print(f"Clientes classificados como Risco por Regra: {df_critical.count()}")
 # Clientes Restantes para Clusterização (Prime vs Rentável)
 df_to_cluster = df_features_final.join(df_critical.select("cod_cliente"), "cod_cliente", "left_anti")
 df_to_cluster.cache()
-print(f"Clientes restantes para Clusterização: {df_to_cluster.count()}")
+# ⚡ Otimização de Bolt: Removido count() redundante
+# Ação .count() de log removida. Para avaliar a isEmpty() depois, Spark verificará partições na pipeline otimizada.
+
 
 # 2.2 K-Means nos Restantes
 # 🧠 Otimização Tensor: Substituir count() > 0 por not df.isEmpty() para evitar varredura completa dos dados
