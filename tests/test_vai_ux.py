@@ -95,5 +95,6 @@ class TestVaiUX:
         assert "10" in output
         assert "Alto Risco:" in output
         assert "3" in output
+        assert "Discrepantes:" in output
         assert "TOP 3 MOTIVOS DE RISCO" in output
         assert "Motivo A" in output

@@ -84,7 +84,8 @@ rename_map = {
     "cpf_cnpj_sacado": "cpf_cnpj_sacado",
     "TIPO_OPERACAO": "TTO",
     "SUBTIPO_OPERACAO": "STTO",
-    "CODCLIENTE": "cod_cliente"
+    "CODCLIENTE": "cod_cliente",
+    "STATUSANALISE": "status_analise"
 }
 # (Ajuste os nomes "TIPO_OPERACAO" acima se na Bronze eles tiverem outro nome)
 new_columns = [rename_map.get(c, c) for c in df_hoje_clean.columns]
@@ -439,6 +440,17 @@ df_final = df_scored.withColumn("motivo_principal", motivo_expr)
 # ==============================================================================
 
 df_final = df_final.withColumn("status_ia", F.when(F.col("anomaly_score") == -1, "ALTO RISCO").otherwise("NORMAL"))
+
+# Flag operações discrepantes (V.A.I. = Alto Risco e Deferida, ou V.A.I. = Normal e Indeferida)
+df_final = df_final.withColumn(
+    "is_discrepante",
+    F.when(
+        ((F.col("status_ia") == "ALTO RISCO") & (F.col("status_analise") == "D")) |
+        ((F.col("status_ia") == "NORMAL") & (F.col("status_analise") == "I")),
+        F.lit(True)
+    ).otherwise(F.lit(False))
+)
+
 df_final = df_final.withColumn("data_processamento", F.current_timestamp())
 
 from pyspark.sql.window import Window
@@ -453,11 +465,13 @@ df_final.write.mode("overwrite").option("overwriteSchema", "true").format("delta
 # ⚡ Tensor: Coleta de métricas em passagem única para evitar múltiplas varreduras completas da tabela
 metrics_df = df_final.select(
     F.count("*").alias("total_ops"),
-    F.sum(F.when(F.col("status_ia") == "ALTO RISCO", 1).otherwise(0)).alias("risco_alto")
+    F.sum(F.when(F.col("status_ia") == "ALTO RISCO", 1).otherwise(0)).alias("risco_alto"),
+    F.sum(F.when(F.col("is_discrepante"), 1).otherwise(0)).alias("discrepantes")
 ).collect()
 
 total_ops = metrics_df[0]["total_ops"] or 0
 risco_alto = metrics_df[0]["risco_alto"] or 0
+discrepantes = metrics_df[0]["discrepantes"] or 0
 
 # Top 3 motivos
 top_motivos_rows = df_final.filter(F.col("status_ia") == "ALTO RISCO") \
@@ -467,6 +481,7 @@ top_motivos = [(row['motivo_principal'], row['count']) for row in top_motivos_ro
 metrics = {
     "total_ops": total_ops,
     "risco_alto": risco_alto,
+    "discrepantes": discrepantes,
     "top_motivos": top_motivos
 }
 
@@ -505,6 +520,7 @@ def display_terminal_dashboard(metrics):
 
     total_ops = metrics.get('total_ops', 0)
     risco_alto = metrics.get('risco_alto', 0)
+    discrepantes = metrics.get('discrepantes', 0)
     top_motivos = metrics.get('top_motivos', [])
 
     if total_ops > 0:
@@ -523,6 +539,7 @@ def display_terminal_dashboard(metrics):
         print(f"  🔢 Total:       {str(total_ops):<31} ")
         print(f"  🚨 Alto Risco:  {str(risco_alto):<31} ")
         print(f"  ✅ Normal:      {str(normal):<31} ")
+        print(f"  ⚠️ Discrepantes:{str(discrepantes):<31} ")
 
         print(f" {' '*cw} ") # Spacer
 
