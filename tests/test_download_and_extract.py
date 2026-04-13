@@ -6,7 +6,7 @@ import zipfile
 import shutil
 import tempfile
 
-# Ensure tests directory is in path
+# Garante que o diretório de testes esteja no path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from tests.notebook_utils import extract_function_from_file
 
@@ -37,14 +37,14 @@ class TestDownloadAndExtract(unittest.TestCase):
         os.makedirs(self.download_dir)
         os.makedirs(self.extract_dir)
 
-        # Create a malicious zip file fixture
+        # Cria um arquivo zip malicioso (fixture)
         self.malicious_zip_name = "malicious.zip"
         self.malicious_zip_path = os.path.join(self.download_dir, self.malicious_zip_name)
         with zipfile.ZipFile(self.malicious_zip_path, 'w') as zf:
             zf.writestr('../evil.txt', 'evil content')
             zf.writestr('good.txt', 'good content')
 
-        # Create a safe zip file fixture
+        # Cria um arquivo zip seguro (fixture)
         self.safe_zip_name = "safe.zip"
         self.safe_zip_path = os.path.join(self.download_dir, self.safe_zip_name)
         with zipfile.ZipFile(self.safe_zip_path, 'w') as zf:
@@ -61,9 +61,9 @@ class TestDownloadAndExtract(unittest.TestCase):
             'print': MagicMock()
         }
 
-        # Load safe_extract
+        # Carrega safe_extract
         exec(self.safe_extract_source, self.exec_globals)
-        # Load download_and_extract
+        # Carrega download_and_extract
         exec(self.func_source, self.exec_globals)
 
         self.download_and_extract = self.exec_globals['download_and_extract']
@@ -72,7 +72,7 @@ class TestDownloadAndExtract(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_successful_download_first_mirror(self):
-        # Setup mocks to pretend it downloaded the safe zip
+        # Configura os mocks (simulações) para fingir que o zip seguro foi baixado
         def get_side_effect(*args, **kwargs):
             mock_resp = MagicMock(status_code=200)
             with open(self.safe_zip_path, 'rb') as f:
@@ -88,11 +88,11 @@ class TestDownloadAndExtract(unittest.TestCase):
         self.mock_requests.head.assert_called_once_with(f'http://mirror1/{self.safe_zip_name}', headers=ANY, verify=True, timeout=30, allow_redirects=True)
         self.assertEqual(self.mock_requests.get.call_count, 1)
 
-        # Verify extraction worked
+        # Verifica se a extração funcionou
         self.assertTrue(os.path.exists(os.path.join(self.extract_dir, "safe.txt")))
 
     def test_fallback_to_second_mirror(self):
-        # First mirror fails head request, second succeeds
+        # O primeiro mirror falha na requisição head, o segundo funciona
         head_response1 = MagicMock(status_code=404)
         head_response2 = MagicMock(status_code=200)
         self.mock_requests.head.side_effect = [head_response1, head_response2]
@@ -121,7 +121,7 @@ class TestDownloadAndExtract(unittest.TestCase):
         self.mock_requests.get.assert_not_called()
 
     def test_zip_slip_vulnerability(self):
-        # Return the malicious zip file content
+        # Retorna o conteúdo do arquivo zip malicioso
         def get_side_effect(*args, **kwargs):
             mock_resp = MagicMock(status_code=200)
             with open(self.malicious_zip_path, 'rb') as f:
@@ -131,18 +131,18 @@ class TestDownloadAndExtract(unittest.TestCase):
         self.mock_requests.head.return_value.status_code = 200
         self.mock_requests.get.side_effect = get_side_effect
 
-        # Note: `safe_extract` raises Exception("Zip Slip vulnerability detected").
-        # The function `download_and_extract` catches it and raises a RuntimeError
-        # with "Security Check Failed: Extraction stopped due to path traversal violation."
+        # Nota: `safe_extract` levanta Exception("Zip Slip vulnerability detected").
+        # A função `download_and_extract` captura e levanta um RuntimeError
+        # com "Security Check Failed: Extraction stopped due to path traversal violation."
         with self.assertRaisesRegex(RuntimeError, "Security Check Failed: Extraction stopped due to path traversal violation."):
             self.download_and_extract(self.malicious_zip_name, self.download_dir, self.extract_dir)
 
-        # Verify malicious file was NOT extracted outside
+        # Verifica se o arquivo malicioso NÃO foi extraído fora do diretório
         self.assertFalse(os.path.exists(os.path.join(self.download_dir, "evil.txt")))
         self.assertFalse(os.path.exists(os.path.join(self.test_dir, "evil.txt")))
 
     def test_bad_zip_file(self):
-        # Create a genuinely bad zip file
+        # Cria um arquivo zip genuinamente corrompido
         bad_zip_name = "bad.zip"
         bad_zip_path = os.path.join(self.download_dir, bad_zip_name)
         with open(bad_zip_path, 'w') as f:
