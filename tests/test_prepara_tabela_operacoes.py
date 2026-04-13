@@ -4,6 +4,7 @@ import sys
 import os
 import re
 import unicodedata
+from unittest.mock import MagicMock
 
 # Caminho para o notebook file
 NOTEBOOK_PATH = "VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py"
@@ -463,6 +464,116 @@ class TestCheckShouldSkip(unittest.TestCase):
 
         result = self.check_should_skip(spark_mock, "source_table", "target_table_path")
         self.assertFalse(result)
+
+class MockCol:
+    def __init__(self, name):
+        self.name = name
+    def __ge__(self, other):
+        return MockCol(f"{self.name} >= {other.name if isinstance(other, MockCol) else other}")
+    def __or__(self, other):
+        return MockCol(f"({self.name}) | ({other.name if isinstance(other, MockCol) else other})")
+    def __eq__(self, other):
+        return True
+
+class TestProcessIncrementalDevolucoes(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting process_incremental_devolucoes from {NOTEBOOK_PATH}")
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "process_incremental_devolucoes")
+
+        if func_source:
+            cls.global_scope = {
+                "DeltaTable": MagicMock(),
+                "transform_devolucoes": MagicMock(),
+                "col": lambda x: MockCol(x),
+                "lit": lambda x: MockCol(str(x)),
+                "coalesce": MagicMock(),
+                "max": MagicMock(),
+                "spark": MagicMock()
+            }
+            local_scope = {}
+            try:
+                exec(func_source, cls.global_scope, local_scope)
+                cls.process_incremental_devolucoes = staticmethod(local_scope["process_incremental_devolucoes"])
+            except Exception as e:
+                print(f"Error executing extracted function: {e}")
+                cls.process_incremental_devolucoes = None
+        else:
+            cls.process_incremental_devolucoes = None
+            print("WARNING: process_incremental_devolucoes function not found in file.")
+
+    def test_process_incremental_devolucoes_has_data(self):
+        """Teste process_incremental_devolucoes com dados retornados (não vazio)."""
+        if not self.process_incremental_devolucoes:
+            self.skipTest("Function not found")
+
+        # Reset mocks
+        self.global_scope["DeltaTable"].reset_mock()
+        self.global_scope["transform_devolucoes"].reset_mock()
+        self.global_scope["spark"].reset_mock()
+
+        # Setup mocks
+        spark_mock = self.global_scope["spark"]
+        delta_table_mock = MagicMock()
+        self.global_scope["DeltaTable"].forPath.return_value = delta_table_mock
+
+        # Mock para watermark
+        watermark_df_mock = MagicMock()
+        watermark_df_mock.first.return_value = ["2023-01-01"]
+        spark_mock.read.format.return_value.load.return_value.agg.return_value = watermark_df_mock
+
+        # Mock para df_bronze_dev
+        df_bronze_dev_mock = MagicMock()
+        df_bronze_dev_mock.isEmpty.return_value = False
+        spark_mock.read.table.return_value.filter.return_value = df_bronze_dev_mock
+
+        # Mock para transform_devolucoes
+        df_final_mock = MagicMock()
+        self.global_scope["transform_devolucoes"].return_value = df_final_mock
+
+        # Call function
+        self.process_incremental_devolucoes("source_table", "output_path")
+
+        # Assertions
+        self.global_scope["DeltaTable"].forPath.assert_called_once_with(spark_mock, "output_path")
+        spark_mock.read.format.assert_called_with("delta")
+        spark_mock.read.table.assert_called_with("source_table")
+
+        self.global_scope["transform_devolucoes"].assert_called_once_with(df_bronze_dev_mock)
+        delta_table_mock.alias.return_value.merge.assert_called_once()
+        delta_table_mock.alias.return_value.merge.return_value.whenMatchedUpdateAll.return_value.whenNotMatchedInsertAll.return_value.execute.assert_called_once()
+
+    def test_process_incremental_devolucoes_empty_data(self):
+        """Teste process_incremental_devolucoes sem dados retornados (vazio)."""
+        if not self.process_incremental_devolucoes:
+            self.skipTest("Function not found")
+
+        # Reset mocks
+        self.global_scope["DeltaTable"].reset_mock()
+        self.global_scope["transform_devolucoes"].reset_mock()
+        self.global_scope["spark"].reset_mock()
+
+        # Setup mocks
+        spark_mock = self.global_scope["spark"]
+        delta_table_mock = MagicMock()
+        self.global_scope["DeltaTable"].forPath.return_value = delta_table_mock
+
+        # Mock para watermark
+        watermark_df_mock = MagicMock()
+        watermark_df_mock.first.return_value = ["2023-01-01"]
+        spark_mock.read.format.return_value.load.return_value.agg.return_value = watermark_df_mock
+
+        # Mock para df_bronze_dev
+        df_bronze_dev_mock = MagicMock()
+        df_bronze_dev_mock.isEmpty.return_value = True
+        spark_mock.read.table.return_value.filter.return_value = df_bronze_dev_mock
+
+        # Call function
+        self.process_incremental_devolucoes("source_table", "output_path")
+
+        # Assertions
+        self.global_scope["transform_devolucoes"].assert_not_called()
+        delta_table_mock.alias.return_value.merge.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()
