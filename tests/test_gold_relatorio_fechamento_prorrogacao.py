@@ -50,7 +50,7 @@ class TestProrrogacaoLogic(unittest.TestCase):
     def tearDownClass(cls):
         cls.spark.stop()
 
-    def _test_prorrogacao_recovery_logic(self):
+    def test_prorrogacao_recovery_logic(self):
         # Sample Data
         data = [
             # Caso 1: Recuperado (Rejeitado -> Aceito)

@@ -182,7 +182,12 @@ df_full = df_receita.join(
 .na.fill(0)
 
 # Join com Dados do Gerente (Contratação)
-df_analise = df_full.join(df_gerentes, df_full.id_gerente == df_gerentes.cod_broker, "inner") \
+# 🧠 Tensor: Enforce Broadcast Join for Dimension Table
+# 💡 O que: Usado `F.broadcast()` no DataFrame de dimensão ao realizar join.
+# 🎯 Por que: Evita embaralhamento (shuffle) global da rede em joins com tabelas de fatos muito maiores.
+# 📊 Impacto: Diminui drasticamente o uso de I/O de rede e acelera o tempo de compilação da query do Catalyst.
+# 🔬 Measurement: Profiling mostrará remoção do stage de SortMergeJoin no Spark UI.
+df_analise = df_full.join(F.broadcast(df_gerentes), df_full.id_gerente == df_gerentes.cod_broker, "inner") \
     .select(
         F.col("id_gerente"),
         F.col("mes_ref"),
