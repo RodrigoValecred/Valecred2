@@ -464,5 +464,52 @@ class TestCheckShouldSkip(unittest.TestCase):
         result = self.check_should_skip(spark_mock, "source_table", "target_table_path")
         self.assertFalse(result)
 
+
+class TestProcessFullOperacoes(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting process_full_operacoes from {NOTEBOOK_PATH}")
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "process_full_operacoes")
+
+        if func_source:
+            local_scope = {}
+            global_scope = {}
+            try:
+                exec(func_source, global_scope, local_scope)
+                cls.process_full_operacoes_src = staticmethod(local_scope["process_full_operacoes"])
+                cls.global_scope = global_scope
+            except Exception as e:
+                print(f"Error executing extracted function: {e}")
+                cls.process_full_operacoes_src = None
+        else:
+            cls.process_full_operacoes_src = None
+
+    def test_function_exists(self):
+        """Testa se a função foi extraída com sucesso."""
+        self.assertIsNotNone(self.process_full_operacoes_src, "Function process_full_operacoes not found in notebook file.")
+
+    def test_process_full_operacoes_happy_path(self):
+        if not self.process_full_operacoes_src:
+            self.skipTest("Function not found")
+
+        spark_mock = MagicMock()
+        df_bronze_mock = MagicMock()
+        spark_mock.read.table.return_value = df_bronze_mock
+
+        df_final_mock = MagicMock()
+        transform_mock = MagicMock(return_value=df_final_mock)
+
+        self.global_scope['spark'] = spark_mock
+        self.global_scope['transform_operacoes'] = transform_mock
+
+        self.process_full_operacoes_src("source_table_test", "output_path_test", ["KEY_1"])
+
+        spark_mock.read.table.assert_called_once_with("source_table_test")
+        transform_mock.assert_called_once_with(df_bronze_mock, ["KEY_1"])
+
+        df_final_mock.write.mode.assert_called_once_with("overwrite")
+        df_final_mock.write.mode.return_value.option.assert_called_once_with("overwriteSchema", "true")
+        df_final_mock.write.mode.return_value.option.return_value.saveAsTable.assert_called_once_with("output_path_test")
+
 if __name__ == '__main__':
     unittest.main()
