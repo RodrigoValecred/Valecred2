@@ -2,6 +2,20 @@
 
 ## Change Log
 
+### [2026-04-12]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `NB_Load_From_CVM.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/CVM/NB_Load_From_CVM.Notebook/notebook-content.py` | ⚡ Bolt: Aumento do `chunk_size` no download de 8KB para 1MB. | Changed |
+| `NB_Gold_Relatorio_Limites_Especificos.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Limites_Especificos.Notebook/notebook-content.py` | 🧠 Tensor: Uso de `broadcast()` nos DataFrames de dimensão para evitar shuffle nas junções. | Changed |
+| `NB_Gold_Relatorio_Produtos_Mensal.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py` | 🧠 Tensor: Inserção de `broadcast()` em DataFrames de dimensão menores para otimizar os joins. | Changed |
+| `NB_Relatorio_Limites_Vencendo.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Relatorio_Limites_Vencendo.Notebook/notebook-content.py` | 🧠 Tensor: Uso de `broadcast()` nas dimensões menores para acelerar as junções. | Changed |
+| `NB_Extrai_Observacoes_Contratos.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Extrai_Observacoes_Contratos.Notebook/notebook-content.py` | Refatoração das conversões de strings no PySpark utilizando diretamente expressões (`regexp_replace`, `decode`), em vez da cadeia longa de `withColumn`. | Changed |
+| `NB_Prepara_Tabela_Contabil.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Contabil.Notebook/notebook-content.py` | Encapsulamento do passo de gravação com `try/except` para tratamento e registro de falhas. | Changed |
+| `VAI_Inferencia_Online.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Adicionada flag `alerta_excesso_tranche`, e atualização das regras e descrições no cálculo do XAI (`motivo_expr` e `anomaly_score`). Fix no casting de `mean_val`. | Changed |
+| `test_download_and_extract.py` | `tests/test_download_and_extract.py` | 🧪 Adição de testes para utilitários de download e extração. | Added |
+| `test_silver_carteira_pdd_safe_load.py` | `tests/test_silver_carteira_pdd_safe_load.py` | 🧪 Adição de testes para a carga de PDD da camada Silver. | Added |
+
 ### [2026-04-08]
 
 | Component | Path | Description | Change |
