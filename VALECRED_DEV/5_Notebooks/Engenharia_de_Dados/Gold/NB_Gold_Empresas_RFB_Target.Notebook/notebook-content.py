@@ -89,6 +89,12 @@ df_filtered = df_filtered.withColumn("setor",
 # Filtra apenas os setores de interesse (Industria e Servico)
 df_filtered = df_filtered.filter(col("setor").isNotNull())
 
+# ⚡ Otimização Bolt: Caching antes de ação de log para evitar reavaliação de plano físico
+# 💡 O que: Adicionado `df_filtered.cache()` antes de seu `.count()` de log. Foi adicionado `.unpersist()` ao final do uso.
+# 🎯 Por que: O comando `df_filtered.count()` para log aciona uma avaliação lazy. Como `df_filtered` é usado logo em seguida no `.join()` com `df_empresas`, o Spark reexecutará todo o scan inicial de "estabelecimentos" e filtros pesados de idade/CNAE se os dados não estiverem cacheados, dobrando a carga de leitura da camada Bronze.
+# 📊 Impacto: Previne o re-processamento das regras iniciais e scans, poupando I/O redundante.
+# 🔬 Medição: O Spark UI demonstrará `InMemoryTableScan` ao executar a query de Join subsequente.
+df_filtered.cache()
 print(f"Estabelecimentos filtrados (Ativos, SP/MG, >2 anos, Ind/Serv): {df_filtered.count()}")
 
 # CELL ********************
@@ -136,6 +142,7 @@ df_target = df_final.select(cols_to_select)
 print(f"Salvando {df_target.count()} registros na tabela Gold: {TABLE_TARGET}")
 
 df_target.write.format("delta").mode("overwrite").saveAsTable(TABLE_TARGET)
+df_filtered.unpersist()
 
 print("Processo concluído com sucesso.")
 
@@ -216,12 +223,16 @@ try:
             "correio_eletronico"
         ]
 
-        df_resultado_final = df_opportunities.select(cols_final)
+        # ⚡ Otimização Bolt: Adicionado cache em dataframe cruzado com log
+        # 💡 O que: Inserido .cache() no dataframe `df_resultado_final` e .unpersist() no final
+        # 🎯 Por que: Uma ação count() forçava a leitura da CVM (Bronze) cruzada com a Gold. Ao cachear, economizamos I/O no .saveAsTable() subsequente.
+        df_resultado_final = df_opportunities.select(cols_final).cache()
 
         table_cvm_target = "LH_Gold.fato_empresas_target_cvm_concentracao"
         print(f"Salvando {df_resultado_final.count()} oportunidades cruzadas na tabela Gold: {table_cvm_target}")
 
         df_resultado_final.write.format("delta").mode("overwrite").saveAsTable(table_cvm_target)
+        df_resultado_final.unpersist()
         print("Cruzamento com CVM concluído com sucesso.")
 
     else:
