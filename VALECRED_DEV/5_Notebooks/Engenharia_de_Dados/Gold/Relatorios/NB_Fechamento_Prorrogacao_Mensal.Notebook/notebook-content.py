@@ -111,7 +111,12 @@ def process_fechamento_prorrogacao(df_prorrog, df_clientes):
     df_enrich = df_categorized.withColumn("mes_referencia", trunc(col("data_referencia"), "MM"))
 
     # Join com Clientes
-    df_final = df_enrich.join(df_clientes, "cod_cliente", "left") \
+    # 🧠 Tensor: Enforce Broadcast Join for Dimension Table
+    # 💡 O que: Usado `broadcast()` no DataFrame de dimensão ao realizar join.
+    # 🎯 Por que: Evita embaralhamento (shuffle) global da rede em joins com tabelas de fatos muito maiores.
+    # 📊 Impacto: Diminui drasticamente o uso de I/O de rede e acelera o tempo de compilação da query do Catalyst.
+    # 🔬 Measurement: Profiling mostrará remoção do stage de SortMergeJoin no Spark UI.
+    df_final = df_enrich.join(broadcast(df_clientes), "cod_cliente", "left") \
         .select(
             col("mes_referencia"),
             col("cod_cliente"),

@@ -37,7 +37,7 @@
 
 # CELL ********************
 
-from pyspark.sql.functions import col, datediff, avg, sum, count, max, current_date, when, lit, min, create_map, stddev, coalesce, abs
+from pyspark.sql.functions import col, datediff, avg, sum, count, max, current_date, when, lit, min, create_map, stddev, coalesce, abs, broadcast
 from pyspark.ml.feature import VectorAssembler, StandardScaler
 from pyspark.ml.clustering import KMeans
 from pyspark.ml.evaluation import ClusteringEvaluator
@@ -263,7 +263,12 @@ else:
 
 print("Salvando tabela final LH_Gold.analise_cluster_clientes...")
 
-df_output = df_final_combined.join(df_clientes.select("cod_cliente", "nome"), "cod_cliente", "left") \
+# 🧠 Tensor: Enforce Broadcast Join for Dimension Table
+# 💡 O que: Usado `broadcast()` no DataFrame de dimensão ao realizar join.
+# 🎯 Por que: Evita embaralhamento (shuffle) global da rede em joins com tabelas de fatos muito maiores.
+# 📊 Impacto: Diminui drasticamente o uso de I/O de rede e acelera o tempo de compilação da query do Catalyst.
+# 🔬 Measurement: Profiling mostrará remoção do stage de SortMergeJoin no Spark UI.
+df_output = df_final_combined.join(broadcast(df_clientes.select("cod_cliente", "nome")), "cod_cliente", "left") \
     .select(
         "cod_cliente",
         "nome",

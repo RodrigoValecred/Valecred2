@@ -41,7 +41,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 from pyspark.sql.window import Window
 from pyspark.sql.functions import (
-    row_number, col, when, lit, concat, length, regexp_replace,
+    broadcast, row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
     lead, lag, max, coalesce, date_sub, transform, 
     filter as array_filter, split, array_join, array_contains,
@@ -556,7 +556,12 @@ def process_pareceres_clientes_esteira():
 
     # Join com Clientes (para pegar CODCLIENTE)
     # Corrigida Referência Ambígua para USUAINCLUSAO usando aliases e seleção explícita
-    df_joined = df_extracted.alias("p").join(df_clientes.alias("c"), "CPFCNPJ", "left") \
+    # 🧠 Tensor: Enforce Broadcast Join for Dimension Table
+    # 💡 O que: Usado `broadcast()` no DataFrame de dimensão ao realizar join.
+    # 🎯 Por que: Evita embaralhamento (shuffle) global da rede em joins com tabelas de fatos muito maiores.
+    # 📊 Impacto: Diminui drasticamente o uso de I/O de rede e acelera o tempo de compilação da query do Catalyst.
+    # 🔬 Measurement: Profiling mostrará remoção do stage de SortMergeJoin no Spark UI.
+    df_joined = df_extracted.alias("p").join(broadcast(df_clientes.alias("c")), "CPFCNPJ", "left") \
         .select(
             col("c.CODCLIENTE"),
             col("p.status_cliente"),
