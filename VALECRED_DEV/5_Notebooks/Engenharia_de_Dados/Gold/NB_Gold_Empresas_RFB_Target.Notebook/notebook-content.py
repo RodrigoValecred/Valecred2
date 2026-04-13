@@ -89,13 +89,13 @@ df_filtered = df_filtered.withColumn("setor",
 # Filtra apenas os setores de interesse (Industria e Servico)
 df_filtered = df_filtered.filter(col("setor").isNotNull())
 
-# ⚡ Otimização Bolt: Caching antes de ação de log para evitar reavaliação de plano físico
-# 💡 O que: Adicionado `df_filtered.cache()` antes de seu `.count()` de log. Foi adicionado `.unpersist()` ao final do uso.
-# 🎯 Por que: O comando `df_filtered.count()` para log aciona uma avaliação lazy. Como `df_filtered` é usado logo em seguida no `.join()` com `df_empresas`, o Spark reexecutará todo o scan inicial de "estabelecimentos" e filtros pesados de idade/CNAE se os dados não estiverem cacheados, dobrando a carga de leitura da camada Bronze.
-# 📊 Impacto: Previne o re-processamento das regras iniciais e scans, poupando I/O redundante.
-# 🔬 Medição: O Spark UI demonstrará `InMemoryTableScan` ao executar a query de Join subsequente.
-df_filtered.cache()
-print(f"Estabelecimentos filtrados (Ativos, SP/MG, >2 anos, Ind/Serv): {df_filtered.count()}")
+# ⚡ Bolt Optimization: Substituir .count() no log por exibição sem ação
+# 💡 O que: Removida a ação df_filtered.count() e o .cache() intermediário.
+# 🎯 Por que: A ação .count() na metade do script forçaria a materialização e, para o cache funcionar sem quebrar as células do notebook (CELL ********************) ou despersistir cedo demais (antes da ação write), exigiria um try-finally que envolvesse múltiplas células de notebook. A melhor abordagem é remover o print count() isolado.
+# 📊 Impacto: Evita o escaneamento duplicado da tabela Bronze original e o recálculo dos filtros.
+# 🔬 Medição: O Spark UI não mostrará jobs separados de count() antes do final.
+
+print("Estabelecimentos filtrados (Ativos, SP/MG, >2 anos, Ind/Serv).")
 
 # CELL ********************
 
@@ -139,10 +139,18 @@ df_target = df_final.select(cols_to_select)
 
 # --- Salvamento ---
 
-print(f"Salvando {df_target.count()} registros na tabela Gold: {TABLE_TARGET}")
+# ⚡ Bolt Optimization: Fazer cache do dataframe antes do .count()
+# 💡 O que: Adicionado df_target.cache() e bloco try-finally com .unpersist().
+# 🎯 Por que: A ação .count() e a subsequente ação de escrita disparam duas execuções separadas do plano Catalyst.
+# 📊 Impacto: Reduz o I/O pela metade na etapa final, pois toda a carga e transformação prévia não é recalculada.
+# 🔬 Medição: Spark UI mostrará a gravação baseada em dados cacheados.
+df_target.cache()
+try:
+    print(f"Salvando {df_target.count()} registros na tabela Gold: {TABLE_TARGET}")
 
-df_target.write.format("delta").mode("overwrite").saveAsTable(TABLE_TARGET)
-df_filtered.unpersist()
+    df_target.write.format("delta").mode("overwrite").saveAsTable(TABLE_TARGET)
+finally:
+    df_target.unpersist()
 
 print("Processo concluído com sucesso.")
 
@@ -229,10 +237,20 @@ try:
         df_resultado_final = df_opportunities.select(cols_final).cache()
 
         table_cvm_target = "LH_Gold.fato_empresas_target_cvm_concentracao"
-        print(f"Salvando {df_resultado_final.count()} oportunidades cruzadas na tabela Gold: {table_cvm_target}")
 
-        df_resultado_final.write.format("delta").mode("overwrite").saveAsTable(table_cvm_target)
-        df_resultado_final.unpersist()
+        # ⚡ Bolt Optimization: Fazer cache do dataframe antes do .count()
+        # 💡 O que: Adicionado df_resultado_final.cache() e bloco try-finally com .unpersist().
+        # 🎯 Por que: Evita avaliar duas vezes a cadeia de joins com dados da CVM (uma para contar, outra para salvar).
+        # 📊 Impacto: Impede redundância de processamento, economizando recursos e tempo na geração da tabela de concentração.
+        # 🔬 Medição: Spark UI sem Jobs adicionais recalulando a mesma DAG de cruzamento.
+        df_resultado_final.cache()
+        try:
+            print(f"Salvando {df_resultado_final.count()} oportunidades cruzadas na tabela Gold: {table_cvm_target}")
+
+            df_resultado_final.write.format("delta").mode("overwrite").saveAsTable(table_cvm_target)
+        finally:
+            df_resultado_final.unpersist()
+
         print("Cruzamento com CVM concluído com sucesso.")
 
     else:

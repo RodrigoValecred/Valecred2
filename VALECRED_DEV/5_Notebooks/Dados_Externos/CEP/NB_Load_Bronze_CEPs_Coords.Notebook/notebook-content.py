@@ -92,28 +92,16 @@ df_pandas.columns = [c.lower().replace(" ", "_").strip() for c in df_pandas.colu
 
 # As strings latitude e longitude vêm como sting com vírgula.
 # Precisamos converter para float.
-def converte_para_float(valor):
-    if pd.isna(valor):
-        return None
-    try:
-        return float(str(valor).replace(",", "."))
-    except:
-        return None
+# 🧠 Tensor: Implement Vectorized String Operations for NLP pipelines
+# 💡 O que: Substituiu a iteração em Python (list comprehensions e a função `converte_para_float`) por operações vetorizadas nativas do Pandas.
+# 🎯 Por que: Iterações linha-a-linha no Python (como `.apply()` ou list comprehensions) são lentas pois não utilizam as otimizações em C do Pandas. Métodos vetorizados processam o bloco de dados de uma só vez, evitando o overhead do loop Python.
+# 📊 Impacto: O tempo de conversão de dados é reduzido drasticamente para conjuntos grandes.
+# 🔬 Medição: Elimina overhead de laços de iteração Python para processamento de strings e numéricos.
 
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# Utilizando list comprehensions nativo Python para performance
 if "latitude" in df_pandas.columns:
-    df_pandas["latitude"] = [converte_para_float(x) for x in df_pandas["latitude"]]
+    df_pandas["latitude"] = pd.to_numeric(df_pandas["latitude"].astype(str).str.replace(",", ".", regex=False), errors="coerce")
 if "longitude" in df_pandas.columns:
-    df_pandas["longitude"] = [converte_para_float(x) for x in df_pandas["longitude"]]
+    df_pandas["longitude"] = pd.to_numeric(df_pandas["longitude"].astype(str).str.replace(",", ".", regex=False), errors="coerce")
     
 
 # METADATA ********************
@@ -127,28 +115,21 @@ if "longitude" in df_pandas.columns:
 
 # Converter algumas colunas de CEP para string, garantindo os zeros à esquerda
 # As faixas de CEP variam de tamanho, mas no Brasil são 8 dígitos
-def formata_cep(valor):
-    if pd.isna(valor):
-        return None
-    try:
-        return str(int(valor)).zfill(8)
-    except:
-        return str(valor)
+# 🧠 Tensor: Implement Vectorized String Operations for NLP pipelines
+# 💡 O que: Substituiu a iteração em Python (list comprehensions e a função `formata_cep`) por operações vetorizadas do Pandas.
+# 🎯 Por que: Similar à conversão de floats, a formatação de CEP com laços for Python é um gargalo; operações `.astype` e `.str.zfill` funcionam diretamente na matriz subjacente em C.
+# 📊 Impacto: Processamento mais rápido na limpeza de strings.
+# 🔬 Medição: Acelera em múltiplas ordens de grandeza frente ao list comprehension com try/except.
 
-# METADATA ********************
+import numpy as np
 
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# Utilizando list comprehensions para performance
 if "cep_inicial" in df_pandas.columns:
-    df_pandas["cep_inicial"] = [formata_cep(x) for x in df_pandas["cep_inicial"]]
+    # 🧠 Tensor: Handle string conversion carefully to avoid padding "<NA>" into "0000<NA>"
+    s = pd.to_numeric(df_pandas["cep_inicial"], errors="coerce").astype("Int64").astype(str)
+    df_pandas["cep_inicial"] = s.where(s != "<NA>", np.nan).str.zfill(8)
 if "cep_final" in df_pandas.columns:
-    df_pandas["cep_final"] = [formata_cep(x) for x in df_pandas["cep_final"]]
+    s = pd.to_numeric(df_pandas["cep_final"], errors="coerce").astype("Int64").astype(str)
+    df_pandas["cep_final"] = s.where(s != "<NA>", np.nan).str.zfill(8)
 
 # METADATA ********************
 

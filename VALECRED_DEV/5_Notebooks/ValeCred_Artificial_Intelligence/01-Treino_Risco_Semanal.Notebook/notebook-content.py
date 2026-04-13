@@ -181,7 +181,7 @@ df_pandas.fillna(value=fill_dict, inplace=True)
 import numpy as np
 df_pandas[feature_cols] = df_pandas[feature_cols].replace([np.inf, -np.inf], 0)
 
-# 🧠 Tensor: Downcast numeric columns (float64 -> float32)
+# 🧠 Tensor: Fazer o downcast de colunas numéricas (float64 -> float32)
 # 💡 O que: Converte todas as colunas float64 no DataFrame Pandas para float32 antes do treinamento do modelo.
 # 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita o overhead
 #         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória
@@ -231,7 +231,7 @@ df_perfil_unificado_spark = df_features_spark.groupBy("cpf_cnpj_sacado").agg(
 # Tratamento de Nulos e Tipos (Equivalente ao Pandas)
 df_perfil_unificado_spark = df_perfil_unificado_spark.fillna(0)
 
-# 🧠 Bolt: Consolidate multiple .withColumn() into a single .withColumns()
+# 🧠 Bolt: Consolidar múltiplos .withColumn() em um único .withColumns()
 # 💡 O que: Substituiu um loop de casting e uma regra de negócio separada por uma única chamada .withColumns().
 # 🎯 Por que: Chamar .withColumn() repetidamente cria planos lógicos profundos no Spark, aumentando o overhead do Catalyst e o risco de StackOverflow. .withColumns() consolida as transformações em um único passo.
 # 📊 Impacto: Reduz a complexidade do plano e acelera a execução da etapa de curadoria.
