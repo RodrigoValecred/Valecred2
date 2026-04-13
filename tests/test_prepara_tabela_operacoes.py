@@ -464,5 +464,129 @@ class TestCheckShouldSkip(unittest.TestCase):
         result = self.check_should_skip(spark_mock, "source_table", "target_table_path")
         self.assertFalse(result)
 
+class DummyCol:
+    def __init__(self, name):
+        self.name = name
+    def __ge__(self, other):
+        return DummyCol(f"({self.name} >= {other})")
+    def __or__(self, other):
+        return DummyCol(f"({self.name} | {other})")
+    def alias(self, alias_name):
+        return DummyCol(f"{self.name} AS {alias_name}")
+
+class TestProcessIncrementalOperacoes(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print(f"Extracting process_incremental_operacoes from {NOTEBOOK_PATH}")
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "process_incremental_operacoes")
+
+        if func_source:
+            local_scope = {}
+            global_scope = {
+                "DeltaTable": MagicMock(),
+                "spark": MagicMock(),
+                "greatest": MagicMock(),
+                "max": MagicMock(),
+                "col": DummyCol,
+                "coalesce": MagicMock(),
+                "lit": lambda x: x,
+                "transform_operacoes": MagicMock(),
+            }
+            try:
+                exec(func_source, global_scope, local_scope)
+                cls.process_incremental_operacoes = staticmethod(local_scope["process_incremental_operacoes"])
+                cls.global_scope = global_scope
+            except Exception as e:
+                print(f"Error executing extracted function: {e}")
+                cls.process_incremental_operacoes = None
+        else:
+            cls.process_incremental_operacoes = None
+
+    def setUp(self):
+        if not self.process_incremental_operacoes:
+            self.skipTest("Function not found")
+
+        # Reset mocks
+        for key in self.global_scope:
+            if isinstance(self.global_scope[key], MagicMock):
+                self.global_scope[key].reset_mock()
+
+    def test_incremental_has_data(self):
+        spark_mock = self.global_scope["spark"]
+        delta_mock_cls = self.global_scope["DeltaTable"]
+        transform_mock = self.global_scope["transform_operacoes"]
+
+        # Setup DeltaTable
+        delta_table_ops = MagicMock()
+        delta_mock_cls.forPath.return_value = delta_table_ops
+
+        # Setup watermark
+        watermark_df = MagicMock()
+        watermark_df.select.return_value = watermark_df
+        watermark_df.first.return_value = ["2023-01-01"]
+
+        spark_mock.read.format.return_value.load.return_value = watermark_df
+
+        # Setup bronze ops
+        bronze_ops_df = MagicMock()
+        bronze_ops_df.isEmpty.return_value = False
+        spark_mock.read.table.return_value.filter.return_value = bronze_ops_df
+
+        # Setup transform result
+        final_batch_df = MagicMock()
+        transform_mock.return_value = final_batch_df
+
+        # Setup merge chain
+        merge_mock = MagicMock()
+        delta_table_ops.alias.return_value.merge.return_value = merge_mock
+        merge_mock.whenMatchedUpdateAll.return_value = merge_mock
+        merge_mock.whenNotMatchedInsertAll.return_value = merge_mock
+
+        # Execute
+        self.process_incremental_operacoes("source_table", "out_path", ["COD"])
+
+        # Verify
+        delta_mock_cls.forPath.assert_called_once_with(spark_mock, "out_path")
+        bronze_ops_df.isEmpty.assert_called_once()
+        transform_mock.assert_called_once_with(bronze_ops_df, ["COD"])
+
+        # Verify merge was called
+        delta_table_ops.alias.assert_called_with("t")
+        delta_table_ops.alias.return_value.merge.assert_called_with(
+            final_batch_df.alias.return_value,
+            "t.cod_operacao = s.cod_operacao"
+        )
+        merge_mock.execute.assert_called_once()
+
+    def test_incremental_empty_data(self):
+        spark_mock = self.global_scope["spark"]
+        delta_mock_cls = self.global_scope["DeltaTable"]
+        transform_mock = self.global_scope["transform_operacoes"]
+
+        # Setup DeltaTable
+        delta_table_ops = MagicMock()
+        delta_mock_cls.forPath.return_value = delta_table_ops
+
+        # Setup watermark
+        watermark_df = MagicMock()
+        watermark_df.select.return_value = watermark_df
+        watermark_df.first.return_value = ["2023-01-01"]
+
+        spark_mock.read.format.return_value.load.return_value = watermark_df
+
+        # Setup bronze ops
+        bronze_ops_df = MagicMock()
+        bronze_ops_df.isEmpty.return_value = True
+        spark_mock.read.table.return_value.filter.return_value = bronze_ops_df
+
+        # Execute
+        self.process_incremental_operacoes("source_table", "out_path", ["COD"])
+
+        # Verify
+        bronze_ops_df.isEmpty.assert_called_once()
+        transform_mock.assert_not_called()
+        delta_table_ops.alias.return_value.merge.assert_not_called()
+
+
 if __name__ == '__main__':
     unittest.main()
