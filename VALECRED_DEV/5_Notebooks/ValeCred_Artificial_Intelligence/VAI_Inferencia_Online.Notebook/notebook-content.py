@@ -58,7 +58,7 @@ except:
     df_perfil = None
 
 # Correção preventiva de tipos (Decimal -> Double)
-cols_numericas = ["valor_titulo", "taxa_aquisicao", "prazo_medio"]
+cols_numericas = ["valor_titulo", "vlr_titulos_nao_checados", "taxa_aquisicao", "prazo_medio"]
 df_hoje_clean = df_hoje_raw
 hoje_raw_cols = set(df_hoje_raw.columns)
 for col_name in cols_numericas:
@@ -77,6 +77,7 @@ for col_name in cols_numericas:
 rename_map = {
     "NBORDERO": "id_operacao",
     "valor_titulo": "vlr_total_sacado",
+    "vlr_titulos_nao_checados": "vlr_titulos_nao_checados",
     "prazo_medio": "prazo_medio_titulos",
     "taxa_aquisicao": "taxa",
     "QTD_TITULOS": "qtd_titulos",
@@ -167,7 +168,7 @@ try:
     df_hoje_ajustado = df_hoje_ajustado.withColumn(
         "alerta_excesso_tranche",
         F.when(
-            (F.col("tranche_contrato") > 0) & (F.col("vlr_total_sacado") > F.col("tranche_contrato")),
+            (F.col("tranche_contrato") > 0) & (F.col("vlr_titulos_nao_checados") > F.col("tranche_contrato")),
             F.lit(True)
         ).otherwise(F.lit(False))
     )
