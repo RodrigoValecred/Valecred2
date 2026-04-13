@@ -464,5 +464,62 @@ class TestCheckShouldSkip(unittest.TestCase):
         result = self.check_should_skip(spark_mock, "source_table", "target_table_path")
         self.assertFalse(result)
 
+
+from pyspark.sql import SparkSession
+from pyspark.sql.window import Window
+from pyspark.sql.functions import col, row_number
+
+class TestTransformDevolucoes(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.spark = SparkSession.builder.master("local[1]").appName("TestTransformDevolucoes").getOrCreate()
+        func_source = extract_function_from_file(NOTEBOOK_PATH, "transform_devolucoes")
+
+        if func_source:
+            local_scope = {}
+            global_scope = {"Window": Window, "col": col, "row_number": row_number}
+            try:
+                exec(func_source, global_scope, local_scope)
+                cls.transform_devolucoes = staticmethod(local_scope["transform_devolucoes"])
+            except Exception as e:
+                print(f"Error executing extracted function: {e}")
+                cls.transform_devolucoes = None
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.spark.stop()
+
+    def test_transform_devolucoes_logic(self):
+        """Testa se as colunas sao renomeadas, convertidas para lower() e os registros deduplicados e filtrados corretamente."""
+        if not self.transform_devolucoes:
+            self.skipTest("Function not found")
+
+        data = [
+            ("T1", "2023-01-01", "U1", "2023-01-02", "U2", "B1", "O1", "V1"),
+            ("T1", "2023-01-01", "U1", "2023-01-03", "U3", "B1", "O1", "V2"), # Mais recente, deve ser mantido
+            ("T2", "2023-01-01", "U1", "2023-01-02", "U2", "B2", "O2", "V3")
+        ]
+        columns = ["CODTITULO", "DATAINCLUSAO", "USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA", "CODOPERACAO", "EXTRA_COL"]
+        df = self.spark.createDataFrame(data, columns)
+
+        result_df = self.transform_devolucoes(df)
+
+        # Verify deduplication
+        self.assertEqual(result_df.count(), 2)
+
+        # Verify renaming and lowercasing
+        expected_columns = ["cod_titulo", "data_inclusao", "cod_operacao", "extra_col"]
+        self.assertCountEqual(result_df.columns, expected_columns)
+
+        # Verify that the correct row was kept for T1 (V2)
+        v2_count = result_df.filter(col("extra_col") == "V2").count()
+        self.assertEqual(v2_count, 1)
+
+        # Verify dropped columns
+        dropped_cols = ["USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA"]
+        for c in dropped_cols:
+            self.assertNotIn(c.lower(), result_df.columns)
+            self.assertNotIn(c, result_df.columns)
+
 if __name__ == '__main__':
     unittest.main()
