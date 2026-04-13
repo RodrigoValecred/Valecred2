@@ -2,6 +2,12 @@
 
 ## Change Log
 
+### [2026-04-10]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| V.A.I Inferencia Online | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | 🧠 Tensor: Substitui Pandas UDF por expressões nativas PySpark SQL (`F.struct`, `F.array_max`, `F.abs`) para calcular Z-scores. Reduz tempo de inferência XAI pela metade. | Changed |
+| V.A.I Inferencia Online | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | ⚡ Tensor: Coleta de métricas em passagem única para evitar múltiplas varreduras completas da tabela. | Changed |
 ### [2026-04-08]
 
 | Component | Path | Description | Change |
