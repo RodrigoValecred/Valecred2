@@ -376,7 +376,7 @@ stats_row = df_scored.select(*exprs).collect()[0]
 stats_dict = stats_row.asDict()
 
 # 🧠 Tensor: Substitui Pandas UDF por expressões nativas PySpark SQL
-# 💡 O que: Substituiu o Pandas UDF row-wise por expressões PySpark nativas (`F.struct`, `F.array_max`, `F.abs`) para calcular Z-scores e identificar o principal motivo de anomalia.
+# 💡 O que: Substituiu o Pandas UDF linha por linha por expressões PySpark nativas (`F.struct`, `F.array_max`, `F.abs`) para calcular Z-scores e identificar o principal motivo de anomalia.
 # 🎯 Por que: Pandas UDFs introduzem overhead pesado de serialização PyArrow e transições JVM/Python. Funções nativas utilizam Catalyst Optimizer e processamento em C/C++, eliminando os gargalos.
 # 📊 Impacto: Reduz o tempo de inferência XAI pela metade (ex., de ~12s para ~6s por milhão de linhas), e reduz substancialmente o uso de memória do driver.
 # 🔬 Medição: Profiling customizado em cluster mostra melhoria drástica no tempo total e evita TaskSetManager size limits.
@@ -483,7 +483,7 @@ def create_progress_bar(percentage, width=20):
     """
     Cria uma barra de progresso textual com clamping de valores.
     """
-    # Limita o valor entre 0 e 100 para evitar erros de largura (Bug fix: negative clamping)
+    # Limita o valor entre 0 e 100 para evitar erros de largura (Correção de bug: restrição negativa)
     clamped_pct = max(0.0, min(100.0, float(percentage)))
 
     filled = int((width * clamped_pct) / 100)
