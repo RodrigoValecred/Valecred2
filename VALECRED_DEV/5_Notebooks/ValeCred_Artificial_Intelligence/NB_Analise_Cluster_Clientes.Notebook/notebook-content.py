@@ -265,7 +265,7 @@ else:
 
 print("Salvando tabela final LH_Gold.analise_cluster_clientes...")
 
-# 🧠 Tensor: Enforce Broadcast Join for Dimension Table
+# 🧠 Tensor: Forçar Broadcast Join para Tabela Dimensão
 # 💡 O que: Usado `broadcast()` no DataFrame de dimensão ao realizar join.
 # 🎯 Por que: Evita embaralhamento (shuffle) global da rede em joins com tabelas de fatos muito maiores.
 # 📊 Impacto: Diminui drasticamente o uso de I/O de rede e acelera o tempo de compilação da query do Catalyst.

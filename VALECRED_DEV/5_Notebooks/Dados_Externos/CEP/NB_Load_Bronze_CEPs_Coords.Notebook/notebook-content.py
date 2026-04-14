@@ -92,7 +92,7 @@ df_pandas.columns = [c.lower().replace(" ", "_").strip() for c in df_pandas.colu
 
 # As strings latitude e longitude vêm como sting com vírgula.
 # Precisamos converter para float.
-# 🧠 Tensor: Implement Vectorized String Operations for NLP pipelines
+# 🧠 Tensor: Implementar Operações de String Vetorizadas para pipelines NLP
 # 💡 O que: Substituiu a iteração em Python (list comprehensions e a função `converte_para_float`) por operações vetorizadas nativas do Pandas.
 # 🎯 Por que: Iterações linha-a-linha no Python (como `.apply()` ou list comprehensions) são lentas pois não utilizam as otimizações em C do Pandas. Métodos vetorizados processam o bloco de dados de uma só vez, evitando o overhead do loop Python.
 # 📊 Impacto: O tempo de conversão de dados é reduzido drasticamente para conjuntos grandes.
@@ -115,7 +115,7 @@ if "longitude" in df_pandas.columns:
 
 # Converter algumas colunas de CEP para string, garantindo os zeros à esquerda
 # As faixas de CEP variam de tamanho, mas no Brasil são 8 dígitos
-# 🧠 Tensor: Implement Vectorized String Operations for NLP pipelines
+# 🧠 Tensor: Implementar Operações de String Vetorizadas para pipelines NLP
 # 💡 O que: Substituiu a iteração em Python (list comprehensions e a função `formata_cep`) por operações vetorizadas do Pandas.
 # 🎯 Por que: Similar à conversão de floats, a formatação de CEP com laços for Python é um gargalo; operações `.astype` e `.str.zfill` funcionam diretamente na matriz subjacente em C.
 # 📊 Impacto: Processamento mais rápido na limpeza de strings.

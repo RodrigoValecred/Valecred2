@@ -120,7 +120,7 @@ class TestGoldRelatorioNovosClientesOptimization(unittest.TestCase):
             "left"
         )
 
-        # --- ASSERTIONS ---
+        # --- ASSERÇÕES ---
 
         # Verifica se .withColumn("data_analise_date", ...) foi chamado
         # Verificamos os argumentos das chamadas withColumn em df_ops
