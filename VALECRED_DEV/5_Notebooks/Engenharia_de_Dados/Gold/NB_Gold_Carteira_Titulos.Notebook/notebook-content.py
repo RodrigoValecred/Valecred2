@@ -30,7 +30,7 @@
 # - status_analise = D
 # - aceito = S
 # - tipo_documento <> BL (usando t_doc em fato_titulos)
-# - liquidacao is null
+# - liquidacao é nulo
 # 
 # **Tabelas Origem:** `LH_Gold.fato_operacoes`, `LH_Gold.fato_titulos`.
 # 

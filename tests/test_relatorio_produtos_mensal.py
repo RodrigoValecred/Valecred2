@@ -263,7 +263,7 @@ class TestRelatorioProdutosMensal(unittest.TestCase):
                         .otherwise(datediff(col("data_baixa"), col("data_referencia_mora")))
             )
 
-        # --- ASSERTIONS ---
+        # --- ASSERÇÕES ---
         # Verifica se withColumn foi chamado para 'data_referencia_mora'
         # E verifique se 'when' foi chamado.
         self.assertTrue(mock_when_tracker.called)
