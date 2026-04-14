@@ -235,13 +235,17 @@ if df_perfil:
     ).withColumn(
         "ratio_cobertura_liquidez",
         F.col("vlr_total_sacado") / F.col("media_pagamento_mensal")
+    ).withColumn(
+        "pagava_em_dia_agora_atrasa",
+        F.coalesce(F.col("pagava_em_dia_agora_atrasa"), F.lit(0.0))
     )
 else:
     # Contingência se não tiver tabela Gold (primeira execução da vida)
     df_enrich = df_enrich_produto.withColumn("is_sacado_novo", F.lit(True)) \
                              .withColumn("exposicao_acumulada", F.col("vlr_total_sacado")) \
                              .withColumn("concentracao_operacao", F.lit(0.0)) \
-                             .withColumn("ratio_cobertura_liquidez", F.lit(0.0))
+                             .withColumn("ratio_cobertura_liquidez", F.lit(0.0)) \
+                             .withColumn("pagava_em_dia_agora_atrasa", F.lit(0.0))
 
 # --- INFERÊNCIA DISTRIBUÍDA (SPARK) ---
 print("2. Aplicando IA de forma distribuída...")
@@ -316,7 +320,7 @@ try:
     cols_input = [F.col(c) for c in features_backup]
     df_scored = df_scored.withColumn("anomaly_score", predict_udf(F.struct(*cols_input)))
 
-    # Forçar anomalia se for Intercia sem Limite ou Sacado Novo
+    # Forçar anomalia se for Intercia sem Limite ou Sacado Novo ou Mudança de Comportamento
     if "alerta_intercia_sem_limite" in df_scored.columns:
         df_scored = df_scored.withColumn(
             "anomaly_score",
@@ -324,6 +328,7 @@ try:
              .when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
+             .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
              .otherwise(F.col("anomaly_score"))
         )
     else:
@@ -332,6 +337,7 @@ try:
             F.when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
+             .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
              .otherwise(F.col("anomaly_score"))
         )
 
@@ -351,6 +357,7 @@ except Exception as e:
              .when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
+             .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
              .otherwise(F.col("anomaly_score"))
         )
     else:
@@ -359,6 +366,7 @@ except Exception as e:
             F.when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
+             .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
              .otherwise(F.col("anomaly_score"))
         )
 
@@ -416,12 +424,13 @@ for c in features_para_analisar:
 z_scores_array = F.array(*z_score_structs)
 max_z_struct = F.array_max(z_scores_array)
 
-# Na explicação, verificar primeiro a regra rígida de Intercia e Sacado Novo
+# Na explicação, verificar primeiro a regra rígida de Intercia e Sacado Novo ou Mudança de Comportamento
 if "alerta_intercia_sem_limite" in df_scored.columns:
     motivo_expr = F.when(F.col("alerta_intercia_sem_limite"), F.lit("Tentativa de Intercia Sem Limite")) \
                    .when(F.col("alerta_excesso_tranche"), F.lit("Excesso na Tranche")) \
                    .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
+                   .when(F.col("pagava_em_dia_agora_atrasa") > 0, F.lit("Mudança de Comportamento (Atraso)")) \
                    .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
                    .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
                    .otherwise(F.lit("Desconhecido"))
@@ -429,6 +438,7 @@ else:
     motivo_expr = F.when(F.col("alerta_excesso_tranche"), F.lit("Excesso na Tranche")) \
                    .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
+                   .when(F.col("pagava_em_dia_agora_atrasa") > 0, F.lit("Mudança de Comportamento (Atraso)")) \
                    .when(F.col("anomaly_score") == 1.0, F.lit("Normal")) \
                    .when(max_z_struct["z_score"] > 0, max_z_struct["reason"]) \
                    .otherwise(F.lit("Desconhecido"))
