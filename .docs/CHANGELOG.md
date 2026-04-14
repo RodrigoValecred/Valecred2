@@ -131,3 +131,5 @@
 | Testes Download RFB | `tests/test_download_and_extract.py` | 📝 Scribe: Tradução dos comentários do teste para português do Brasil (pt-BR). | Changed |
 | Testes Prorrogação | `tests/test_gold_relatorio_fechamento_prorrogacao.py` | Renomeada função de teste de `_test_prorrogacao_recovery_logic` para `test_prorrogacao_recovery_logic` para correta execução no Pytest. | Changed |
 | Testes VAI UX | `tests/test_vai_ux.py` | Inclusão de asserção visual para o alerta `Discrepantes:` na UI. | Changed |
+| Monitoramento Comportamento Cedente | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Monitoramento_Comportamento_Cedente.Notebook/notebook-content.py` | Adicionado notebook para monitoramento diário da carteira do cedente, avaliando mudanças de comportamento em relação a atrasos no pagamento. | Added |
+| Inferência Online (VAI) | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Adicionada regra de anomalia `pagava_em_dia_agora_atrasa` e explicação de motivo `Mudança de Comportamento (Atraso)` na geração de alertas. | Changed |
