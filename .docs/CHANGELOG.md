@@ -112,3 +112,22 @@
 | Consolidação withColumns | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/01-Treino_Risco_Semanal.Notebook/notebook-content.py` | Consolidado um loop for de `.withColumn()` para uma única chamada `.withColumns()` (Spark 3.3+). | Changed |
 | Testes Unitários de Escrow | `tests/test_curadoria_gold_escrow.py` | Adicionados testes unitários para a função `get_escrow_data` abordando caminhos de sucesso e fallback (erro). | Added |
 | Benchmark de Chunk Size | `benchmark_chunk_size.py` | Script de medição de desempenho criado para avaliar diferentes tamanhos de chunk em downloads. | Added |
+
+### [2026-04-14]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| Extração PL_FastTrack_TV | `VALECRED_DEV/2_Pipelines/PL_FastTrack_TV.DataPipeline/pipeline-content.json` | Atualizada a query SQL de extração para calcular a coluna `vlr_titulos_nao_checados`. | Changed |
+| Safra Gerentes (Gold) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Analise_Safra_Gerentes.Notebook/notebook-content.py` | 🧠 Tensor: Uso de `F.broadcast()` em `df_gerentes` para otimizar o join. | Changed |
+| Curadoria Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado `.cache()` a `df_vcount` para evitar reavaliação eager no join com operacoes enriquecidas. | Changed |
+| Empresas RFB Target (Gold) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Empresas_RFB_Target.Notebook/notebook-content.py` | ⚡ Bolt: Remoção de logs `count()` e uso de cache/unpersist para prevenir execução múltipla do Catalyst. | Changed |
+| Relatório de Prorrogação Mensal | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Fechamento_Prorrogacao_Mensal.Notebook/notebook-content.py` | 🧠 Tensor: Join com a dimensão Clientes otimizado utilizando `broadcast(df_clientes)`. | Changed |
+| Relatório de Produtos Mensal | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py` | ⚡ Bolt: Implementado `.cache()` em `df_ops` após union para evitar reprocessamento no `.count()`. | Changed |
+| Análise de Títulos Jurídicos (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Analise_Titulos_Juridicos.Notebook/notebook-content.py` | ⚡ Bolt: Substituído `count() > 0` por `isEmpty()` otimizando pipelines em runs iterativas sem evento. | Changed |
+| Preparação Tabela Cadastros (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Cadastros.Notebook/notebook-content.py` | 🧠 Tensor: Ajuste no join entre `df_extracted` e `df_clientes` para forçar `broadcast()`. | Changed |
+| Preparação Tabela Contábil (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Contabil.Notebook/notebook-content.py` | ⚡ Bolt: Removidos `.count()` desnecessários em logs que causavam overhead de I/O por eager evaluation. | Changed |
+| Cluster Clientes (VAI) | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/NB_Analise_Cluster_Clientes.Notebook/notebook-content.py` | ⚡ Bolt / 🧠 Tensor: Removido `.count()` redundante em `df_to_cluster` e otimizado join de `df_clientes` com broadcast. | Changed |
+| Inferência Online (VAI) | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Incorporada `vlr_titulos_nao_checados`, ajustada a flag de `excesso_tranche` e criada flag `is_discrepante`. Métricas atualizadas. | Changed |
+| Testes Download RFB | `tests/test_download_and_extract.py` | 📝 Scribe: Tradução dos comentários do teste para português do Brasil (pt-BR). | Changed |
+| Testes Prorrogação | `tests/test_gold_relatorio_fechamento_prorrogacao.py` | Renomeada função de teste de `_test_prorrogacao_recovery_logic` para `test_prorrogacao_recovery_logic` para correta execução no Pytest. | Changed |
+| Testes VAI UX | `tests/test_vai_ux.py` | Inclusão de asserção visual para o alerta `Discrepantes:` na UI. | Changed |
