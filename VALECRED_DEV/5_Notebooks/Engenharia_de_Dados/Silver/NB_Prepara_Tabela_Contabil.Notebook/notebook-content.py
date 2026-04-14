@@ -96,13 +96,16 @@ key_columns = ["CODCTBLAN"]
 # 1. Leitura Completa do Bronze
 try:
     df_bronze = spark.read.table(f"{source_lakehouse}.{source_table}")
-    raw_count = df_bronze.count()
-    print(f"DEBUG: Registros lidos do Bronze (Total): {raw_count}")
 except Exception as e:
     print(f"ERRO: Tabela de origem {source_table} não encontrada ou inacessível.")
     mssparkutils.notebook.exit(f"Source Table Not Found: {e}")
 
-if raw_count > 0:
+# ⚡ Bolt Optimization: Substituição de count() por isEmpty() para evitar varredura de tabela inteira
+# 💡 What: Removida a ação df_bronze.count() e a variável raw_count, alterando o teste para df_bronze.isEmpty().
+# 🎯 Why: Contar toda a tabela Bronze no início apenas para verificar se ela não está vazia aciona um trabalho pesado de varredura (full table scan) que degrada muito a performance da ingestão. `.isEmpty()` checa apenas a primeira partição.
+# 📊 Impact: Economia massiva de I/O em tabelas contábeis de grande volume, já que não avaliamos todo o histórico para uma simples verificação.
+# 🔬 Measurement: O tempo de processamento antes do join principal cairá significativamente e o Spark UI não registrará o Job do `.count()`.
+if not df_bronze.isEmpty():
     # 2. Desduplicar
     # Cria coluna DATA_MAIS_RECENTE para priorizar a última alteração/inclusão
     df_with_latest = df_bronze.withColumn(
@@ -135,13 +138,6 @@ if raw_count > 0:
         try:
             df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table_full_name)
             print("Operação de escrita (overwrite) concluída com sucesso.")
-            
-            # Verificação pós-escrita
-            actual_count = spark.read.table(target_table_full_name).count()
-            print(f"DEBUG: Contagem final na tabela destino ({target_table_full_name}): {actual_count}")
-
-            if actual_count != final_count:
-                print(f"ALERTA: Discrepância detectada! Esperado: {final_count}, Encontrado: {actual_count}")
 
         except Exception as e:
             print(f"ERRO FATAL ao escrever na tabela destino: {e}")

@@ -27,3 +27,7 @@
 ## 2025-05-18 - PySpark Eager Evaluation due to Log count() in Joins
 **Learning:** In PySpark DataFrames, when a DataFrame is used simply to print a log `count()` and then immediately reused in a subsequent `.join()` operation, the Catalyst optimizer evaluates the physical plan twice. Without caching, the initial full table scan, along with any filters applied, is executed once for the count and a second time for the downstream join process. Replacing `count() > 0` with `isEmpty()` is not viable if the actual record count value is explicitly needed for logging immediately before the boolean check.
 **Action:** When a DataFrame's actual record count is needed for logging prior to being utilized in downstream logic (such as joins or aggregations), always apply `.cache()` directly before `.count()` is invoked, and remember to append `.unpersist()` after the DataFrame is no longer needed.
+
+## 2024-05-19 - Dangling Variables and DataFrame count()
+**Learning:** When removing logging or debug statements that use `.count()` on large DataFrames to improve performance, beware of downstream variables (like `final_count`) that might still be referenced in later conditional checks. In PySpark, full `.count()` just to check if a dataframe has rows is extremely heavy; `.isEmpty()` must be used instead, but partial removals can cause `NameError` bugs.
+**Action:** Always search the entire file for usages of any variables removed during a performance optimization, and replace PySpark `.count() > 0` checks with `.isEmpty()` systematically.
