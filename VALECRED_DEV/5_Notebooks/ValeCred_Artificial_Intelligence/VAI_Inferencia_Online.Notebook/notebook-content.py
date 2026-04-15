@@ -509,7 +509,7 @@ def create_progress_bar(percentage, width=20):
     """
     Cria uma barra de progresso textual com clamping de valores.
     """
-    # Limita o valor entre 0 e 100 para evitar erros de largura (Correção de bug: restrição negativa)
+    # Limita o valor entre 0 e 100 para evitar erros de largura (Correção de bugs: restrição negativa e overflow)
     clamped_pct = max(0.0, min(100.0, float(percentage)))
 
     filled = int((width * clamped_pct) / 100)

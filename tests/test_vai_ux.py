@@ -53,16 +53,22 @@ class TestVaiUX:
         assert result == expected
 
     def test_progress_bar_negative_clamping(self):
-        # Bug atual: resulta em largura 11 se não for fixado (clamped)
+        # Teste de regressão: evita largura incorreta para valores negativos
         result = self.create_progress_bar(-10, width=10)
         # Esperado: preenchido restrito (clamp) a 0, largura total 10
         expected = "[░░░░░░░░░░] 0.0%"
         assert result == expected
 
     def test_progress_bar_overflow_clamping(self):
-        # Bug atual: resulta em largura 11 se não for fixado (clamped)
+        # Teste de regressão: evita largura incorreta para valores acima de 100%
         result = self.create_progress_bar(110, width=10)
         # Esperado: preenchido restrito (clamp) a 10, largura total 10
+        expected = "[██████████] 100.0%"
+        assert result == expected
+
+    def test_progress_bar_extreme_overflow(self):
+        # Teste de regressão para overflow extremo
+        result = self.create_progress_bar(9999, width=10)
         expected = "[██████████] 100.0%"
         assert result == expected
 
