@@ -124,7 +124,7 @@ if "longitude" in df_pandas.columns:
 import numpy as np
 
 if "cep_inicial" in df_pandas.columns:
-    # 🧠 Tensor: Handle string conversion carefully to avoid padding "<NA>" into "0000<NA>"
+    # 🧠 Tensor: Gerenciar a conversão de string cuidadosamente para evitar o preenchimento de "<NA>" para "0000<NA>"
     s = pd.to_numeric(df_pandas["cep_inicial"], errors="coerce").astype("Int64").astype(str)
     df_pandas["cep_inicial"] = s.where(s != "<NA>", np.nan).str.zfill(8)
 if "cep_final" in df_pandas.columns:
