@@ -130,12 +130,6 @@ Este documento fornece um inventário detalhado de todos os ativos de dados no p
 - **Output:** (Not specified)
 - **Processing Steps:** (Not specified)
 
-### KPI_DA_TV.Notebook
-- **Description:** (Missing description)
-- **Input:** (Not specified)
-- **Output:** (Not specified)
-- **Processing Steps:** (Not specified)
-
 ### ML_Gerador_Score_Risco.Notebook
 - **Description:** (Missing description)
 - **Input:** (Not specified)
@@ -159,6 +153,12 @@ Este documento fornece um inventário detalhado de todos os ativos de dados no p
 - **Input:** (Not specified)
 - **Output:** (Not specified)
 - **Processing Steps:** (Not specified)
+
+### NB_Analise_Queda_Volume_Clientes.Notebook
+- **Description:** Identifies clients that had a significant drop in their operated volume (churn alert).
+- **Input:** `LH_Gold.fato_operacoes`, `LH_Silver.staging_clientes_limpa` (or `LH_Gold.dim_clientes`)
+- **Output:** `LH_Gold.analise_queda_volume_clientes`
+- **Processing Steps:** Compares the operated volume (VOP) of the last 30 days against the period of 31-60 days ago. Calculates absolute and percentage drop.
 
 ### NB_Analise_Safra_Gerentes.Notebook
 - **Description:** (Missing description)
@@ -310,6 +310,12 @@ Este documento fornece um inventário detalhado de todos os ativos de dados no p
 - **Output:** (Not specified)
 - **Processing Steps:** (Not specified)
 
+### NB_Gold_Relatorio_Saidas_Risco.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
 ### NB_Gold_Risco_Cliente.Notebook
 - **Description:** Aggregates risk data by client and product.
 - **Input:** `LH_Silver` (`staging_titulos`, `staging_operacoes`, `staging_clientes`)
@@ -353,6 +359,12 @@ Este documento fornece um inventário detalhado de todos os ativos de dados no p
 - **Processing Steps:** Reads, standardizes column names, and saves each file as a Delta table.
 
 ### NB_Modelo_Risco_Logistico.Notebook
+- **Description:** (Missing description)
+- **Input:** (Not specified)
+- **Output:** (Not specified)
+- **Processing Steps:** (Not specified)
+
+### NB_Monitoramento_Comportamento_Cedente.Notebook
 - **Description:** (Missing description)
 - **Input:** (Not specified)
 - **Output:** (Not specified)
