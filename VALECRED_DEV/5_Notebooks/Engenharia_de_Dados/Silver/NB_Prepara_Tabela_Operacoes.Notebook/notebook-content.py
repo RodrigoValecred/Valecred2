@@ -179,7 +179,8 @@ def get_operacoes_schema(df):
     )
 
 def transform_operacoes(df, key_columns_operacoes):
-    df_corrigido = df.withColumn("TTO_corrigido", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO"))).drop("TTO").withColumnRenamed("TTO_corrigido", "TTO")
+    # ⚡ Bolt: Optimized column update by using withColumn directly on existing column to avoid temporary column overhead.
+    df_corrigido = df.withColumn("TTO", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO")))
 
     windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
     df_ranked = df_corrigido.withColumn("row_num", row_number().over(windowSpec))
@@ -264,16 +265,20 @@ def process_operacoes():
 # CELL ********************
 
 def transform_devolucoes(df):
+    # ⚡ Bolt: Consolidated renames and lowercase normalization into a single select to minimize Catalyst Project nodes.
     window_devolucoes = Window.partitionBy("CODTITULO").orderBy(col("DATAALTERACAO").desc())
     df_dedup = df.withColumn("row_num", row_number().over(window_devolucoes)) \
         .filter(col("row_num") == 1).drop("row_num") \
-        .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA") \
-        .withColumnRenamed("CODTITULO", "cod_titulo") \
-        .withColumnRenamed("DATAINCLUSAO", "data_inclusao") \
-        .withColumnRenamed("CODOPERACAO", "cod_operacao")
+        .drop("USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODTITULOBAIXA")
 
-    # Garantir snake_case em todas as colunas
-    return df_dedup.select([col(c).alias(c.lower()) for c in df_dedup.columns])
+    rename_map = {
+        "codtitulo": "cod_titulo",
+        "datainclusao": "data_inclusao",
+        "codoperacao": "cod_operacao"
+    }
+
+    # Garantir snake_case em todas as colunas e aplicar renomeações específicas
+    return df_dedup.select([col(c).alias(rename_map.get(c.lower(), c.lower())) for c in df_dedup.columns])
 
 def process_incremental_devolucoes(source_table, output_path):
     print("Modo Incremental: Devoluções")
@@ -630,11 +635,15 @@ def process_tab_operacoes_prorrogacao():
     # 3. Padronizar Fonte para corresponder às chaves Silver
     # Normalizar colunas da fonte para snake_case primeiro para consistência
     # (Assumindo que a fonte tem colunas CamelCase ou UPPERCASE como usual no Bronze)
+    # ⚡ Bolt: Consolidated column normalization and renaming into a single select to reduce Catalyst Project nodes.
+    rename_map = {
+        "codtitulo": "cod_titulo",
+        "codoperacao": "cod_operacao",
+        "datainclusao": "data_inclusao"
+    }
     df_prorrogacao_norm = df_prorrogacao.select(
-        [col(c).alias(c.lower()) for c in df_prorrogacao.columns]
-    ).withColumnRenamed("codtitulo", "cod_titulo") \
-     .withColumnRenamed("codoperacao", "cod_operacao") \
-     .withColumnRenamed("datainclusao", "data_inclusao")
+        [col(c).alias(rename_map.get(c.lower(), c.lower())) for c in df_prorrogacao.columns]
+    )
 
     # 4. Joins
     # Esquerda Junte-se com Títulos

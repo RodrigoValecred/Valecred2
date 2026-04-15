@@ -208,7 +208,7 @@ if not df_to_cluster.isEmpty():
         "valor_total_pago"
     ]
 
-    # 🧠 Tensor: Replace StandardScaler with a pre-computed version for inference
+    # 🧠 Tensor: Substituir StandardScaler por uma versão pré-computada para inferência
     # 💡 O que: Substituiu a classe `StandardScaler` do PySpark MLlib (que exige `fit` num VectorAssembler) por expressões SQL nativas para subtrair a média e dividir pelo desvio padrão de forma vetorizada.
     # 🎯 Por que: `StandardScaler.fit()` processa matrizes vetoriais o que incorre num overhead computacional substancial em ambientes Spark. Computar médias e desvios usando agregações e depois aplicar escalarmente por expressão via Catalyst Optimizer elimina serializações vetoriais desnecessárias.
     # 📊 Impacto: Acelera significativamente o estágio de pré-processamento, especialmente durante a inferência onde o número de colunas vetoriais seria instanciado milhares de vezes.

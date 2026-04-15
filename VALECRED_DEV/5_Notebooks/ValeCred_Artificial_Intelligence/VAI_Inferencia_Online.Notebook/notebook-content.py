@@ -128,18 +128,23 @@ try:
     )
 
     # Obter grupo do cliente da operação
-    df_hoje_com_grupo = df_hoje_ajustado.join(df_grupos.select("cod_cliente", "grupo_economico"), "cod_cliente", "left")
+    # 🧠 Tensor: Aplicado broadcast() a tabelas de dimensão
+    # 💡 O que: Usado `F.broadcast()` nas tabelas `df_grupos`, `df_cnpjs_grupo`, `df_limite_cliente`, `df_dim_produto` e `df_perfil`.
+    # 🎯 Por que: Tabelas de dimensão pequenas sofrem menos gargalo de rede quando enviadas diretamente aos executores (Broadcast Hash Join) do que forçando um reembaralhamento total da tabela fato (Sort Merge Join).
+    # 📊 Impacto: Previne shuffles globais e aumenta expressivamente a velocidade de inferência.
+    # 🔬 Medição: Eliminação dos estágios de SortMergeJoin no plano de execução físico.
+    df_hoje_com_grupo = df_hoje_ajustado.join(F.broadcast(df_grupos.select("cod_cliente", "grupo_economico")), "cod_cliente", "left")
 
     # Cruzar com as empresas do grupo
     df_hoje_verificacao = df_hoje_com_grupo.join(
-        df_cnpjs_grupo,
+        F.broadcast(df_cnpjs_grupo),
         ["grupo_economico", "cpf_cnpj_sacado"],
         "left"
     ).fillna(False, subset=["is_empresa_grupo"])
 
     # Cruzar com o limite do próprio cliente
     df_hoje_verificacao = df_hoje_verificacao.join(
-        df_limite_cliente,
+        F.broadcast(df_limite_cliente),
         ["cod_cliente", "cpf_cnpj_sacado"],
         "left"
     ).fillna(0.0, subset=["valor_limite_intercia"])
@@ -186,7 +191,7 @@ df_ops_preparada = df_hoje_ajustado.fillna("", subset=["STTO"])
 # 2. O Join com a Dimensão para pegar o código numérico
 print("🔄 Cruzando com Dimensão Produto...")
 df_enrich_produto = df_ops_preparada.join(
-    df_dim_produto,
+    F.broadcast(df_dim_produto),
     on=["TTO", "STTO"], 
     how="left"
 )
@@ -213,7 +218,7 @@ except Exception as e:
     df_enrich_produto = df_enrich_produto.withColumn("is_cedente_novo", F.lit(False))
 
 if df_perfil:
-    df_enrich = df_enrich_produto.join(df_perfil, on="cpf_cnpj_sacado", how="left")
+    df_enrich = df_enrich_produto.join(F.broadcast(df_perfil), on="cpf_cnpj_sacado", how="left")
     
     # Preencher nulos para clientes novos (Sem histórico)
     df_enrich = df_enrich.fillna(0, subset=["exposicao_maxima_historica", "prazo_medio_historico"])
@@ -509,7 +514,7 @@ def create_progress_bar(percentage, width=20):
     """
     Cria uma barra de progresso textual com clamping de valores.
     """
-    # Limita o valor entre 0 e 100 para evitar erros de largura (Correção de bug: restrição negativa)
+    # Limita o valor entre 0 e 100 para evitar erros de largura (Correção de bugs: restrição negativa e overflow)
     clamped_pct = max(0.0, min(100.0, float(percentage)))
 
     filled = int((width * clamped_pct) / 100)
