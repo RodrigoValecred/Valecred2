@@ -131,3 +131,4 @@
 | Testes Download RFB | `tests/test_download_and_extract.py` | 📝 Scribe: Tradução dos comentários do teste para português do Brasil (pt-BR). | Changed |
 | Testes Prorrogação | `tests/test_gold_relatorio_fechamento_prorrogacao.py` | Renomeada função de teste de `_test_prorrogacao_recovery_logic` para `test_prorrogacao_recovery_logic` para correta execução no Pytest. | Changed |
 | Testes VAI UX | `tests/test_vai_ux.py` | Inclusão de asserção visual para o alerta `Discrepantes:` na UI. | Changed |
+| Enriquecimento Curadoria Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado `broadcast()` em joins de pequenas tabelas dimensão (`df_u_inc`, `df_u_ana`, `df_u_trava`, `df_motivos`, `df_gerentes_enrich`) com a tabela fato `df_ops` para eliminar network shuffles. | Changed |
