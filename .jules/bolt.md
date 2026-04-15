@@ -31,3 +31,7 @@
 ## 2024-05-19 - Dangling Variables and DataFrame count()
 **Learning:** When removing logging or debug statements that use `.count()` on large DataFrames to improve performance, beware of downstream variables (like `final_count`) that might still be referenced in later conditional checks. In PySpark, full `.count()` just to check if a dataframe has rows is extremely heavy; `.isEmpty()` must be used instead, but partial removals can cause `NameError` bugs.
 **Action:** Always search the entire file for usages of any variables removed during a performance optimization, and replace PySpark `.count() > 0` checks with `.isEmpty()` systematically.
+
+## 2024-06-25 - PySpark Broadcast Joins for Dimension Tables
+**Learning:** In PySpark notebooks, when joining large fact tables (like `df_ops`) with small dimension DataFrames (like `df_usuarios` aliases, `df_motivos`, or `df_gerentes_enrich`), Catalyst optimizer might not automatically trigger BroadcastHashJoins. This forces a SortMergeJoin, which requires expensive, cluster-wide network shuffles of the massive fact table, severely degrading performance.
+**Action:** Always explicitly wrap small dimension DataFrames with `pyspark.sql.functions.broadcast(df_dimension)` inside the `.join()` call to force a BroadcastHashJoin. This broadcasts the tiny table to all executors and executes the join purely locally, eliminating the shuffle phase entirely.
