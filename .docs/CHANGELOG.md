@@ -2,6 +2,18 @@
 
 ## Change Log
 
+### [2026-04-15]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| NB_Load_Bronze_CEPs_Coords | `VALECRED_DEV/5_Notebooks/Dados_Externos/CEP/NB_Load_Bronze_CEPs_Coords.Notebook/notebook-content.py` | 📝 Scribe: Tradução de comentários do inglês para português do Brasil (pt-BR) - tensor string conversion. | Changed |
+| Enriquecimento Curadoria Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado `broadcast()` em joins de pequenas tabelas dimensão (`df_u_inc`, `df_u_ana`, `df_u_trava`, `df_motivos`, `df_gerentes_enrich`) com a tabela fato `df_ops` para eliminar network shuffles. | Changed |
+| NB_Gold_Esteira_Propostas | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Esteira_Propostas.Notebook/notebook-content.py` | 🧹 [code health improvement] Optimize PySpark collection: Substituído `.collect()[0][0]` por `.first()[0]` na extração de watermark para preservar o predicate pushdown. | Changed |
+| NB_Prepara_Tabela_Operacoes | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py` | ⚡ Bolt: Consolidação da renomeação e normalização de colunas num único `select` para reduzir os nós do Catalyst Project. | Changed |
+| VAI_Inferencia_Online | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | 🧠 Tensor: Aplicado `broadcast()` a tabelas de dimensão para eliminar shuffles globais; correção em `create_progress_bar` com clamping para limites e valores negativos. | Changed |
+| NB_Analise_Cluster_Clientes | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/NB_Analise_Cluster_Clientes.Notebook/notebook-content.py` | 🧠 Tensor: Substituído `StandardScaler` do PySpark MLlib por expressões pré-computadas na inferência para reduzir overhead computacional. | Changed |
+| test_vai_ux.py | `tests/test_vai_ux.py` | 🧪 fix(ux): Implementação de testes de regressão (`test_progress_bar_negative_clamping`, `test_progress_bar_overflow_clamping`, `test_progress_bar_extreme_overflow`) para verificação de limites em `create_progress_bar`. | Added |
+| test_watermark_opt.py | `tests/test_watermark_opt.py` | Adicionados testes unitários para validar a equivalência lógica e otimização ao usar `.first()[0]` ao invés de `.collect()[0][0]`. | Added |
 ### [2026-04-11]
 
 | Component | Path | Description | Change |
