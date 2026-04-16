@@ -147,7 +147,7 @@ try:
     print(f"Intervalo dinâmico definido: {start_date} até {end_date}")
 
 except Exception as e:
-    print(f"Erro ao calcular datas dinâmicas: {e}. Usando fallback.")
+    print(f"Erro ao calcular datas dinâmicas: {e}. Usando contingência.")
     start_date = "2017-01-01"
     end_date = "2030-12-31"
 

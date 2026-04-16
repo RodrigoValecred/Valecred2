@@ -64,10 +64,6 @@ class TestProrrogacaoLogic(unittest.TestCase):
         mock_df_prorrogacao_select = MagicMock(name="df_prorrogacao_select")
         mock_df_prorrogacao.select.return_value = mock_df_prorrogacao_select
 
-        mock_df_prorrogacao_renamed = MagicMock(name="df_prorrogacao_renamed")
-        mock_df_prorrogacao_select.withColumnRenamed.return_value = mock_df_prorrogacao_renamed
-        mock_df_prorrogacao_renamed.withColumnRenamed.return_value = mock_df_prorrogacao_renamed
-
         mock_df_titulos_select = MagicMock(name="df_titulos_select")
         mock_df_titulos.select.return_value = mock_df_titulos_select
 
@@ -75,7 +71,7 @@ class TestProrrogacaoLogic(unittest.TestCase):
         mock_df_operacoes.select.return_value = mock_df_operacoes_select
 
         mock_df_joined_1 = MagicMock(name="df_joined_1")
-        mock_df_prorrogacao_renamed.join.return_value = mock_df_joined_1
+        mock_df_prorrogacao_select.join.return_value = mock_df_joined_1
 
         mock_df_joined_2 = MagicMock(name="df_joined_2")
         mock_df_joined_1.join.return_value = mock_df_joined_2

@@ -30,7 +30,7 @@ tto_filter = ["CM", "FC", "NO", "RN", "GR", "CS", "NC"]
 df_fato_filtered = df_fato.filter(col("tto").isin(tto_filter))
 
 # 3. Realizar o Join (Left Outer)
-# A chave de ligação é 'cod_broker'. Na fato_operacoes, esta coluna já passou pela lógica de "Personalizar" (fallback para cod_gerente).
+# A chave de ligação é 'cod_broker'. Na fato_operacoes, esta coluna já passou pela lógica de "Personalizar" (contingência para cod_gerente).
 df_joined = df_fato_filtered.join(df_gerentes, "cod_broker", "left")
 
 # 4. Criar Colunas Calculadas (Relatório)

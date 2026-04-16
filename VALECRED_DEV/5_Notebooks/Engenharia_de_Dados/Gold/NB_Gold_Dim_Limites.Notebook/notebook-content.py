@@ -83,7 +83,7 @@ def safe_read_table(spark, table_name, schema=None, fallback_df=None):
     except Exception as e:
         print(f"AVISO: Tabela {table_name} não encontrada ({e}).")
         if fallback_df is not None:
-            print("Usando dataframe de fallback.")
+            print("Usando dataframe de contingência.")
             return fallback_df
         elif schema is not None:
             print("Criando dataframe vazio com schema fornecido.")

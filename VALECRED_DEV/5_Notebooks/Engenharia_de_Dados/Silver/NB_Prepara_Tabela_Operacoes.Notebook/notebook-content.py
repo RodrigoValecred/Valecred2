@@ -327,7 +327,7 @@ def process_devolucoes():
         try:
             process_incremental_devolucoes(source_table_devolucoes, output_path_devolucoes)
         except Exception as e:
-            print(f"Erro no incremental (provavelmente falta de coluna de data): {e}. Fallback para Full Load.")
+            print(f"Erro no incremental (provavelmente falta de coluna de data): {e}. Contingência para Full Load.")
             process_full_devolucoes(source_table_devolucoes, output_path_devolucoes)
     else:
         process_full_devolucoes(source_table_devolucoes, output_path_devolucoes)

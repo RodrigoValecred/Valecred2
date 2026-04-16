@@ -57,7 +57,7 @@ import datetime
 def safe_read_table(spark, table_name, schema=None, fallback_df=None):
     """
     Tenta ler uma tabela. Se falhar, retorna um DataFrame vazio com o schema fornecido
-    ou um DataFrame de fallback.
+    ou um DataFrame de contingência.
     """
     try:
         return spark.read.table(table_name)
