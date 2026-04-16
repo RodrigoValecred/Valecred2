@@ -52,6 +52,9 @@ class TestJoinClienteDimensions(unittest.TestCase):
         exec_globals = {
             'col': MagicMock(),
             'lit': MagicMock(),
+            'broadcast': lambda x: x,
+            'least': MagicMock(),
+            'when': MagicMock(),
         }
 
         local_scope = {}

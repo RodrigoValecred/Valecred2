@@ -1574,23 +1574,29 @@ def join_cliente_dimensions(
 
     # 2. Informações de Esteira (Pivoted, Min Dates, Latest Status)
     # ⚡ Otimização Bolt: Removido join redundante para df_esteira_min_prep já que agora está combinado em df_esteira_pivot_prep
+    # ⚡ Otimização Bolt: Adicionar `broadcast()` aos dataframes de dimensões no join de cliente
+    # 💡 O que: Utilizando a função `broadcast()` nas pequenas tabelas de dimensão na junção com df_base
+    # 🎯 Por que: Como df_base é muito grande e as tabelas de dimensão (esteira, limites, etc) são muito pequenas,
+    # utilizar broadcast() previne data shuffle custoso e forca o Catalyst a utilizar BroadcastHashJoin
+    # 📊 Impacto: Elimina operações de SortMergeJoin, melhorando drasticamente o desempenho de todo o agrupamento.
+    # 🔬 Medição: O plano físico no Spark UI vai exibir BroadcastHashJoin em vez de SortMergeJoin nas etapas de junção para os clientes.
     df_esteira = df_metrics \
-        .join(df_esteira_pivot_prep, df_base.cod_cliente == df_esteira_pivot_prep.cod_cliente_pivot, "left").drop("cod_cliente_pivot") \
-        .join(df_esteira_latest, df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest")
+        .join(broadcast(df_esteira_pivot_prep), df_base.cod_cliente == df_esteira_pivot_prep.cod_cliente_pivot, "left").drop("cod_cliente_pivot") \
+        .join(broadcast(df_esteira_latest), df_base.cod_cliente == df_esteira_latest.cod_cliente_latest, "left").drop("cod_cliente_latest")
 
     # 3. Limites e Grupos Econômicos
     # Nota: df_grupos_prep introduz 'grupo_economico' usado nos joins seguintes
     df_groups = df_esteira \
-        .join(df_limites_agg, "cod_cliente", "left") \
-        .join(df_grupos_prep, "cod_cliente", "left") \
-        .join(df_limites_grupo_dedup, "grupo_economico", "left") \
-        .join(df_risco_grupo_agg, "grupo_economico", "left")
+        .join(broadcast(df_limites_agg), "cod_cliente", "left") \
+        .join(broadcast(df_grupos_prep), "cod_cliente", "left") \
+        .join(broadcast(df_limites_grupo_dedup), "grupo_economico", "left") \
+        .join(broadcast(df_risco_grupo_agg), "grupo_economico", "left")
 
     # 4. Informações Adicionais (Gestor, Taxas, Status Cadastro)
     df_final_join = df_groups \
-        .join(df_info_gestor, "cod_cliente", "left") \
-        .join(df_client_rate_gold, df_base.cod_cliente == df_client_rate_gold.cod_cliente_rate, "left").drop("cod_cliente_rate") \
-        .join(df_status_cad_prep, df_base.cod_cliente == df_status_cad_prep.cod_cliente_status, "left").drop("cod_cliente_status")
+        .join(broadcast(df_info_gestor), "cod_cliente", "left") \
+        .join(broadcast(df_client_rate_gold), df_base.cod_cliente == df_client_rate_gold.cod_cliente_rate, "left").drop("cod_cliente_rate") \
+        .join(broadcast(df_status_cad_prep), df_base.cod_cliente == df_status_cad_prep.cod_cliente_status, "left").drop("cod_cliente_status")
 
     return df_final_join
 

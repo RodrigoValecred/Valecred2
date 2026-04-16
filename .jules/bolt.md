@@ -35,3 +35,7 @@
 ## 2024-06-25 - PySpark Broadcast Joins for Dimension Tables
 **Learning:** In PySpark notebooks, when joining large fact tables (like `df_ops`) with small dimension DataFrames (like `df_usuarios` aliases, `df_motivos`, or `df_gerentes_enrich`), Catalyst optimizer might not automatically trigger BroadcastHashJoins. This forces a SortMergeJoin, which requires expensive, cluster-wide network shuffles of the massive fact table, severely degrading performance.
 **Action:** Always explicitly wrap small dimension DataFrames with `pyspark.sql.functions.broadcast(df_dimension)` inside the `.join()` call to force a BroadcastHashJoin. This broadcasts the tiny table to all executors and executes the join purely locally, eliminating the shuffle phase entirely.
+
+## 2026-04-16 - Testing Mock Challenges with PySpark Broadcast Joins
+**Learning:** Adding PySpark structural functions like `broadcast()` to DataFrame method chains inside dynamically extracted functions (using `exec()`) can severely break existing mock setups. The original mock chains (`MagicMock().join().drop()`) fail because `broadcast` expects a recognizable object, and its injection raises `NameError` if it isn't passed through `exec_globals`.
+**Action:** When adding structural optimizers like `broadcast()` to code tested via `exec()`, explicitly inject a passthrough lambda (e.g., `'broadcast': lambda x: x`) into the test's `exec_globals` to ensure the mock DataFrame chaining remains intact without throwing structural errors.
