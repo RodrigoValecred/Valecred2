@@ -240,10 +240,18 @@ if df_perfil:
     ).withColumn(
         "ratio_cobertura_liquidez",
         F.col("vlr_total_sacado") / F.col("media_pagamento_mensal")
-    ).withColumn(
-        "pagava_em_dia_agora_atrasa",
-        F.coalesce(F.col("pagava_em_dia_agora_atrasa"), F.lit(0.0))
     )
+
+    if "pagava_em_dia_agora_atrasa" in df_enrich.columns:
+        df_enrich = df_enrich.withColumn(
+            "pagava_em_dia_agora_atrasa",
+            F.coalesce(F.col("pagava_em_dia_agora_atrasa"), F.lit(0.0))
+        )
+    else:
+        df_enrich = df_enrich.withColumn(
+            "pagava_em_dia_agora_atrasa",
+            F.lit(0.0)
+        )
 else:
     # Contingência se não tiver tabela Gold (primeira execução da vida)
     df_enrich = df_enrich_produto.withColumn("is_sacado_novo", F.lit(True)) \
