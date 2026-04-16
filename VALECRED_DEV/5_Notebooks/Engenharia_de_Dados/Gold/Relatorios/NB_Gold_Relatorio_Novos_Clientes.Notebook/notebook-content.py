@@ -93,7 +93,7 @@ df_ops_validas = df_ops.filter(col("status_aceite") == 'A') \
     .withColumn("data_analise_date", col("data_analise").cast("date"))
 
 # 4. Enriquecimento de Gerente (Bridge)
-print("Aplicando enriquecimento de gerentes via Bridge (Strict + Fallback)...")
+print("Aplicando enriquecimento de gerentes via Bridge (Strict + Contingência)...")
 
 df_bridge_prep = df_bridge.withColumnRenamed("cod_cliente", "cod_cliente_bridge")
 

@@ -355,7 +355,7 @@ def process_gerentes():
         # 🧠 Tensor: Fazer cache dos metadados das colunas em dicionário O(1) para evitar múltiplas chamadas de busca ao driver
         sup_cols_map = {c.lower(): c for c in df_sup_ativos.columns}
         join_key = None
-        # Ordem de prioridade atualizada: cod_gerente (confirmado), seguido de fallbacks
+        # Ordem de prioridade atualizada: cod_gerente (confirmado), seguido de contingências
         if "cod_gerente" in sup_cols_map: join_key = sup_cols_map["cod_gerente"]
         elif "codgerente" in sup_cols_map: join_key = sup_cols_map["codgerente"]
         elif "cod_broker" in sup_cols_map: join_key = sup_cols_map["cod_broker"]

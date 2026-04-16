@@ -112,7 +112,7 @@ def load_and_prepare_data(spark):
     df_baixas = spark.read.table("LH_Gold.fato_baixas")
 
     # Dados para Contingência de Plataforma (Quando a operação não tem informação)
-    print("Carregando tabelas para fallback de plataforma (Silver)...")
+    print("Carregando tabelas para contingência de plataforma (Silver)...")
     df_bridge = spark.read.table("LH_Silver.bridge_cliente_gerente").filter(col("data_fim_vigencia") == "9999-12-31")
     df_gerentes = spark.read.table("LH_Silver.staging_gerentes")
     df_plataformas = spark.read.table("LH_Silver.staging_plataformas")
