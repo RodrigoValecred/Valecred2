@@ -34,7 +34,7 @@ df_carteira = spark.table("LH_Gold.carteira_de_titulos")
 df_ops = spark.table("LH_Gold.fato_operacoes")
 
 # O Join para pegar o cod_cliente
-df_base = df_carteira.join(df_ops.select("cod_operacao", "cod_cliente"), "cod_operacao", "inner")
+df_base = df_carteira.drop("cod_cliente").join(df_ops.select("cod_operacao", "cod_cliente"), "cod_operacao", "inner")
 
 # 2. Identificar Títulos Vencidos (usando a data atual)
 df_risco = df_base.withColumn(
