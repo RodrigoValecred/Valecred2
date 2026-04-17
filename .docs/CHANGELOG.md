@@ -2,6 +2,18 @@
 
 ## Change Log
 
+### [2026-04-16]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| NB_Monitoramento_Comportamento_Cedente | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Monitoramento_Comportamento_Cedente.Notebook/notebook-content.py` | fix(spark): resolve AMBIGUOUS_REFERENCE for cod_cliente by dropping it from carteira before join | Changed |
+| VAI_Inferencia_Online | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Fix unresolved column error for pagava_em_dia_agora_atrasa | Changed |
+| Vários Notebooks | Vários caminhos (Gold, Silver) | 🌐 Translator: Contextually translate remaining English terms in comments (e.g. fallback para contingência) | Changed |
+| test_prorrogacao_logic.py | `tests/test_prorrogacao_logic.py` | Otimização de mock e renomeação removida em df_prorrogacao_select | Changed |
+| NB_Curadoria_Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | ⚡ Bolt: Add broadcast to dimension joins to improve performance in join_cliente_dimensions | Changed |
+| test_curadoria_gold_dim_clientes.py | `tests/test_curadoria_gold_dim_clientes.py` | Adicionar suporte ao mock para broadcast | Changed |
+| bolt.md | `.jules/bolt.md` | Adicionado log de aprendizado sobre Testing Mock Challenges with PySpark Broadcast Joins | Added |
+
 ### [2026-04-15]
 
 | Component | Path | Description | Change |
