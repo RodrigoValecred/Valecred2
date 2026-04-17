@@ -1,0 +1,107 @@
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/04/17 12:02:11 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+26/04/17 12:02:27 WARN GarbageCollectionMetrics: To enable non-built-in garbage collector(s) List(G1 Concurrent GC), users should configure it(them) to spark.eventLog.gcMetrics.youngGenerationGarbageCollectors or spark.eventLog.gcMetrics.oldGenerationGarbageCollectors
+26/04/17 12:02:28 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#20500]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#40601]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#60702]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#80803]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#100904]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#121005]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#141106]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#161207]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#181308]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#201409]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+Old approach took: 47.7587s
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#221510]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#221811]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#222112]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#222413]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#222714]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#223015]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#223316]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#223617]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#223918]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+== Physical Plan ==
+Project [coalesce(CASE WHEN (trim(col_0#0, None) = ) THEN null ELSE col_0#0 END, col_0_op#1) AS col_0#224219]
++- Scan ExistingRDD[col_0#0,col_0_op#1,col_1#2,col_10#3,col_10_op#4,col_11#5,col_11_op#6,col_12#7,col_12_op#8,col_13#9,col_13_op#10,col_14#11,col_14_op#12,col_15#13,col_15_op#14,col_16#15,col_16_op#16,col_17#17,col_17_op#18,col_18#19,col_18_op#20,col_19#21,col_19_op#22,col_1_op#23,... 176 more fields]
+
+
+New approach took: 8.5360s

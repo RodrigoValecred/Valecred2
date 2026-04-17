@@ -65,6 +65,14 @@ def resolve_columns(df, target_cols):
     # 🔬 Medição: O(2 * len(target_cols)) buscas remotas reduzidas para O(1) busca e O(2 * len(target_cols)) buscas hash locais.
     df_cols = set(df.columns)
 
+    # ⚡ Bolt: Otimização de Explosão de Plano Lógico no loop de resolve_columns
+    # 💡 O que: Acumula expressões em dicionários para utilizar uma única chamada a `.withColumns()`
+    # 🎯 Por que: Chamar `withColumn` iterativamente dentro de um loop gera cópias encadeadas do DataFrame e explode a árvore de execução do Catalyst, aumentando exponencialmente o tempo de compilação da query e os riscos de StackOverflowError.
+    # 📊 Impacto: Diminui drasticamente o tempo de compilação do driver e construção do grafo. Na execução real do job, previne o travamento da DAG de metadados.
+    # 🔬 Medição: Construção do plano da query O(N) operações Catalyst reduzido a O(1) para criações de novas colunas.
+
+    exprs = {}
+    renames = {}
     for col_name in target_cols:
         col_op = f"{col_name}_op"
         if col_name in df_cols:
@@ -74,10 +82,17 @@ def resolve_columns(df, target_cols):
             # Tratar string vazia como nulo para evitar buracos no relatório quando a tabela fato tem a coluna mas ela está vazia
             col_target = when(trim(col(col_name)) == "", None).otherwise(col(col_name))
 
-            df_resolved = df_resolved.withColumn(col_name, coalesce(col_target, col(col_op)))
+            exprs[col_name] = coalesce(col_target, col(col_op))
         elif col_op in df_cols:
             # Se não existe na fato, pegamos do map (op)
-            df_resolved = df_resolved.withColumnRenamed(col_op, col_name)
+            renames[col_op] = col_name
+
+    for old_col, new_col in renames.items():
+        df_resolved = df_resolved.withColumnRenamed(old_col, new_col)
+
+    if exprs:
+        df_resolved = df_resolved.withColumns(exprs)
+
     return df_resolved
 
 # 1. Carregamento e Preparação de Dados
