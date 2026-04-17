@@ -35,6 +35,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 
 import requests
+from requests.adapters import HTTPAdapter
 from concurrent.futures import ThreadPoolExecutor
 from pyspark.sql.functions import col, coalesce, lit, sum
 from notebookutils import mssparkutils
@@ -62,7 +63,15 @@ headers = {'Authorization': f'Bearer {token}'}
 # CELL ********************
 
 # 2. Obter lista de Workspaces
-res_groups = requests.get("https://api.powerbi.com/v1.0/myorg/groups", headers=headers)
+
+# 🧠 Bolt: Setup HTTP connection pooling for performance
+session = requests.Session()
+adapter = HTTPAdapter(pool_connections=10, pool_maxsize=10)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
+session.headers.update(headers)
+
+res_groups = session.get("https://api.powerbi.com/v1.0/myorg/groups")
 workspaces = res_groups.json().get('value', [])
 
 full_inventory = []
@@ -75,7 +84,7 @@ def fetch_reports_from_ws(ws):
     
     inventory_items = []
     try:
-        res_rep = requests.get(url_rep, headers=headers)
+        res_rep = session.get(url_rep)
         if res_rep.status_code == 200:
             reports_in_ws = res_rep.json().get('value', [])
             for r in reports_in_ws:
