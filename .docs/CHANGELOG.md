@@ -2,6 +2,15 @@
 
 ## Change Log
 
+### [2026-04-17]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| Vários Notebooks | Vários caminhos (Gold, Silver) | Adicionados blocos try...finally com df.unpersist() nas operações de escrita para garantir liberação de memória dos DataFrames em cache | Changed |
+| NB_Gold_Relatorio_Produtos_Mensal | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py` | ⚡ Bolt: Substituição de chamadas iterativas withColumn por withColumns em resolve_columns para evitar explosão do Catalyst Logical Plan | Changed |
+| NB_Prepara_Tabela_Contabil | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Contabil.Notebook/notebook-content.py` | ⚡ Bolt: Otimização de count() para isEmpty() ao checar se a tabela Bronze possui dados para evitar full table scans | Changed |
+| test_performance | `tests/test_performance.py` | Added test script to measure Catalyst plan compilation time reduction for the resolve_columns optimization | Added |
+
 ### [2026-04-16]
 
 | Component | Path | Description | Change |
