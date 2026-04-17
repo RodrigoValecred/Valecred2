@@ -815,7 +815,10 @@ def prepare_operacoes_dataframe(df_operacoes_enriquecida):
     ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
 
     # ⚡ Otimização Bolt: Filtrar TTOs (PR, RC, RE) ANTES dos joins para reduzir o volume de dados
-    return df_operacoes_prep.filter(~col("tto").isin(["PR", "RC", "RE"]))
+    return df_operacoes_prep.filter(
+        (~col("tto").isin(["PR", "RC", "RE"])) &
+        (~col("chave_produto").isin(["AB", "AM", "LB"]))
+    )
 
 def join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_produto):
     """
