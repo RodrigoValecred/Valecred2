@@ -36,22 +36,22 @@ mock_pyspark_functions.coalesce = coalesce
 
 class TestWatermarkOptimization(unittest.TestCase):
     def test_first_instead_of_collect(self):
-        # This test ensures that using .first()[0] on an aggregated DataFrame
-        # is logically equivalent for extracting a single scalar value.
+        # Este teste garante que o uso de .first()[0] em um DataFrame agregado
+        # é logicamente equivalente para extrair um único valor escalar.
 
         mock_df = MagicMock()
         mock_agg_df = MagicMock()
 
         mock_df.agg.return_value = mock_agg_df
-        # Mock .first() to return a row-like object (tuple/list)
+        # Simula .first() para retornar um objeto tipo linha (tupla/lista)
         mock_agg_df.first.return_value = ["2024-01-01"]
-        # Mock .collect() to return a list of rows
+        # Simula .collect() para retornar uma lista de linhas
         mock_agg_df.collect.return_value = [["2024-01-01"]]
 
-        # Original (what we want to replace)
+        # Original (o que queremos substituir)
         val_collect = mock_agg_df.collect()[0][0]
 
-        # New (optimized)
+        # Novo (otimizado)
         val_first = mock_agg_df.first()[0]
 
         self.assertEqual(val_collect, val_first)
