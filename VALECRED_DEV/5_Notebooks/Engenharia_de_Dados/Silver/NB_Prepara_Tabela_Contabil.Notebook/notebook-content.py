@@ -101,10 +101,10 @@ except Exception as e:
     mssparkutils.notebook.exit(f"Source Table Not Found: {e}")
 
 # ⚡ Bolt Optimization: Substituição de count() por isEmpty() para evitar varredura de tabela inteira
-# 💡 What: Removida a ação df_bronze.count() e a variável raw_count, alterando o teste para df_bronze.isEmpty().
-# 🎯 Why: Contar toda a tabela Bronze no início apenas para verificar se ela não está vazia aciona um trabalho pesado de varredura (full table scan) que degrada muito a performance da ingestão. `.isEmpty()` checa apenas a primeira partição.
-# 📊 Impact: Economia massiva de I/O em tabelas contábeis de grande volume, já que não avaliamos todo o histórico para uma simples verificação.
-# 🔬 Measurement: O tempo de processamento antes do join principal cairá significativamente e o Spark UI não registrará o Job do `.count()`.
+# 💡 O que: Removida a ação df_bronze.count() e a variável raw_count, alterando o teste para df_bronze.isEmpty().
+# 🎯 Por que: Contar toda a tabela Bronze no início apenas para verificar se ela não está vazia aciona um trabalho pesado de varredura (full table scan) que degrada muito a performance da ingestão. `.isEmpty()` checa apenas a primeira partição.
+# 📊 Impacto: Economia massiva de I/O em tabelas contábeis de grande volume, já que não avaliamos todo o histórico para uma simples verificação.
+# 🔬 Medição: O tempo de processamento antes do join principal cairá significativamente e o Spark UI não registrará o Job do `.count()`.
 if not df_bronze.isEmpty():
     # 2. Desduplicar
     # Cria coluna DATA_MAIS_RECENTE para priorizar a última alteração/inclusão

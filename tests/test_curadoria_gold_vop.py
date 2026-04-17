@@ -51,14 +51,14 @@ class TestVOPMetrics(unittest.TestCase):
         data = [
             # Cliente 1: vencedor claro
             Row(cod_cliente=1, dia_da_semana_da_operacao=2, dia_da_operacao=10, valor_de_face=100.0),
-            Row(cod_cliente=1, dia_da_semana_da_operacao=3, dia_da_operacao=15, valor_de_face=200.0), # max week 3, max month 15
+            Row(cod_cliente=1, dia_da_semana_da_operacao=3, dia_da_operacao=15, valor_de_face=200.0), # máx semana 3, máx mês 15
 
-            # Client 2: Várias entradas para o mesmo dia should aggregate
+            # Cliente 2: Várias entradas para o mesmo dia devem agregar
             Row(cod_cliente=2, dia_da_semana_da_operacao=4, dia_da_operacao=20, valor_de_face=50.0),
-            Row(cod_cliente=2, dia_da_semana_da_operacao=4, dia_da_operacao=20, valor_de_face=50.0), # sum = 100
-            Row(cod_cliente=2, dia_da_semana_da_operacao=5, dia_da_operacao=21, valor_de_face=60.0), # max week 4 (100 > 60)
+            Row(cod_cliente=2, dia_da_semana_da_operacao=4, dia_da_operacao=20, valor_de_face=50.0), # soma = 100
+            Row(cod_cliente=2, dia_da_semana_da_operacao=5, dia_da_operacao=21, valor_de_face=60.0), # máx semana 4 (100 > 60)
 
-            # Client 3: Empate nas somas (semana 1=100, semana 2=100), row_number escolhe um (não determinístico qual sem desempate, mas garantimos que um seja escolhido)
+            # Cliente 3: Empate nas somas (semana 1=100, semana 2=100), row_number escolhe um (não determinístico qual sem desempate, mas garantimos que um seja escolhido)
             Row(cod_cliente=3, dia_da_semana_da_operacao=1, dia_da_operacao=1, valor_de_face=100.0),
             Row(cod_cliente=3, dia_da_semana_da_operacao=2, dia_da_operacao=2, valor_de_face=100.0),
         ]
@@ -76,7 +76,7 @@ class TestVOPMetrics(unittest.TestCase):
         self.assertEqual(len(res_semana), 3)
         self.assertEqual(len(res_mes), 3)
 
-        # Client 1
+        # Cliente 1
         self.assertEqual(res_semana[0].cod_cliente, 1)
         self.assertEqual(res_semana[0].dia_semana_mais_vop, 3)
 

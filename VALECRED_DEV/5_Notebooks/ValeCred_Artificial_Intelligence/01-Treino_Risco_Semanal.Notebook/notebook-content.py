@@ -171,7 +171,7 @@ df_pandas = df_features_spark.select(*feature_cols).sample(fraction=0.5, seed=42
 
 print("🧹 Limpando dados (Removendo NaNs)...")
 # 🧠 Tensor: Substituir loop .fillna() por coluna com um .fillna() vetorizado por dicionário
-# 💡 O que: Substituiu um for-loop lento sobre as colunas por uma única operação vetorizada .fillna() do Pandas usando um dicionário.
+# 💡 O que: Substituiu um loop for lento sobre as colunas por uma única operação vetorizada .fillna() do Pandas usando um dicionário.
 # 🎯 Por que: Iterar sobre colunas do DataFrame em Python gera overhead e cria cópias intermediárias. Uma única operação vetorizada é executada em C, o que é muito mais rápido.
 # 📊 Impacto: Acelera significativamente o preenchimento de NaN, especialmente para DataFrames com muitas colunas e linhas.
 # 🔬 Medição: O profiling mostrou uma aceleração de ~3x (ex. de ~0.23s para ~0.07s em 1M de linhas para 5 colunas).
