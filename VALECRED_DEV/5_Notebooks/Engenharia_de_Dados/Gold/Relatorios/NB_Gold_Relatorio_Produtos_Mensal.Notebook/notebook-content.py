@@ -858,9 +858,12 @@ df_menores_taxas = df_top_clientes.filter(col("volume_operado_cliente") > 10000)
 
 # Salvar Tabela Gold (Granularidade: Operação)
 output_table = "LH_Gold.relatorio_rentabilidade_clientes_2025"
-df_report.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
-df_ops.unpersist()
-print(f"Relatório detalhado salvo em: {output_table}")
+# ⚡ Otimização de Bolt: Uso de try-finally para garantir limpeza da memória de df cacheados.
+try:
+    df_report.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
+    print(f"Relatório detalhado salvo em: {output_table}")
+finally:
+    df_ops.unpersist()
 
 mssparkutils.notebook.exit("Success")
 

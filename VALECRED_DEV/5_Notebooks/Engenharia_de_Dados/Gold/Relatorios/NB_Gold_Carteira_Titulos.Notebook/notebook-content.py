@@ -107,10 +107,12 @@ print(f"Títulos na carteira elegíveis: {df_carteira.count()}")
 target_table = "LH_Gold.carteira_de_titulos"
 print(f"Salvando em {target_table}...")
 
-df_carteira.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table)
-df_carteira.unpersist()
-
-print("Salvo com sucesso.")
+# ⚡ Otimização de Bolt: Uso de try-finally para garantir limpeza da memória de df cacheados.
+try:
+    df_carteira.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table)
+    print("Salvo com sucesso.")
+finally:
+    df_carteira.unpersist()
 
 # METADATA ********************
 
