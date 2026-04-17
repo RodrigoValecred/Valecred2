@@ -274,8 +274,8 @@ try:
 
 except Exception as e:
     print(f"Erro ao gerar dashboard: {e}")
-
-df_daily_agg.unpersist()
+finally:
+    df_daily_agg.unpersist()
 
 # METADATA ********************
 

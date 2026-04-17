@@ -186,9 +186,12 @@ display_summary(df_relatorio)
 
 # Salvar
 output_table = "LH_Gold.relatorio_fechamento_prorrogacao"
-df_relatorio.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
-df_relatorio.unpersist()
-print(f"Relatório salvo em: {output_table}")
+# ⚡ Otimização de Bolt: Uso de try-finally para garantir limpeza da memória de df cacheados.
+try:
+    df_relatorio.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_table)
+    print(f"Relatório salvo em: {output_table}")
+finally:
+    df_relatorio.unpersist()
 
 mssparkutils.notebook.exit("Success")
 

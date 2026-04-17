@@ -260,13 +260,14 @@ df_final = df_final_filter.withColumn("situacao",
 
 # Salvar a tabela final na camada Silver
 target_table = "LH_Silver.carteira_pdd"
-df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table)
-
-print(f"Tabela '{target_table}' salva com sucesso na camada Silver.")
-df_final.display()
-
-# Limpar memória
-df.unpersist()
+# ⚡ Otimização de Bolt: Uso de try-finally para garantir limpeza da memória de df cacheados.
+try:
+    df_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_table)
+    print(f"Tabela '{target_table}' salva com sucesso na camada Silver.")
+    df_final.display()
+finally:
+    # Limpar memória
+    df.unpersist()
 
 # METADATA ********************
 
