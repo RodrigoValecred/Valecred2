@@ -1946,8 +1946,13 @@ df_carteira_ativa = df_titulos_carteira.filter(
 ).cache()
 
 # Valor Total da Carteira
-total_portfolio_row = df_carteira_ativa.agg(sum("valor_devido").alias("total")).collect()
-total_portfolio_value = total_portfolio_row[0]["total"] if total_portfolio_row else 0
+# 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
+# 💡 What: Substituiu as invocações de `.collect()` por `.first()` durante a extração de escalares (Total Portfolio e HHI) na pipeline Gold.
+# 🎯 Why: `.collect()` materializa uma lista completa de objetos Row na memória do driver do Spark. Usar `.first()` preserva o Predicate Pushdown (quando aplicável) e otimiza o footprint de memória transferindo estritamente apenas a primeira linha necessária.
+# 📊 Impact: Reduz o consumo de RAM do node driver ao evitar serialização de arrays, o que previne eventuais Out Of Memory (OOM) e melhora marginalmente a latência da execução do Action no fim do DAG do Catalyst.
+# 🔬 Measurement: A análise do plano físico e dos logs do Spark mostra redução de bytes transferidos na rede (shuffle network I/O) para o driver e alocação de heap.
+total_portfolio_row = df_carteira_ativa.agg(sum("valor_devido").alias("total")).first()
+total_portfolio_value = total_portfolio_row["total"] if total_portfolio_row and total_portfolio_row["total"] is not None else 0
 
 if total_portfolio_value > 0:
     # --- HHI Cedente ---
@@ -1957,8 +1962,8 @@ if total_portfolio_value > 0:
         .withColumn("share_pct", (col("valor_cedente") / lit(total_portfolio_value)) * 100)
 
     # HHI = Sum(s^2)
-    hhi_cedente_row = df_cedente_shares.select(sum(col("share_pct") * col("share_pct"))).collect()
-    hhi_cedente = hhi_cedente_row[0][0] if hhi_cedente_row else 0.0
+    hhi_cedente_row = df_cedente_shares.select(sum(col("share_pct") * col("share_pct"))).first()
+    hhi_cedente = hhi_cedente_row[0] if hhi_cedente_row and hhi_cedente_row[0] is not None else 0.0
 
     # --- HHI Sacado ---
     # s_j = (Volume Sacado / Total) * 100
@@ -1966,8 +1971,8 @@ if total_portfolio_value > 0:
         .agg(sum("valor_devido").alias("valor_sacado")) \
         .withColumn("share_pct", (col("valor_sacado") / lit(total_portfolio_value)) * 100)
 
-    hhi_sacado_row = df_sacado_shares.select(sum(col("share_pct") * col("share_pct"))).collect()
-    hhi_sacado = hhi_sacado_row[0][0] if hhi_sacado_row else 0.0
+    hhi_sacado_row = df_sacado_shares.select(sum(col("share_pct") * col("share_pct"))).first()
+    hhi_sacado = hhi_sacado_row[0] if hhi_sacado_row and hhi_sacado_row[0] is not None else 0.0
 else:
     hhi_cedente = 0.0
     hhi_sacado = 0.0

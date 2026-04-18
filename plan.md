@@ -1,12 +1,12 @@
-1. **Otimizar joins em `NB_Gold_Dim_Limites.Notebook`:**
-   - Adicionar a importação de `broadcast` da `pyspark.sql.functions` no arquivo `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Dim_Limites.Notebook/notebook-content.py` se ainda não estiver presente.
-   - Modificar os `joins` para utilizar `broadcast` nas dimensões: `df_clientes_staging`, `df_limites_ep_clientes` (caso a agregação caiba na memória e atue como dimensão na query) ou as outras referenciadas na tabela `df_nomes_clientes`, `df_grupos_prep`.
-   - Adicionar o comentário obrigatório seguindo a filosofia do agente `Tensor`.
+1. **Optimize HHI Calculation in Curadoria_Gold**
+   - In `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py`, the HHI calculations for cedente and sacado currently use `.collect()[0][0]` multiple times.
+   - I will replace `.collect()[0][0]` with `.first()[0]`.
+   - The rationale is exactly in Tensor's memory: "🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista".
+   - I'll add the required Tensor comments for the optimization, matching the agent personality and exact headers (`💡 What`, `🎯 Why`, `📊 Impact`, `🔬 Measurement`).
 
-2. **Otimizar verificação de contagem no `NB_Fechamento_Prorrogacao_Mensal.Notebook`:**
-   - Trocar verificação `.count()` na função `display_summary` do `NB_Fechamento_Prorrogacao_Mensal` para usar `.isEmpty()` e `.take(1)` ou similar, conforme a memória "In PySpark, replace `count() > 0` checks used for control flow with `not df.isEmpty()`".
-   - *Atenção:* Em `display_summary(df)`, se a verificação for apenas log, podemos otimizar o check `.count()` de verificação vazia no DataFrame original `if df.isEmpty(): print("VAZIO"); return`. O código atual faz `counts = df.groupBy("status_final_prorrogacao").count().collect()`.
+2. **Pre-commit checks**
+   - Call `pre_commit_instructions` to ensure proper testing, verification, review, and reflection are done before committing.
+   - Run pytest and ensure tests pass.
 
-3. **Verificar testes e formatar (Pre-commit):**
-   - Rodar testes locais.
-   - Completar as instruções de pre-commit e atualizar `INVENTORY.md` e os arquivos do `.jules` se necessário.
+3. **Submit the optimization**
+   - Commit the changes and submit the code using the format "🧠 Tensor: [optimization name]".
