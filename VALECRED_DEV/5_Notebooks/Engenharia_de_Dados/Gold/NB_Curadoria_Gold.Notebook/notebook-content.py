@@ -1619,7 +1619,7 @@ df_join_1 = join_cliente_dimensions(
 
 # Implementando Lógica Funnel Sequencial (Aproximação)
 # Data 1: Primeira Proposta Comercial = MIN(Proposta, Revisao, Diretoria)
-# Data 2: Credito (Min data credito >= data 1) - Aqui assumimos Min Credito geral, pois PySpark SQL row-level logic é complexa.
+# Data 2: Credito (Min data credito >= data 1) - Aqui assumimos Min Credito geral, pois a lógica de nível de linha do PySpark SQL é complexa.
 # Data 3: Formalizacao (Checklist >= Credito)
 # Data 4: Concluido (Concluido >= Formalizacao)
 
