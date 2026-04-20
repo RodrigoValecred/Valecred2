@@ -38,9 +38,9 @@ def resolve_columns_new(df, target_cols):
     for old_col, new_col in renames.items():
         df_resolved = df_resolved.withColumnRenamed(old_col, new_col)
 
-    # Apply expressions using withColumns or select
+    # Aplicar expressões usando withColumns ou select
     if exprs:
-        # In pyspark >= 3.3, withColumns can take a dictionary
+        # No pyspark >= 3.3, withColumns pode receber um dicionário
         df_resolved = df_resolved.withColumns(exprs)
 
     return df_resolved
@@ -48,7 +48,7 @@ def resolve_columns_new(df, target_cols):
 def test_performance():
     spark = SparkSession.builder.appName("perf_test").getOrCreate()
 
-    # Create a dummy dataframe with many columns
+    # Criar um dataframe simulado (mock) com muitas colunas
     data = [{"col_" + str(i): "val" for i in range(100)}]
     data[0].update({"col_" + str(i) + "_op": "val_op" for i in range(100)})
     df = spark.createDataFrame(data)
