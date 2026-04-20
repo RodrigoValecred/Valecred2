@@ -2,6 +2,20 @@
 
 ## Change Log
 
+### [2026-04-19]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| NB_Curadoria_Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | ⚡ Bolt: [performance improvement] Guarantee PySpark Cache Cleanup via try-finally | Changed |
+| NB_Gold_Carteira_Titulos | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Carteira_Titulos.Notebook/notebook-content.py` | ⚡ Bolt: [performance improvement] Guarantee PySpark Cache Cleanup via try-finally | Changed |
+| NB_Fechamento_Prorrogacao_Mensal | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Fechamento_Prorrogacao_Mensal.Notebook/notebook-content.py` | ⚡ Bolt: [performance improvement] Guarantee PySpark Cache Cleanup via try-finally | Changed |
+| NB_Gold_Carteira_Titulos (Relatórios) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Carteira_Titulos.Notebook/notebook-content.py` | ⚡ Bolt: [performance improvement] Guarantee PySpark Cache Cleanup via try-finally | Changed |
+| NB_Gold_Carteira_Valor_Diario | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Carteira_Valor_Diario.Notebook/notebook-content.py` | ⚡ Bolt: [performance improvement] Guarantee PySpark Cache Cleanup via try-finally | Changed |
+| NB_Gold_Relatorio_Produtos_Mensal | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Relatorio_Produtos_Mensal.Notebook/notebook-content.py` | ⚡ Bolt: Otimização de Explosão de Plano Lógico no loop de resolve_columns e try-finally para limpeza de cache | Changed |
+| NB_Silver_Carteira_PDD | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Silver_Carteira_PDD.Notebook/notebook-content.py` | ⚡ Bolt: [performance improvement] Guarantee PySpark Cache Cleanup via try-finally | Changed |
+| testes | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/testes.Notebook/notebook-content.py` | 🧠 Bolt: Setup HTTP connection pooling for performance | Changed |
+
+
 ### [2026-04-16]
 
 | Component | Path | Description | Change |
