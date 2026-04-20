@@ -84,9 +84,10 @@ notebook_name = "NB_Gold_Esteira_Propostas"
 
 try:
     df_watermark = spark.read.table(watermark_table_name)
-    last_watermark_str = df_watermark.filter(col("TableName") == notebook_name).select("LastWatermarkValue").collect()
+    # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
+    last_watermark_str = df_watermark.filter(col("TableName") == notebook_name).select("LastWatermarkValue").first()
     if last_watermark_str:
-        last_watermark = datetime.datetime.strptime(last_watermark_str[0][0].split('.')[0], "%Y-%m-%d %H:%M:%S")
+        last_watermark = datetime.datetime.strptime(last_watermark_str[0].split('.')[0], "%Y-%m-%d %H:%M:%S")
         logger.info(f"Watermark encontrado: {last_watermark}")
     else:
         # Se não achou com nome novo, tenta com nome antigo para migração suave?
