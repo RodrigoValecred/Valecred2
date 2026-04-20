@@ -416,6 +416,15 @@ mapa_nomes = {
     'mudanca_segmento': 'Mudança de Segmento do Sacado'
 }
 
+features_unidirecionais = [
+    'vlr_total_sacado',
+    'concentracao_operacao',
+    'ratio_alavancagem_interna',
+    'pagava_em_dia_agora_atrasa',
+    'aumento_atraso_dias',
+    'aumento_recompras'
+]
+
 z_score_structs = []
 for c in features_para_analisar:
     mean_val = stats_dict[f"mean_{c}"]
@@ -424,7 +433,15 @@ for c in features_para_analisar:
         std_val = 1.0
     
     mean_val_safe = float(mean_val) if mean_val is not None else 0.0
-    z_expr = F.abs((F.col(c) - F.lit(mean_val_safe)) / F.lit(std_val))
+
+    if c in features_unidirecionais:
+        z_expr = F.when(
+            F.col(c) > F.lit(mean_val_safe),
+            (F.col(c) - F.lit(mean_val_safe)) / F.lit(std_val)
+        ).otherwise(F.lit(0.0))
+    else:
+        z_expr = F.abs((F.col(c) - F.lit(mean_val_safe)) / F.lit(std_val))
+
     friendly_name = mapa_nomes.get(c, c)
 
     detailed_reason = F.concat(
