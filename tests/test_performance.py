@@ -48,7 +48,7 @@ def resolve_columns_new(df, target_cols):
 def test_performance():
     spark = SparkSession.builder.appName("perf_test").getOrCreate()
 
-    # Create a dummy dataframe with many columns
+    # Cria um dataframe fictício com muitas colunas
     data = [{"col_" + str(i): "val" for i in range(100)}]
     data[0].update({"col_" + str(i) + "_op": "val_op" for i in range(100)})
     df = spark.createDataFrame(data)

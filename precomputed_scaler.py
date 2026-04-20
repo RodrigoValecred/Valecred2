@@ -7,7 +7,7 @@ import time
 def main():
     spark = SparkSession.builder.appName("BenchmarkScaler").getOrCreate()
 
-    # Generate synthetic data
+    # Gera dados sintéticos
     print("Generating data...")
     num_rows = 1000000
     df = spark.range(num_rows).selectExpr("id as f1", "id * 2 as f2", "id * 0.5 as f3", "rand() as f4", "rand()*10 as f5", "id * 1.5 as f6")
@@ -17,8 +17,8 @@ def main():
     print("Running pre-computed scaling (pandas/vectorized)...")
     start = time.time()
 
-    # Calculate means and stddevs directly
-    # In a real scenario, these would be loaded from a previous run or config
+    # Calcula médias e desvios padrão diretamente
+    # Em um cenário real, estes seriam carregados de uma execução anterior ou configuração
     means_stddevs = df.select(
         *[F.mean(F.col(c)).alias(f"{c}_mean") for c in df.columns],
         *[F.stddev(F.col(c)).alias(f"{c}_std") for c in df.columns]

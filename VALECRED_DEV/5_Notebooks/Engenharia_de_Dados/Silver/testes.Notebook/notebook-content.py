@@ -64,7 +64,7 @@ headers = {'Authorization': f'Bearer {token}'}
 
 # 2. Obter lista de Workspaces
 
-# 🧠 Bolt: Setup HTTP connection pooling for performance
+# 🧠 Bolt: Configuração do pooling de conexões HTTP para performance
 session = requests.Session()
 adapter = HTTPAdapter(pool_connections=10, pool_maxsize=10)
 session.mount('http://', adapter)

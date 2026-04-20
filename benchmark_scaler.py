@@ -6,7 +6,7 @@ import time
 def main():
     spark = SparkSession.builder.appName("BenchmarkScaler").getOrCreate()
 
-    # Generate synthetic data
+    # Gera dados sintéticos
     print("Generating data...")
     num_rows = 1000000
     df = spark.range(num_rows).selectExpr("id as f1", "id * 2 as f2", "id * 0.5 as f3", "rand() as f4", "rand()*10 as f5", "id * 1.5 as f6")
