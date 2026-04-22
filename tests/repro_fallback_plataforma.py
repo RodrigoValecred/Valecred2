@@ -2,7 +2,7 @@
 import unittest
 import re
 
-# Simula classes do PySpark
+# Simula as classes do PySpark
 class MockColumn:
     def __init__(self, name):
         self.name = name
@@ -23,7 +23,7 @@ class MockDataFrame:
         self.data = data # Lista de dicionários
 
     def select(self, *cols):
-        # Simplistic Select
+        # Select simplista
         selected_cols = []
         for c in cols:
             if isinstance(c, str):
@@ -47,7 +47,7 @@ class MockDataFrame:
                      # Tenta encontrar dividindo "."
                      parts = clean_c.split(".")
                      if len(parts) > 1 and parts[1] in row:
-                         new_row[clean_c] = row[parts[1]] # keep alias key?
+                         new_row[clean_c] = row[parts[1]] # manter a chave do alias?
                          # Na verdade, para "select(col(p.nome).alias(name))", dependemos da estrutura do chamador
                          pass
 
@@ -75,7 +75,7 @@ class MockDataFrame:
 
         # Se 'on' for uma condição (MockColumn)
         if isinstance(on, MockColumn):
-            # Simplistic parser: "col1 == col2"
+            # Simplista parser: "col1 == col2"
             cond_str = on.name
             parts = cond_str.split(" == ")
             if len(parts) == 2:
@@ -152,10 +152,10 @@ class MockDataFrame:
         return MockDataFrame(f"renamed_{self.name}", new_cols, new_data)
 
     def alias(self, alias):
-        return self # Simplistic alias
+        return self # Alias simplista
 
     def dropDuplicates(self, subset=None):
-        return self # Simplistic
+        return self # Simplista
 
 def col(name):
     return MockColumn(name)
@@ -197,8 +197,8 @@ class TestFallbackPlataforma(unittest.TestCase):
         # 3. Simula Dados de Prorrogação
         print("\n--- Mocking Prorrog ---")
         prorrog_data = [
-            {"cod_operacao": "101", "cod_cliente": "1", "nome_plataforma": "Platform Original"}, # Case A
-            {"cod_operacao": "102", "cod_cliente": "1", "nome_plataforma": None} # Case B
+            {"cod_operacao": "101", "cod_cliente": "1", "nome_plataforma": "Platform Original"}, # Caso A
+            {"cod_operacao": "102", "cod_cliente": "1", "nome_plataforma": None} # Caso B
         ]
         df_prorrog_enrich = MockDataFrame("prorrog_enrich", ["cod_operacao", "cod_cliente", "nome_plataforma"], prorrog_data)
 

@@ -185,7 +185,13 @@ import pyspark.sql.functions as F
 counts_df = df_limites_base.select(
     F.count('*').alias('total_linhas'),
     F.countDistinct('cod_cliente').alias('clientes_unicos')
-).collect()[0]
+).first()
+
+# 🧠 Tensor: Substituir .collect()[0] por .first() para preservar predicate pushdown e evitar materialização de lista
+# 💡 O que: Substituição de `.collect()[0]` por `.first()` para obtenção da primeira linha do dataframe agregado.
+# 🎯 Por que: `.collect()` materializa uma lista de todas as linhas do resultado no driver do Spark. Em agregações limitadas a uma linha, a coleta da lista e acesso ao primeiro elemento via `[0]` gera overhead desnecessário de alocação de lista. `.first()` extrai apenas a primeira linha diretamente.
+# 📊 Impacto: Diminui a carga no garbage collector do driver, previne a materialização da lista inteira e consolida o predicate pushdown.
+# 🔬 Medição: Elimina alocações da lista na memória da JVM.
 
 total_linhas = counts_df['total_linhas']
 clientes_unicos = counts_df['clientes_unicos']

@@ -136,7 +136,7 @@ if buscar_novos_meses:
     try:
         df_existing = spark.read.table(bronze_table_name)
         # Encontra o maior ANO_REF e MES_REF
-        max_row = df_existing.selectExpr("max(concat(ANO_REF, MES_REF)) as max_period").collect()[0][0]
+        max_row = df_existing.selectExpr("max(concat(ANO_REF, MES_REF)) as max_period").first()[0]
 
         if max_row:
             print(f"Último período encontrado na base: {max_row}")

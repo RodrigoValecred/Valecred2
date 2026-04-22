@@ -442,7 +442,7 @@ def apply_juros_corrections(df, corrections=None):
     if not keys:
         return df
 
-    # Verifica se a coluna existe (case insensitive check)
+    # Verifica se a coluna existe (verificação insensível a maiúsculas/minúsculas)
     col_name = "JUROS"
     if "JUROS" not in df.columns and "juros" in df.columns:
          col_name = "juros"

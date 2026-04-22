@@ -179,7 +179,7 @@ def get_operacoes_schema(df):
     )
 
 def transform_operacoes(df, key_columns_operacoes):
-    # ⚡ Bolt: Atualização de coluna otimizada usando withColumn diretamente na coluna existente para evitar o overhead de coluna temporária.
+    # ⚡ Bolt: Otimizou a atualização de coluna usando withColumn diretamente na coluna existente para evitar o overhead de coluna temporária.
     df_corrigido = df.withColumn("TTO", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449), lit("CS")).otherwise(col("TTO")))
 
     windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
