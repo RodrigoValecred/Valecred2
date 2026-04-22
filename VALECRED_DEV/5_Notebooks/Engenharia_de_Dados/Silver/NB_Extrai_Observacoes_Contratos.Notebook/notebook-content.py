@@ -23,6 +23,12 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Extrai_Observacoes_Contratos
+# **Objetivo:** Extrair e transformar observações textuais de contratos, gerando a tabela stg_limites_contratos_silver na camada Silver.
+
 # CELL ********************
 
 spark.conf.set("spark.sql.parquet.datetimeRebaseModeInRead", "LEGACY")

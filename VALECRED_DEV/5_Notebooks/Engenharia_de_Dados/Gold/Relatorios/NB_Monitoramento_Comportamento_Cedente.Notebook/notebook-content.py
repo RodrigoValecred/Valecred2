@@ -20,6 +20,12 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Monitoramento_Comportamento_Cedente
+# **Objetivo:** Monitorar o risco e o comportamento do portfólio de cedentes cruzando as tabelas `LH_Gold.carteira_de_titulos` e `LH_Gold.fato_operacoes`.
+
 # CELL ********************
 
 # Fabric notebook source

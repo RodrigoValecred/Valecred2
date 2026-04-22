@@ -39,6 +39,12 @@ silver_lh = "LH_Silver"
 # META   "language_group": "synapse_pyspark"
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Generic_Silver
+# **Objetivo:** Notebook genérico para processamento padronizado de tabelas simples de dimensões da Bronze para a Silver.
+
 # CELL ********************
 
 # --- INÍCIO DO CÓDIGO ---

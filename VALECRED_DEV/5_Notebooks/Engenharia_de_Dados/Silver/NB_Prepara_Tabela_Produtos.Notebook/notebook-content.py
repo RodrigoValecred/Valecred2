@@ -23,6 +23,13 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Prepara_Tabela_Produtos
+# **Objetivo:** Preparar e limpar a tabela de produtos (stg_produtos) a partir dos dados brutos, salvando na camada Silver.
+
+
 # CELL ********************
 
 from pyspark.sql import functions as F

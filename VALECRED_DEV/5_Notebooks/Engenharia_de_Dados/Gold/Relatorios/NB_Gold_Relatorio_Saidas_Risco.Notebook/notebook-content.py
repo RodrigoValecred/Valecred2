@@ -26,6 +26,12 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Gold_Relatorio_Saidas_Risco
+# **Objetivo:** Gerar o relatório de saídas em risco (operações não liquidadas em atraso) cruzando informações da carteira de crédito na camada Gold.
+
 # MARKDOWN ********************
 
 # # Relatório de Saídas de Risco

@@ -29,6 +29,12 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Gold_Dim_Limites
+# **Objetivo:** Criar a dimensão de Limites na camada Gold, consolidando os limites aprovados, consumidos e disponíveis por cliente.
+
 # CELL ********************
 
 spark.conf.set("spark.sql.parquet.datatimeRebaseModeInRead", "LEGACY")

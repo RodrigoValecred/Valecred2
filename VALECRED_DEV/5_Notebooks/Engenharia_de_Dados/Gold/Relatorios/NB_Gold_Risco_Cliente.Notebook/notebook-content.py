@@ -26,6 +26,12 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Gold_Risco_Cliente
+# **Objetivo:** Gerar o relatório consolidado de Risco por Cliente, agregando métricas de inadimplência, exposição e limites de crédito na camada Gold.
+
 # MARKDOWN ********************
 
 # ## 1. Carregamento e Preparação dos Dados
