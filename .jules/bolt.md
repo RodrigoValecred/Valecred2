@@ -51,3 +51,7 @@
 ## 2024-05-28 - PySpark DataFrame Columns Access Overhead in Loops
 **Learning:** In PySpark, calling `df.columns` inside a loop (e.g., when iterating through a large list of target columns to resolve or rename) is extremely inefficient because it triggers a remote procedure call (RPC) to the driver node on every iteration to fetch the schema metadata.
 **Action:** Always cache the DataFrame columns into a local Python set before the loop using `cols_set = set(df.columns)`. This reduces the N remote RPC calls to a single call and provides fast O(1) lookups during the iteration, significantly decreasing loop execution time.
+
+## 2024-05-19 - Flatten PySpark withColumn Logic
+**Learning:** In PySpark, deeply chained `withColumn` statements generate deeply nested Catalyst Logical Plans filled with sequential `Project` nodes. When the DAG becomes large, this leads to an $O(N^2)$ compilation slowdown and increases the risk of driver `StackOverflowError`.
+**Action:** Always combine chained sequential `.withColumn` transformations into a single `withColumns(dict)` block, or project the resulting expressions simultaneously in a single `.select()` statement.

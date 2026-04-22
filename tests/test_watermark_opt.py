@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import sys
 from types import ModuleType
 
-# Mock PySpark modules
+# Mock dos módulos PySpark
 mock_pyspark = ModuleType('pyspark')
 mock_pyspark_sql = ModuleType('pyspark.sql')
 mock_pyspark_functions = ModuleType('pyspark.sql.functions')

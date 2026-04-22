@@ -43,7 +43,7 @@ class TestResolveColumns(unittest.TestCase):
         # 3. Cria Simulação de DataFrame
         mock_df = MagicMock()
         mock_df.columns = ["mycol", "mycol_op"]
-        mock_df.withColumn.return_value = mock_df
+        mock_df.withColumns.return_value = mock_df
 
         # 4. Exec globals
         exec_globals = {
@@ -87,7 +87,7 @@ class TestResolveColumns(unittest.TestCase):
         # Precisamos verificar se col("mycol_op") também foi chamado
         mock_col.assert_any_call("mycol_op")
 
-        # Verifica a chamada withColumns com o resultado de coalesce correto
+        # Verifica a chamada withColumn com o resultado de coalesce correto
         mock_df.withColumns.assert_called_with({"mycol": "FINAL_COALESCE"})
 
 if __name__ == "__main__":

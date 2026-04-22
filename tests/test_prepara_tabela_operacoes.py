@@ -516,27 +516,27 @@ class TestProcessIncrementalOperacoes(unittest.TestCase):
         delta_mock_cls = self.global_scope["DeltaTable"]
         transform_mock = self.global_scope["transform_operacoes"]
 
-        # Setup DeltaTable
+        # Configuração da DeltaTable
         delta_table_ops = MagicMock()
         delta_mock_cls.forPath.return_value = delta_table_ops
 
-        # Setup watermark
+        # Configuração do watermark
         watermark_df = MagicMock()
         watermark_df.select.return_value = watermark_df
         watermark_df.first.return_value = ["2023-01-01"]
 
         spark_mock.read.format.return_value.load.return_value = watermark_df
 
-        # Setup bronze ops
+        # Configuração das operações bronze
         bronze_ops_df = MagicMock()
         bronze_ops_df.isEmpty.return_value = False
         spark_mock.read.table.return_value.filter.return_value = bronze_ops_df
 
-        # Setup transform result
+        # Configuração do resultado da transformação
         final_batch_df = MagicMock()
         transform_mock.return_value = final_batch_df
 
-        # Setup merge chain
+        # Configuração da cadeia de merge
         merge_mock = MagicMock()
         delta_table_ops.alias.return_value.merge.return_value = merge_mock
         merge_mock.whenMatchedUpdateAll.return_value = merge_mock
@@ -563,18 +563,18 @@ class TestProcessIncrementalOperacoes(unittest.TestCase):
         delta_mock_cls = self.global_scope["DeltaTable"]
         transform_mock = self.global_scope["transform_operacoes"]
 
-        # Setup DeltaTable
+        # Configuração da DeltaTable
         delta_table_ops = MagicMock()
         delta_mock_cls.forPath.return_value = delta_table_ops
 
-        # Setup watermark
+        # Configuração do watermark
         watermark_df = MagicMock()
         watermark_df.select.return_value = watermark_df
         watermark_df.first.return_value = ["2023-01-01"]
 
         spark_mock.read.format.return_value.load.return_value = watermark_df
 
-        # Setup bronze ops
+        # Configuração das operações bronze
         bronze_ops_df = MagicMock()
         bronze_ops_df.isEmpty.return_value = True
         spark_mock.read.table.return_value.filter.return_value = bronze_ops_df
