@@ -2,6 +2,16 @@
 
 ## Change Log
 
+### [2026-04-20]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| NB_Gold_Esteira_Propostas | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Esteira_Propostas.Notebook/notebook-content.py` | 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista na extração do watermark | Changed |
+| NB_Gold_Record_VOP | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Record_VOP.Notebook/notebook-content.py` | Adicionado novo relatório para quebra de VOP (Volume Operado) por tipo de documento (t_doc) e produto (tto) | Added |
+| NB_Prepara_Tabela_Operacoes | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py` | ⚡ Bolt: Atualização otimizada com withColumn diretamente e normalização de colunas consolidada | Changed |
+| 01-Treino_Risco_Semanal | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/01-Treino_Risco_Semanal.Notebook/notebook-content.py` | ⚡ Bolt: Forçar Broadcast Join na tabela de dimensão df_produtos para evitar shuffle na rede | Changed |
+| VAI_Inferencia_Online | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | Corrige a lógica de Z-Score para features unidirecionais com F.when | Changed |
+
 ### [2026-04-19]
 
 | Component | Path | Description | Change |
