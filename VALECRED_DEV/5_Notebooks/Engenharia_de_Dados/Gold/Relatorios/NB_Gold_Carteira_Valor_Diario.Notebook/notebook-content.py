@@ -248,15 +248,17 @@ try:
     # 🎯 Por que: A execução de múltiplas ações `.count()` ou `.collect()` aciona varreduras completas da tabela e jobs Spark separados. Combiná-las executa ambas as agregações em uma única passagem.
     # 📊 Impacto: Reduz o número de jobs Spark necessários para computar o dashboard de resumo, cortando o tempo de execução desta célula pela metade.
     # 🔬 Medição: O profiling mostra o tempo de execução caindo linearmente com a redução de ações Spark acionadas (de 3 jobs para 2).
+    # 🧠 Tensor: Substituir .collect()[0] por .first() para preservar predicate pushdown e evitar materialização de lista
     metrics = df_daily_agg.select(
         count("*").alias("row_count"),
         max("data_referencia").alias("max_date")
-    ).collect()[0]
+    ).first()
 
     row_count = metrics["row_count"]
     max_date = metrics["max_date"]
 
-    total_value_latest = df_daily_agg.filter(col("data_referencia") == max_date).agg(sum("valor_carteira_total")).collect()[0][0] or 0
+    # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
+    total_value_latest = df_daily_agg.filter(col("data_referencia") == max_date).agg(sum("valor_carteira_total")).first()[0] or 0
 
     print("\n" + "="*40)
     print("      DASHBOARD DE SAÍDA - CARTEIRA      ")

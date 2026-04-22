@@ -425,7 +425,8 @@ for c in features_para_analisar:
     exprs.append(F.mean(F.col(c)).alias(f"mean_{c}"))
     exprs.append(F.stddev(F.col(c)).alias(f"std_{c}"))
 
-stats_row = df_scored.select(*exprs).collect()[0]
+# 🧠 Tensor: Substituir .collect()[0] por .first() para preservar predicate pushdown e evitar materialização de lista
+stats_row = df_scored.select(*exprs).first()
 stats_dict = stats_row.asDict()
 
 # 🧠 Tensor: Substitui Pandas UDF por expressões nativas PySpark SQL

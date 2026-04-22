@@ -219,7 +219,8 @@ if not df_to_cluster.isEmpty():
         exprs.append(avg(col(c)).alias(f"mean_{c}"))
         exprs.append(stddev(col(c)).alias(f"std_{c}"))
 
-    stats_row = df_to_cluster.select(*exprs).collect()[0]
+    # 🧠 Tensor: Substituir .collect()[0] por .first() para preservar predicate pushdown e evitar materialização de lista
+    stats_row = df_to_cluster.select(*exprs).first()
     stats_dict = stats_row.asDict()
 
     scaled_exprs = []
