@@ -87,8 +87,8 @@ class TestResolveColumns(unittest.TestCase):
         # Precisamos verificar se col("mycol_op") também foi chamado
         mock_col.assert_any_call("mycol_op")
 
-        # Verifica a chamada withColumn com o resultado de coalesce correto
-        mock_df.withColumn.assert_called_with("mycol", "FINAL_COALESCE")
+        # Verifica a chamada withColumns com o resultado de coalesce correto
+        mock_df.withColumns.assert_called_with({"mycol": "FINAL_COALESCE"})
 
 if __name__ == "__main__":
     unittest.main()

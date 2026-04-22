@@ -2,6 +2,18 @@
 
 ## Change Log
 
+### [2026-04-20]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `update_silver_mashup.py` | `update_silver_mashup.py` | Added utility script to update `DF_Preparacao_Silver.Dataflow` mashup.pq. | Added |
+| Multiple Test Files | `tests/` | 🌐 Translator: Translated multiple unit test comments and strings to Portuguese (pt-BR). | Changed |
+| `test_verify_rfb_url.py` | `tests/test_verify_rfb_url.py` | Added test script to verify RFB download URLs. | Added |
+| `NB_Gold_Record_VOP.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Gold_Record_VOP.Notebook/` | Updated Volume Operado recording logic to pivot by document and product type. | Changed |
+| Multiple Notebooks | `VALECRED_DEV/` | Various Bolt performance improvements and UX fixes. | Changed |
+| `INVENTORY.md` | `INVENTORY.md` | Regenerated inventory to document missing assets. | Changed |
+
+
 ### [2026-04-19]
 
 | Component | Path | Description | Change |
