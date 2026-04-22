@@ -294,7 +294,7 @@ df_recentes_spark = df_with_bench.filter(F.col("mob") <= 24).select("id_gerente"
 # Aplicar processamento paralelo
 df_proj = df_recentes_spark.groupby("id_gerente").applyInPandas(train_model, schema=result_schema)
 
-# Save results
+# Salvar os resultados
 try:
     df_proj.write.mode("overwrite").saveAsTable("LH_Gold.analise_safra_projeccoes")
     print("Projeções salvas em LH_Gold.analise_safra_projeccoes")

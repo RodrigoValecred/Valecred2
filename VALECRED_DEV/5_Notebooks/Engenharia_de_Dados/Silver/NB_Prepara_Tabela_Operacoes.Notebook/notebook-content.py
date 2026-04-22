@@ -40,7 +40,7 @@ spark.conf.set("spark.sql.parquet.datetimeRebaseModeInWrite", "LEGACY")
 spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")
 
 # --- CONFIGURATION ---
-# Definir como True para forçar Full Load (útil para limpar registros deletados da fonte)
+# Definir como True para forçar Carga Completa (útil para limpar registros deletados da fonte)
 FULL_LOAD = True
 # ---------------------
 
@@ -342,7 +342,7 @@ def process_devolucoes():
 
 # MARKDOWN ********************
 
-# ## Seção 3: TAC M (Full Load)
+# ## Seção 3: TAC M (Carga Completa)
 # **Estratégia:** Tabela pequena e filtrada por ano (2024+).
 
 # CELL ********************
@@ -435,7 +435,7 @@ def process_estudo_op():
     new_cols = [col(c).alias(normalize_col(c)) for c in df_estudo.columns]
     df_estudo_clean = df_estudo.select(new_cols)
 
-    # Standardize columns (Risco & Limite)
+    # Padronizar colunas (Risco & Limite)
     df_estudo_standard = standardize_estudo_columns(df_estudo_clean)
 
     df_estudo_standard.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_estudo_operacoes")
