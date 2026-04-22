@@ -22,12 +22,12 @@ def resolve_columns_new(df, target_cols):
         df_resolved = df_resolved.withColumnRenamed(old_col, new_col)
 
     if exprs:
-        # Pyspark withColumns usage
+        # Uso do withColumns do Pyspark
         df_resolved = df_resolved.withColumns(exprs)
 
     return df_resolved
 
-# test data
+# dados de teste
 data = [{"col1": "A", "col1_op": "A_op", "col2_op": "B_op", "col3": "  ", "col3_op": "C_op", "col4": "D"}]
 df = spark.createDataFrame(data)
 
