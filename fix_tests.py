@@ -1,9 +1,12 @@
-with open("tests/test_generate_inventory.py", "r", encoding="utf-8") as f:
+import re
+
+with open('tests/test_resolve_columns_empty_string.py', 'r') as f:
     content = f.read()
 
-# Restaurar o conteúdo original para a lógica dos testes de mapeamento de strings passarem
-content = content.replace("'- **Descrição:** Um caderno',\n                '- **Entrada:** Nenhum'", "'- **Description:** A notebook',\n                '- **Input:** None'")
-content = content.replace("'- **Descrição:** Um fluxo de dados'", "'- **Description:** A dataflow'")
-content = content.replace("## Seção", "## Section")
-with open("tests/test_generate_inventory.py", "w", encoding="utf-8") as f:
+# Replace mock_df.withColumn.assert_called_with with mock_df.withColumns.assert_called_with
+# because the code uses withColumns now
+content = content.replace('mock_df.withColumn.assert_called_with("mycol", "FINAL_COALESCE")', 'mock_df.withColumns.assert_called_with({"mycol": "FINAL_COALESCE"})')
+content = content.replace('mock_df.withColumn.return_value = mock_df', 'mock_df.withColumns.return_value = mock_df')
+
+with open('tests/test_resolve_columns_empty_string.py', 'w') as f:
     f.write(content)
