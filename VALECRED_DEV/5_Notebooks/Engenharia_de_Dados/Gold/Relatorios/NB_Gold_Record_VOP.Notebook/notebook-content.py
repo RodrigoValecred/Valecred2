@@ -20,6 +20,12 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Gold_Record_VOP
+# **Objetivo:** Calcular e analisar o 'Volume Operado' (VOP) por tipo de documento e produto, realizando o join entre `LH_Gold.fato_operacoes` e `LH_Gold.fato_titulos`.
+
 # CELL ********************
 
 # 📝 Scribe: Daily Documentation Sync [2025-04-17]

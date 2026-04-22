@@ -20,6 +20,12 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Load_From_CVM
+# **Objetivo:** Fazer a carga dos dados brutos e públicos disponibilizados pela CVM (Comissão de Valores Mobiliários) para a camada Bronze.
+
 # MARKDOWN ********************
 
 # # Carregar dados da CVM

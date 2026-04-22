@@ -23,6 +23,13 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_PERFIL_RISCO_SACADO
+# **Objetivo:** Criar a tabela Perfil_Risco_Sacado a partir da base histórica, consolidando informações de risco e calculando a probabilidade de default para gerar escores de risco de sacados.
+
+
 # CELL ********************
 
 # 1. A Importação que faltava (Onde definimos quem é o "F")

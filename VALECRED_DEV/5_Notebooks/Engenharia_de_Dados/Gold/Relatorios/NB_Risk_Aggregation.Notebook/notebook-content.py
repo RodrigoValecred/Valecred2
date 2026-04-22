@@ -25,6 +25,12 @@
 
 # CELL ********************
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Risk_Aggregation
+# **Objetivo:** Realizar a agregação central de riscos calculando score, exposição e concentração (VAI) de portfólio na camada Gold.
+
 # MARKDOWN ********************
 
 # ## 1. Carregamento e Preparação dos Dados

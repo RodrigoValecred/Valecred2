@@ -26,6 +26,12 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Modelo_Risco_Logistico
+# **Objetivo:** Criar as tabelas pontos_crise e titulos_em_risco_logistico, analisando riscos logísticos por CEP com base em dados de intempéries e infraestrutura.
+
 # CELL ********************
 
 from pyspark.sql import functions as F

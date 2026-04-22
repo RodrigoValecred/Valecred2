@@ -23,6 +23,12 @@
 # META   }
 # META }
 
+
+# MARKDOWN ********************
+
+# # Notebook NB_Inadimplencia_Mensal
+# **Objetivo:** Criar a tabela dim_historico_inadimplencia com o histórico de inadimplência mensal por cliente e sacado na camada Gold.
+
 # CELL ********************
 
 from pyspark.sql.functions import col, lit, explode, sequence, to_date, last_day, when, sum as _sum, months_between, expr, broadcast, current_date
