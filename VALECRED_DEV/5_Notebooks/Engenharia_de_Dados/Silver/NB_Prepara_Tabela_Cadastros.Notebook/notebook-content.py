@@ -53,6 +53,26 @@ from notebookutils import mssparkutils
 import datetime
 from delta.tables import DeltaTable
 
+def upsert_silver_table(spark, df_incoming, target_path, merge_key):
+    """
+    Executa um MERGE INTO (upsert) se a tabela de destino existir, caso contrário faz o overwrite inicial.
+    """
+    if spark.catalog.tableExists(target_path):
+        print(f"Executando MERGE (Upsert) na tabela {target_path} usando a chave {merge_key}...")
+        delta_table = DeltaTable.forName(spark, target_path)
+        delta_table.alias("target") \
+            .merge(
+                df_incoming.alias("source"),
+                f"target.{merge_key} = source.{merge_key}"
+            ) \
+            .whenMatchedUpdateAll() \
+            .whenNotMatchedInsertAll() \
+            .execute()
+    else:
+        print(f"Tabela {target_path} não existe. Criando nova tabela (Overwrite)...")
+        df_incoming.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_path)
+    return spark.read.table(target_path)
+
 def check_should_skip(spark, source_table, target_table_path, watermark_col="data_inclusao", target_watermark_col=None):
     try:
         if target_watermark_col is None:
@@ -136,8 +156,8 @@ def process_clientes():
             col("DATAINCLUSAO").alias("data_inclusao"),
             col("CODATIVIDADE").alias("cod_atividade")
         )
-    df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_clientes_limpa")
-    return df_deduplicated_clientes
+    target_path = f"{target_lakehouse}.staging_clientes_limpa"
+    return upsert_silver_table(spark, df_deduplicated_clientes, target_path, "cod_cliente")
 
 def get_sigla_expr(col_name="nome_base"):
     # 1. Definir "Stopwords" (termos que não devem compor a sigla)
@@ -224,8 +244,8 @@ def process_telefones():
         .filter((length(col("FONE_COMPLETO")) >= 10) & (length(col("FONE_COMPLETO")) <= 11)) \
         .select(col("CPFCNPJ").alias("cpf_cnpj"), col("FONE_COMPLETO").alias("fone"), col("CONTATO")).distinct() \
         .groupBy("cpf_cnpj").agg(concat_ws("; ", collect_list("fone")).alias("telefones"))
-    df_telefones_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_telefones_agg")
-    return df_telefones_agg
+    target_path = f"{target_lakehouse}.staging_telefones_agg"
+    return upsert_silver_table(spark, df_telefones_agg, target_path, "cpf_cnpj")
 
 def process_emails():
     print("Processando Emails...")
@@ -233,8 +253,8 @@ def process_emails():
         .filter(col("EMAIL").isNotNull() & (col("EMAIL") != "")) \
         .select(col("CPFCNPJ").alias("cpf_cnpj"), col("EMAIL").alias("email")).distinct() \
         .groupBy("cpf_cnpj").agg(concat_ws("; ", collect_list("email")).alias("emails"))
-    df_emails_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_emails_agg")
-    return df_emails_agg
+    target_path = f"{target_lakehouse}.staging_emails_agg"
+    return upsert_silver_table(spark, df_emails_agg, target_path, "cpf_cnpj")
 
 def process_enderecos():
     print("Processando Endereços...")
@@ -262,9 +282,9 @@ def process_enderecos():
         .withColumn("CPFCNPJ_valido", col("CPFCNPJ").cast("long")).filter(col("CPFCNPJ_valido").isNotNull()) \
         .select(col("CPFCNPJ").alias("cpf_cnpj"), col("ENDERECO").alias("endereco"), col("NUMERO").alias("numero"), col("COMPLEMENTO").alias("complemento"), col("BAIRRO").alias("bairro"), col("CIDADE").alias("cidade"), col("UF").alias("uf"), col("CEP").alias("cep"), col("estado"), col("capital"), col("regiao"))
 
-    df_enderecos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_enderecos_limpa")
     df_regioes.unpersist()
-    return df_enderecos_final
+    target_path = f"{target_lakehouse}.staging_enderecos_limpa"
+    return upsert_silver_table(spark, df_enderecos_final, target_path, "cpf_cnpj")
 
 # METADATA ********************
 
@@ -652,7 +672,8 @@ def process_sacados_enriquecida(df_geral=None, df_enderecos=None, df_emails=None
             "emails", "telefones"
         )
 
-    df_sacados.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_sacados_enriquecida")
+    target_path = f"{target_lakehouse}.staging_sacados_enriquecida"
+    upsert_silver_table(spark, df_sacados, target_path, "cpf_cnpj")
 
 # Execução
 # Captura DataFrames para reuso
