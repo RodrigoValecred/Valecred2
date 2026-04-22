@@ -49,7 +49,7 @@ from notebookutils import mssparkutils
 
 # CELL ********************
 
-# Função utilitária (Helper Function) para Resolver Ambiguidade Dinamicamente
+# Função utilitária (Função Auxiliar) para Resolver Ambiguidade Dinamicamente
 def resolve_columns(df, target_cols):
     """
     Para cada coluna alvo, verifica se existe no DF.

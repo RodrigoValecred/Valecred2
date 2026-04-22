@@ -231,7 +231,7 @@ df_calendario_completo = df_calendario_completo.withColumn(
 
 # Cálculo do Próximo Dia Útil
 # Lógica: Se hoje é dia útil, retorna hoje. Se não, retorna o próximo dia que for útil.
-# Usamos Window function olhando para frente (rowsBetween(0, unboundedFollowing)) e pegando o primeiro valor não nulo.
+# Usamos a Window function olhando para frente (rowsBetween(0, unboundedFollowing)) e pegando o primeiro valor não nulo.
 # Criamos uma coluna auxiliar que tem a DATA se for dia útil, e NULL se não for.
 
 w_forward = Window.orderBy("data").rowsBetween(0, Window.unboundedFollowing)

@@ -574,7 +574,7 @@ def process_pareceres_clientes_esteira():
     df_enriched = df_joined.join(df_status, df_joined.status_cliente == df_status.status_do_cliente, "left") \
         .select("CODCLIENTE", "status_cliente", "data_log", "USUAINCLUSAO", "macroprocesso", "fase")
 
-    # Window Functions para Esteira (Anterior/Posterior)
+    # Window functions para Esteira (Anterior/Posterior)
     window_esteira = Window.partitionBy("CODCLIENTE").orderBy("data_log")
     df_esteira = df_enriched.withColumn("status_anterior", lag("status_cliente").over(window_esteira)) \
         .withColumn("data_anterior", lag("data_log").over(window_esteira)) \

@@ -103,7 +103,7 @@ def transform_esteira_dates(df_esteira, status_mapping):
             min("datalog").alias("min")
         )
 
-    # Select único com renomeação
+    # Selecionar único com renomeação
     # Colunas esperadas: cod_cliente, pivot_{clean_name}, min_{clean_name}
     select_exprs = [col("cod_cliente")]
 
@@ -958,7 +958,7 @@ finally:
 # Célula 2.2: Construção da Fato Baixas
 # -------------------------------------
 print("\nIniciando construção da fato_baixas...")
-# Apply manual fixes (Mantido para correções de negócio específicas)
+# Aplicar correções manuais (Mantido para correções de negócio específicas)
 # A correção de juros agora é feita na camada Silver (NB_Preparacao_Silver).
 df_baixas_corrigido = df_baixas_staging
 df_enriquecido_baixas = df_baixas_corrigido \
