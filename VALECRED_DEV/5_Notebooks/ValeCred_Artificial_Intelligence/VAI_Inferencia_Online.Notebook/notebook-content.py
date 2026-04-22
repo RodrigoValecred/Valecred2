@@ -395,7 +395,12 @@ for c in features_para_analisar:
     exprs.append(F.mean(F.col(c)).alias(f"mean_{c}"))
     exprs.append(F.stddev(F.col(c)).alias(f"std_{c}"))
 
-stats_row = df_scored.select(*exprs).collect()[0]
+# 🧠 Tensor: Substituir .collect()[0] por .first() para preservar predicate pushdown e evitar materialização de lista
+# 💡 O que: Substituição de `.collect()[0]` por `.first()` para obtenção da primeira linha de estatísticas precomputadas.
+# 🎯 Por que: `.collect()` serializa o dataframe inteiro em uma lista no driver Spark, o que aumenta o uso de memória. Como só estamos coletando estatísticas agregadas (uma única linha), o `.first()` é mais eficiente por pegar o valor diretamente e prevenir alocação de listas intermediárias.
+# 📊 Impacto: Economiza memória do driver e reduz overhead do Garbage Collector da JVM durante o processo de inferência online.
+# 🔬 Medição: Elimina chamadas a alocadores de listas.
+stats_row = df_scored.select(*exprs).first()
 stats_dict = stats_row.asDict()
 
 # 🧠 Tensor: Substitui Pandas UDF por expressões nativas PySpark SQL
