@@ -36,6 +36,22 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType, StringType
 from pyspark.sql.functions import pandas_udf
 
+def check_sequential_invoices(df, col_emission_date="data_emissao", col_entry_date="data_entrada", col_volume="vlr_total_sacado", threshold_volume=100000.0):
+    '''
+    Verifica se existem notas sequenciais: emitidas e descontadas no mesmo dia em volumes altos.
+    (Comportamento de quem está com pressa para fugir com o dinheiro).
+
+    Retorna o DataFrame com uma nova coluna boolean `alerta_notas_sequenciais`.
+    '''
+    return df.withColumn(
+        "alerta_notas_sequenciais",
+        F.when(
+            (F.to_date(F.col(col_emission_date)) == F.to_date(F.col(col_entry_date))) &
+            (F.col(col_volume) >= threshold_volume),
+            F.lit(True)
+        ).otherwise(F.lit(False))
+    )
+
 # ==============================================================================
 # 1. LEITURA E PREPARAÇÃO DOS DADOS (Spark)
 # ==============================================================================
@@ -181,6 +197,16 @@ try:
 except Exception as e:
     print(f"⚠️ Não foi possível carregar regras de Tranche: {e}")
     df_hoje_ajustado = df_hoje_ajustado.withColumn("alerta_excesso_tranche", F.lit(False))
+
+# ==============================================================================
+# 🆕 VERIFICAÇÃO DE NOTAS SEQUENCIAIS (RISCO DE FUGA)
+# ==============================================================================
+try:
+    print("🔍 Verificando notas sequenciais...")
+    df_hoje_ajustado = check_sequential_invoices(df_hoje_ajustado)
+except Exception as e:
+    print(f"⚠️ Não foi possível verificar notas sequenciais: {e}")
+    df_hoje_ajustado = df_hoje_ajustado.withColumn("alerta_notas_sequenciais", F.lit(False))
 
 # ==============================================================================
 # 🆕 BLOCO DE ENRIQUECIMENTO DE PRODUTO (O Join Mágico)
@@ -339,6 +365,7 @@ try:
             "anomaly_score",
             F.when(F.col("alerta_intercia_sem_limite"), -1.0)
              .when(F.col("alerta_excesso_tranche"), -1.0)
+             .when(F.col("alerta_notas_sequenciais"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
@@ -348,6 +375,7 @@ try:
         df_scored = df_scored.withColumn(
             "anomaly_score",
             F.when(F.col("alerta_excesso_tranche"), -1.0)
+             .when(F.col("alerta_notas_sequenciais"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
@@ -368,6 +396,7 @@ except Exception as e:
             "anomaly_score",
             F.when(F.col("alerta_intercia_sem_limite"), -1.0)
              .when(F.col("alerta_excesso_tranche"), -1.0)
+             .when(F.col("alerta_notas_sequenciais"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
@@ -377,6 +406,7 @@ except Exception as e:
         df_scored = df_scored.withColumn(
             "anomaly_score",
             F.when(F.col("alerta_excesso_tranche"), -1.0)
+             .when(F.col("alerta_notas_sequenciais"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
@@ -458,6 +488,7 @@ max_z_struct = F.array_max(z_scores_array)
 if "alerta_intercia_sem_limite" in df_scored.columns:
     motivo_expr = F.when(F.col("alerta_intercia_sem_limite"), F.lit("Tentativa de Intercia Sem Limite")) \
                    .when(F.col("alerta_excesso_tranche"), F.lit("Excesso na Tranche")) \
+                   .when(F.col("alerta_notas_sequenciais"), F.lit("Notas Sequenciais (Risco de Fuga)")) \
                    .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("pagava_em_dia_agora_atrasa") > 0, F.lit("Mudança de Comportamento (Atraso)")) \
@@ -466,6 +497,7 @@ if "alerta_intercia_sem_limite" in df_scored.columns:
                    .otherwise(F.lit("Desconhecido"))
 else:
     motivo_expr = F.when(F.col("alerta_excesso_tranche"), F.lit("Excesso na Tranche")) \
+                   .when(F.col("alerta_notas_sequenciais"), F.lit("Notas Sequenciais (Risco de Fuga)")) \
                    .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("pagava_em_dia_agora_atrasa") > 0, F.lit("Mudança de Comportamento (Atraso)")) \
