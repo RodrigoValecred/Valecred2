@@ -103,7 +103,7 @@ def transform_esteira_dates(df_esteira, status_mapping):
             min("datalog").alias("min")
         )
 
-    # Select único com renomeação
+    # Selecionar único com renomeação
     # Colunas esperadas: cod_cliente, pivot_{clean_name}, min_{clean_name}
     select_exprs = [col("cod_cliente")]
 
@@ -687,7 +687,7 @@ df_estudo = df_estudo_operacoes.dropDuplicates(["CODOPERACAO"]).alias("estudo")
 # Colunas esperadas: valor_risco_estudo e valor_limite_estudo.
 
 # ⚡ Otimização Bolt: Adicionar `broadcast()` aos dataframes de dimensões no join de operações.
-# 💡 O que: Utilizando a função `broadcast()` nas tabelas de dimensão pequenas (usuários, motivos, gerentes).
+# 💡 O que: Utilizando a função `broadcast()` nas tabelas de dimensão pequenas (usuários, motivos, gerentes, first_op, client_rate).
 # 🎯 Por que: Como a tabela `df_ops` (fato) é grande e essas tabelas de dimensão são minúsculas, aplicar `broadcast` garante que o Catalyst utilize BroadcastHashJoin em vez de SortMergeJoin, eliminando shuffles na rede e aumentando dramaticamente a performance.
 # 📊 Impacto: Elimina operações de Sort e Shuffle no cluster para a tabela de fatos principal, reduzindo o tempo de execução do join significativamente (frequentemente em 40-70%).
 # 🔬 Medição: O plano físico no Spark UI vai exibir BroadcastHashJoin em vez de SortMergeJoin nesses estágios.
@@ -700,8 +700,8 @@ df_ops_enrich_step1 = df_ops \
     .join(df_estudo, col("ops.cod_operacao") == col("estudo.CODOPERACAO"), "left") \
     .join(broadcast(df_gerentes_enrich), col("ops.cod_broker") == col("gerentes.cod_broker"), "left") \
     .join(df_escrow, col("ops.cod_operacao") == col("escrow.cod_operacao"), "left") \
-    .join(df_first_op, col("ops.cod_cliente") == col("first_op.cod_cliente"), "left") \
-    .join(df_client_rate, col("ops.cod_cliente") == col("client_rate.cod_cliente"), "left") \
+    .join(broadcast(df_first_op), col("ops.cod_cliente") == col("first_op.cod_cliente"), "left") \
+    .join(broadcast(df_client_rate), col("ops.cod_cliente") == col("client_rate.cod_cliente"), "left") \
     .select(
         col("ops.*"),
         col("u_inc.nome").alias("usuario_inclusao"),
@@ -958,7 +958,7 @@ finally:
 # Célula 2.2: Construção da Fato Baixas
 # -------------------------------------
 print("\nIniciando construção da fato_baixas...")
-# Apply manual fixes (Mantido para correções de negócio específicas)
+# Aplicar correções manuais (Mantido para correções de negócio específicas)
 # A correção de juros agora é feita na camada Silver (NB_Preparacao_Silver).
 df_baixas_corrigido = df_baixas_staging
 df_enriquecido_baixas = df_baixas_corrigido \

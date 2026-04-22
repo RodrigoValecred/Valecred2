@@ -116,7 +116,7 @@ if not df_bronze.isEmpty():
     # Janela para pegar o último registro por chave
     windowSpec = Window.partitionBy([col(c) for c in key_columns]).orderBy(col("DATA_MAIS_RECENTE").desc())
 
-    # 🧠 Tensor: Otimização de reavaliação de plano (Cache de Window function)
+    # 🧠 Tensor: Otimização de reavaliação de plano (Cache da Window function)
     # 💡 O que: Adicionado .cache() ao DataFrame `df_dedup` resultante da operação de particionamento (Window).
     # 🎯 Por que: A variável `df_dedup` e suas transformações (`df_final`) sofrem múltiplas ações (`.count()` e `.write`), forçando a re-execução redundante de todo o processo complexo de deduplicação na mesma run.
     # 📊 Impacto: Evita o recálculo redundante do particionamento (row_number().over), resultando em execução até 2x mais rápida na carga Silver dessa tabela.

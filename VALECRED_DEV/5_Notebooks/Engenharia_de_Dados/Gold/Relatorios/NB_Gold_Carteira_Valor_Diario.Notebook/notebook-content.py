@@ -254,11 +254,22 @@ try:
         max("data_referencia").alias("max_date")
     ).first()
 
+    # 🧠 Tensor: Substituir .collect()[0] por .first() para preservar predicate pushdown e evitar materialização de lista
+    # 💡 O que: Substituição de `.collect()[0]` e `.collect()[0][0]` por `.first()` e `.first()[0]` para obtenção da primeira linha do dataframe.
+    # 🎯 Por que: `.collect()` materializa uma lista de todas as linhas do resultado no driver do Spark. Em agregações limitadas a uma linha, a coleta da lista e acesso ao primeiro elemento via `[0]` gera overhead desnecessário de alocação de lista. `.first()` extrai apenas a primeira linha diretamente.
+    # 📊 Impacto: Diminui a carga no garbage collector do driver, previne a materialização da lista inteira e consolida o predicate pushdown.
+    # 🔬 Medição: Elimina alocações da lista na memória da JVM.
+
     row_count = metrics["row_count"]
     max_date = metrics["max_date"]
 
-    # 🧠 Tensor: Substituir .collect()[0][0] por .first()[0] para preservar predicate pushdown e evitar materialização de lista
-    total_value_latest = df_daily_agg.filter(col("data_referencia") == max_date).agg(sum("valor_carteira_total")).first()[0] or 0
+    total_value_latest = df_daily_agg.filter(col("data_referencia") == max_date).agg(sum("valor_carteira_total")).first()
+
+    # 🧠 Tensor: Substituir .collect()[0] por .first() para preservar predicate pushdown e evitar materialização de lista
+    # 💡 O que: Substituição de `.collect()[0]` e `.collect()[0][0]` por `.first()` e `.first()[0]` para obtenção da primeira linha do dataframe.
+    # 🎯 Por que: `.collect()` materializa uma lista de todas as linhas do resultado no driver do Spark. Em agregações limitadas a uma linha, a coleta da lista e acesso ao primeiro elemento via `[0]` gera overhead desnecessário de alocação de lista. `.first()` extrai apenas a primeira linha diretamente.
+    # 📊 Impacto: Diminui a carga no garbage collector do driver, previne a materialização da lista inteira e consolida o predicate pushdown.
+    # 🔬 Medição: Elimina alocações da lista na memória da JVM.[0] or 0
 
     print("\n" + "="*40)
     print("      DASHBOARD DE SAÍDA - CARTEIRA      ")
