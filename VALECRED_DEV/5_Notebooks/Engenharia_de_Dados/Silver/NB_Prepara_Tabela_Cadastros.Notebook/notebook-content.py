@@ -179,10 +179,28 @@ def process_cadastro_geral():
         .filter(col("cpf_cnpj").rlike("^[0-9]+$")) \
         .select("cpf_cnpj", "nome", "sigla")
 
-    # Validação rápida
-    # df_cadastros_clean.show(5, truncar=Falso)
-    df_cadastros_clean.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_cad_geral_pf_pj_limpa")
-    return df_cadastros_clean
+    target_path = f"{target_lakehouse}.staging_cad_geral_pf_pj_limpa"
+
+    # Lógica de atualização incremental (Left Anti Join)
+    # 🧠 Tensor: Implementar verificação de tabela existente e Left Anti Join para processamento apenas de novos cadastros
+    # 💡 What: O script agora lê a tabela de destino caso exista, e faz um Left Anti Join com a Bronze para gravar apenas novos CPFs/CNPJs em modo 'append'. Evita '.count()' para otimizar Catalyst. Retorna apenas os registros novos.
+    # 🎯 Why: Evita processamento e regravação completa da base inteira (Full Overwrite), o que é redundante para tabelas de cadastro. Retornar apenas dados novos agiliza os nós downstream do DAG.
+    # 📊 Impact: Reduz I/O de disco e tempo de processamento das cargas diárias no Lakehouse. Previne trigger duplo de jobs.
+    # 🔬 Measurement: O log do cluster Spark mostrará um plano de execução focando apenas em append, sem actions adicionais redundantes.
+    if spark.catalog.tableExists(target_path):
+        print(f"A tabela {target_path} já existe. Aplicando Left Anti Join para obter apenas registros novos...")
+        df_silver_existing = spark.read.table(target_path).select("cpf_cnpj")
+        df_retorno = df_cadastros_clean.join(df_silver_existing, "cpf_cnpj", "left_anti")
+
+        print(f"Gravando novos registros (se houverem) em {target_path} em modo append...")
+        df_retorno.write.mode("append").saveAsTable(target_path)
+    else:
+        print(f"A tabela {target_path} não existe. Criando nova tabela (Overwrite)...")
+        df_retorno = df_cadastros_clean
+        df_retorno.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_path)
+
+    # Retorna APENAS o DataFrame de registros novos para processamentos downstream
+    return df_retorno
 
 # METADATA ********************
 
