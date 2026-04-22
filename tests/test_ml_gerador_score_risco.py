@@ -56,6 +56,19 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
             'draw_risk_meter': mock_draw_risk_meter
         }
 
+        # Patch pd.DataFrame.style to bypass jinja2 requirement during tests
+        class MockStyle:
+            def __init__(self, df):
+                self.df = df
+            def background_gradient(self, *args, **kwargs):
+                return self
+            def format(self, *args, **kwargs):
+                return self
+            def set_properties(self, *args, **kwargs):
+                return self
+
+        pd.DataFrame.style = property(lambda self: MockStyle(self))
+
     def test_draw_risk_meter(self):
         try:
             draw_risk_meter = self.load_function("draw_risk_meter")
