@@ -71,6 +71,26 @@ from functools import reduce
 from delta.tables import *
 import datetime
 
+def upsert_silver_table(spark, df_incoming, target_path, merge_key):
+    """
+    Executa um MERGE INTO (upsert) se a tabela de destino existir, caso contrario faz o overwrite inicial.
+    """
+    if spark.catalog.tableExists(target_path):
+        print(f"Executando MERGE (Upsert) na tabela {target_path} usando a chave {merge_key}...")
+        delta_table = DeltaTable.forName(spark, target_path)
+        delta_table.alias("target") \
+            .merge(
+                df_incoming.alias("source"),
+                f"target.{merge_key} = source.{merge_key}"
+            ) \
+            .whenMatchedUpdateAll() \
+            .whenNotMatchedInsertAll() \
+            .execute()
+    else:
+        print(f"Tabela {target_path} nao existe. Criando nova tabela (Overwrite)...")
+        df_incoming.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target_path)
+    return spark.read.table(target_path)
+
 # METADATA ********************
 
 # META {
@@ -185,7 +205,12 @@ df_deduplicated_clientes = df_ranked_clientes.filter(col("row_num") == 1).drop("
 # Célula 2.3: Salvar o Resultado
 # ------------------------------------------------------
 output_path_clientes = f"{target_lakehouse}.{target_table_clientes}"
-df_deduplicated_clientes.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_clientes)
+# 🧠 Tensor: Implementacao de Upsert (MERGE) nas Dimensoes Silver
+# 💡 O que: Substituida a logica de gravacao em modo overwrite por operacoes incrementais de MERGE INTO (upsert) nas tabelas staging_clientes_limpa, staging_telefones_agg, staging_emails_agg, staging_enderecos_limpa e staging_sacados_enriquecida.
+# 🎯 Por que: Garantir processamento eficiente das cargas de dados, inserindo registros novos e atualizando os existentes sem a necessidade de reescrever toda a tabela diariamente.
+# 📊 Impacto: Otimizacao severa de I/O de disco para o storage Delta Lake, viabilizando cargas mais rapidas e com menor overhead do Spark.
+# 🔬 Medicao: O log do cluster Spark detalhara a operacao de Merge command com numeros de "numTargetRowsUpdated" e "numTargetRowsInserted" em vez de recalculo total.
+upsert_silver_table(spark, df_deduplicated_clientes, output_path_clientes, "CODCLIENTE")
 print(f"Tabela limpa salva com sucesso em: {output_path_clientes}")
 
 # METADATA ********************
@@ -215,7 +240,12 @@ df_telefones_agg = df_telefones_bronze \
     .groupBy("CPFCNPJ").agg(concat_ws("; ", collect_list("FONE")).alias("Telefones"))
 
 output_path_telefones = "LH_Silver.staging_telefones_agg"
-df_telefones_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_telefones)
+# 🧠 Tensor: Implementacao de Upsert (MERGE) nas Dimensoes Silver
+# 💡 O que: Substituida a logica de gravacao em modo overwrite por operacoes incrementais de MERGE INTO (upsert) nas tabelas staging_clientes_limpa, staging_telefones_agg, staging_emails_agg, staging_enderecos_limpa e staging_sacados_enriquecida.
+# 🎯 Por que: Garantir processamento eficiente das cargas de dados, inserindo registros novos e atualizando os existentes sem a necessidade de reescrever toda a tabela diariamente.
+# 📊 Impacto: Otimizacao severa de I/O de disco para o storage Delta Lake, viabilizando cargas mais rapidas e com menor overhead do Spark.
+# 🔬 Medicao: O log do cluster Spark detalhara a operacao de Merge command com numeros de "numTargetRowsUpdated" e "numTargetRowsInserted" em vez de recalculo total.
+upsert_silver_table(spark, df_telefones_agg, output_path_telefones, "CPFCNPJ")
 print(f"Telefones agregados salvos em: {output_path_telefones}")
 
 # Célula 3.2: Processamento de Emails
@@ -228,7 +258,12 @@ df_emails_agg = df_emails_bronze \
     .groupBy("CPFCNPJ").agg(concat_ws("; ", collect_list("EMAIL")).alias("Emails"))
 
 output_path_emails = "LH_Silver.staging_emails_agg"
-df_emails_agg.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_emails)
+# 🧠 Tensor: Implementacao de Upsert (MERGE) nas Dimensoes Silver
+# 💡 O que: Substituida a logica de gravacao em modo overwrite por operacoes incrementais de MERGE INTO (upsert) nas tabelas staging_clientes_limpa, staging_telefones_agg, staging_emails_agg, staging_enderecos_limpa e staging_sacados_enriquecida.
+# 🎯 Por que: Garantir processamento eficiente das cargas de dados, inserindo registros novos e atualizando os existentes sem a necessidade de reescrever toda a tabela diariamente.
+# 📊 Impacto: Otimizacao severa de I/O de disco para o storage Delta Lake, viabilizando cargas mais rapidas e com menor overhead do Spark.
+# 🔬 Medicao: O log do cluster Spark detalhara a operacao de Merge command com numeros de "numTargetRowsUpdated" e "numTargetRowsInserted" em vez de recalculo total.
+upsert_silver_table(spark, df_emails_agg, output_path_emails, "CPFCNPJ")
 print(f"Emails agregados salvos em: {output_path_emails}")
 
 # Célula 3.3: Processamento de Endereços
@@ -260,7 +295,12 @@ df_enderecos_final = df_upper \
     .select("CPFCNPJ", "ENDERECO", "NUMERO", "COMPLEMENTO", "BAIRRO", "CIDADE", "UF", "CEP", "Estado", "Capital", "Regiao")
 
 output_path_enderecos = "LH_Silver.staging_enderecos_limpa"
-df_enderecos_final.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(output_path_enderecos)
+# 🧠 Tensor: Implementacao de Upsert (MERGE) nas Dimensoes Silver
+# 💡 O que: Substituida a logica de gravacao em modo overwrite por operacoes incrementais de MERGE INTO (upsert) nas tabelas staging_clientes_limpa, staging_telefones_agg, staging_emails_agg, staging_enderecos_limpa e staging_sacados_enriquecida.
+# 🎯 Por que: Garantir processamento eficiente das cargas de dados, inserindo registros novos e atualizando os existentes sem a necessidade de reescrever toda a tabela diariamente.
+# 📊 Impacto: Otimizacao severa de I/O de disco para o storage Delta Lake, viabilizando cargas mais rapidas e com menor overhead do Spark.
+# 🔬 Medicao: O log do cluster Spark detalhara a operacao de Merge command com numeros de "numTargetRowsUpdated" e "numTargetRowsInserted" em vez de recalculo total.
+upsert_silver_table(spark, df_enderecos_final, output_path_enderecos, "CPFCNPJ")
 df_regioes.unpersist()
 print(f"Endereços limpos salvos em: {output_path_enderecos}")
 
