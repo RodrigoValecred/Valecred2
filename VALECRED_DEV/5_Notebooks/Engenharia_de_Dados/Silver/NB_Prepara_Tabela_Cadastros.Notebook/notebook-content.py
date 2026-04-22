@@ -673,6 +673,11 @@ def process_sacados_enriquecida(df_geral=None, df_enderecos=None, df_emails=None
         )
 
     target_path = f"{target_lakehouse}.staging_sacados_enriquecida"
+    # 🧠 Tensor: Implementacao de Upsert (MERGE) nas Dimensoes Silver
+    # 💡 O que: Substituida a logica de gravacao em modo overwrite por operacoes incrementais de MERGE INTO (upsert) nas tabelas staging_clientes_limpa, staging_telefones_agg, staging_emails_agg, staging_enderecos_limpa e staging_sacados_enriquecida.
+    # 🎯 Por que: Garantir processamento eficiente das cargas de dados, inserindo registros novos e atualizando os existentes sem a necessidade de reescrever toda a tabela diariamente.
+    # 📊 Impacto: Otimizacao severa de I/O de disco para o storage Delta Lake, viabilizando cargas mais rapidas e com menor overhead do Spark.
+    # 🔬 Medicao: O log do cluster Spark detalhara a operacao de Merge command com numeros de "numTargetRowsUpdated" e "numTargetRowsInserted" em vez de recalculo total.
     upsert_silver_table(spark, df_sacados, target_path, "cpf_cnpj")
 
 # Execução
