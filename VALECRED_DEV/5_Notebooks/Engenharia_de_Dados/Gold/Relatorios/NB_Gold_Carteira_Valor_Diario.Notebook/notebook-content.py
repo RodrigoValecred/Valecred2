@@ -248,6 +248,7 @@ try:
     # 🎯 Por que: A execução de múltiplas ações `.count()` ou `.collect()` aciona varreduras completas da tabela e jobs Spark separados. Combiná-las executa ambas as agregações em uma única passagem.
     # 📊 Impacto: Reduz o número de jobs Spark necessários para computar o dashboard de resumo, cortando o tempo de execução desta célula pela metade.
     # 🔬 Medição: O profiling mostra o tempo de execução caindo linearmente com a redução de ações Spark acionadas (de 3 jobs para 2).
+    # 🧠 Tensor: Substituir .collect()[0] por .first() para preservar predicate pushdown e evitar materialização de lista
     metrics = df_daily_agg.select(
         count("*").alias("row_count"),
         max("data_referencia").alias("max_date")
