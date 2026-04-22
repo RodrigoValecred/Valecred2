@@ -72,8 +72,13 @@ df_agg_titulos = df_titulos.groupBy("cod_operacao", "cpf_cnpj_sacado").agg(
 df_join_ops = df_ops.join(df_agg_titulos, on="cod_operacao", how="inner")
 
 # Agora juntamos com o Produto
+# ⚡ Bolt: Forçar Broadcast Join para Tabela Dimensão
+# 💡 O que: Usado `F.broadcast()` no DataFrame de dimensão ao realizar join.
+# 🎯 Por que: Evita embaralhamento (shuffle) global da rede em joins com tabelas de fatos muito maiores.
+# 📊 Impacto: Diminui drasticamente o uso de I/O de rede e acelera o tempo de compilação da query do Catalyst.
+# 🔬 Measurement: Profiling mostrará remoção do stage de SortMergeJoin no Spark UI.
 df_full = df_join_ops.join(
-    df_produtos,
+    F.broadcast(df_produtos),
     F.col("chave_produto") == F.col("chave_produto_txt"),
     how="left"
 ).drop(df_produtos.chave_produto_txt)

@@ -14,3 +14,21 @@ with open(file_path, "a") as f:
     f.write("\n" + entry)
 
 print("Updated bolt.md")
+import re
+
+def update_bolt_journal():
+    filepath = '.jules/bolt.md'
+    with open(filepath, 'r') as f:
+        content = f.read()
+
+    new_entry = """
+## 2024-05-28 - PySpark DataFrame Columns Access Overhead in Loops
+**Learning:** In PySpark, calling `df.columns` inside a loop (e.g., when iterating through a large list of target columns to resolve or rename) is extremely inefficient because it triggers a remote procedure call (RPC) to the driver node on every iteration to fetch the schema metadata.
+**Action:** Always cache the DataFrame columns into a local Python set before the loop using `cols_set = set(df.columns)`. This reduces the N remote RPC calls to a single call and provides fast O(1) lookups during the iteration, significantly decreasing loop execution time.
+"""
+    if "PySpark DataFrame Columns Access Overhead in Loops" not in content:
+        with open(filepath, 'a') as f:
+            f.write(new_entry)
+
+if __name__ == "__main__":
+    update_bolt_journal()

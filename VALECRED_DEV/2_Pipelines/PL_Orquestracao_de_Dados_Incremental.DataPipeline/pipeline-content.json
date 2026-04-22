@@ -435,6 +435,29 @@
             ]
           }
         ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "9e27ed49-058f-a5fd-4100-5039fb8b7d40",
+          "workspaceId": "00000000-0000-0000-0000-000000000000"
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "Monitoramento_Carteira_Cedentes",
+        "dependsOn": [
+          {
+            "activity": "NB_Curadoria_Gold",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
       }
     ]
   }

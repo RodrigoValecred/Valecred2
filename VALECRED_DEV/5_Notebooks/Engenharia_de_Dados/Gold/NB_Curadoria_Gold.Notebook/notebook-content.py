@@ -815,7 +815,7 @@ def prepare_operacoes_dataframe(df_operacoes_enriquecida):
     ).withColumn("sk_operacao", xxhash64(col("cod_empresa").cast("string"), col("cod_operacao").cast("string")))
 
     # ⚡ Otimização Bolt: Filtrar TTOs (PR, RC, RE) ANTES dos joins para reduzir o volume de dados
-    return df_operacoes_prep.filter(~col("tto").isin(["PR", "RC", "RE"]))
+    return df_operacoes_prep.filter(~col("tto").isin(["PR", "RC", "RE", "AB", "AM", "LB"]))
 
 def join_operacoes_dimensions(df_operacoes_filtered, df_dim_calendario, df_dim_produto):
     """
@@ -1619,7 +1619,7 @@ df_join_1 = join_cliente_dimensions(
 
 # Implementando Lógica Funnel Sequencial (Aproximação)
 # Data 1: Primeira Proposta Comercial = MIN(Proposta, Revisao, Diretoria)
-# Data 2: Credito (Min data credito >= data 1) - Aqui assumimos Min Credito geral, pois PySpark SQL row-level logic é complexa.
+# Data 2: Credito (Min data credito >= data 1) - Aqui assumimos Min Credito geral, pois a lógica de nível de linha do PySpark SQL é complexa.
 # Data 3: Formalizacao (Checklist >= Credito)
 # Data 4: Concluido (Concluido >= Formalizacao)
 

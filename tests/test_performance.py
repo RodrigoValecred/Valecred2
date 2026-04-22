@@ -38,9 +38,9 @@ def resolve_columns_new(df, target_cols):
     for old_col, new_col in renames.items():
         df_resolved = df_resolved.withColumnRenamed(old_col, new_col)
 
-    # Apply expressions using withColumns or select
+    # Aplicar expressões usando withColumns ou select
     if exprs:
-        # In pyspark >= 3.3, withColumns can take a dictionary
+        # No pyspark >= 3.3, withColumns pode receber um dicionário
         df_resolved = df_resolved.withColumns(exprs)
 
     return df_resolved
