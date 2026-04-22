@@ -23,7 +23,6 @@
 # META   }
 # META }
 
-
 # MARKDOWN ********************
 
 # # Notebook NB_PERFIL_RISCO_SACADO

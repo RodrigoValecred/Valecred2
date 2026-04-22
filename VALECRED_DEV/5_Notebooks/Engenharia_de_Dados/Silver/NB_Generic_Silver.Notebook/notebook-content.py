@@ -39,7 +39,6 @@ silver_lh = "LH_Silver"
 # META   "language_group": "synapse_pyspark"
 # META }
 
-
 # MARKDOWN ********************
 
 # # Notebook NB_Generic_Silver

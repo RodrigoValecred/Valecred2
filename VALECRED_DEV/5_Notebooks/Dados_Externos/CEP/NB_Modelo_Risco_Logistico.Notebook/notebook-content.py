@@ -26,7 +26,6 @@
 # META   }
 # META }
 
-
 # MARKDOWN ********************
 
 # # Notebook NB_Modelo_Risco_Logistico

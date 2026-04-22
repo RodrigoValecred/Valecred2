@@ -20,7 +20,6 @@
 # META   }
 # META }
 
-
 # MARKDOWN ********************
 
 # # Notebook NB_Monitoramento_Comportamento_Cedente

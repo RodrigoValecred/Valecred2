@@ -26,7 +26,6 @@
 # META   }
 # META }
 
-
 # MARKDOWN ********************
 
 # # Notebook NB_Gold_Relatorio_Saidas_Risco

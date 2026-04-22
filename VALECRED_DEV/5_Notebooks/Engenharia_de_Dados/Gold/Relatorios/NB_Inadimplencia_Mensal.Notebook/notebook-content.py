@@ -23,7 +23,6 @@
 # META   }
 # META }
 
-
 # MARKDOWN ********************
 
 # # Notebook NB_Inadimplencia_Mensal

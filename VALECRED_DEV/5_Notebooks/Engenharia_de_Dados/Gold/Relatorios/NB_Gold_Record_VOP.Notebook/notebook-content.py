@@ -20,7 +20,6 @@
 # META   }
 # META }
 
-
 # MARKDOWN ********************
 
 # # Notebook NB_Gold_Record_VOP
