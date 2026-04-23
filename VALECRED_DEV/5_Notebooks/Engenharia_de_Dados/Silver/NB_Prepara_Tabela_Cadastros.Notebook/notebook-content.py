@@ -269,7 +269,13 @@ def process_enderecos():
     df_enderecos_filtrado = df_enderecos_bronze.drop("PAIS", "FONE", "FAX", "TIPO", "DATAINCLUSAO", "USUAINCLUSAO", "DATAALTERACAO", "USUAALTERACAO", "CODMUNICIPIO", "CODENDERECO") \
         .filter(~col("ENDERECO").isin(["END PENDENTE", "Rua Teste", "S/ EDEREÇO", "S/ ENDERECO", "S/ ENDEREÇO", "test2", "teste"]) & col("CIDADE").isNotNull() & (col("CIDADE") != "") & (col("CIDADE") != "0"))
     cols_to_upper = ["ENDERECO", "COMPLEMENTO", "BAIRRO", "CIDADE", "UF"]
-    df_upper = reduce(lambda df, c: df.withColumn(c, upper(col(c))), cols_to_upper, df_enderecos_filtrado)
+    # ⚡ Bolt: Substituir map-reduce de .withColumn() por uma única projeção .select()
+    # 💡 O que: Substituiu o `reduce(lambda df, c: df.withColumn...` que gerava encadeamento de chamadas em favor de uma lista de expressões projetadas simultaneamente via .select().
+    # 🎯 Por que: Iterar sobre .withColumn() obriga o Catalyst Optimizer a gerar e analisar um plano de execução de Spark cada vez maior a cada iteração, o que leva à "explosão do plano" e overhead massivo.
+    # 📊 Impacto: Acelera o tempo de planejamento do Spark e reduz substancialmente o uso de memória do JVM no nó driver.
+    # 🔬 Medição: Evita a criação de múltiplos nós Project no Logical Plan do Spark.
+    select_exprs = [upper(col(c)).alias(c) if c in cols_to_upper else col(c) for c in df_enderecos_filtrado.columns]
+    df_upper = df_enderecos_filtrado.select(*select_exprs)
     replacements_uf = {"RP": "PR", "SÃ": "SP", " C": "CE", "G": "GO", "11": "SP", "DP": "SP", "SA": "SP", "S": "SP", "MF": "MG", "ED": "ES", "31": None, "0": None, "A": None, "1": None, "3": None, "..": None, "7": None, "-": None, "+": None, ".": None, "SS": None, "9": None, "2": None, "GU": None, "": None, "68": None}
     df_enderecos_final = df_upper \
         .filter(col("CEP").isNotNull() & ~col("CEP").isin(["00      ", "0000000", "00000000", "0"])).distinct() \
