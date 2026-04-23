@@ -2,6 +2,13 @@
 
 ## Change Log
 
+### [2026-04-23]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `AGENTS.md` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/AGENTS.md` | Added Silver layer AI agent instructions and Data Engineering rules. | Added |
+| `AGENTS.md` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/AGENTS.md` | Added Gold layer AI agent instructions and Data Engineering rules. | Added |
+
 ### [2026-04-20]
 
 | Component | Path | Description | Change |
