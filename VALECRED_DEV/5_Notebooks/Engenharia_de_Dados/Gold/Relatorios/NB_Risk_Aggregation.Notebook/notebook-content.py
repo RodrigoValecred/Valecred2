@@ -78,7 +78,9 @@ cols_operacoes = {
     "TARIFARECOMPRA": "TARIFARECOMPRA_OPERACAO",
     "RECEBEBOLETO": "RECEBEBOLETO_OPERACAO"
 }
-new_cols_operacoes = [cols_operacoes.get(c, c) for c in df_operacoes.columns]
+# ⚡ Bolt: Cachear colunas do DataFrame em uma tupla para evitar chamadas RPC O(N) para o driver preservando ordem posicional.
+df_operacoes_cols = tuple(df_operacoes.columns)
+new_cols_operacoes = [cols_operacoes.get(c, c) for c in df_operacoes_cols]
 df_operacoes = df_operacoes.toDF(*new_cols_operacoes)
 
 # Aplicando filtros de operacoes imediatamente
@@ -122,7 +124,9 @@ cols_cedentes = {
     "TARIFARECOMPRA": "TARIFARECOMPRA_CEDENTE",
     "RECEBEBOLETO": "RECEBEBOLETO_CEDENTE"
 }
-new_cols_cedentes = [cols_cedentes.get(c, c) for c in df_cedentes.columns]
+# ⚡ Bolt: Cachear colunas do DataFrame em uma tupla para evitar chamadas RPC O(N) para o driver preservando ordem posicional.
+df_cedentes_cols = tuple(df_cedentes.columns)
+new_cols_cedentes = [cols_cedentes.get(c, c) for c in df_cedentes_cols]
 df_cedentes = df_cedentes.toDF(*new_cols_cedentes)
 
 df_mestra_spark = df_titulos.join(df_operacoes, on="CODOPERACAO", how="left")

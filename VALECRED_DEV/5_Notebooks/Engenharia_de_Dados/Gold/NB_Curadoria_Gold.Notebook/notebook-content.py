@@ -1693,7 +1693,9 @@ renames = {
     "inadimplencia_calc": "inadimplencia",
     "status_do_cliente_calc": "status_do_cliente"
 }
-new_columns = [renames.get(c, c) for c in df_dropped.columns]
+# ⚡ Bolt: Cachear colunas do DataFrame em uma tupla para evitar chamadas RPC O(N) para o driver preservando ordem.
+df_dropped_cols = tuple(df_dropped.columns)
+new_columns = [renames.get(c, c) for c in df_dropped_cols]
 df_final_stg1 = df_dropped.toDF(*new_columns)
 
 df_final_stg2 = df_final_stg1.select("*",

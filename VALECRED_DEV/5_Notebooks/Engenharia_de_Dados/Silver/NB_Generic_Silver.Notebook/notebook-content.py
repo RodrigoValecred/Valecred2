@@ -101,8 +101,10 @@ class SilverIngestor:
 
     def standardize_columns(self):
         print("--> Padronizando colunas (Smart Casing)...")
+        # ⚡ Bolt: Feito o cache de `df.columns` em uma tupla ou lista local para evitar múltiplas chamadas RPC ao driver. A ordem original (dada por df.columns) é preservada perfeitamente na tupla.
+        df_cols = tuple(self.df_source.columns)
         # Aplica a função mestra em todas as colunas
-        new_cols = [self._clean_name(c) for c in self.df_source.columns]
+        new_cols = [self._clean_name(c) for c in df_cols]
         self.df_source = self.df_source.toDF(*new_cols)
         return self
 

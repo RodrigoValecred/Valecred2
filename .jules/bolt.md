@@ -55,3 +55,8 @@
 ## 2024-05-19 - Flatten PySpark withColumn Logic
 **Learning:** In PySpark, deeply chained `withColumn` statements generate deeply nested Catalyst Logical Plans filled with sequential `Project` nodes. When the DAG becomes large, this leads to an $O(N^2)$ compilation slowdown and increases the risk of driver `StackOverflowError`.
 **Action:** Always combine chained sequential `.withColumn` transformations into a single `withColumns(dict)` block, or project the resulting expressions simultaneously in a single `.select()` statement.
+
+
+## 2025-05-29 - Preserving Positional Ordering During Column Caching
+**Learning:** When optimizing list comprehensions in PySpark by caching `df.columns` to avoid repeated remote procedure calls (RPC) to the Spark driver, extracting `df.columns` into a Python `set` destroys the original positional ordering. This causes massive data corruption bugs when applying the cached columns later via positional functions like `df.toDF(*new_columns)`.
+**Action:** When extracting PySpark DataFrame columns for local caching prior to positional mapping or selection loops, ALWAYS cast the columns to a Python `tuple` (`tuple(df.columns)`) or a `list` instead of a `set`. This preserves the crucial deterministic column order while still avoiding O(N) RPC calls during the loop execution.

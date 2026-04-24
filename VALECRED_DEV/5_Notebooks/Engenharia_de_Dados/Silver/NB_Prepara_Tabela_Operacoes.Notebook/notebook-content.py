@@ -277,8 +277,10 @@ def transform_devolucoes(df):
         "codoperacao": "cod_operacao"
     }
 
+    # ⚡ Bolt: Cachear colunas do DataFrame em uma tupla para evitar chamadas RPC iterativas e preservar ordem.
+    df_dedup_cols = tuple(df_dedup.columns)
     # Garantir snake_case em todas as colunas e aplicar renomeações específicas
-    return df_dedup.select([col(c).alias(rename_map.get(c.lower(), c.lower())) for c in df_dedup.columns])
+    return df_dedup.select([col(c).alias(rename_map.get(c.lower(), c.lower())) for c in df_dedup_cols])
 
 def process_incremental_devolucoes(source_table, output_path):
     print("Modo Incremental: Devoluções")
@@ -431,8 +433,10 @@ def process_estudo_op():
 
     df_estudo = spark.read.table(source_table)
 
+    # ⚡ Bolt: Cachear colunas do DataFrame em uma tupla para evitar chamadas RPC O(N) para o driver preservando ordem.
+    df_estudo_cols = tuple(df_estudo.columns)
     # Aplicar normalização
-    new_cols = [col(c).alias(normalize_col(c)) for c in df_estudo.columns]
+    new_cols = [col(c).alias(normalize_col(c)) for c in df_estudo_cols]
     df_estudo_clean = df_estudo.select(new_cols)
 
     # Padronizar colunas (Risco & Limite)
@@ -641,8 +645,10 @@ def process_tab_operacoes_prorrogacao():
         "codoperacao": "cod_operacao",
         "datainclusao": "data_inclusao"
     }
+    # ⚡ Bolt: Fazer cache de df.columns em uma tupla local para evitar chamadas RPC iterativas e preservar ordem.
+    df_prorrogacao_cols = tuple(df_prorrogacao.columns)
     df_prorrogacao_norm = df_prorrogacao.select(
-        [col(c).alias(rename_map.get(c.lower(), c.lower())) for c in df_prorrogacao.columns]
+        [col(c).alias(rename_map.get(c.lower(), c.lower())) for c in df_prorrogacao_cols]
     )
 
     # 4. Joins
