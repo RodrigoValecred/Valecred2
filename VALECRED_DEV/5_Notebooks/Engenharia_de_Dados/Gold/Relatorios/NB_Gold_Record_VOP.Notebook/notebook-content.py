@@ -49,50 +49,67 @@ df_vop_total = (
     .orderBy(desc("vop_total"))
 )
 
+# ⚡ Otimização de Bolt: Coletar Top 10 dias apenas uma vez no driver
+# 💡 O que: Combinadas múltiplas ações (`.show()`, `.collect()`, e `.first()`) usando uma única coleta.
+# 🎯 Por que: Múltiplas chamadas forçam o Spark a reavaliar todo o DAG e rodar consultas repetidas sobre `df_vop_total`.
+# 📊 Impacto: Elimina scans redundantes.
+# 🔬 Medição: O Spark UI registrará menos jobs engatilhados.
+top_dias_rows = df_vop_total.limit(10).collect()
+
 print("Top 10 Dias de VOP (Geral):")
-df_vop_total.show(10)
+for row in top_dias_rows:
+    print(f"{row['data_deferimento']}: {row['vop_total']}")
 
 # Extrai os Top 10 dias para focar a análise
-top_dias = [row["data_deferimento"] for row in df_vop_total.limit(10).collect()]
+top_dias = [row["data_deferimento"] for row in top_dias_rows]
 
-df_ops_top_dias = df_ops_validas.filter(col("data_deferimento").isin(top_dias))
+# ⚡ Bolt Optimization: Fazer cache do dataframe filtrado para prevenir avaliação dupla da DAG complexa
+# 💡 O que: Adicionado `df_ops_top_dias.cache()` antes das operações de pivot/join e `df_ops_top_dias.unpersist()` ao final.
+# 🎯 Por que: `df_ops_top_dias` estava sofrendo dois agrupamentos e um join pesados sem cache, forçando o Catalyst a reavaliar todo o plano lógico da filtragem e tabela fato para cada ação.
+df_ops_top_dias = df_ops_validas.filter(col("data_deferimento").isin(top_dias)).cache()
 
-# 2. Breakdown por Produto (TTO) usando valor_de_face da operacao
-df_vop_por_tto = (
-    df_ops_top_dias
-    .groupBy("data_deferimento")
-    .pivot("tto")
-    .agg(round(sum("valor_de_face"), 2))
-    .fillna(0)
-    .orderBy(desc("data_deferimento"))
-)
+try:
+    # 2. Breakdown por Produto (TTO) usando valor_de_face da operacao
+    df_vop_por_tto = (
+        df_ops_top_dias
+        .groupBy("data_deferimento")
+        .pivot("tto")
+        .agg(round(sum("valor_de_face"), 2))
+        .fillna(0)
+        .orderBy(desc("data_deferimento"))
+    )
 
-print("\nBreakdown de VOP por Produto (TTO) nos Top Dias:")
-df_vop_por_tto.show(10)
+    print("\nBreakdown de VOP por Produto (TTO) nos Top Dias:")
+    df_vop_por_tto.show(10)
 
-# 3. Breakdown por Tipo de Documento (t_doc) usando valor do titulo
-# Faz o join com a tabela de títulos apenas para as operações válidas dos top dias
-df_join_titulos = df_titulos.join(
-    df_ops_top_dias.select("cod_operacao", "data_deferimento"),
-    "cod_operacao",
-    "inner"
-)
+    # 3. Breakdown por Tipo de Documento (t_doc) usando valor do titulo
+    # Faz o join com a tabela de títulos apenas para as operações válidas dos top dias
+    df_join_titulos = df_titulos.join(
+        df_ops_top_dias.select("cod_operacao", "data_deferimento"),
+        "cod_operacao",
+        "inner"
+    )
 
-df_vop_por_tdoc = (
-    df_join_titulos
-    .groupBy("data_deferimento")
-    .pivot("t_doc")
-    .agg(round(sum("valor"), 2))
-    .fillna(0)
-    .orderBy(desc("data_deferimento"))
-)
+    df_vop_por_tdoc = (
+        df_join_titulos
+        .groupBy("data_deferimento")
+        .pivot("t_doc")
+        .agg(round(sum("valor"), 2))
+        .fillna(0)
+        .orderBy(desc("data_deferimento"))
+    )
 
-print("\nBreakdown de VOP por Tipo de Documento (t_doc) nos Top Dias:")
-df_vop_por_tdoc.show(10)
+    print("\nBreakdown de VOP por Tipo de Documento (t_doc) nos Top Dias:")
+    df_vop_por_tdoc.show(10)
+
+finally:
+    # Limpa a memória para prevenir vazamentos que derrubam o cluster
+    df_ops_top_dias.unpersist()
 
 # Para pegar exatamente o dia do recorde:
-record = df_vop_total.first()
-print(f"\nO recorde absoluto de VOP foi no dia {record['data_deferimento']} com um total de {record['vop_total']}")
+if top_dias_rows:
+    record = top_dias_rows[0]
+    print(f"\nO recorde absoluto de VOP foi no dia {record['data_deferimento']} com um total de {record['vop_total']}")
 
 
 # METADATA ********************
