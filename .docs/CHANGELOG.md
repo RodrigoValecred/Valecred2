@@ -2,6 +2,17 @@
 
 ## Change Log
 
+### [2026-04-25]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| PySpark Optimizations | Multiple Notebooks (e.g., `NB_Analise_Cluster_Clientes.Notebook`, `VAI_Inferencia_Online.Notebook`, etc.) | 🧠 Tensor: Substituiu instâncias de `.collect()[0]` e `.collect()[0][0]` por `.first()` e `.first()[0]` para preservar predicate pushdown e reduzir materialização de lista no driver | Changed |
+| `test_check_sequential_invoices.py` | `tests/test_check_sequential_invoices.py` | 🧪 Added unit test for check_sequential_invoices rule in VAI integration | Added |
+| `test_create_seq_tool.py` | `tests/test_create_seq_tool.py` | 🧪 Added unit tests for notebook and tool versions of check_sequential_invoices | Added |
+| `test_rfb_connection_pooling.py` | `tests/test_rfb_connection_pooling.py` | 🧪 Added unit test to verify HTTP connection pooling using requests.Session() for RFB downloads | Added |
+| `benchmark_chunk_size.py` | `benchmark_chunk_size.py` | 🔒 Implement HTTPS with dynamically generated self-signed certificates and timeout for local benchmark HTTP server | Changed |
+| Comments Translation | Multiple Notebooks & Tests | 👅 Translator: Translated English comments and JSDoc tags to Portuguese (pt-BR) | Changed |
+
 ### [2026-04-20]
 
 | Component | Path | Description | Change |
