@@ -55,3 +55,7 @@
 ## 2024-05-19 - Flatten PySpark withColumn Logic
 **Learning:** In PySpark, deeply chained `withColumn` statements generate deeply nested Catalyst Logical Plans filled with sequential `Project` nodes. When the DAG becomes large, this leads to an $O(N^2)$ compilation slowdown and increases the risk of driver `StackOverflowError`.
 **Action:** Always combine chained sequential `.withColumn` transformations into a single `withColumns(dict)` block, or project the resulting expressions simultaneously in a single `.select()` statement.
+
+## 2026-04-26 - Testing Mock Challenges with PySpark Broadcast Joins
+**Learning:** Adding PySpark structural functions like `broadcast()` to DataFrame method chains inside dynamically extracted functions (using `exec()`) can severely break existing mock setups. The original mock chains (`MagicMock().join().drop()`) fail because `broadcast` expects a recognizable object, and its injection raises `NameError` if it isn't passed through `exec_globals`.
+**Action:** When adding structural optimizers like `broadcast()` to code tested via `exec()`, explicitly inject a passthrough lambda (e.g., `'broadcast': lambda x: x`) into the test's `exec_globals` to ensure the mock DataFrame chaining remains intact without throwing structural errors.

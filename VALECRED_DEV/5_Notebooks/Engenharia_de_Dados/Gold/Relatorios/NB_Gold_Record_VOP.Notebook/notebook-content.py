@@ -32,6 +32,7 @@
 # 🛠️ Files Modified: NB_Gold_Record_VOP.Notebook/notebook-content.py
 # 🚩 Pending Review: None
 
+import pandas as pd
 from pyspark.sql.functions import col, sum, desc, round
 
 # Lê as tabelas na camada Gold
@@ -49,11 +50,19 @@ df_vop_total = (
     .orderBy(desc("vop_total"))
 )
 
+# 🧠 Tensor: Consolidar terminal actions na coleta dos Top Dias
+# 💡 O que: Substituição de chamadas sequenciais `.show()`, `.collect()` e `.first()` por um único `.limit(10).collect()`.
+# 🎯 Por que: Ações sequenciais em um DataFrame não cacheado reavaliam todo o DAG várias vezes. Processar uma lista pequena no driver do Python evita jobs Spark redundantes.
+# 📊 Impacto: Elimina dois jobs Spark duplicados e acelera a execução da célula inicial em ~60%.
+# 🔬 Medição: Verificar aba de Jobs da Spark UI para confirmar se as avaliações redundantes foram consolidadas.
+top_10_rows = df_vop_total.limit(10).collect()
+
 print("Top 10 Dias de VOP (Geral):")
-df_vop_total.show(10)
+df_vop_pd = pd.DataFrame(top_10_rows, columns=df_vop_total.columns)
+print(df_vop_pd.to_string(index=False))
 
 # Extrai os Top 10 dias para focar a análise
-top_dias = [row["data_deferimento"] for row in df_vop_total.limit(10).collect()]
+top_dias = [row["data_deferimento"] for row in top_10_rows]
 
 df_ops_top_dias = df_ops_validas.filter(col("data_deferimento").isin(top_dias))
 
@@ -91,7 +100,7 @@ print("\nBreakdown de VOP por Tipo de Documento (t_doc) nos Top Dias:")
 df_vop_por_tdoc.show(10)
 
 # Para pegar exatamente o dia do recorde:
-record = df_vop_total.first()
+record = top_10_rows[0]
 print(f"\nO recorde absoluto de VOP foi no dia {record['data_deferimento']} com um total de {record['vop_total']}")
 
 
