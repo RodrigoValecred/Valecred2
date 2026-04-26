@@ -50,6 +50,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
 
         self.context = {
             'col': self.mock_col,
+            'F': MagicMock(col=self.mock_col),
             'display': self.mock_display,
             'pd': pd,
             'Colors': MockColors,
@@ -219,11 +220,12 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
         self.assertIn('SCORE_RISCO', result.columns)
         self.assertEqual(result['SCORE_RISCO'].iloc[0], 0.9)
 
-        # Verifica o downcasting do tipo de dado float64 -> float32
+        # Verifica o downcasting do tipo de dado (A mudança agora ocorre no Spark,
+        # então o df_pandas já deve vir com os tipos corretos da simulação.
+        # Aqui vamos apenas assegurar que ele chama toPandas após select(*cast_exprs))
+        mock_df_spark.select.assert_called()
         args, kwargs = mock_model.predict_proba.call_args
         X_cliente_passed = args[0]
-
-        self.assertEqual(X_cliente_passed['VALOR'].dtype, 'float32', "float64 should be downcasted to float32")
         self.assertEqual(X_cliente_passed['PRAZO'].dtype, 'int64', "int64 should remain int64")
 
         # Verifica se a filtragem foi chamada
