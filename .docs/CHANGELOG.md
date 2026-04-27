@@ -12,6 +12,23 @@
 | `test_rfb_connection_pooling.py` | `tests/test_rfb_connection_pooling.py` | 🧪 Added unit test to verify HTTP connection pooling using requests.Session() for RFB downloads | Added |
 | `benchmark_chunk_size.py` | `benchmark_chunk_size.py` | 🔒 Implement HTTPS with dynamically generated self-signed certificates and timeout for local benchmark HTTP server | Changed |
 | Comments Translation | Multiple Notebooks & Tests | 👅 Translator: Translated English comments and JSDoc tags to Portuguese (pt-BR) | Changed |
+### [2026-04-22]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| AGENTS.md (Gold) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/AGENTS.md` | 📝 Scribe: Criação e oficialização das regras de IA da Camada Gold. | Added |
+| AGENTS.md (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/AGENTS.md` | 📝 Scribe: Criação e oficialização das regras de IA da Camada Silver. | Added |
+| Múltiplos Notebooks | `VALECRED_DEV/` | Adicionado descrição '# **Objetivo:**' em 13 notebooks PySpark sem documentação. | Changed |
+| Carga Cadastros Gerais (Silver) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Cadastros.Notebook/notebook-content.py` | 🧠 Tensor: Otimização Incremental (Upsert/MERGE) na dimensão Cadastros Geral para reduzir I/O. | Changed |
+| Múltiplas Dimensões Silver | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/` | 🧠 Tensor: Implementação de Upsert (MERGE INTO) nas tabelas `staging_clientes_limpa`, `staging_telefones_agg`, `staging_emails_agg`, `staging_enderecos_limpa` e `staging_sacados_enriquecida`. | Changed |
+| Múltiplos Notebooks PySpark | `VALECRED_DEV/` | 🧠 Tensor: Substituiu instâncias de `.collect()[0]` por `.first()` preservando predicate pushdown e evitando materialização desnecessária da lista no driver. | Changed |
+| Múltiplos Notebooks PySpark | `VALECRED_DEV/` | 👅 Translator: Tradução de comentários do Inglês para o Português do Brasil (pt-BR). | Changed |
+| Testes Unitários Diários | `tests/test_gera_relatorio_diario_ux.py` | 🧹 [code health improvement] Removida importação não utilizada do módulo timedelta. | Changed |
+| Relatórios Gold Dimension | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | ⚡ Bolt: Added broadcast joins to dimension tables `df_first_op` and `df_client_rate` to prevent expensive network shuffle. | Changed |
+| Download RFB (Benchmark) | `benchmark_chunk_size.py` | 🔒 [security fix] Implement HTTPS with self-signed certificates and timeout for local benchmark script to mitigate network risks. | Changed |
+| Inferência Online (VAI) | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | 🧪 Implementada a regra `check_sequential_invoices` na VAI; adicionados testes unitários para a regra na suíte. | Changed |
+| Download RFB (Carga) | `VALECRED_DEV/5_Notebooks/Dados_Externos/Receita Federal/NB_Load_Bronze_Receita_Federal_Full.Notebook/notebook-content.py` | ⚡ Bolt: Implementado HTTP connection pooling (`requests.Session()`) para otimizar downloads do repositório da RFB. | Changed |
+| Preparação de Produtos | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Produtos.Notebook/notebook-content.py` | ⚡ Bolt: Flatten withColumn chain in Dim_Produtos para otimizar tempo de planejamento do Catalyst. | Changed |
 
 ### [2026-04-20]
 
