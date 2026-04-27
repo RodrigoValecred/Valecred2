@@ -55,3 +55,7 @@
 ## 2024-05-19 - Flatten PySpark withColumn Logic
 **Learning:** In PySpark, deeply chained `withColumn` statements generate deeply nested Catalyst Logical Plans filled with sequential `Project` nodes. When the DAG becomes large, this leads to an $O(N^2)$ compilation slowdown and increases the risk of driver `StackOverflowError`.
 **Action:** Always combine chained sequential `.withColumn` transformations into a single `withColumns(dict)` block, or project the resulting expressions simultaneously in a single `.select()` statement.
+
+## 2025-05-19 - Flatten PySpark Python reduce/map loops for withColumn
+**Learning:** Iteratively building a PySpark DataFrame by using Python `reduce()` or loops to chain `df.withColumn(c, expr)` builds massive nested Catalyst Logical Plans. When applied over many columns (e.g. converting a large list of columns to uppercase), the Catalyst optimizer spends excessive time traversing `Project` nodes, causing severe compilation delays.
+**Action:** Avoid using `reduce` with lambda functions to chain `withColumn`. Instead, generate a list of PySpark expressions (`[upper(col(c)).alias(c) if c in cols else col(c) for c in df.columns]`) and unpack it into a single `df.select(*expr_list)`. This reduces the Catalyst plan to a single `Project` node, speeding up compilation dramatically.
