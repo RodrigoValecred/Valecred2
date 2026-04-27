@@ -2,6 +2,13 @@
 
 ## Change Log
 
+### [2026-04-26]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| AGENTS.md (Gold) | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/AGENTS.md` | Added Scribe/Agent rules for the Gold layer. | Added |
+| Multiple files | Multiple paths | 👅 The Translator: Tradução de Comentários para pt-BR. | Changed |
+
 ### [2026-04-20]
 
 | Component | Path | Description | Change |
