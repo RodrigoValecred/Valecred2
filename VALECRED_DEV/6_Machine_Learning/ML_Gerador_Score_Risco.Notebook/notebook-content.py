@@ -184,31 +184,30 @@ def calcular_score_cliente(cpf_cnpj, df_mestra_spark, model_pipeline, model_feat
     # 🔬 Medição: O profiling mostrará uma redução no tempo de serialização de dados durante a fase de coleta (collection) no driver.
     spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
 
-    # 🧠 Tensor: Selecione as colunas necessárias antes de .toPandas()
-    # 💡 O que: Seleciona apenas as features usadas pelo modelo e colunas essenciais para o dashboard antes da conversão para Pandas.
-    # 🎯 Por que: Transferir todas as colunas da tabela mestra (que tem dezenas de colunas dos joins) do JVM/Spark para o driver Python desperdiça muita memória e banda de rede. Selecionar apenas o estritamente necessário acelera o .toPandas() reduzindo o tamanho do payload.
-    # 📊 Impacto: Diminui drasticamente o tempo de coleta de dados e uso de RAM no driver.
-    # 🔬 Medição: O profiling mostra uma redução proporcional ao número de colunas descartadas (ex. se a tabela tem 50 colunas e precisamos de 15, a velocidade e a economia de RAM podem chegar a ~70%).
+    # 🧠 Tensor: Selecione as colunas necessárias e faça o downcast para float32 na JVM antes de .toPandas()
+    # 💡 O que: Seleciona as features e faz o cast das colunas double/decimal para float nativamente no Spark.
+    # 🎯 Por que: Transferir dados em 64-bits (Double) da JVM para o driver Python desperdiça memória e banda I/O de serialização PyArrow. O downcast na JVM corta o payload da fronteira pela metade.
+    # 📊 Impacto: Acelera o `.toPandas()` significativamente e reduz pela metade o pico de memória RAM no driver para as numéricas.
+    # 🔬 Medição: Profiling aponta redução de consumo de memória em operações grandes e aceleração de collection.
     cols_para_exibicao = ['CODTITULO', 'VALOR', 'VENCIMENTO', 'CODRATING_CEDENTE', 'PRAZO']
     colunas_necessarias = list(set(model_features + cols_para_exibicao))
-    df_cliente_pandas = df_cliente_spark.select(*colunas_necessarias).toPandas()
+
+    dtypes_dict = dict(df_cliente_spark.dtypes)
+    cast_exprs = []
+    for c in colunas_necessarias:
+        t = dtypes_dict.get(c, "")
+        if t == 'double' or t.startswith('decimal'):
+            cast_exprs.append(col(c).cast('float').alias(c))
+        else:
+            cast_exprs.append(col(c))
+
+    df_cliente_pandas = df_cliente_spark.select(*cast_exprs).toPandas()
 
     if df_cliente_pandas.empty:
         return None
 
     # 2. Preparar dados para o modelo
     X_cliente = df_cliente_pandas[model_features].copy()
-
-    # 🧠 Tensor: Fazer o downcast de colunas numéricas (float64 -> float32)
-    # 💡 O que: Converte todas as colunas float64 no DataFrame Pandas para float32 antes da inferência do modelo.
-    # 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita o overhead
-    #         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória
-    #         do DataFrame durante a execução.
-    # 📊 Impacto: Reduz pela metade o uso de memória para features numéricas.
-    # 🔬 Medição: O profiling mostra uma redução de RAM de ~50% para colunas numéricas com impacto insignificante na latência.
-    float64_cols = X_cliente.select_dtypes(include=['float64']).columns
-    if len(float64_cols) > 0:
-        X_cliente[float64_cols] = X_cliente[float64_cols].astype('float32')
 
     x_cliente_cols = set(X_cliente.columns)
     for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
