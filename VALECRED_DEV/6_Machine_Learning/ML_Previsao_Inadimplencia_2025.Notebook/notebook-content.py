@@ -243,40 +243,48 @@ print("Preparando e executando a previsão de inadimplência (Distribuído)...")
 from pyspark.sql.functions import pandas_udf, col
 from pyspark.sql.types import DoubleType
 import pandas as pd
+from typing import Iterator, Tuple
 
+# 🧠 Tensor: Otimização de Pandas UDF com Iterator para Inferência
+# 💡 O que: Refatorou a `pandas_udf` de previsão para utilizar a interface baseada em iteradores (`Iterator[Tuple[pd.Series, ...]] -> Iterator[pd.Series]`) em vez de receber batches simples.
+# 🎯 Por que: O padrão de iterador permite que o modelo (`model_broadcast.value`) e as `features` sejam carregados da memória (desserializados) apenas uma vez por tarefa (task) do Spark, em vez de repetidamente para cada batch processado pela UDF. Isso reduz drasticamente o overhead de desserialização e o consumo de memória durante a inferência em larga escala.
+# 📊 Impacto: Diminui significativamente o tempo total de inferência distribuída e estabiliza o uso de memória RAM nos executores.
+# 🔬 Medição: Elimina alocações redundantes do modelo em cada chamada de batch, acelerando a execução geral da etapa de predição.
 @pandas_udf(DoubleType())
-def predict_proba_udf(*cols):
-    # Reconstruindo o DataFrame Pandas a partir das colunas passadas
-    # Usamos o broadcast das features para nomear corretamente as colunas
-    features = features_broadcast.value
-    X = pd.DataFrame(dict(zip(features, cols)))
-
-    # 🧠 Tensor: Fazer o downcast de colunas numéricas (float64 -> float32)
-    # 💡 O que: Converte todas as colunas float64 no DataFrame Pandas para float32 antes da inferência do modelo.
-    # 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita a sobrecarga
-    #         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória
-    #         do DataFrame durante a execução.
-    # 📊 Impacto: Reduz pela metade o uso de memória para features numéricas (ex., de ~154MB para ~78MB por 1M de linhas).
-    # 🔬 Medição: O profiling mostra uma redução de RAM de ~50% para colunas numéricas com impacto insignificante na latência.
-    float64_cols = X.select_dtypes(include=['float64']).columns
-    if len(float64_cols) > 0:
-        X[float64_cols] = X[float64_cols].astype('float32')
-
-    # Tratando colunas categóricas como no treinamento
-    x_cols = set(X.columns)
-    for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
-        if col_name in x_cols:
-            X[col_name] = X[col_name].astype('category')
-
-    # O pipeline já lida com valores nulos, mas podemos logar se necessário
-    # Nota: Em UDFs, prints vão para os logs dos executores, não para o driver
-
+def predict_proba_udf(iterator: Iterator[Tuple[pd.Series, ...]]) -> Iterator[pd.Series]:
+    # Carregar modelo e features apenas uma vez por executor/task
     model = model_broadcast.value
-    # A saída de predict_proba é um array com duas colunas: [prob_classe_0, prob_classe_1]
-    # Queremos a probabilidade da classe 1 (inadimplência)
-    probs = model.predict_proba(X)[:, 1]
+    features = features_broadcast.value
 
-    return pd.Series(probs)
+    for cols in iterator:
+        # Reconstruindo o DataFrame Pandas a partir das colunas passadas
+        X = pd.DataFrame(dict(zip(features, cols)))
+
+        # 🧠 Tensor: Fazer o downcast de colunas numéricas (float64 -> float32)
+        # 💡 O que: Converte todas as colunas float64 no DataFrame Pandas para float32 antes da inferência do modelo.
+        # 🎯 Por que: Modelos do Scikit-learn usam nativamente float32 ou float64. O downcasting evita a sobrecarga
+        #         de cópia implícita de dados dentro do scikit-learn, e reduz significativamente o uso de memória
+        #         do DataFrame durante a execução.
+        # 📊 Impacto: Reduz pela metade o uso de memória para features numéricas (ex., de ~154MB para ~78MB por 1M de linhas).
+        # 🔬 Medição: O profiling mostra uma redução de RAM de ~50% para colunas numéricas com impacto insignificante na latência.
+        float64_cols = X.select_dtypes(include=['float64']).columns
+        if len(float64_cols) > 0:
+            X[float64_cols] = X[float64_cols].astype('float32')
+
+        # Tratando colunas categóricas como no treinamento
+        x_cols = set(X.columns)
+        for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
+            if col_name in x_cols:
+                X[col_name] = X[col_name].astype('category')
+
+        # O pipeline já lida com valores nulos, mas podemos logar se necessário
+        # Nota: Em UDFs, prints vão para os logs dos executores, não para o driver
+
+        # A saída de predict_proba é um array com duas colunas: [prob_classe_0, prob_classe_1]
+        # Queremos a probabilidade da classe 1 (inadimplência)
+        probs = model.predict_proba(X)[:, 1]
+
+        yield pd.Series(probs)
 
 # Selecionando as colunas de features na ordem correta
 feature_cols = [col(f) for f in model_features]
