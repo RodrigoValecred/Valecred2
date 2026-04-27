@@ -55,3 +55,7 @@
 ## 2024-05-19 - Flatten PySpark withColumn Logic
 **Learning:** In PySpark, deeply chained `withColumn` statements generate deeply nested Catalyst Logical Plans filled with sequential `Project` nodes. When the DAG becomes large, this leads to an $O(N^2)$ compilation slowdown and increases the risk of driver `StackOverflowError`.
 **Action:** Always combine chained sequential `.withColumn` transformations into a single `withColumns(dict)` block, or project the resulting expressions simultaneously in a single `.select()` statement.
+
+## 2026-04-27 - [Terminal Actions Eager Evaluation]
+**Learning:** In PySpark, executing multiple terminal actions (like `.show()`, `.collect()`, or `.first()`) sequentially on an uncached DataFrame forces the Catalyst optimizer to completely re-evaluate the execution plan for each action. This leads to duplicate jobs and multiple full table scans, severely degrading cluster performance and increasing I/O overhead.
+**Action:** When only a small set of records is needed for multiple display/verification actions, consolidate these operations by executing a single `.limit(N).collect()` call first. Store the result in a Python variable on the driver node, and process this local data structure natively in Python for all subsequent formatting, display, or element access operations.

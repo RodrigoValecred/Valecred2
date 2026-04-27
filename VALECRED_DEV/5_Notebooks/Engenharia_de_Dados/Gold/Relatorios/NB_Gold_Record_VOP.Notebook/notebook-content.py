@@ -49,11 +49,23 @@ df_vop_total = (
     .orderBy(desc("vop_total"))
 )
 
+# ⚡ Bolt: Consolidar execuções de ações terminais sequenciais para evitar reavaliação eager múltipla
+# 💡 O que: Substituição das chamadas sequenciais independentes de .show(10), .limit(10).collect() e .first() na DataFrame df_vop_total não persistida. Coleta-se apenas uma vez e os resultados são iterados e acessados nativamente pelo Python na memória driver.
+# 🎯 Por que: Toda chamada de ação terminal (.show, .collect, .first) em um PySpark DataFrame que não está no cache (unpersistido) obriga o Spark a refazer o plano e varrer as tabelas de origem de novo, resultando em múltiplos jobs idênticos de varredura completa.
+# 📊 Impacto: Diminui as operações remotas no cluster de 3 chamadas e 3 varreduras completas para 1 única chamada e 1 única varredura completa do banco de dados, reduzindo latência de I/O na obtenção de relatórios.
+# 🔬 Medição: Spark UI mostrará apenas 1 job para o limite desta fase, ao invés de 3 jobs subsequentes para "showString", "collectToPython", "first".
+vop_total_top10 = df_vop_total.limit(10).collect()
+
 print("Top 10 Dias de VOP (Geral):")
-df_vop_total.show(10)
+print("+------------------+-------------+")
+print("|data_deferimento  |    vop_total|")
+print("+------------------+-------------+")
+for row in vop_total_top10:
+    print(f"|{str(row['data_deferimento']):<18}|{float(row['vop_total']):>13.2f}|")
+print("+------------------+-------------+")
 
 # Extrai os Top 10 dias para focar a análise
-top_dias = [row["data_deferimento"] for row in df_vop_total.limit(10).collect()]
+top_dias = [row["data_deferimento"] for row in vop_total_top10]
 
 df_ops_top_dias = df_ops_validas.filter(col("data_deferimento").isin(top_dias))
 
@@ -91,8 +103,9 @@ print("\nBreakdown de VOP por Tipo de Documento (t_doc) nos Top Dias:")
 df_vop_por_tdoc.show(10)
 
 # Para pegar exatamente o dia do recorde:
-record = df_vop_total.first()
-print(f"\nO recorde absoluto de VOP foi no dia {record['data_deferimento']} com um total de {record['vop_total']}")
+record = vop_total_top10[0] if vop_total_top10 else None
+if record:
+    print(f"\nO recorde absoluto de VOP foi no dia {record['data_deferimento']} com um total de {record['vop_total']}")
 
 
 # METADATA ********************
