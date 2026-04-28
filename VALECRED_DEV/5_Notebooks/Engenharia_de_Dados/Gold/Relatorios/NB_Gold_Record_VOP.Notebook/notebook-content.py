@@ -49,11 +49,23 @@ df_vop_total = (
     .orderBy(desc("vop_total"))
 )
 
+# ⚡ Otimização Bolt: Consolidar ações seriais para evitar Jobs repetidos
+# 💡 O que: Substituição de `.show(10)`, `.collect()` e `.first()` por uma única chamada `.limit(10).collect()` armazenada em memória Python.
+# 🎯 Por que: A execução de múltiplas ações terminais em um DataFrame Spark não cacheados dispara a reavaliação completa da DAG para cada chamada. A otimização resolve os 3 jobs sequenciais efetuando o compute na DAG uma única vez.
+# 📊 Impacto: Elimina 2 jobs Spark redundantes, poupando CPU, I/O distribuído e reduzindo drasticamente o tempo total desta análise de relatórios.
+# 🔬 Medição: A contagem de jobs na Spark UI cai de 3 (show, collect, first) para apenas 1 (collect) neste trecho da pipeline.
+top_dias_rows = df_vop_total.limit(10).collect()
+
 print("Top 10 Dias de VOP (Geral):")
-df_vop_total.show(10)
+print("+------------------+------------+")
+print("| data_deferimento |  vop_total |")
+print("+------------------+------------+")
+for r in top_dias_rows:
+    print(f"| {str(r['data_deferimento']).ljust(16)} | {str(r['vop_total']).rjust(10)} |")
+print("+------------------+------------+")
 
 # Extrai os Top 10 dias para focar a análise
-top_dias = [row["data_deferimento"] for row in df_vop_total.limit(10).collect()]
+top_dias = [row["data_deferimento"] for row in top_dias_rows]
 
 df_ops_top_dias = df_ops_validas.filter(col("data_deferimento").isin(top_dias))
 
@@ -91,8 +103,9 @@ print("\nBreakdown de VOP por Tipo de Documento (t_doc) nos Top Dias:")
 df_vop_por_tdoc.show(10)
 
 # Para pegar exatamente o dia do recorde:
-record = df_vop_total.first()
-print(f"\nO recorde absoluto de VOP foi no dia {record['data_deferimento']} com um total de {record['vop_total']}")
+record = top_dias_rows[0] if top_dias_rows else None
+if record:
+    print(f"\nO recorde absoluto de VOP foi no dia {record['data_deferimento']} com um total de {record['vop_total']}")
 
 
 # METADATA ********************

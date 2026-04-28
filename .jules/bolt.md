@@ -59,3 +59,7 @@
 ## 2025-05-19 - Flatten PySpark Python reduce/map loops for withColumn
 **Learning:** Iteratively building a PySpark DataFrame by using Python `reduce()` or loops to chain `df.withColumn(c, expr)` builds massive nested Catalyst Logical Plans. When applied over many columns (e.g. converting a large list of columns to uppercase), the Catalyst optimizer spends excessive time traversing `Project` nodes, causing severe compilation delays.
 **Action:** Avoid using `reduce` with lambda functions to chain `withColumn`. Instead, generate a list of PySpark expressions (`[upper(col(c)).alias(c) if c in cols else col(c) for c in df.columns]`) and unpack it into a single `df.select(*expr_list)`. This reduces the Catalyst plan to a single `Project` node, speeding up compilation dramatically.
+
+## 2026-04-28 - PySpark Consolidating Sequential Actions
+**Learning:** In PySpark workflows (like ad-hoc reports in `NB_Gold_Record_VOP.Notebook`), executing multiple sequential actions (like `.show()`, `.collect()`, and `.first()`) on the same uncached DataFrame triggers separate Spark jobs and complete DAG re-evaluations. This multiplies execution time and cluster I/O.
+**Action:** Always consolidate sequential terminal actions into a single data extraction call (like `.limit(10).collect()`) and process the resulting data natively in Python memory to avoid redundant Spark evaluations.
