@@ -542,15 +542,15 @@ class TestProcessIncrementalOperacoes(unittest.TestCase):
         merge_mock.whenMatchedUpdateAll.return_value = merge_mock
         merge_mock.whenNotMatchedInsertAll.return_value = merge_mock
 
-        # Execute
+        # Executa
         self.process_incremental_operacoes("source_table", "out_path", ["COD"])
 
-        # Verify
+        # Verifica
         delta_mock_cls.forPath.assert_called_once_with(spark_mock, "out_path")
         bronze_ops_df.isEmpty.assert_called_once()
         transform_mock.assert_called_once_with(bronze_ops_df, ["COD"])
 
-        # Verify merge was called
+        # Verifica se o merge foi chamado
         delta_table_ops.alias.assert_called_with("t")
         delta_table_ops.alias.return_value.merge.assert_called_with(
             final_batch_df.alias.return_value,
@@ -579,10 +579,10 @@ class TestProcessIncrementalOperacoes(unittest.TestCase):
         bronze_ops_df.isEmpty.return_value = True
         spark_mock.read.table.return_value.filter.return_value = bronze_ops_df
 
-        # Execute
+        # Executa
         self.process_incremental_operacoes("source_table", "out_path", ["COD"])
 
-        # Verify
+        # Verifica
         bronze_ops_df.isEmpty.assert_called_once()
         transform_mock.assert_not_called()
         delta_table_ops.alias.return_value.merge.assert_not_called()

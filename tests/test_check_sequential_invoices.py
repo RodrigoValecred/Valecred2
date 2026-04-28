@@ -8,7 +8,7 @@ from types import ModuleType
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from notebook_utils import extract_function_from_file
 
-# Mocking pyspark if it doesn't exist
+# Mock (simulação) do pyspark caso não exista
 if 'pyspark' not in sys.modules:
     mock_pyspark = ModuleType('pyspark')
     mock_pyspark_sql = ModuleType('pyspark.sql')
@@ -17,7 +17,7 @@ if 'pyspark' not in sys.modules:
     sys.modules['pyspark.sql'] = mock_pyspark_sql
     sys.modules['pyspark.sql.functions'] = mock_pyspark_functions
 
-    # Simple Mock Column class to support operators
+    # Classe simples de Mock (simulação) de Column para suportar operadores
     class MockColumn:
         def __init__(self, name):
             self.name = name
@@ -60,32 +60,32 @@ class TestCheckSequentialInvoices(unittest.TestCase):
         df = MagicMock()
         df.withColumn.return_value = df
 
-        # Setup F.when mock to return a mock object that has .otherwise
+        # Configuração do mock F.when para retornar um objeto mock que possui .otherwise
         when_result = MagicMock()
         F.when.return_value = when_result
 
         _check_sequential_invoices(df)
 
-        # Verify withColumn was called
+        # Verifica se withColumn foi chamado
         df.withColumn.assert_called_once()
         args, _ = df.withColumn.call_args
         self.assertEqual(args[0], "alerta_notas_sequenciais")
 
-        # Verify F.when was called with the correct logic
+        # Verifica se F.when foi chamado com a lógica correta
         F.when.assert_called_once()
         condition = F.when.call_args[0][0]
 
-        # Checking string representation because of our MockColumn
+        # Verificando a representação em string por causa do nosso MockColumn
         cond_str = str(condition)
         self.assertIn("to_date(col(data_emissao))", cond_str)
         self.assertIn("to_date(col(data_entrada))", cond_str)
         self.assertIn("col(vlr_total_sacado)", cond_str)
         self.assertIn("100000.0", cond_str)
 
-        # Verify lit(True) was second arg to when
+        # Verifica se lit(True) foi o segundo argumento para when
         self.assertEqual(str(F.when.call_args[0][1]), "lit(True)")
 
-        # Verify otherwise was called with lit(False)
+        # Verifica se otherwise foi chamado com lit(False)
         self.assertTrue(when_result.otherwise.called)
         self.assertEqual(str(when_result.otherwise.call_args[0][0]), "lit(False)")
 
@@ -96,7 +96,7 @@ class TestCheckSequentialInvoices(unittest.TestCase):
         df = MagicMock()
         df.withColumn.return_value = df
 
-        # Setup F.when mock to return a mock object that has .otherwise
+        # Configuração do mock F.when para retornar um objeto mock que possui .otherwise
         when_result = MagicMock()
         F.when.return_value = when_result
 
@@ -108,7 +108,7 @@ class TestCheckSequentialInvoices(unittest.TestCase):
             threshold_volume=50000.0
         )
 
-        # Verify F.when was called with the custom logic
+        # Verifica se F.when foi chamado com a lógica personalizada
         condition = F.when.call_args[0][0]
         cond_str = str(condition)
 
