@@ -1,5 +1,15 @@
 # Scribe's Daily Documentation Sync
 
+### [2026-04-27]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `ML_Gerador_Score_Risco.Notebook` | `VALECRED_DEV/6_Machine_Learning/ML_Gerador_Score_Risco.Notebook/notebook-content.py` | 🧠 Tensor: Otimização de I/O PyArrow com Downcast Antecipado na JVM antes de `.toPandas()`. | Changed |
+| `ML_Previsao_Inadimplencia_2025.Notebook` | `VALECRED_DEV/6_Machine_Learning/ML_Previsao_Inadimplencia_2025.Notebook/notebook-content.py` | 🧠 Tensor: Otimização de I/O PyArrow com Downcast Antecipado na JVM antes de Pandas UDF. | Changed |
+| `benchmark_downcast.py` | `benchmark_downcast.py` | Adicionado script de benchmark de downcast de tipos nativo do Spark versus Pandas. | Added |
+| `benchmark_udf.py` | `benchmark_udf.py` | Adicionado script de benchmark de Pandas UDF versus PySpark nativo. | Added |
+| `test_ml_gerador_score_risco.py` | `tests/test_ml_gerador_score_risco.py` | Atualizados testes unitários para injeção de mock do PySpark e verificações de downcasting. | Changed |
+
 ## Change Log
 
 ### [2026-04-25]
