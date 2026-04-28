@@ -62,7 +62,7 @@ class TestSafeExtract(unittest.TestCase):
             def extractall(self, path):
                 pass # Simulação da extração
 
-        # Case 1: Simple parent traversal
+        # Caso 1: Path traversal simples de pai
         mock_zip = MockZipFile(['../evil.txt'])
         with self.assertRaisesRegex(Exception, "Zip Slip vulnerability detected"):
             safe_extract(mock_zip, self.extract_path)

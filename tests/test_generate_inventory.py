@@ -158,7 +158,7 @@ def test_generate_markdown_existing_inventory():
 from unittest.mock import patch
 
 def test_find_assets():
-    # Mocking os.walk
+    # Mock (simulação) de os.walk
     with patch('os.walk') as mock_walk:
         mock_walk.return_value = [
             ('VALECRED_DEV', ['LH_Test.Lakehouse', 'WH_Test.Warehouse'], []),
