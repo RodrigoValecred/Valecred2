@@ -316,11 +316,11 @@ df_scored = df_enrich
 # 🔬 Medição: O profiling tipicamente mostra o tempo de execução para a construção do DAG caindo em ordens de magnitude (ex., de segundos para milissegundos).
 existing_cols = {c.lower(): c for c in df_scored.columns}
 
-# 🧠 Tensor: Flatten iterative withColumn and fillna calls
-# 💡 What: Replaced iterative `.withColumn()` and `.fillna()` inside a loop with a single `.withColumns()` dict and one `.fillna()` call.
-# 🎯 Why: Iterating DataFrame transformations creates deeply nested Catalyst Logical Plans with sequential Project nodes. This causes an O(N^2) compilation slowdown and risks a StackOverflowError.
-# 📊 Impact: Significantly accelerates the DAG compilation phase, reducing CPU usage and memory footprint on the driver node.
-# 🔬 Measurement: Profiling the driver JVM shows the compilation time dropping from potentially several seconds to O(1) latency.
+# 🧠 Tensor: Achatar chamadas iterativas de withColumn e fillna
+# 💡 O que: Substituiu as chamadas iterativas de `.withColumn()` e `.fillna()` dentro de um loop por um único dict `.withColumns()` e uma chamada de `.fillna()`.
+# 🎯 Por que: Iterar transformações de DataFrame cria Catalyst Logical Plans profundamente aninhados com nós Project sequenciais. Isso causa uma lentidão de compilação O(N^2) e o risco de um StackOverflowError.
+# 📊 Impacto: Acelera significativamente a fase de compilação do DAG, reduzindo o uso de CPU e o footprint de memória no node driver.
+# 🔬 Medição: O profiling da JVM do driver mostra o tempo de compilação caindo de potencialmente vários segundos para uma latência O(1).
 cols_to_add = {}
 cols_to_fill = []
 

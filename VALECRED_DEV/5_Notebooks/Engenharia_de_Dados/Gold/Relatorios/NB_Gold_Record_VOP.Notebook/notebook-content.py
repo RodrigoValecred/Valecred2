@@ -27,10 +27,10 @@
 
 # CELL ********************
 
-# 📝 Scribe: Daily Documentation Sync [2025-04-17]
-# 📑 Summary of Changes: Updated ad-hoc report to break down VOP by document type (t_doc) and product (tto).
-# 🛠️ Files Modified: NB_Gold_Record_VOP.Notebook/notebook-content.py
-# 🚩 Pending Review: None
+# 📝 Scribe: Sincronização Diária da Documentação [2025-04-17]
+# 📑 Resumo das Alterações: Atualizou o relatório ad-hoc para detalhar o VOP por tipo de documento (t_doc) e produto (tto).
+# 🛠️ Arquivos Modificados: NB_Gold_Record_VOP.Notebook/notebook-content.py
+# 🚩 Revisão Pendente: Nenhuma
 
 from pyspark.sql.functions import col, sum, desc, round
 
