@@ -20,6 +20,10 @@
 # META   }
 # META }
 
+# MARKDOWN ********************
+
+# **Objetivo:** Criar a tabela `tbl_vadu_bronze` vazia com o schema correto para receber dados brutos.
+
 # CELL ********************
 
 from pyspark.sql.types import StructType, StructField, LongType, StringType, TimestampType
