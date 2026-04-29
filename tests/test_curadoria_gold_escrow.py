@@ -81,7 +81,9 @@ class TestEscrowLoading(unittest.TestCase):
         self.assertEqual(result, empty_df)
 
         # Verifica se o schema foi construído corretamente (usando os mocks injetados em setUpClass)
-        self.assertTrue(self.struct_type_mock.called)
+        self.struct_field_mock.assert_any_call("cod_operacao", self.long_type_mock.return_value, True)
+        self.struct_field_mock.assert_any_call("ESCROW", self.boolean_type_mock.return_value, True)
+        self.struct_type_mock.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()
