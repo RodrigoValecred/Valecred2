@@ -1,5 +1,24 @@
 # Scribe's Daily Documentation Sync
 
+### [2026-04-28]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `NB_Criar_Tabela.Notebook` | `VALECRED_DEV/3_Lakehouses/NB_Criar_Tabela.Notebook/notebook-content.py` | Adicionado notebook para criação da tabela `tbl_vadu_bronze` no Lakehouse Bronze. | Added |
+| Traduções (Testes) | `tests/` | 👅 The Translator: Tradução de comentários do Inglês para o Português do Brasil (pt-BR) na suíte de testes. | Changed |
+
+#### Database Schema Changes
+
+**Table:** `tbl_vadu_bronze` (New)
+
+| Column | Type | Description | Change |
+| :--- | :--- | :--- | :--- |
+| Bordero_ID | LongType | ID do Borderô | New |
+| CNPJ_Sacado | StringType | CNPJ do Sacado | New |
+| JSON_Bruto | StringType | Dados Brutos em JSON | New |
+| Data_Hora_Ingestao | TimestampType | Timestamp da ingestão dos dados | New |
+
+
 ### [2026-04-27]
 
 | Component | Path | Description | Change |
