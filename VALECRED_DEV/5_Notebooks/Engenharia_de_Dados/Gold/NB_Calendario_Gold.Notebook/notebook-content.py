@@ -129,20 +129,20 @@ try:
 
     # Min Data Inclusão de Operações
     df_ops = spark.read.table("LH_Silver.staging_operacoes_limpa")
-    min_date_row = df_ops.agg(min("data_inclusao")).collect()
+    min_date_row = df_ops.agg(min("data_inclusao")).first()
 
     # Max Data Vencimento (Efetivo) de Títulos
     df_titles = spark.read.table("LH_Silver.staging_titulos_limpa")
-    max_date_row = df_titles.agg(max("vencimento_efetivo")).collect()
+    max_date_row = df_titles.agg(max("vencimento_efetivo")).first()
 
     start_date = "2017-01-01"
     end_date = "2030-12-31"
 
-    if min_date_row and min_date_row[0][0]:
-        start_date = str(min_date_row[0][0]).split(' ')[0] # Garantir aaaa-MM-dd se para carimbo de data/hora
+    if min_date_row and min_date_row[0]:
+        start_date = str(min_date_row[0]).split(' ')[0] # Garantir aaaa-MM-dd se para carimbo de data/hora
 
-    if max_date_row and max_date_row[0][0]:
-        end_date = str(max_date_row[0][0]).split(' ')[0]
+    if max_date_row and max_date_row[0]:
+        end_date = str(max_date_row[0]).split(' ')[0]
 
     print(f"Intervalo dinâmico definido: {start_date} até {end_date}")
 
