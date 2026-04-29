@@ -49,11 +49,19 @@ df_vop_total = (
     .orderBy(desc("vop_total"))
 )
 
+# ⚡ Bolt: Consolidar múltiplas ações Spark em uma única coleta
+# 💡 O que: Substituição de `.show()`, `.collect()` e `.first()` separados por uma única chamada `.limit(10).collect()`.
+# 🎯 Por que: A execução sequencial de ações terminais num DataFrame não cacheado aciona reavaliações completas do DAG e múltiplos jobs. Ao consolidar a coleta numa lista nativa Python, evitamos reprocessamentos dispendiosos.
+vop_total_top10 = df_vop_total.limit(10).collect()
+
 print("Top 10 Dias de VOP (Geral):")
-df_vop_total.show(10)
+print(f"{'data_deferimento':<20} | {'vop_total'}")
+print("-" * 35)
+for row in vop_total_top10:
+    print(f"{str(row['data_deferimento']):<20} | {row['vop_total']}")
 
 # Extrai os Top 10 dias para focar a análise
-top_dias = [row["data_deferimento"] for row in df_vop_total.limit(10).collect()]
+top_dias = [row["data_deferimento"] for row in vop_total_top10]
 
 df_ops_top_dias = df_ops_validas.filter(col("data_deferimento").isin(top_dias))
 
@@ -91,7 +99,7 @@ print("\nBreakdown de VOP por Tipo de Documento (t_doc) nos Top Dias:")
 df_vop_por_tdoc.show(10)
 
 # Para pegar exatamente o dia do recorde:
-record = df_vop_total.first()
+record = vop_total_top10[0]
 print(f"\nO recorde absoluto de VOP foi no dia {record['data_deferimento']} com um total de {record['vop_total']}")
 
 
