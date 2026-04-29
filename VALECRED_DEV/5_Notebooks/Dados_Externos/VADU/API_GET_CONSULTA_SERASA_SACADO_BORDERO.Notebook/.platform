@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "API_GET_CONSULTA_SERASA_SACADO_BORDERO"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "86a07595-cb68-b6e3-4aa1-3c7ef4a9b0f0"
+  }
+}
