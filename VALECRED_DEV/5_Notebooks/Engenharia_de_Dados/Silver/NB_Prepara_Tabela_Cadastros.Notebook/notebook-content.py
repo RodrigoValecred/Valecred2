@@ -620,21 +620,30 @@ def process_pareceres_clientes_esteira():
 
     # Window functions para Esteira (Anterior/Posterior)
     window_esteira = Window.partitionBy("CODCLIENTE").orderBy("data_log")
-    df_esteira = df_enriched.withColumn("status_anterior", lag("status_cliente").over(window_esteira)) \
-        .withColumn("data_anterior", lag("data_log").over(window_esteira)) \
-        .withColumn("macroprocesso_anterior", lag("macroprocesso").over(window_esteira)) \
-        .withColumn("fase_anterior", lag("fase").over(window_esteira)) \
+
+    # ⚡ Bolt: Substituir múltiplas chamadas .withColumn() por uma única projeção .select()
+    # 💡 O que: Substituiu encadeamentos de chamadas .withColumn() e .withColumnRenamed() por projeções .select() com múltiplas expressões.
+    # 🎯 Por que: Evitar a geração iterativa de nós `Project` no Catalyst Optimizer (Plan Explosion), economizando muito tempo de compilação.
+    exprs_esteira = [
+        "*",
+        lag("status_cliente").over(window_esteira).alias("status_anterior"),
+        lag("data_log").over(window_esteira).alias("data_anterior"),
+        lag("macroprocesso").over(window_esteira).alias("macroprocesso_anterior"),
+        lag("fase").over(window_esteira).alias("fase_anterior")
+    ]
+    df_esteira = df_enriched.select(*exprs_esteira) \
         .filter((col("status_cliente") != col("status_anterior")) | col("status_anterior").isNull()) # Remove duplicatas consecutivas de mesmo status
 
     # Flags Devolução/Recebida
-    df_final_esteira = df_esteira.withColumn(
-            "devolucao",
-            (col("macroprocesso") == "CREDITO") & (col("macroprocesso_anterior") == "COMERCIAL")
-        ).withColumn(
-            "recebida",
-            (col("macroprocesso") == "COMERCIAL") & (col("macroprocesso_anterior") == "CREDITO")
-        ).withColumnRenamed("CODCLIENTE", "cod_cliente") \
-         .withColumnRenamed("USUAINCLUSAO", "usua_inclusao")
+    exprs_flags = [
+        col(c).alias(c) for c in df_esteira.columns if c not in ["CODCLIENTE", "USUAINCLUSAO"]
+    ] + [
+        col("CODCLIENTE").alias("cod_cliente"),
+        col("USUAINCLUSAO").alias("usua_inclusao"),
+        ((col("macroprocesso") == "CREDITO") & (col("macroprocesso_anterior") == "COMERCIAL")).alias("devolucao"),
+        ((col("macroprocesso") == "COMERCIAL") & (col("macroprocesso_anterior") == "CREDITO")).alias("recebida")
+    ]
+    df_final_esteira = df_esteira.select(*exprs_flags)
 
     df_final_esteira.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_pareceres_clientes_esteira")
 
