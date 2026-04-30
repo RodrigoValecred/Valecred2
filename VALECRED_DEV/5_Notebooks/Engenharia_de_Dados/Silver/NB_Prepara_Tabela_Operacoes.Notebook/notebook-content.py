@@ -528,11 +528,18 @@ def process_pareceres_operacoes():
 # --- LÓGICA DE FLAGS (Aplicada já no texto limpo) ---
     # Dica: Use (?i) no rlike para ignorar maiúscula/minúscula (case insensitive)
     
-    df_final_pareceres = df_cleaned.withColumn("ESCROW", when(col("Parecer").rlike("(?i)#?ESCROW"), True).otherwise(False)) \
-        .withColumn("ALCADA_SPENCER", when(col("Parecer").rlike("(?i)SPENCER"), "sim").otherwise("não")) \
-        .withColumn("ALCADA_CAIO", when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não")) \
-        .withColumn("ALCADA_DAIANE", when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não")) \
-        .withColumn("IS_LIMITE_PLUS", when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO"))
+    # ⚡ Bolt: Substituir encadeamento de .withColumn() por projeção .select()
+    # 💡 O que: Substituiu as múltiplas chamadas .withColumn() por uma única operação .select(*expr_list)
+    # 🎯 Por que: Evitar a explosão do plano (Plan Explosion) no Catalyst Optimizer, reduzindo overhead de compilação de nós `Project` em série.
+    exprs_flags = [
+        "*",
+        when(col("Parecer").rlike("(?i)#?ESCROW"), True).otherwise(False).alias("ESCROW"),
+        when(col("Parecer").rlike("(?i)SPENCER"), "sim").otherwise("não").alias("ALCADA_SPENCER"),
+        when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não").alias("ALCADA_CAIO"),
+        when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não").alias("ALCADA_DAIANE"),
+        when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO").alias("IS_LIMITE_PLUS")
+    ]
+    df_final_pareceres = df_cleaned.select(*exprs_flags)
 
     # Gravação
     df_final_pareceres.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{target_lakehouse}.staging_pareceres_operacoes")

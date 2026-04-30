@@ -121,6 +121,7 @@ class TestProcessEnderecos(unittest.TestCase):
                 'TimestampType': TimestampType, 'IntegerType': IntegerType,
                 'reduce': reduce,
                 'datetime': datetime,
+                'upsert_silver_table': MagicMock(),
             }
 
             local_scope = {}
