@@ -1,5 +1,35 @@
 # Scribe's Daily Documentation Sync
 
+### [2026-04-29]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `API_GET_CONSULTA_SERASA_SACADO_BORDERO.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_CONSULTA_SERASA_SACADO_BORDERO.Notebook/notebook-content.py` | Adicionado notebook para ingestão de dados da Serasa/Vadu para o Lakehouse Bronze. | Added |
+| `NB_ETL_JSON_SILVER.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/NB_ETL_JSON_SILVER.Notebook/notebook-content.py` | Adicionado notebook para fazer o parse dos dados JSON da Vadu e escrever na tabela `tbl_vadu_silver`. | Added |
+| `benchmark_calendario.py` | `benchmark_calendario.py` | Adicionado script de benchmark de performance entre ações `.collect()` e `.first()`. | Added |
+| `NB_Calendario_Gold.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Calendario_Gold.Notebook/notebook-content.py` | ⚡ Bolt: Substituição de `.collect()` por `.first()` para preservar predicate pushdown e evitar materialização no driver. | Changed |
+| `NB_Gold_Record_VOP.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/Relatorios/NB_Gold_Record_VOP.Notebook/notebook-content.py` | ⚡ Bolt: Consolidação de múltiplas chamadas Spark numa única coleta Python. | Changed |
+| `NB_Prepara_Tabela_Operacoes.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py` | Atualização no Produto (Product Override logic) de operações de Cessão. | Changed |
+| `NB_Prepara_Tabela_Titulos.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Titulos.Notebook/notebook-content.py` | 🧠 Tensor: Substituição de `.collect()` por `.first()` na obtenção do watermark para preservar o pushdown e evitar overhead da materialização em lista. | Changed |
+| `VAI_Inferencia_Online.Notebook` | `VALECRED_DEV/5_Notebooks/ValeCred_Artificial_Intelligence/VAI_Inferencia_Online.Notebook/notebook-content.py` | 🧠 Tensor: Achatamento de chamadas iterativas de `withColumn` num `withColumns` dictionary consolidado. | Changed |
+| `6_Machine_Learning/` | `VALECRED_DEV/6_Machine_Learning/` | Experimentos de Machine Learning (`NB_Analise_Cluster_Clientes` e `VAI_Treinamento_Semanal`) foram movidos da raiz para a pasta `6_Machine_Learning/`. | Changed |
+
+#### Database Schema Changes
+
+**Table:** `tbl_vadu_silver` (New)
+
+| Column | Type | Description | Change |
+| :--- | :--- | :--- | :--- |
+| Bordero_ID | LongType | ID do Borderô | New |
+| CNPJ_Sacado | StringType | CNPJ do Sacado | New |
+| Nome_Empresa | StringType | Nome da Empresa Sacada | New |
+| Valor_Operacao | DoubleType | Valor dos Títulos da operação | New |
+| Flag_Falencia | BooleanType | Flag indicando se há Falência Decretada | New |
+| Flag_Recuperacao_Judicial | BooleanType | Flag indicando Recuperação Judicial | New |
+| Tem_Visao_Cedente | IntegerType | Flag de presença de Visão Cedente no Serasa | New |
+| Data_Hora_Ingestao | TimestampType | Timestamp da ingestão dos dados | New |
+
+
 ### [2026-04-28]
 
 | Component | Path | Description | Change |
