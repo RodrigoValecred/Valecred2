@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import numpy as np
 from unittest.mock import MagicMock
+from typing import Iterator, Tuple
 
 # Garante que o diretório tests esteja no path para importar notebook_utils
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -69,7 +70,9 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
             'DoubleType': lambda: mock_double_type, # Chamado como DoubleType()
             'pd': pd,
             'features_broadcast': mock_features_broadcast,
-            'model_broadcast': mock_model_broadcast
+            'model_broadcast': mock_model_broadcast,
+            'Iterator': Iterator,
+            'Tuple': Tuple
         }
 
         # Executa o código extraído para obter o objeto da função
@@ -93,7 +96,9 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
         # --- Executa o UDF ---
 
         # O UDF recebe *cols
-        result = predict_proba_udf(col_feature_A, col_cod_status, col_cod_rating, col_feature_B)
+        iterator_input = iter([(col_feature_A, col_cod_status, col_cod_rating, col_feature_B)])
+        result_iter = predict_proba_udf(iterator_input)
+        result = next(result_iter)
 
         # --- Asserções ---
 

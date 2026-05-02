@@ -63,3 +63,6 @@
 ## 2026-04-29 - Consolidating Sequential Actions in PySpark
 **Learning:** Sequential terminal actions (like `.show()`, `.collect()`, and `.first()`) on uncached PySpark DataFrames cause the Spark Catalyst to re-evaluate the DAG entirely, triggering expensive duplicate operations (like `orderBy` global sorts) for every call.
 **Action:** When working with PySpark pipelines, consolidate terminal actions whenever possible (e.g., combining them into a single `.limit(N).collect()` call and reading the resulting local array) to prevent multiple full passes over the dataset and reduce calculation overhead.
+## 2025-10-25 - Pandas UDF and the Scalar Iterator Pattern
+**Learning:** The traditional Series-to-Series `pandas_udf` evaluates its environment on every batch, which means large broadcast objects (like ML models or feature arrays) are destructured or accessed from `broadcast.value` repeatedly per partition chunk. This causes unnecessary overhead and higher GC load during inference.
+**Action:** Use the Scalar Iterator pattern `def udf(iterator: Iterator[Tuple[pd.Series, ...]]) -> Iterator[pd.Series]` for ML inference or heavy UDFs. This allows you to extract variables from broadcast objects once outside the iterator loop, setting up the context just once per Spark executor task, before iterating and yielding results.
