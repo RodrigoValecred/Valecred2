@@ -63,13 +63,16 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
         mock_double_type = MagicMock()
 
         # --- Contexto de Execução ---
+        from typing import Iterator, Tuple
 
         exec_globals = {
             'pandas_udf': mock_pandas_udf,
             'DoubleType': lambda: mock_double_type, # Chamado como DoubleType()
             'pd': pd,
             'features_broadcast': mock_features_broadcast,
-            'model_broadcast': mock_model_broadcast
+            'model_broadcast': mock_model_broadcast,
+            'Iterator': Iterator,
+            'Tuple': Tuple
         }
 
         # Executa o código extraído para obter o objeto da função
@@ -92,8 +95,12 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
 
         # --- Executa o UDF ---
 
-        # O UDF recebe *cols
-        result = predict_proba_udf(col_feature_A, col_cod_status, col_cod_rating, col_feature_B)
+        # O UDF agora recebe um Iterator de Tuplas de Series
+        input_tuple = (col_feature_A, col_cod_status, col_cod_rating, col_feature_B)
+        input_iterator = iter([input_tuple])
+
+        result_iterator = predict_proba_udf(input_iterator)
+        result = next(result_iterator)
 
         # --- Asserções ---
 
