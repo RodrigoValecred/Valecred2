@@ -1,5 +1,33 @@
 # Scribe's Daily Documentation Sync
 
+### [2026-04-30]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `API_GET_SERASAS_HISTORICOS.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/notebook-content.py` | Adicionado notebook para extração de relatórios Serasa em formato ZIP a partir da API da Vadu e carga na camada Bronze (`LH_Bronze.vadu_serasa`). | Added |
+| `NB_EXTRAI_JSON_SERASAS.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/NB_EXTRAI_JSON_SERASAS.Notebook/notebook-content.py` | Adicionado notebook para extrair CNPJs de prospectos ideais (Com Visão Cedente) do JSON Serasa da Vadu e salvar na camada Silver (`LH_Silver.staging_prospects_vadu`). | Added |
+| `NB_Prepara_Tabela_Cadastros.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Cadastros.Notebook/notebook-content.py` | ⚡ Bolt: Achatamento de correntes `.withColumn()` por projeção `.select()` em `process_pareceres_clientes_esteira()` para reduzir overhead do Catalyst Optimizer. | Changed |
+| `NB_Prepara_Tabela_Operacoes.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py` | ⚡ Bolt: Achatamento de correntes `.withColumn()` por projeção `.select()` no bloco de lógica de flags para reduzir overhead do Catalyst Optimizer. | Changed |
+| `test_prepara_tabela_cadastros_enderecos.py` | `tests/test_prepara_tabela_cadastros_enderecos.py` | Adicionado mock para `upsert_silver_table` no escopo local dos testes de Cadastros Endereços. | Changed |
+
+#### Database Schema Changes
+
+**Table:** `LH_Bronze.vadu_serasa` (New)
+
+| Column | Type | Description | Change |
+| :--- | :--- | :--- | :--- |
+| data_carga | TimestampType | Timestamp da carga dos dados | New |
+| arquivo_origem | StringType | Nome do arquivo CSV original no ZIP | New |
+
+*(Outras colunas dinâmicas inferidas do CSV)*
+
+**Table:** `LH_Silver.staging_prospects_vadu` (New)
+
+| Column | Type | Description | Change |
+| :--- | :--- | :--- | :--- |
+| cnpj | StringType | CNPJ extraído dos prospectos identificados | New |
+
+
 ### [2026-04-29]
 
 | Component | Path | Description | Change |
