@@ -64,12 +64,16 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
 
         # --- Contexto de Execução ---
 
+        from typing import Iterator, Tuple
+
         exec_globals = {
             'pandas_udf': mock_pandas_udf,
             'DoubleType': lambda: mock_double_type, # Chamado como DoubleType()
             'pd': pd,
             'features_broadcast': mock_features_broadcast,
-            'model_broadcast': mock_model_broadcast
+            'model_broadcast': mock_model_broadcast,
+            'Iterator': Iterator,
+            'Tuple': Tuple
         }
 
         # Executa o código extraído para obter o objeto da função
@@ -92,14 +96,18 @@ class TestMLPrevisaoInadimplencia(unittest.TestCase):
 
         # --- Executa o UDF ---
 
-        # O UDF recebe *cols
-        result = predict_proba_udf(col_feature_A, col_cod_status, col_cod_rating, col_feature_B)
+        # O UDF recebe iterator de tuple de colunas
+        input_iterator = iter([(col_feature_A, col_cod_status, col_cod_rating, col_feature_B)])
+        result_iterator = predict_proba_udf(input_iterator)
+
+        # O UDF é um gerador
+        result_series = next(result_iterator)
 
         # --- Asserções ---
 
         # 1. Verifica Result
         expected_probs = pd.Series([0.7, 0.2])
-        pd.testing.assert_series_equal(result, expected_probs)
+        pd.testing.assert_series_equal(result_series, expected_probs)
 
         # 2. Verifica a chamada do modelo (Model Call)
         # Verifica se model.predict_proba foi chamado com o DataFrame correto
