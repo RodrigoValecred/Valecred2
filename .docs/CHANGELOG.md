@@ -1,5 +1,32 @@
 # Scribe's Daily Documentation Sync
 
+### [2026-05-03]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `API_GET_SERASAS_HISTORICOS.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/notebook-content.py` | Adicionado notebook para requisição e extração do histórico de consultas JSON da Serasa via API da Vadu. | Added |
+| `NB_EXTRAI_JSON_SERASAS.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/NB_EXTRAI_JSON_SERASAS.Notebook/notebook-content.py` | Adicionado notebook para filtrar a base de consultas Vadu em JSON e extrair os CNPJs prospectáveis. | Added |
+| `NB_Prepara_Tabela_Cadastros.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Cadastros.Notebook/notebook-content.py` | ⚡ Bolt: Substituição do encadeamento de `.withColumn` por uma única operação `.select` para evitar a explosão do plano (Plan Explosion) no Catalyst Optimizer. | Changed |
+| `NB_Prepara_Tabela_Operacoes.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py` | ⚡ Bolt: Substituição de `.withColumn` encadeados na lógica de flags por `.select` achatado. | Changed |
+| `test_prepara_tabela_cadastros_enderecos.py` | `tests/test_prepara_tabela_cadastros_enderecos.py` | Adicionado mock da função `upsert_silver_table` no escopo local dos testes. | Changed |
+
+#### Alterações no Schema de Banco de Dados
+
+**Tabela:** `LH_Bronze.vadu_serasa` (Nova)
+
+| Column | Type | Description | Change |
+| :--- | :--- | :--- | :--- |
+| data_carga | TimestampType | Timestamp da inserção no lakehouse | New |
+| arquivo_origem | StringType | Nome do arquivo original extraído do ZIP | New |
+
+*(Nota: As demais colunas são inferidas dinamicamente do CSV original).*
+
+**Tabela:** `LH_Silver.staging_prospects_vadu` (Nova)
+
+| Column | Type | Description | Change |
+| :--- | :--- | :--- | :--- |
+| cnpj | StringType | CNPJ do Prospect Extraído (Com Visão Cedente) | New |
+
 ### [2026-04-29]
 
 | Component | Path | Description | Change |
