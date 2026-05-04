@@ -1,5 +1,17 @@
 # Scribe's Daily Documentation Sync
 
+### [2026-05-04]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `API_GET_SERASAS_HISTORICOS.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/notebook-content.py` | Expanded logic for downloading and parsing zip files from VADU, handling nested JSON structure from Serasa to extract "Visão Cedente" and "Pontualidade Sacado" metrics. | Changed |
+| `NB_Curadoria_Gold.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | 🧠 Tensor: Replaced `.collect()[0]` and `.collect()[0][0]` with `.first()` and `.first()[0]` for optimizing portfolio aggregations (`total_portfolio_value`, `hhi_cedente`, `hhi_sacado`), avoiding materialization of lists on the driver. | Changed |
+| `ML_Previsao_Inadimplencia_2025.Notebook` | `VALECRED_DEV/6_Machine_Learning/ML_Previsao_Inadimplencia_2025.Notebook/notebook-content.py` | 🧠 Tensor: Refactored `predict_proba_udf` to utilize the Scalar Iterator pattern (`Iterator[Tuple[pd.Series, ...]] -> Iterator[pd.Series]`) instead of Series-to-Series, drastically reducing serialization overhead and initialization time per task. | Changed |
+| `benchmark_chunk_size.py` | `benchmark_chunk_size.py` | 👅 The Translator: Translated security comments regarding HTTPS usage and temporary certificates to Brazilian Portuguese (pt-BR). | Changed |
+| `test_ml_gerador_score_risco.py` | `tests/test_ml_gerador_score_risco.py` | 👅 The Translator: Translated test comments to Brazilian Portuguese (pt-BR). | Changed |
+| `test_ml_previsao_inadimplencia.py` | `tests/test_ml_previsao_inadimplencia.py` | 📝 Scribe: Updated mock execution context (`exec_globals`) with `Iterator` and `Tuple` and adapted the execution to handle iterators testing the newly refactored `predict_proba_udf` (Scalar Iterator pattern). Translated comments to pt-BR. | Changed |
+| `test_performance.py` | `tests/test_performance.py` | 👅 The Translator: Translated test comments to Brazilian Portuguese (pt-BR). | Changed |
+
 ### [2026-04-30]
 
 | Component | Path | Description | Change |
