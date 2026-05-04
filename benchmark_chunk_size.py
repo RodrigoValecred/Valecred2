@@ -12,7 +12,7 @@ CERT_FILE = 'cert_temp.pem'
 KEY_FILE = 'key_temp.pem'
 
 def generate_temp_cert():
-    # 🔒 Security: Programmatically generate temporary self-signed certificate for the local session
+    # 🔒 Segurança: Gerar programaticamente um certificado autoassinado temporário para a sessão local
     print("Generating temporary certificate for HTTPS benchmark...")
     subprocess.run([
         'openssl', 'req', '-x509', '-newkey', 'rsa:4096', '-keyout', KEY_FILE,
@@ -26,7 +26,7 @@ with open(TEST_FILE, 'wb') as f:
 def start_server():
     server = HTTPServer(('localhost', 8080), SimpleHTTPRequestHandler)
 
-    # 🔒 Security: Configure SSL/TLS for local benchmark server using the temporary certificate
+    # 🔒 Segurança: Configurar SSL/TLS para o servidor de benchmark local usando o certificado temporário
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
     server.socket = context.wrap_socket(server.socket, server_side=True)
@@ -37,11 +37,11 @@ def start_server():
     return server
 
 def download_file(chunk_size):
-    # 🔒 Security: Use HTTPS for local requests and specify timeout to prevent hanging (DoS)
+    # 🔒 Segurança: Usar HTTPS para requisições locais e especificar timeout para prevenir travamento (DoS)
     url = "https://localhost:8080/" + TEST_FILE
     start_time = time.time()
 
-    # 🔒 Security: verify with the temporary cert to ensure secure connection even on localhost
+    # 🔒 Segurança: verificar com o certificado temporário para garantir conexão segura mesmo no localhost
     response = requests.get(url, stream=True, verify=CERT_FILE, timeout=30)
 
     with open('downloaded.bin', 'wb') as f:
