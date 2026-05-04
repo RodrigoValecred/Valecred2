@@ -243,29 +243,34 @@ print("Preparando e executando a previsão de inadimplência (Distribuído)...")
 from pyspark.sql.functions import pandas_udf, col
 from pyspark.sql.types import DoubleType
 import pandas as pd
+from typing import Iterator, Tuple
 
+# 🧠 Tensor: Utilize o padrão Scalar Iterator em Pandas UDFs
+# 💡 O que: Refatorou a UDF para usar o padrão `Iterator[Tuple[pd.Series, ...]] -> Iterator[pd.Series]`.
+# 🎯 Por que: Na abordagem tradicional (Series to Series), as variáveis em broadcast (modelo ML e lista de features) são deserializadas repetidamente a cada lote processado. O padrão Iterator permite que o modelo seja carregado na memória do executor apenas uma única vez por tarefa Spark.
+# 📊 Impacto: Reduz drasticamente o overhead de deserialização e o consumo de memória durante a inferência, melhorando o throughput da CPU nos executores.
+# 🔬 Medição: Eliminação de repetidas chamadas de deserialização de objetos complexos (como o pipeline do scikit-learn) por executor task.
 @pandas_udf(DoubleType())
-def predict_proba_udf(*cols):
-    # Reconstruindo o DataFrame Pandas a partir das colunas passadas
-    # Usamos o broadcast das features para nomear corretamente as colunas
+def predict_proba_udf(iterator: Iterator[Tuple[pd.Series, ...]]) -> Iterator[pd.Series]:
+    # Carrega os broadcasts fora do loop para que ocorra apenas uma vez por task/executor!
     features = features_broadcast.value
-    X = pd.DataFrame(dict(zip(features, cols)))
-
-    # Tratando colunas categóricas como no treinamento
-    x_cols = set(X.columns)
-    for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
-        if col_name in x_cols:
-            X[col_name] = X[col_name].astype('category')
-
-    # O pipeline já lida com valores nulos, mas podemos logar se necessário
-    # Nota: Em UDFs, prints vão para os logs dos executores, não para o driver
-
     model = model_broadcast.value
-    # A saída de predict_proba é um array com duas colunas: [prob_classe_0, prob_classe_1]
-    # Queremos a probabilidade da classe 1 (inadimplência)
-    probs = model.predict_proba(X)[:, 1]
 
-    return pd.Series(probs)
+    for cols in iterator:
+        # Reconstruindo o DataFrame Pandas a partir das colunas passadas
+        X = pd.DataFrame(dict(zip(features, cols)))
+
+        # Tratando colunas categóricas como no treinamento
+        x_cols = set(X.columns)
+        for col_name in ['CODSTATUSCLIENTE', 'CODRATING_CEDENTE']:
+            if col_name in x_cols:
+                X[col_name] = X[col_name].astype('category')
+
+        # A saída de predict_proba é um array com duas colunas: [prob_classe_0, prob_classe_1]
+        # Queremos a probabilidade da classe 1 (inadimplência)
+        probs = model.predict_proba(X)[:, 1]
+
+        yield pd.Series(probs)
 
 # 🧠 Tensor: Selecione as colunas necessárias e faça o downcast para float32 na JVM antes da UDF Pandas
 # 💡 O que: Seleciona as features e faz o cast das colunas double/decimal para float nativamente no Spark antes de passá-las para a UDF.
