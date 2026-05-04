@@ -26,6 +26,26 @@
 | Column | Type | Description | Change |
 | :--- | :--- | :--- | :--- |
 | cnpj | StringType | CNPJ extraído dos prospectos identificados | New |
+| `API_GET_SERASAS_HISTORICOS.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/notebook-content.py` | Adicionado notebook para download de histórico Serasa da API Vadu para o Lakehouse Bronze. | Added |
+| `NB_EXTRAI_JSON_SERASAS.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/NB_EXTRAI_JSON_SERASAS.Notebook/notebook-content.py` | Adicionado notebook para extração e filtragem de JSON Vadu Serasa identificando prospects ideais (Com Visão Cedente). | Added |
+| `NB_Prepara_Tabela_Cadastros.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Cadastros.Notebook/notebook-content.py` | ⚡ Bolt: Achatamento de encadeamento `.withColumn` para melhorar a performance de compilação do Catalyst. | Changed |
+| `NB_Prepara_Tabela_Operacoes.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py` | ⚡ Bolt: Achatamento de encadeamento `.withColumn` para projeção com `.select` para evitar explosão de plano lógico. | Changed |
+
+#### Database Schema Changes
+
+**Table:** `vadu_serasa` (New in Lakehouse Bronze)
+
+| Column | Type | Description | Change |
+| :--- | :--- | :--- | :--- |
+| data_carga | TimestampType | Timestamp da carga | New |
+| arquivo_origem | StringType | Nome do arquivo ZIP de origem | New |
+| Retorno_Estruturado | StructType | JSON estruturado a partir da string de Retorno | New |
+
+**Table:** `staging_prospects_vadu` (New in Lakehouse Silver)
+
+| Column | Type | Description | Change |
+| :--- | :--- | :--- | :--- |
+| cnpj | StringType | CNPJ do prospect ideal extraído | New |
 
 
 ### [2026-04-29]
