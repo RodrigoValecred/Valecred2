@@ -57,7 +57,7 @@ class TestMLGeradorScoreRisco(unittest.TestCase):
             'draw_risk_meter': mock_draw_risk_meter
         }
 
-        # Patch pd.DataFrame.style to bypass jinja2 requirement during tests
+        # Patch em pd.DataFrame.style para contornar a dependência do jinja2 durante os testes
         class MockStyle:
             def __init__(self, df):
                 self.df = df

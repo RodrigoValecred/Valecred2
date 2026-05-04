@@ -61,7 +61,7 @@ def test_performance():
     start = time.time()
     for _ in range(10):
         df_out = resolve_columns_old(df, target_cols)
-        df_out.select("col_0").explain() # To force plan generation, but let's just measure DAG construction
+        df_out.select("col_0").explain() # Para forçar a geração do plano, mas vamos apenas medir a construção do DAG
     end = time.time()
     print(f"Old approach took: {end - start:.4f}s")
 
