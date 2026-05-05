@@ -1,5 +1,15 @@
 # Scribe's Daily Documentation Sync
 
+
+### [2026-05-05]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| Extração Histórico Serasa (VADU) | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/notebook-content.py` | Implementada a busca dinâmica da data de "ontem" na API para download dos históricos diários. | Changed |
+| Curadoria Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | ⚡ Bolt: Substituição de `.collect()[0]` por `.first()` e `.collect()[0][0]` por `.first()[0]` nas agregações de carteira e HHI para evitar materialização de lista no driver, preservando predicate pushdown. | Changed |
+| Testes Unitários de ML | `tests/test_ml_gerador_score_risco.py` | 👅 The Translator: Comentários do teste traduzidos para português do Brasil (pt-BR). | Changed |
+| Testes de Performance | `tests/test_performance.py` | 👅 The Translator: Comentários do teste traduzidos para português do Brasil (pt-BR). | Changed |
+| Benchmark | `benchmark_chunk_size.py` | 👅 The Translator: Comentários traduzidos para português do Brasil (pt-BR) e reforço visual nas tags de 🔒 Segurança. | Changed |
 ### [2026-04-30]
 
 | Component | Path | Description | Change |
