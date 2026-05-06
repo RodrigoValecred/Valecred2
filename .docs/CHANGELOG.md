@@ -1,5 +1,18 @@
 # Scribe's Daily Documentation Sync
 
+### [2026-05-06]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| Extração Serasa (Bronze) | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/notebook-content.py` | Adicionada etapa de limpeza e deduplicação de nomes de colunas antes de salvar na `LH_Bronze.vadu_serasa`. | Changed |
+| Ingestão Serasa (Silver) | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_VADU_INGESTAO_SILVER.Notebook/notebook-content.py` | Adicionado notebook para ingestão da tabela Serasa da camada Bronze para a Silver, filtrando retornos e extraindo JSON. | Added |
+| Curadoria Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | 🧠 Tensor: Substituição de `.collect()[0]` por `.first()` nos cálculos de HHI para evitar materialização de lista. | Changed |
+| Previsão Inadimplência (ML) | `VALECRED_DEV/6_Machine_Learning/ML_Previsao_Inadimplencia_2025.Notebook/notebook-content.py` | 🧠 Tensor: Refatoração da `predict_proba_udf` para o padrão Scalar Iterator, reduzindo drasticamente o batch overhead. | Changed |
+| Benchmark | `benchmark_chunk_size.py` | 🔒 Segurança: Tradução de comentários para pt-BR e padronização das orientações de segurança de SSL/TLS. | Changed |
+| Testes ML Score Risco | `tests/test_ml_gerador_score_risco.py` | 📝 Scribe: Tradução dos comentários do teste para português do Brasil (pt-BR). | Changed |
+| Testes ML Previsão Inadimplência | `tests/test_ml_previsao_inadimplencia.py` | Atualização do contexto de testes para suportar UDF com `Iterator` e `Tuple`. | Changed |
+| Testes Performance | `tests/test_performance.py` | 📝 Scribe: Tradução dos comentários do teste para português do Brasil (pt-BR). | Changed |
+
 ### [2026-04-30]
 
 | Component | Path | Description | Change |
