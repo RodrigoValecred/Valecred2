@@ -1,0 +1,7 @@
+{
+    "name": "NB_Gold_Relatorio_Titulos_Vencidos_Gerente",
+    "type": "Notebook",
+    "properties": {
+        "description": "Relatorio Titulos Vencidos por Gerente de Negocio"
+    }
+}
