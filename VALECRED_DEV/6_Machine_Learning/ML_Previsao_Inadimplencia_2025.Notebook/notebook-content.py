@@ -36,7 +36,7 @@
 
 import os
 import joblib
-from pyspark.sql.functions import year, col
+from pyspark.sql.functions import year, col, broadcast
 import pandas as pd
 
 # Configuração
@@ -131,7 +131,14 @@ df_cedentes = df_cedentes.toDF(*new_cols_cedentes)
 print("Criando tabela mestra com os joins...")
 # Otimização Tensor: Alterado para INNER join pois df_operacoes já está filtrado
 df_mestra_spark = df_titulos.join(df_operacoes, on="CODOPERACAO", how="inner")
-df_mestra_spark = df_mestra_spark.join(df_cedentes, on="CODCLIENTE", how="left")
+
+# 🧠 Tensor: Join com broadcast da tabela de dimensões
+# 💡 O que: Utilizado pyspark.sql.functions.broadcast(df_cedentes) no join com a tabela mestra (fato).
+# 🎯 Por que: O df_cedentes é uma tabela dimensional pequena. Fazer broadcast dela copia a tabela para a memória de cada executor localmente, evitando assim que ocorra o shuffle (movimentação massiva de dados pela rede) da grande tabela fato df_mestra_spark durante a junção.
+# 📊 Impacto: Diminui imensamente a latência do join e uso de recursos de rede no cluster, permitindo queries muito mais ágeis em cenários escaláveis.
+# 🔬 Medição: Comparando Execution Plans, o Exchange associado com o hash join tradicional é completamente suprimido para uma junção BroadcastHashJoin.
+df_mestra_spark = df_mestra_spark.join(broadcast(df_cedentes), on="CODCLIENTE", how="left")
+
 df_mestra_spark = df_mestra_spark.join(
     df_cad_geral.select("CPFCNPJ", "CIDADE", "UF").dropDuplicates(["CPFCNPJ"]),
     on="CPFCNPJ",
