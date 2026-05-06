@@ -68,7 +68,7 @@ def extract_prospects():
     # e assume que Retorno está em alguma coluna. Se o arquivo tem cabeçalho,
     # header=True leria os nomes corretamente. Vamos tentar com header=True primeiro.
     
-    # O user specification says: "utilizando a segunda coluna do arquivo para extrair o CNPJ da empresa e aplicando uma regra de filtro nos dados da coluna Retorno".
+    # A especificação do usuário diz: "utilizando a segunda coluna do arquivo para extrair o CNPJ da empresa e aplicando uma regra de filtro nos dados da coluna Retorno".
     
     df_raw = spark.read.csv(source_path, header=True, sep=";")
     

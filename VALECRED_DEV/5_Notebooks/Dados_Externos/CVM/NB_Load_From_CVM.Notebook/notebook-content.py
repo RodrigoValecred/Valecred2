@@ -61,18 +61,18 @@ def safe_extract(zip_ref, path):
     """
     Extrai um arquivo zip para o caminho especificado, prevenindo a vulnerabilidade Zip Slip.
     """
-    # Normalizar o caminho de destino (target path) para um caminho absoluto
+    # Normalizar o caminho de destino para um caminho absoluto
     target_path = os.path.abspath(path)
     safe_members = []
 
     for member in zip_ref.namelist():
-        # Resolver o caminho (path) completo do membro
-        # Nota: os.path.join descartará 'target_path' se 'member' para absoluto
+        # Resolver o caminho completo do membro
+        # Nota: os.path.join descartará 'target_path' se 'member' for absoluto
         member_path = os.path.join(target_path, member)
         # Normalizar o caminho do membro para resolver '..' e '.'
         abs_member_path = os.path.abspath(member_path)
 
-        # Checar se o caminho do membro começa com o caminho de destino (target path)
+        # Checar se o caminho do membro começa com o caminho de destino
         # Nós adicionamos os.sep para garantir que combinamos limites de diretório (ex. /tmp/foo vs /tmp/foobar)
         if not abs_member_path.startswith(os.path.join(target_path, '')) and not abs_member_path == target_path:
              raise Exception("Zip Slip vulnerability detected")
