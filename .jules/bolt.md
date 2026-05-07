@@ -1,3 +1,7 @@
+## 2026-05-07 - Use .first()[0] instead of .collect()[0][0] for PySpark Aggregations
+**Learning:** Calling `.collect()[0][0]` forces Spark to serialize the entire DataFrame subset into a Python list on the driver, allocating unnecessary memory. Even if preceded by `.limit(1)`, this creates an intermediary list allocation. `.first()[0]` evaluates directly into a Row object and pulls the first item, saving memory allocation and preventing driver OOM issues.
+**Action:** When extracting scalar values from small operations (like pulling a test JSON payload or a watermark), strictly replace `.collect()[0][0]` patterns with `.first()[0]`.
+
 ## 2024-05-24 - Pandas .apply() Overhead with Pure Python Functions
 **Learning:** In this codebase's Pandas workflows (specifically formatting UI strings in reporting notebooks), using `.apply()` with pure Python functions (like `format_currency_br` or `lambda` string formatters) incurs severe overhead due to Series indexing and function call wrapping per row. It is significantly slower than bypassing Pandas entirely.
 **Action:** Always replace `.apply()` with native Python list comprehensions (e.g., `[func(x) for x in df['col']]`) when applying simple Python string manipulations or custom formatting functions across Pandas columns.

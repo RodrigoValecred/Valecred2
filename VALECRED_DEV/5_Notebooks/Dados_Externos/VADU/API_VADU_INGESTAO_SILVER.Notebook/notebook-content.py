@@ -119,8 +119,13 @@ display(df_filtro_brasil.select("CNPJ", "UF", "Visao_Cedente").limit(20))
 
 import json
 
+# ⚡ Bolt: Substituição de .collect() por .first() para extração de escalar
+# 💡 O que: Substituição de `.collect()[0][0]` por `.first()[0]`.
+# 🎯 Por que: `.collect()` materializa uma lista de todas as linhas do resultado no driver do Spark. Em agregações limitadas a uma linha, a coleta da lista e acesso ao primeiro elemento via `[0]` gera overhead desnecessário de alocação de lista. `.first()` extrai apenas a primeira linha diretamente.
+# 📊 Impacto: Evita alocação de lista na memória do driver e melhora eficiência.
+# 🔬 Medição: Redução de uso de memória na Spark UI.
 # Pegamos o conteúdo de um CNPJ que você sabe que deveria ter dados
-exemplo_json = df_vitoria.filter(col("Retorno").isNotNull()).limit(1).select("Retorno").collect()[0][0]
+exemplo_json = df_vitoria.filter(col("Retorno").isNotNull()).limit(1).select("Retorno").first()[0]
 
 # O indent=4 organiza o texto com espaços, facilitando a leitura
 print(json.dumps(json.loads(exemplo_json), indent=4))
