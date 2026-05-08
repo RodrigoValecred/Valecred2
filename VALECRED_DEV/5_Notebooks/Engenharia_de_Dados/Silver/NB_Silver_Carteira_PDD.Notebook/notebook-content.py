@@ -175,9 +175,14 @@ df_with_faixa = df_with_prazo.withColumn("faixa_pdd",
 )
 
 # 7. Join com a tabela de percentuais de PDD
-df_pdd_percent_renamed = df_pdd_percent.withColumnRenamed("mes_ano", "pdd_mes_ano") \
-                                       .withColumnRenamed("faixa", "pdd_faixa") \
-                                       .withColumnRenamed("valor", "pdd_percent_valor")
+# ⚡ Bolt: Substituição de múltiplos withColumnRenamed por toDF()
+# 💡 O que: Trocou uma cadeia de .withColumnRenamed() por uma reatribuição explícita da lista de colunas baseada em um dicionário de mapeamento e uso do .toDF().
+# 🎯 Por que: Encadeamentos longos de .withColumnRenamed() adicionam muitos nós `Project` no plano lógico do Catalyst, o que pode causar StackOverflowError na otimização e aumentar o tempo de planejamento.
+# 📊 Impacto: Achata o plano lógico para um único nó Project, melhorando o tempo de compilação da DAG.
+# 🔬 Medição: Ação avaliada via análise do Catalyst Logical Plan, observando remoção de nós Project redundantes.
+rename_pdd = {"mes_ano": "pdd_mes_ano", "faixa": "pdd_faixa", "valor": "pdd_percent_valor"}
+new_cols_pdd = [rename_pdd.get(c, c) for c in df_pdd_percent.columns]
+df_pdd_percent_renamed = df_pdd_percent.toDF(*new_cols_pdd)
 
 df_joined_pdd = df_with_faixa.join(
     df_pdd_percent_renamed,
@@ -239,11 +244,18 @@ df_with_gestao = df_joined_bordero.withColumn("gestao",
 df_final_filter = df_with_gestao.filter(F.col("dataaceite") <= F.col("data_base"))
 
 # 16. Adicionar 'Situação' e renomear colunas finais
-df_final = df_final_filter.withColumn("situacao",
+df_final_filter_sit = df_final_filter.withColumn("situacao",
     F.when(F.col("prazo_atual") < 0, "VENCIDO").otherwise("A VENCER")
-).withColumnRenamed("soma_de_valor", "valor") \
- .withColumnRenamed("soma_de_valordevido", "valordevido") \
- .withColumnRenamed("soma_de_desagio", "desagio")
+)
+
+# ⚡ Bolt: Substituição de múltiplos withColumnRenamed por toDF()
+# 💡 O que: Trocou uma cadeia de .withColumnRenamed() por uma reatribuição explícita da lista de colunas baseada em um dicionário de mapeamento e uso do .toDF().
+# 🎯 Por que: Encadeamentos longos de .withColumnRenamed() adicionam muitos nós `Project` no plano lógico do Catalyst, o que pode causar StackOverflowError na otimização e aumentar o tempo de planejamento.
+# 📊 Impacto: Achata o plano lógico para um único nó Project, melhorando o tempo de compilação da DAG.
+# 🔬 Medição: Ação avaliada via análise do Catalyst Logical Plan, observando remoção de nós Project redundantes.
+rename_final = {"soma_de_valor": "valor", "soma_de_valordevido": "valordevido", "soma_de_desagio": "desagio"}
+new_cols_final = [rename_final.get(c, c) for c in df_final_filter_sit.columns]
+df_final = df_final_filter_sit.toDF(*new_cols_final)
 
 # METADATA ********************
 
