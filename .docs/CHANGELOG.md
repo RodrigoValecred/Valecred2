@@ -308,3 +308,16 @@
 | Testes Prorrogação | `tests/test_gold_relatorio_fechamento_prorrogacao.py` | Renomeada função de teste de `_test_prorrogacao_recovery_logic` para `test_prorrogacao_recovery_logic` para correta execução no Pytest. | Changed |
 | Testes VAI UX | `tests/test_vai_ux.py` | Inclusão de asserção visual para o alerta `Discrepantes:` na UI. | Changed |
 | Enriquecimento Curadoria Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado `broadcast()` em joins de pequenas tabelas dimensão (`df_u_inc`, `df_u_ana`, `df_u_trava`, `df_motivos`, `df_gerentes_enrich`) com a tabela fato `df_ops` para eliminar network shuffles. | Changed |
+
+### [2026-05-04]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `API_VADU_INGESTAO_BRONZE` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/` | Renomeado de API_GET_SERASAS_HISTORICOS para API_VADU_INGESTAO_BRONZE no `.platform`. Adicionada extração binária de ZIP, filtro dinâmico de data e limpeza de cabeçalhos de colunas na carga para a camada Bronze. | Changed |
+| `API_VADU_INGESTAO_SILVER.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_VADU_INGESTAO_SILVER.Notebook/notebook-content.py` | Adicionado novo notebook para ingestão VADU na camada Silver, filtrando retornos não nulos e extraindo dados JSON (`Possui_Visao_Cedente`, `UF`). | Added |
+| `NB_Curadoria_Gold.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | 🧠 Tensor: Otimização de performance substituindo `.collect()[0]` por `.first()` nos cálculos de agregação total e HHI, prevenindo overhead de alocação de lista no driver Spark. | Changed |
+| `ML_Previsao_Inadimplencia_2025.Notebook` | `VALECRED_DEV/6_Machine_Learning/ML_Previsao_Inadimplencia_2025.Notebook/notebook-content.py` | 🧠 Tensor: Refatorada a UDF `predict_proba_udf` de Series-to-Series para a abordagem `Scalar Iterator`, reduzindo o overhead de inicialização de variáveis de broadcast. | Changed |
+| `test_ml_previsao_inadimplencia.py` | `tests/test_ml_previsao_inadimplencia.py` | Atualizados os testes globais injetando as tipagens `Iterator` e `Tuple` no escopo de execução para suportar a nova assinatura Scalar Iterator. | Changed |
+| `benchmark_chunk_size.py` | `benchmark_chunk_size.py` | 👅 The Translator: Comentários de segurança e configuração HTTPS convertidos para Português do Brasil. | Changed |
+| `test_ml_gerador_score_risco.py` | `tests/test_ml_gerador_score_risco.py` | 👅 The Translator: Comentários de mock de estilo de DataFrame convertidos para Português do Brasil. | Changed |
+| `test_performance.py` | `tests/test_performance.py` | 👅 The Translator: Comentários de medição de construção da DAG convertidos para Português do Brasil. | Changed |
