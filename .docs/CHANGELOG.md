@@ -1,5 +1,18 @@
 # Scribe's Daily Documentation Sync
 
+### [2026-05-08]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `API_VADU_INGESTAO_BRONZE.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/` | Renomeado de `API_GET_SERASAS_HISTORICOS` para `API_VADU_INGESTAO_BRONZE` e refatorada a lógica de extração. | Changed |
+| `API_VADU_INGESTAO_SILVER.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_VADU_INGESTAO_SILVER.Notebook/` | Criado notebook de ingestão Silver para dados VADU. | Added |
+| Curadoria Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | 🧠 Tensor: Substituído `.collect()[0]` por `.first()` na extração de `total_portfolio_value`, `hhi_cedente` e `hhi_sacado` para evitar materialização de lista no driver. | Changed |
+| ML Previsão Inadimplência | `VALECRED_DEV/6_Machine_Learning/ML_Previsao_Inadimplencia_2025.Notebook/notebook-content.py` | 🧠 Tensor: Refatorado `predict_proba_udf` de Series-to-Series para Scalar Iterator (`predict_proba_udf(iterator: Iterator[Tuple[pd.Series, ...]]) -> Iterator[pd.Series]`) visando otimização do broadcast de variáveis. | Changed |
+| Benchmark Chunk Size | `benchmark_chunk_size.py` | 📝 Scribe: Tradução de comentários de segurança para português do Brasil (pt-BR). | Changed |
+| Testes ML Score Risco | `tests/test_ml_gerador_score_risco.py` | 📝 Scribe: Tradução de comentários funcionais para português do Brasil (pt-BR). | Changed |
+| Testes ML Previsão Inadimplência | `tests/test_ml_previsao_inadimplencia.py` | Adicionado import de `Iterator` e `Tuple` ao contexto de execução e atualizado o teste para injetá-los no escopo do teste unitário. | Changed |
+| Testes de Performance | `tests/test_performance.py` | 📝 Scribe: Tradução de comentários funcionais para português do Brasil (pt-BR). | Changed |
+
 ### [2026-04-30]
 
 | Component | Path | Description | Change |
