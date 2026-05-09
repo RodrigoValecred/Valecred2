@@ -107,7 +107,11 @@ df_risco_aberto = df_risco_aberto.filter(col('tto_operacao').isin(produtos_clien
 
 # CELL ********************
 
-df_risco_produto = df_risco_aberto.groupBy("cod_cliente").pivot("tto_operacao").agg(sum("valor_devido")).na.fill(0)
+# 🧠 Tensor: Fornecer valores explícitos para o pivot para evitar re-scans do DataFrame
+# 💡 O que: Injetado `produtos_cliente` explicitamente no método `.pivot()`.
+# 🎯 Por que: Chamar `.pivot()` sem fornecer a lista dos valores únicos força o PySpark a instigar uma etapa `collect()` escondida. Isso é severamente ineficiente já que acabamos de usar `produtos_cliente` na filtragem, o que significa que os valores já eram conhecidos.
+# 📊 Impacto: Contorna compilações de query custosas e saltos I/O globais do cluster no backend.
+df_risco_produto = df_risco_aberto.groupBy("cod_cliente").pivot("tto_operacao", produtos_cliente).agg(sum("valor_devido")).na.fill(0)
 
 # Adicionando uma coluna de RiscoTotal que soma os valores de todas as colunas de TTO
 tto_cols = [col(c) for c in df_risco_produto.columns if c not in ['cod_cliente']]
