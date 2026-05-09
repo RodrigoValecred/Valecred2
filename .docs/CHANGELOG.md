@@ -1,5 +1,23 @@
 # Scribe's Daily Documentation Sync
 
+### [2026-05-09]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| API VADU Ingestão Bronze | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/notebook-content.py` | Renomeado o notebook de `API_GET_SERASAS_HISTORICOS` para `API_VADU_INGESTAO_BRONZE` e ajustado os pacotes importados para a extração do ZIP. | Changed |
+| API VADU Ingestão Silver | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_VADU_INGESTAO_SILVER.Notebook/notebook-content.py` | Adicionado novo notebook para processamento, limpeza e seleção de colunas do Serasa, extraindo UF e visão cedente dos arquivos JSON para a camada Silver. | Added |
+| Curadoria Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | 🧠 Tensor: Substituição de `.collect()[0]` por `.first()` e `.collect()[0][0]` por `.first()[0]` nas agregações de carteira e HHI para preservar predicate pushdown e evitar materialização de lista. | Changed |
+| Previsão Inadimplência (VAI) | `VALECRED_DEV/6_Machine_Learning/ML_Previsao_Inadimplencia_2025.Notebook/notebook-content.py` | 🧠 Tensor: Substituído pandas_udf Series-to-Series por Scalar Iterator para evitar a desserialização do modelo a cada lote e reduzir o overhead na predição distribuída. | Changed |
+| Teste Previsão Inadimplência | `tests/test_ml_previsao_inadimplencia.py` | Atualizados os testes unitários para a `predict_proba_udf` garantindo o funcionamento do modelo de Scalar Iterator com typing (`Iterator`, `Tuple`). | Changed |
+| Traduções Scribe | Vários arquivos na codebase (`benchmark_chunk_size.py`, `tests/test_ml_gerador_score_risco.py`, `tests/test_performance.py`) | 📝 Scribe / 👅 The Translator: Comentários em inglês e tags de segurança/desempenho traduzidos para Português Brasileiro. | Changed |
+
+#### Function Signature Updates
+
+**`predict_proba_udf`** (Refatorado para Padrão Scalar Iterator)
+```python
+def predict_proba_udf(iterator: Iterator[Tuple[pd.Series, ...]]) -> Iterator[pd.Series]:
+```
+
 ### [2026-04-30]
 
 | Component | Path | Description | Change |
