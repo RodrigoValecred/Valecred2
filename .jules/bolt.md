@@ -63,3 +63,12 @@
 ## 2026-04-29 - Consolidating Sequential Actions in PySpark
 **Learning:** Sequential terminal actions (like `.show()`, `.collect()`, and `.first()`) on uncached PySpark DataFrames cause the Spark Catalyst to re-evaluate the DAG entirely, triggering expensive duplicate operations (like `orderBy` global sorts) for every call.
 **Action:** When working with PySpark pipelines, consolidate terminal actions whenever possible (e.g., combining them into a single `.limit(N).collect()` call and reading the resulting local array) to prevent multiple full passes over the dataset and reduce calculation overhead.
+
+
+## 2026-05-09 - PySpark pivot() Full Table Scan Overhead
+**Learning:** In PySpark, calling `.pivot("column")` without explicitly providing the list of distinct pivot values forces the Catalyst optimizer to trigger a full table scan and aggregation job (`.distinct().collect()`) just to discover the schema structure before it can generate the Logical Plan. This severely degrades performance.
+**Action:** Always provide the explicit list of pivot values (e.g., `.pivot("column", list_of_values)`) if they are known beforehand, to avoid the immediate, costly materialization and full DAG re-evaluation.
+
+## 2026-05-09 - Flatten PySpark Column Expressions
+**Learning:** Using Python's `reduce(lambda a, b: a + b, cols)` with PySpark Column objects iteratively builds a deeply nested Abstract Syntax Tree (AST) within a single `expr`. This adds unnecessary overhead for the Catalyst optimizer during plan compilation.
+**Action:** When creating complex mathematical or conditional column constructions across multiple columns, build a raw SQL string using Python string manipulation (e.g., `" + ".join(str_cols)`) and wrap it in `expr()` instead of using recursive column combination.

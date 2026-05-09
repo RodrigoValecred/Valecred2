@@ -107,12 +107,20 @@ df_risco_aberto = df_risco_aberto.filter(col('tto_operacao').isin(produtos_clien
 
 # CELL ********************
 
-df_risco_produto = df_risco_aberto.groupBy("cod_cliente").pivot("tto_operacao").agg(sum("valor_devido")).na.fill(0)
+# ⚡ Bolt: Otimização do `.pivot()` para evitar full table scan.
+# 💡 O que: Fornecendo explicitamente a lista de valores (`produtos_cliente`) ao pivot.
+# 🎯 Por que: O `.pivot()` sem os valores explicitos força o PySpark a executar uma job adicional de scan completo (`.distinct().collect()`) na tabela apenas para descobrir quais colunas criar.
+# 📊 Impacto: Evita a materialização prematura e reavaliação completa de todas as transformações de upstream.
+df_risco_produto = df_risco_aberto.groupBy("cod_cliente").pivot("tto_operacao", produtos_cliente).agg(sum("valor_devido")).na.fill(0)
 
 # Adicionando uma coluna de RiscoTotal que soma os valores de todas as colunas de TTO
 tto_cols = [col(c) for c in df_risco_produto.columns if c not in ['cod_cliente']]
 if tto_cols:
-    df_risco_final = df_risco_produto.withColumn("RiscoTotal", reduce(lambda a, b: a + b, tto_cols))
+    # ⚡ Bolt: Usando uma única expressão consolidada para a soma em vez de reduce recursivo de colunas.
+    # 💡 O que: Substituído o reduce de `a + b` (que cria uma AST profunda em PySpark gerando overhead de compilação) pela built-in python iterando coalesce e somando as expressões internamente através de uma única projeção expr.
+    from pyspark.sql.functions import expr
+    expr_str = " + ".join([f"coalesce(`{c}`, 0)" for c in df_risco_produto.columns if c != 'cod_cliente'])
+    df_risco_final = df_risco_produto.withColumn("RiscoTotal", expr(expr_str))
 else:
     df_risco_final = df_risco_produto.withColumn("RiscoTotal", lit(0))
 
