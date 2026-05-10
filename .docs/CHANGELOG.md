@@ -308,3 +308,14 @@
 | Testes Prorrogação | `tests/test_gold_relatorio_fechamento_prorrogacao.py` | Renomeada função de teste de `_test_prorrogacao_recovery_logic` para `test_prorrogacao_recovery_logic` para correta execução no Pytest. | Changed |
 | Testes VAI UX | `tests/test_vai_ux.py` | Inclusão de asserção visual para o alerta `Discrepantes:` na UI. | Changed |
 | Enriquecimento Curadoria Gold | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | ⚡ Bolt: Adicionado `broadcast()` em joins de pequenas tabelas dimensão (`df_u_inc`, `df_u_ana`, `df_u_trava`, `df_motivos`, `df_gerentes_enrich`) com a tabela fato `df_ops` para eliminar network shuffles. | Changed |
+
+### [2026-05-06]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `API_GET_SERASAS_HISTORICOS.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_GET_SERASAS_HISTORICOS.Notebook/notebook-content.py` | Removed logic for JSON structure extraction (`from_json`) and flat selection, moved to `API_VADU_INGESTAO_SILVER.Notebook`. | Changed |
+| `API_VADU_INGESTAO_SILVER.Notebook` | `VALECRED_DEV/5_Notebooks/Dados_Externos/VADU/API_VADU_INGESTAO_SILVER.Notebook/notebook-content.py` | Added a new notebook that reads from Bronze layer and performs Silver layer transformations for Vadu data. | Added |
+| `NB_Curadoria_Gold.Notebook` | `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Curadoria_Gold.Notebook/notebook-content.py` | 🧠 Tensor: Substituted `.collect()[0]` with `.first()` and `.collect()[0][0]` with `.first()[0]` to optimize driver memory overhead. | Changed |
+| `benchmark_chunk_size.py` | `benchmark_chunk_size.py` | 📝 The Translator: Tradução de comentários do inglês para português do Brasil (pt-BR). | Changed |
+| `test_ml_gerador_score_risco.py` | `tests/test_ml_gerador_score_risco.py` | 📝 The Translator: Tradução de comentários do inglês para português do Brasil (pt-BR). | Changed |
+| `test_performance.py` | `tests/test_performance.py` | 📝 The Translator: Tradução de comentários do inglês para português do Brasil (pt-BR). | Changed |
