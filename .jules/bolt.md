@@ -63,3 +63,7 @@
 ## 2026-04-29 - Consolidating Sequential Actions in PySpark
 **Learning:** Sequential terminal actions (like `.show()`, `.collect()`, and `.first()`) on uncached PySpark DataFrames cause the Spark Catalyst to re-evaluate the DAG entirely, triggering expensive duplicate operations (like `orderBy` global sorts) for every call.
 **Action:** When working with PySpark pipelines, consolidate terminal actions whenever possible (e.g., combining them into a single `.limit(N).collect()` call and reading the resulting local array) to prevent multiple full passes over the dataset and reduce calculation overhead.
+
+## 2025-05-19 - PySpark Explicit Pivot Lists
+**Learning:** In PySpark, calling `.pivot("column")` without explicitly providing the list of distinct pivot values forces the Catalyst optimizer to trigger a full table scan and aggregation job (`.distinct().collect()`) to discover the schema structure before generating the Logical Plan. This occurs even if the distinct values are already known or were just filtered by an explicit list earlier in the code.
+**Action:** Always provide the explicit list of values (e.g., `.pivot("column", list_of_values)`) if they are known in advance (e.g., hardcoded or predefined lists) to avoid this severe performance degradation and prevent a synchronous driver bottleneck. Never attempt to optimize this by manually calling `.select("column").distinct().collect()` just before the pivot, as this merely shifts the exact same expensive scan to the driver without any true performance gain.
