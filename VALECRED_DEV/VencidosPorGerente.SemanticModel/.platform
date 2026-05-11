@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "VencidosPorGerente"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "301825d8-1660-bfde-448a-6fd24b9aeb5c"
+  }
+}

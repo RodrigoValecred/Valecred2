@@ -1,0 +1,843 @@
+table dim_clientes
+	lineageTag: 5cdd651c-b73d-475e-bca5-793a1e2d5515
+	sourceLineageTag: [dbo].[dim_clientes]
+
+	column cod_cliente
+		dataType: int64
+		formatString: 0
+		lineageTag: 96203865-37c3-4e27-90f0-87e2e411cc16
+		sourceLineageTag: cod_cliente
+		summarizeBy: none
+		sourceColumn: cod_cliente
+
+		annotation SummarizationSetBy = Automatic
+
+	column cpf_cnpj
+		dataType: string
+		lineageTag: 6aa6be93-44ee-4700-8cf6-e898c285538b
+		sourceLineageTag: cpf_cnpj
+		summarizeBy: none
+		sourceColumn: cpf_cnpj
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome
+		dataType: string
+		lineageTag: 754dca16-00c4-424c-ac1b-56465f7a7165
+		sourceLineageTag: nome
+		summarizeBy: none
+		sourceColumn: nome
+
+		annotation SummarizationSetBy = Automatic
+
+	column sigla
+		dataType: string
+		lineageTag: 81ac22e5-0aae-4f4d-8715-017865905efa
+		sourceLineageTag: sigla
+		summarizeBy: none
+		sourceColumn: sigla
+
+		annotation SummarizationSetBy = Automatic
+
+	column grupo_economico
+		dataType: string
+		lineageTag: e1c99aa9-1c7f-47c6-bd65-7cad4f981e53
+		sourceLineageTag: grupo_economico
+		summarizeBy: none
+		sourceColumn: grupo_economico
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_inclusao
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 302130fa-e6e5-46f6-8aca-c08ab38249fa
+		sourceLineageTag: data_inclusao
+		summarizeBy: none
+		sourceColumn: data_inclusao
+
+		annotation SummarizationSetBy = Automatic
+
+	column cidade
+		dataType: string
+		lineageTag: ba726915-3377-449b-bdea-c7cc17b8f442
+		sourceLineageTag: cidade
+		summarizeBy: none
+		sourceColumn: cidade
+
+		annotation SummarizationSetBy = Automatic
+
+	column uf
+		dataType: string
+		lineageTag: 6d4cd699-2261-422a-9f90-40b92fb6f17e
+		sourceLineageTag: uf
+		summarizeBy: none
+		sourceColumn: uf
+
+		annotation SummarizationSetBy = Automatic
+
+	column cep
+		dataType: string
+		lineageTag: 49ea599f-82ab-4003-a402-336dcc37d2a1
+		sourceLineageTag: cep
+		summarizeBy: none
+		sourceColumn: cep
+
+		annotation SummarizationSetBy = Automatic
+
+	column emails
+		dataType: string
+		lineageTag: 98373da3-8b4e-4d10-8152-58d355b32b66
+		sourceLineageTag: emails
+		summarizeBy: none
+		sourceColumn: emails
+
+		annotation SummarizationSetBy = Automatic
+
+	column telefones
+		dataType: string
+		lineageTag: 04d2cd5f-5dc5-4425-abda-6c8cd9b69630
+		sourceLineageTag: telefones
+		summarizeBy: none
+		sourceColumn: telefones
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_ultima_operacao
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: b2abeec9-3f52-41a8-8f0f-cb572269534a
+		sourceLineageTag: data_ultima_operacao
+		summarizeBy: none
+		sourceColumn: data_ultima_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column bordero_ultima_operacao
+		dataType: int64
+		formatString: 0
+		lineageTag: ed3acb63-bb14-4551-93ac-91e62afb4dff
+		sourceLineageTag: bordero_ultima_operacao
+		summarizeBy: none
+		sourceColumn: bordero_ultima_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_primeira_operacao
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: f75d9144-4295-47af-ab98-2e3025cb3782
+		sourceLineageTag: data_primeira_operacao
+		summarizeBy: none
+		sourceColumn: data_primeira_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_cliente_desde
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 1988d6b0-28e1-4523-8c8a-fd0e38513608
+		sourceLineageTag: data_cliente_desde
+		summarizeBy: none
+		sourceColumn: data_cliente_desde
+
+		annotation SummarizationSetBy = Automatic
+
+	column dia_semana_mais_vop
+		dataType: int64
+		formatString: 0
+		lineageTag: f87c8d95-111d-419a-9f0c-a3cc5cd1214c
+		sourceLineageTag: dia_semana_mais_vop
+		summarizeBy: none
+		sourceColumn: dia_semana_mais_vop
+
+		annotation SummarizationSetBy = Automatic
+
+	column dia_mes_mais_vop
+		dataType: int64
+		formatString: 0
+		lineageTag: 1e401844-d338-41ab-a1d5-f1c7c2bd52cc
+		sourceLineageTag: dia_mes_mais_vop
+		summarizeBy: none
+		sourceColumn: dia_mes_mais_vop
+
+		annotation SummarizationSetBy = Automatic
+
+	column risco
+		dataType: double
+		lineageTag: a102f2ee-cf3d-4d20-a30d-2eff7e91e1b9
+		sourceLineageTag: risco
+		summarizeBy: none
+		sourceColumn: risco
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column risco_exceto_comissaria
+		dataType: double
+		lineageTag: a0f3237d-725a-44fb-9627-fb5d4fde174c
+		sourceLineageTag: risco_exceto_comissaria
+		summarizeBy: none
+		sourceColumn: risco_exceto_comissaria
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column risco_comissaria
+		dataType: double
+		lineageTag: 0dbf4d02-7e78-4a4c-9a1b-a9996f32a2b9
+		sourceLineageTag: risco_comissaria
+		summarizeBy: none
+		sourceColumn: risco_comissaria
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column confirmado_atencao
+		dataType: double
+		lineageTag: 786d2ff2-6d45-4691-b3da-0530dcbde96e
+		sourceLineageTag: confirmado_atencao
+		summarizeBy: none
+		sourceColumn: confirmado_atencao
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column confirmado_positivo
+		dataType: double
+		lineageTag: 900e32f1-7c36-43e9-8bc0-3c4c3bf33793
+		sourceLineageTag: confirmado_positivo
+		summarizeBy: none
+		sourceColumn: confirmado_positivo
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column problemas_checagem
+		dataType: double
+		lineageTag: 37939359-b657-4164-ba39-9a1078902c46
+		sourceLineageTag: problemas_checagem
+		summarizeBy: none
+		sourceColumn: problemas_checagem
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column inadimplencia
+		dataType: double
+		lineageTag: 28e4b6fd-08bf-4a93-b3f4-64da184d88c7
+		sourceLineageTag: inadimplencia
+		summarizeBy: none
+		sourceColumn: inadimplencia
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column data_vencido_mais_antigo
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 5417421e-d92b-4b04-8eb7-d25032d150de
+		sourceLineageTag: data_vencido_mais_antigo
+		summarizeBy: none
+		sourceColumn: data_vencido_mais_antigo
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_vencido_mais_recente
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: eca9205c-f2a0-43b9-87a3-b26bf9faa70a
+		sourceLineageTag: data_vencido_mais_recente
+		summarizeBy: none
+		sourceColumn: data_vencido_mais_recente
+
+		annotation SummarizationSetBy = Automatic
+
+	column risco_clean
+		dataType: double
+		lineageTag: 3060696c-ca0d-4838-8893-a11f09eb3503
+		sourceLineageTag: risco_clean
+		summarizeBy: none
+		sourceColumn: risco_clean
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column risco_renegociacao
+		dataType: double
+		lineageTag: 615d58ee-b4f3-4642-8ca0-8286f7c735f2
+		sourceLineageTag: risco_renegociacao
+		summarizeBy: none
+		sourceColumn: risco_renegociacao
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column risco_sem_renegociacao
+		dataType: double
+		lineageTag: 59fc378c-4f5d-4097-a5f4-e7469a781325
+		sourceLineageTag: risco_sem_renegociacao
+		summarizeBy: none
+		sourceColumn: risco_sem_renegociacao
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column vencidos
+		dataType: double
+		lineageTag: 9d26a17e-5133-4805-b3cf-2ffea2f0c43c
+		sourceLineageTag: vencidos
+		summarizeBy: none
+		sourceColumn: vencidos
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column perdas
+		dataType: double
+		lineageTag: e9608762-9f9d-4347-8779-499036ad19ae
+		sourceLineageTag: perdas
+		summarizeBy: none
+		sourceColumn: perdas
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column vencimento_limite
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: b1895157-e877-4c12-bab1-c57d5073f445
+		sourceLineageTag: vencimento_limite
+		summarizeBy: none
+		sourceColumn: vencimento_limite
+
+		annotation SummarizationSetBy = Automatic
+
+	column tranche
+		dataType: double
+		lineageTag: a902ffb3-e0d5-4f25-8371-add8e909c924
+		sourceLineageTag: tranche
+		summarizeBy: none
+		sourceColumn: tranche
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column percentual_exigido
+		dataType: double
+		lineageTag: 998b57a5-67f7-493e-9534-9cfb7a56378e
+		sourceLineageTag: percentual_exigido
+		summarizeBy: none
+		sourceColumn: percentual_exigido
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column risco_grupo
+		dataType: double
+		lineageTag: 6aa6cfc5-2622-4534-910e-87be10c9add7
+		sourceLineageTag: risco_grupo
+		summarizeBy: none
+		sourceColumn: risco_grupo
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column risco_comissaria_grupo
+		dataType: double
+		lineageTag: 436e82dc-f3f0-4e90-b0cd-66952e8466cf
+		sourceLineageTag: risco_comissaria_grupo
+		summarizeBy: none
+		sourceColumn: risco_comissaria_grupo
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column gestor_da_plataforma
+		dataType: string
+		lineageTag: 191b2e52-0521-4eb7-8838-7763eb75699d
+		sourceLineageTag: gestor_da_plataforma
+		summarizeBy: none
+		sourceColumn: gestor_da_plataforma
+
+		annotation SummarizationSetBy = Automatic
+
+	column risco_total
+		dataType: double
+		lineageTag: fa36597a-457f-4756-a031-e2b63ddd4799
+		sourceLineageTag: risco_total
+		summarizeBy: none
+		sourceColumn: risco_total
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column risco_subtotal_comissaria
+		dataType: double
+		lineageTag: d165116c-d87c-4bc1-988c-8762919e0b13
+		sourceLineageTag: risco_subtotal_comissaria
+		summarizeBy: none
+		sourceColumn: risco_subtotal_comissaria
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column dias_sem_operar
+		dataType: int64
+		formatString: 0
+		lineageTag: 939d404c-9199-4dd6-bc33-b5cf47e7e58b
+		sourceLineageTag: dias_sem_operar
+		summarizeBy: none
+		sourceColumn: dias_sem_operar
+
+		annotation SummarizationSetBy = Automatic
+
+	column dias_vencidos
+		dataType: int64
+		formatString: 0
+		lineageTag: 0a9ccba8-c53b-412d-8deb-28fba4447c95
+		sourceLineageTag: dias_vencidos
+		summarizeBy: none
+		sourceColumn: dias_vencidos
+
+		annotation SummarizationSetBy = Automatic
+
+	column faixa_pdd
+		dataType: double
+		lineageTag: 1703d04d-6fda-4349-85a1-ad871d952c65
+		sourceLineageTag: faixa_pdd
+		summarizeBy: none
+		sourceColumn: faixa_pdd
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column pdd
+		dataType: double
+		lineageTag: 2272327a-350a-4bd7-a7ed-bb81ccc9f6cb
+		sourceLineageTag: pdd
+		summarizeBy: none
+		sourceColumn: pdd
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column status_atividade
+		dataType: string
+		lineageTag: 24194180-42e5-4914-a956-554764382aab
+		sourceLineageTag: status_atividade
+		summarizeBy: none
+		sourceColumn: status_atividade
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_limite
+		dataType: string
+		lineageTag: 2e8a1449-44c2-49c0-b5ba-5f02f61c323a
+		sourceLineageTag: status_limite
+		summarizeBy: none
+		sourceColumn: status_limite
+
+		annotation SummarizationSetBy = Automatic
+
+	column falta_checar
+		dataType: double
+		lineageTag: bc17aa1f-f8ac-47cd-813f-d4d422d99b85
+		sourceLineageTag: falta_checar
+		summarizeBy: none
+		sourceColumn: falta_checar
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column idade_cliente
+		dataType: int64
+		formatString: 0
+		lineageTag: ea973a39-23e2-4f51-9fba-74293302fbff
+		sourceLineageTag: idade_cliente
+		summarizeBy: none
+		sourceColumn: idade_cliente
+
+		annotation SummarizationSetBy = Automatic
+
+	column idade_cliente_em_dias
+		dataType: int64
+		formatString: 0
+		lineageTag: 98b45180-203c-43b5-ae17-8b6bdd616dee
+		sourceLineageTag: idade_cliente_em_dias
+		summarizeBy: none
+		sourceColumn: idade_cliente_em_dias
+
+		annotation SummarizationSetBy = Automatic
+
+	column tipo_proposta
+		dataType: string
+		lineageTag: 4952c6fd-b3e2-47e4-97a7-8d4d68258721
+		sourceLineageTag: tipo_proposta
+		summarizeBy: none
+		sourceColumn: tipo_proposta
+
+		annotation SummarizationSetBy = Automatic
+
+	column pais
+		dataType: string
+		lineageTag: 10279449-3b9f-4764-afa0-68d214174a25
+		sourceLineageTag: pais
+		summarizeBy: none
+		sourceColumn: pais
+
+		annotation SummarizationSetBy = Automatic
+
+	column primeiro_nome_gerente
+		dataType: string
+		lineageTag: 6f6bcbb8-4281-40e1-9690-136700fca20a
+		sourceLineageTag: primeiro_nome_gerente
+		summarizeBy: none
+		sourceColumn: primeiro_nome_gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_operando_vencido
+		dataType: string
+		lineageTag: 29ad5f90-ea0a-40e7-958e-6994c6b9377b
+		sourceLineageTag: status_operando_vencido
+		summarizeBy: none
+		sourceColumn: status_operando_vencido
+
+		annotation SummarizationSetBy = Automatic
+
+	column taxa_minima_exigida
+		dataType: double
+		lineageTag: 13d20280-e718-42cd-9bae-ef52a8d4a4b1
+		sourceLineageTag: taxa_minima_exigida
+		summarizeBy: none
+		sourceColumn: taxa_minima_exigida
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column pendencias_desc
+		dataType: string
+		lineageTag: 3cb04486-3e5c-4c4f-bf61-7d73cdd3945c
+		sourceLineageTag: pendencias_desc
+		summarizeBy: none
+		sourceColumn: pendencias_desc
+
+		annotation SummarizationSetBy = Automatic
+
+	column qtd_pendencias
+		dataType: int64
+		formatString: 0
+		lineageTag: ae285dee-7c7f-4db6-85cc-aa1e0614004e
+		sourceLineageTag: qtd_pendencias
+		summarizeBy: none
+		sourceColumn: qtd_pendencias
+
+		annotation SummarizationSetBy = Automatic
+
+	column cod_atividade
+		dataType: string
+		lineageTag: 4cd358ce-3f4a-4989-9da9-7ca7f28918d1
+		sourceLineageTag: cod_atividade
+		summarizeBy: none
+		sourceColumn: cod_atividade
+
+		annotation SummarizationSetBy = Automatic
+
+	column cod_broker
+		dataType: int64
+		formatString: 0
+		lineageTag: ceeaa750-a4e4-4830-8d29-f126b9b6fcd7
+		sourceLineageTag: cod_broker
+		summarizeBy: none
+		sourceColumn: cod_broker
+
+		annotation SummarizationSetBy = Automatic
+
+	column has_critico
+		dataType: int64
+		formatString: 0
+		lineageTag: b0fe2736-3295-4195-b2c9-cedef945dc07
+		sourceLineageTag: has_critico
+		summarizeBy: none
+		sourceColumn: has_critico
+
+		annotation SummarizationSetBy = Automatic
+
+	column has_atencao
+		dataType: int64
+		formatString: 0
+		lineageTag: 3098c76e-303c-4246-a159-5c84cae371b8
+		sourceLineageTag: has_atencao
+		summarizeBy: none
+		sourceColumn: has_atencao
+
+		annotation SummarizationSetBy = Automatic
+
+	column taxa_comissao
+		dataType: decimal
+		formatString: "R$"\ #,0.###############;-"R$"\ #,0.###############;"R$"\ #,0.###############
+		lineageTag: 314514e7-8049-424d-95fa-d1cf8684211b
+		sourceLineageTag: taxa_comissao
+		summarizeBy: none
+		sourceColumn: taxa_comissao
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"pt-BR"}
+
+	column MACROPROCESSO
+		dataType: string
+		lineageTag: 654b2eb9-fc42-4306-b212-20a6baf590ec
+		sourceLineageTag: MACROPROCESSO
+		summarizeBy: none
+		sourceColumn: MACROPROCESSO
+
+		annotation SummarizationSetBy = Automatic
+
+	column FASE
+		dataType: string
+		lineageTag: 22dda216-47a6-445f-bd4e-4dbf6b5a4913
+		sourceLineageTag: FASE
+		summarizeBy: none
+		sourceColumn: FASE
+
+		annotation SummarizationSetBy = Automatic
+
+	column taxa_cadastro
+		dataType: decimal
+		formatString: "R$"\ #,0.###############;-"R$"\ #,0.###############;"R$"\ #,0.###############
+		lineageTag: 4c1cc771-5838-4516-baa5-9f75feb68534
+		sourceLineageTag: taxa_cadastro
+		summarizeBy: none
+		sourceColumn: taxa_cadastro
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"pt-BR"}
+
+	column desconsiderar_pdd
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: a2370e78-9a88-4ebf-ab43-e9d130c2fceb
+		sourceLineageTag: desconsiderar_pdd
+		summarizeBy: none
+		sourceColumn: desconsiderar_pdd
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_risco
+		dataType: string
+		lineageTag: ca8bc1df-cdf8-4f38-a9e8-2b02f2928a63
+		sourceLineageTag: status_risco
+		summarizeBy: none
+		sourceColumn: status_risco
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_do_cliente
+		dataType: string
+		lineageTag: 441391d8-8188-4263-a181-6bbce6b458da
+		sourceLineageTag: status_do_cliente
+		summarizeBy: none
+		sourceColumn: status_do_cliente
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_do_cliente_cad
+		dataType: string
+		lineageTag: a9a0db00-4036-4203-9565-839433434f87
+		sourceLineageTag: status_do_cliente_cad
+		summarizeBy: none
+		sourceColumn: status_do_cliente_cad
+
+		annotation SummarizationSetBy = Automatic
+
+	column id_limite_credito
+		dataType: string
+		lineageTag: ecb0ca5a-96cc-4348-86d5-70256aef1e7e
+		sourceLineageTag: id_limite_credito
+		summarizeBy: none
+		sourceColumn: id_limite_credito
+
+		annotation SummarizationSetBy = Automatic
+
+	column limite
+		dataType: double
+		lineageTag: 39b8e4c6-465c-4463-affa-83284a596133
+		sourceLineageTag: limite
+		summarizeBy: none
+		sourceColumn: limite
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column nome_gerente
+		dataType: string
+		lineageTag: ae38e35f-c84a-44cf-be3f-5503eb0895cd
+		sourceLineageTag: nome_gerente
+		summarizeBy: none
+		sourceColumn: nome_gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_status
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: c7bf45df-d2c1-4a6f-8198-08a0ca358ecd
+		sourceLineageTag: data_status
+		summarizeBy: none
+		sourceColumn: data_status
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome_do_grupo
+		dataType: string
+		lineageTag: 9e39478b-80c1-4df2-bd2e-2a9272dfe4c9
+		sourceLineageTag: nome_do_grupo
+		summarizeBy: none
+		sourceColumn: nome_do_grupo
+
+		annotation SummarizationSetBy = Automatic
+
+	column limite_comissaria
+		dataType: double
+		lineageTag: 95dd11b6-7203-4927-9020-9f35f9855598
+		sourceLineageTag: limite_comissaria
+		summarizeBy: none
+		sourceColumn: limite_comissaria
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column percentual_exigido_de_confirmacao
+		dataType: double
+		lineageTag: de7fc412-04ba-4fe1-bde9-4cb067c4da54
+		sourceLineageTag: percentual_exigido_de_confirmacao
+		summarizeBy: none
+		sourceColumn: percentual_exigido_de_confirmacao
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column min_assinatura
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 0c42d33a-a32a-4e0a-8362-97378963590b
+		sourceLineageTag: min_assinatura
+		summarizeBy: none
+		sourceColumn: min_assinatura
+
+		annotation SummarizationSetBy = Automatic
+
+	column min_comite
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: e07df7b5-239f-4c49-a1a0-207b177a081a
+		sourceLineageTag: min_comite
+		summarizeBy: none
+		sourceColumn: min_comite
+
+		annotation SummarizationSetBy = Automatic
+
+	column min_bizagi
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 5054f837-06b6-41a8-8675-ec02eeacbd11
+		sourceLineageTag: min_bizagi
+		summarizeBy: none
+		sourceColumn: min_bizagi
+
+		annotation SummarizationSetBy = Automatic
+
+	column min_renovacao
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 436df697-72e9-43c4-a458-3fa1737dc737
+		sourceLineageTag: min_renovacao
+		summarizeBy: none
+		sourceColumn: min_renovacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column min_reserva
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 645ba9c0-345b-477b-ae64-e7b2395a056f
+		sourceLineageTag: min_reserva
+		summarizeBy: none
+		sourceColumn: min_reserva
+
+		annotation SummarizationSetBy = Automatic
+
+	column min_start
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: b909b903-f38d-418d-b995-d46df0ef25df
+		sourceLineageTag: min_start
+		summarizeBy: none
+		sourceColumn: min_start
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_validade_limite
+		dataType: string
+		lineageTag: ba821818-4ed4-4d05-a7df-4a3bed56789d
+		sourceLineageTag: status_validade_limite
+		summarizeBy: none
+		sourceColumn: status_validade_limite
+
+		annotation SummarizationSetBy = Automatic
+
+	column qtd_operacoes_em_analise
+		dataType: int64
+		formatString: 0
+		lineageTag: a049a761-8b3a-482a-9f11-3b7e0820ef77
+		sourceLineageTag: qtd_operacoes_em_analise
+		summarizeBy: none
+		sourceColumn: qtd_operacoes_em_analise
+
+		annotation SummarizationSetBy = Automatic
+
+	column volume_operacoes_em_analise
+		dataType: double
+		lineageTag: 1dcca3ef-3d08-4658-b400-dbce43a28bf2
+		sourceLineageTag: volume_operacoes_em_analise
+		summarizeBy: none
+		sourceColumn: volume_operacoes_em_analise
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition dim_clientes = entity
+		mode: directLake
+		source
+			entityName: dim_clientes
+			expressionSource: 'DirectLake - LH_Gold'
+

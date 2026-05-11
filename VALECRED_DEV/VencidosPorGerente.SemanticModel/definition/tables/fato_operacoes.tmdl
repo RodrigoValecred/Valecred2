@@ -1,0 +1,708 @@
+table fato_operacoes
+	lineageTag: 1000ffa8-dab7-48aa-b1fb-79985c030cf3
+	sourceLineageTag: [dbo].[fato_operacoes]
+
+	column cod_operacao
+		dataType: int64
+		formatString: 0
+		lineageTag: 81da81e8-4977-46c2-be9e-6c576882085c
+		sourceLineageTag: cod_operacao
+		summarizeBy: none
+		sourceColumn: cod_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column cod_cliente
+		dataType: int64
+		formatString: 0
+		lineageTag: 3036cf56-a566-489b-9382-3e44aad370b3
+		sourceLineageTag: cod_cliente
+		summarizeBy: sum
+		sourceColumn: cod_cliente
+
+		annotation SummarizationSetBy = Automatic
+
+	column cod_empresa
+		dataType: int64
+		formatString: 0
+		lineageTag: 828e3c25-ce93-433c-9af1-75380ac214ad
+		sourceLineageTag: cod_empresa
+		summarizeBy: sum
+		sourceColumn: cod_empresa
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_inclusao
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: a33a5e55-dcdc-46e4-90ae-73709632e312
+		sourceLineageTag: data_inclusao
+		summarizeBy: none
+		sourceColumn: data_inclusao
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_analise
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 760cfe10-baf0-4b4c-a60a-fe084f5dd950
+		sourceLineageTag: data_analise
+		summarizeBy: none
+		sourceColumn: data_analise
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_aceite
+		dataType: string
+		lineageTag: 4bbbfdb4-8c5e-4fb2-be9c-002ebe8db96b
+		sourceLineageTag: status_aceite
+		summarizeBy: none
+		sourceColumn: status_aceite
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_analise
+		dataType: string
+		lineageTag: 90b77bb4-f33c-46bf-98b2-763280a26a1f
+		sourceLineageTag: status_analise
+		summarizeBy: none
+		sourceColumn: status_analise
+
+		annotation SummarizationSetBy = Automatic
+
+	column cod_broker
+		dataType: int64
+		formatString: 0
+		lineageTag: 782991f2-499e-4bf6-ba98-63c17d7e1613
+		sourceLineageTag: cod_broker
+		summarizeBy: none
+		sourceColumn: cod_broker
+
+		annotation SummarizationSetBy = Automatic
+
+	column chave_produto
+		dataType: string
+		lineageTag: 7486cd5b-dd5f-4614-8228-c7ad5acb1c76
+		sourceLineageTag: chave_produto
+		summarizeBy: none
+		sourceColumn: chave_produto
+
+		annotation SummarizationSetBy = Automatic
+
+	column operacao_informal
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 1b563477-8ffd-4aa0-8b4f-b446a79bd619
+		sourceLineageTag: operacao_informal
+		summarizeBy: none
+		sourceColumn: operacao_informal
+
+		annotation SummarizationSetBy = Automatic
+
+	column valor_retido
+		dataType: double
+		lineageTag: 124f5ec6-2160-41ef-9888-374a9b0cca63
+		sourceLineageTag: valor_retido
+		summarizeBy: sum
+		sourceColumn: valor_retido
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column valor_desembolsado
+		dataType: double
+		lineageTag: a623e92d-e127-465b-a3f2-d2060881f109
+		sourceLineageTag: valor_desembolsado
+		summarizeBy: sum
+		sourceColumn: valor_desembolsado
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column valor_de_face
+		dataType: double
+		lineageTag: 8911c7f7-412c-4941-8884-b5cd24e9068d
+		sourceLineageTag: valor_de_face
+		summarizeBy: sum
+		sourceColumn: valor_de_face
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column desagio
+		dataType: double
+		lineageTag: 07ace878-5b65-4cda-989c-3acd60fbb2ed
+		sourceLineageTag: desagio
+		summarizeBy: sum
+		sourceColumn: desagio
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column total_de_tarifas
+		dataType: double
+		lineageTag: 1760c876-1a25-4a07-843e-260d6b608962
+		sourceLineageTag: total_de_tarifas
+		summarizeBy: sum
+		sourceColumn: total_de_tarifas
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column sk_data
+		dataType: int64
+		formatString: 0
+		lineageTag: c4212db7-2074-405d-bb33-89d658e2db0b
+		sourceLineageTag: sk_data
+		summarizeBy: sum
+		sourceColumn: sk_data
+
+		annotation SummarizationSetBy = Automatic
+
+	column valor_recomprado
+		dataType: double
+		lineageTag: 4a6a681a-f26f-482a-8d36-cb3eb1a46d37
+		sourceLineageTag: valor_recomprado
+		summarizeBy: sum
+		sourceColumn: valor_recomprado
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tto
+		dataType: string
+		lineageTag: 5c5933ec-4cab-4ee6-8d9d-338e0d565fe8
+		sourceLineageTag: tto
+		summarizeBy: none
+		sourceColumn: tto
+
+		annotation SummarizationSetBy = Automatic
+
+	column stto
+		dataType: string
+		lineageTag: ffb2ed26-aba8-402b-9ea2-ee1a1908335e
+		sourceLineageTag: stto
+		summarizeBy: none
+		sourceColumn: stto
+
+		annotation SummarizationSetBy = Automatic
+
+	column usuario_inclusao
+		dataType: string
+		lineageTag: aebb208f-eb74-4d60-bd6c-3a63aefbd97e
+		sourceLineageTag: usuario_inclusao
+		summarizeBy: none
+		sourceColumn: usuario_inclusao
+
+		annotation SummarizationSetBy = Automatic
+
+	column nivel_usuario_inclusao
+		dataType: int64
+		formatString: 0
+		lineageTag: 5e3e9f02-64aa-4624-8a5c-525b203b9246
+		sourceLineageTag: nivel_usuario_inclusao
+		summarizeBy: sum
+		sourceColumn: nivel_usuario_inclusao
+
+		annotation SummarizationSetBy = Automatic
+
+	column analista
+		dataType: string
+		lineageTag: 79ad1ff5-2ebd-4152-acea-35a0f2beb969
+		sourceLineageTag: analista
+		summarizeBy: none
+		sourceColumn: analista
+
+		annotation SummarizationSetBy = Automatic
+
+	column analista_trava
+		dataType: string
+		lineageTag: b3af1770-f588-493b-bd95-e58663a01bc7
+		sourceLineageTag: analista_trava
+		summarizeBy: none
+		sourceColumn: analista_trava
+
+		annotation SummarizationSetBy = Automatic
+
+	column motivo_indeferimento
+		dataType: string
+		lineageTag: b078d9d0-0a23-44ad-8a6f-63da7ea53981
+		sourceLineageTag: motivo_indeferimento
+		summarizeBy: none
+		sourceColumn: motivo_indeferimento
+
+		annotation SummarizationSetBy = Automatic
+
+	column grupo_motivo_indeferimento
+		dataType: string
+		lineageTag: 45a688c8-ac73-42da-a22e-c4ec0227883f
+		sourceLineageTag: grupo_motivo_indeferimento
+		summarizeBy: none
+		sourceColumn: grupo_motivo_indeferimento
+
+		annotation SummarizationSetBy = Automatic
+
+	column taxa_cadastro
+		dataType: decimal
+		formatString: "R$"\ #,0.###############;-"R$"\ #,0.###############;"R$"\ #,0.###############
+		lineageTag: 12966d4d-02fc-448d-bb42-3b3c3b45ca26
+		sourceLineageTag: taxa_cadastro
+		summarizeBy: sum
+		sourceColumn: taxa_cadastro
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"pt-BR"}
+
+	column era
+		dataType: string
+		lineageTag: daae44e7-d618-4ac4-825c-b5c0348345b2
+		sourceLineageTag: era
+		summarizeBy: none
+		sourceColumn: era
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_deferimento
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: adaf3a77-038f-457d-a429-bccf36c04b78
+		sourceLineageTag: data_deferimento
+		summarizeBy: none
+		sourceColumn: data_deferimento
+
+		annotation SummarizationSetBy = Automatic
+
+	column chave_base_cliente
+		dataType: string
+		lineageTag: 80a175d4-8302-4b78-8694-20cdb76648a2
+		sourceLineageTag: chave_base_cliente
+		summarizeBy: none
+		sourceColumn: chave_base_cliente
+
+		annotation SummarizationSetBy = Automatic
+
+	column chave_base_operacao
+		dataType: string
+		lineageTag: 05d13bde-a2be-4f6b-b14d-5b2e0e010e45
+		sourceLineageTag: chave_base_operacao
+		summarizeBy: none
+		sourceColumn: chave_base_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column chave_base_empresa
+		dataType: string
+		lineageTag: 3c21e06a-2a74-44b9-955a-390c2e1bd3f9
+		sourceLineageTag: chave_base_empresa
+		summarizeBy: none
+		sourceColumn: chave_base_empresa
+
+		annotation SummarizationSetBy = Automatic
+
+	column incluido_por
+		dataType: string
+		lineageTag: a4815686-ce52-43c4-a976-0db4c7a2b057
+		sourceLineageTag: incluido_por
+		summarizeBy: none
+		sourceColumn: incluido_por
+
+		annotation SummarizationSetBy = Automatic
+
+	column tac
+		dataType: double
+		lineageTag: d9198190-a407-4052-95ef-83c89f88f26e
+		sourceLineageTag: tac
+		summarizeBy: sum
+		sourceColumn: tac
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column valor_taxa_adm
+		dataType: double
+		lineageTag: 66f9829b-3e61-4b93-a905-63289c388505
+		sourceLineageTag: valor_taxa_adm
+		summarizeBy: sum
+		sourceColumn: valor_taxa_adm
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column valor_advalorem
+		dataType: double
+		lineageTag: 6a6c18b8-3a8c-48df-9bbd-1a9c3539b43d
+		sourceLineageTag: valor_advalorem
+		summarizeBy: sum
+		sourceColumn: valor_advalorem
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column n_docs_recompra
+		dataType: int64
+		formatString: 0
+		lineageTag: 1bd40469-60c1-43a2-bdbc-a3a358e48660
+		sourceLineageTag: n_docs_recompra
+		summarizeBy: sum
+		sourceColumn: n_docs_recompra
+
+		annotation SummarizationSetBy = Automatic
+
+	column chave_meta
+		dataType: string
+		lineageTag: 0bb4c4a0-aabd-45f9-95b5-912a903005a6
+		sourceLineageTag: chave_meta
+		summarizeBy: none
+		sourceColumn: chave_meta
+
+		annotation SummarizationSetBy = Automatic
+
+	column ano_do_deferimento
+		dataType: int64
+		formatString: 0
+		lineageTag: bb7eda05-7e9f-4af6-ad02-1819fb0cded4
+		sourceLineageTag: ano_do_deferimento
+		summarizeBy: sum
+		sourceColumn: ano_do_deferimento
+
+		annotation SummarizationSetBy = Automatic
+
+	column comissao_das_tarifas
+		dataType: double
+		lineageTag: 4b0f1b58-92e1-410f-baca-e26b64e5d02f
+		sourceLineageTag: comissao_das_tarifas
+		summarizeBy: sum
+		sourceColumn: comissao_das_tarifas
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column data_inicio_do_mes
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 211a3e2d-aed7-4e70-941f-152414cde17d
+		sourceLineageTag: data_inicio_do_mes
+		summarizeBy: none
+		sourceColumn: data_inicio_do_mes
+
+		annotation SummarizationSetBy = Automatic
+
+	column dia_da_operacao
+		dataType: int64
+		formatString: 0
+		lineageTag: 22f0fed9-46a1-450b-b505-621b938a65e8
+		sourceLineageTag: dia_da_operacao
+		summarizeBy: sum
+		sourceColumn: dia_da_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column dia_da_semana_da_operacao
+		dataType: int64
+		formatString: 0
+		lineageTag: efcd8fc5-b023-4233-87f4-6223653456c1
+		sourceLineageTag: dia_da_semana_da_operacao
+		summarizeBy: sum
+		sourceColumn: dia_da_semana_da_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column dia_da_semana_da_operacao_por_extenso
+		dataType: string
+		lineageTag: f9700e17-d6ae-4e37-b05c-163c24da9c77
+		sourceLineageTag: dia_da_semana_da_operacao_por_extenso
+		summarizeBy: none
+		sourceColumn: dia_da_semana_da_operacao_por_extenso
+
+		annotation SummarizationSetBy = Automatic
+
+	column faixa_de_tempo_de_analise_horas
+		dataType: int64
+		formatString: 0
+		lineageTag: a07437a0-abb7-45ac-acd1-a049ab102b06
+		sourceLineageTag: faixa_de_tempo_de_analise_horas
+		summarizeBy: sum
+		sourceColumn: faixa_de_tempo_de_analise_horas
+
+		annotation SummarizationSetBy = Automatic
+
+	column faixa_de_tempo_de_analise_minutos
+		dataType: int64
+		formatString: 0
+		lineageTag: edf071eb-269e-4525-831b-ffe5d8ff10df
+		sourceLineageTag: faixa_de_tempo_de_analise_minutos
+		summarizeBy: sum
+		sourceColumn: faixa_de_tempo_de_analise_minutos
+
+		annotation SummarizationSetBy = Automatic
+
+	column tempo_de_analise_minutos
+		dataType: double
+		lineageTag: 3dc2dcbf-19ff-4d86-b1d3-03c790476f11
+		sourceLineageTag: tempo_de_analise_minutos
+		summarizeBy: sum
+		sourceColumn: tempo_de_analise_minutos
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column hora_da_inclusao
+		dataType: int64
+		formatString: 0
+		lineageTag: 6eaa1a2c-cef1-4044-a62a-1a48bdbca032
+		sourceLineageTag: hora_da_inclusao
+		summarizeBy: sum
+		sourceColumn: hora_da_inclusao
+
+		annotation SummarizationSetBy = Automatic
+
+	column meses_de_idade_do_cliente
+		dataType: int64
+		formatString: 0
+		lineageTag: 06e01842-21d2-4770-b4ee-6d10fc316a9e
+		sourceLineageTag: meses_de_idade_do_cliente
+		summarizeBy: sum
+		sourceColumn: meses_de_idade_do_cliente
+
+		annotation SummarizationSetBy = Automatic
+
+	column semana_do_deferimento
+		dataType: int64
+		formatString: 0
+		lineageTag: 903c883d-11ef-49cc-864e-01da1c7b3d61
+		sourceLineageTag: semana_do_deferimento
+		summarizeBy: sum
+		sourceColumn: semana_do_deferimento
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_analisado_no_mesmo_dia
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		lineageTag: 4ce76c9b-685b-45ae-bd4e-5e74fb5ecc25
+		sourceLineageTag: status_analisado_no_mesmo_dia
+		summarizeBy: none
+		sourceColumn: status_analisado_no_mesmo_dia
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_escrow
+		dataType: string
+		lineageTag: a47a23c2-d4a5-4f05-8d0e-abf3827793df
+		sourceLineageTag: status_escrow
+		summarizeBy: none
+		sourceColumn: status_escrow
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_meta
+		dataType: string
+		lineageTag: 1d7049d8-f1b6-4cc8-89cd-a5854eb81506
+		sourceLineageTag: status_meta
+		summarizeBy: none
+		sourceColumn: status_meta
+
+		annotation SummarizationSetBy = Automatic
+
+	column status_taxa_majorada
+		dataType: string
+		lineageTag: 6d136d39-fe7f-4b66-a803-6f28581a3df5
+		sourceLineageTag: status_taxa_majorada
+		summarizeBy: none
+		sourceColumn: status_taxa_majorada
+
+		annotation SummarizationSetBy = Automatic
+
+	column tarifa_de_recompra
+		dataType: double
+		lineageTag: 5e3f89e8-e397-47f9-82e0-a0cc11c7d700
+		sourceLineageTag: tarifa_de_recompra
+		summarizeBy: sum
+		sourceColumn: tarifa_de_recompra
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column tarifa_de_titulos
+		dataType: double
+		lineageTag: 4037de95-ff5a-4ba0-85ae-c4fe5354cfd0
+		sourceLineageTag: tarifa_de_titulos
+		summarizeBy: sum
+		sourceColumn: tarifa_de_titulos
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column gestor_da_operacao
+		dataType: string
+		lineageTag: 65fd8dc9-5041-43b1-a921-882fa9a34913
+		sourceLineageTag: gestor_da_operacao
+		summarizeBy: none
+		sourceColumn: gestor_da_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column nbordero
+		dataType: int64
+		formatString: 0
+		lineageTag: 2a4d574c-09be-4bb5-86cf-42082b7ac161
+		sourceLineageTag: nbordero
+		summarizeBy: sum
+		sourceColumn: nbordero
+
+		annotation SummarizationSetBy = Automatic
+
+	column valor_pendencias
+		dataType: double
+		lineageTag: c3ef7049-cc3d-413d-9c45-83f659726378
+		sourceLineageTag: valor_pendencias
+		summarizeBy: sum
+		sourceColumn: valor_pendencias
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column nome_plataforma
+		dataType: string
+		lineageTag: c163b682-0dd6-42a6-acc7-e9db2c017748
+		sourceLineageTag: nome_plataforma
+		summarizeBy: none
+		sourceColumn: nome_plataforma
+
+		annotation SummarizationSetBy = Automatic
+
+	column gestor_da_plataforma
+		dataType: string
+		lineageTag: 0f8f88ac-8f5e-489b-8217-5bb02d16734e
+		sourceLineageTag: gestor_da_plataforma
+		summarizeBy: none
+		sourceColumn: gestor_da_plataforma
+
+		annotation SummarizationSetBy = Automatic
+
+	column valor_utilizacao_limite_plus_excedente
+		dataType: double
+		lineageTag: 73182071-97e9-408f-a8c4-0bb950d90ed4
+		sourceLineageTag: valor_utilizacao_limite_plus_excedente
+		summarizeBy: sum
+		sourceColumn: valor_utilizacao_limite_plus_excedente
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column sk_operacao
+		dataType: int64
+		formatString: 0
+		lineageTag: dfba3cf4-d08e-44ec-a1be-01d04e42c02a
+		sourceLineageTag: sk_operacao
+		summarizeBy: sum
+		sourceColumn: sk_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column sk_produto
+		dataType: int64
+		formatString: 0
+		lineageTag: 25d2cab3-943d-426f-a5f5-449a0d17be63
+		sourceLineageTag: sk_produto
+		summarizeBy: sum
+		sourceColumn: sk_produto
+
+		annotation SummarizationSetBy = Automatic
+
+	column taxa_operacao
+		dataType: double
+		lineageTag: f4354d53-d3df-49e4-82f0-b3f618eee69c
+		sourceLineageTag: taxa_operacao
+		summarizeBy: sum
+		sourceColumn: taxa_operacao
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column floating
+		dataType: int64
+		formatString: 0
+		lineageTag: fcfcfdec-d6b2-49cc-b961-d6c5f072bff3
+		sourceLineageTag: floating
+		summarizeBy: sum
+		sourceColumn: floating
+
+		annotation SummarizationSetBy = Automatic
+
+	column prazo_medio
+		dataType: double
+		lineageTag: d1543be3-6b0a-4d05-bbd5-0445b86f2ca0
+		sourceLineageTag: prazo_medio
+		summarizeBy: sum
+		sourceColumn: prazo_medio
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column prazo_medio_total
+		dataType: double
+		lineageTag: eb1c6b73-e5ec-4c7a-b02d-e446ccf23d1c
+		sourceLineageTag: prazo_medio_total
+		summarizeBy: sum
+		sourceColumn: prazo_medio_total
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column menor_vencimento
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: d4d5ff3a-1e9c-4a50-9b36-40a00f66dabf
+		sourceLineageTag: menor_vencimento
+		summarizeBy: none
+		sourceColumn: menor_vencimento
+
+		annotation SummarizationSetBy = Automatic
+
+	column maior_vencimento
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: 6ee665d7-cef6-42b2-a3b3-881587a16246
+		sourceLineageTag: maior_vencimento
+		summarizeBy: none
+		sourceColumn: maior_vencimento
+
+		annotation SummarizationSetBy = Automatic
+
+	column prazo_medio_ponderado_dias
+		dataType: double
+		lineageTag: f44574d6-1cab-4842-bed7-01e7e650e513
+		sourceLineageTag: prazo_medio_ponderado_dias
+		summarizeBy: sum
+		sourceColumn: prazo_medio_ponderado_dias
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition fato_operacoes = entity
+		mode: directLake
+		source
+			entityName: fato_operacoes
+			expressionSource: 'DirectLake - LH_Gold'
+

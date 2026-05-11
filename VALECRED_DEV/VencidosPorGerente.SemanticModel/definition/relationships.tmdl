@@ -1,0 +1,12 @@
+relationship c0bd2c9b-14c8-a0ab-8081-20f99894a4d8
+	fromColumn: fato_titulos.cod_cliente
+	toColumn: dim_clientes.cod_cliente
+
+relationship fb774922-de04-16f7-4ae0-f8a7ebd5d645
+	fromColumn: fato_titulos.cod_operacao
+	toColumn: fato_operacoes.cod_operacao
+
+relationship 5ce2f48a-b221-a532-ac08-673c3a6e073f
+	fromColumn: fato_operacoes.cod_broker
+	toColumn: dim_gerentes.cod_broker
+

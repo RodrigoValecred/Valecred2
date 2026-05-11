@@ -1,0 +1,126 @@
+table dim_gerentes
+	lineageTag: 863d7751-6585-4d56-80f5-7c4f35639158
+	sourceLineageTag: [dbo].[dim_gerentes]
+
+	column cod_broker
+		dataType: int64
+		formatString: 0
+		lineageTag: dd8d53c1-0beb-40cd-bb68-e14d00f57b99
+		sourceLineageTag: cod_broker
+		summarizeBy: none
+		sourceColumn: cod_broker
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome_gerente
+		dataType: string
+		lineageTag: 17b95cfe-95d2-4c27-b9b8-5b1308ad3ad0
+		sourceLineageTag: nome_gerente
+		summarizeBy: none
+		sourceColumn: nome_gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	column cpf_cnpj
+		dataType: string
+		lineageTag: 9a59c710-b23e-42b4-8ae2-e1646709d5d0
+		sourceLineageTag: cpf_cnpj
+		summarizeBy: none
+		sourceColumn: cpf_cnpj
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_inicio_gestao
+		dataType: dateTime
+		formatString: General Date
+		lineageTag: ca79fe3f-1950-4657-bc4a-67473615d87a
+		sourceLineageTag: data_inicio_gestao
+		summarizeBy: none
+		sourceColumn: data_inicio_gestao
+
+		annotation SummarizationSetBy = Automatic
+
+	column meses_de_casa
+		dataType: double
+		lineageTag: b8b56b41-c69e-4733-b3a7-f939576f74a5
+		sourceLineageTag: meses_de_casa
+		summarizeBy: none
+		sourceColumn: meses_de_casa
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column status_ativo
+		dataType: string
+		lineageTag: 022b9ee4-2f45-4249-bb49-4632479043cd
+		sourceLineageTag: status_ativo
+		summarizeBy: none
+		sourceColumn: status_ativo
+
+		annotation SummarizationSetBy = Automatic
+
+	column nome_plataforma
+		dataType: string
+		lineageTag: 9fe71aa5-14d0-42ed-a154-e38ce1763ae6
+		sourceLineageTag: nome_plataforma
+		summarizeBy: none
+		sourceColumn: nome_plataforma
+
+		annotation SummarizationSetBy = Automatic
+
+	column gestor_da_plataforma
+		dataType: string
+		lineageTag: fa1219a4-eeac-4171-9e06-42cce9376799
+		sourceLineageTag: gestor_da_plataforma
+		summarizeBy: none
+		sourceColumn: gestor_da_plataforma
+
+		annotation SummarizationSetBy = Automatic
+
+	column taxa_comissao
+		dataType: decimal
+		formatString: "R$"\ #,0.###############;-"R$"\ #,0.###############;"R$"\ #,0.###############
+		lineageTag: 594cad1d-2eee-4472-aaf2-23f3d32fbcef
+		sourceLineageTag: taxa_comissao
+		summarizeBy: none
+		sourceColumn: taxa_comissao
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"pt-BR"}
+
+	column cod_agencia
+		dataType: int64
+		formatString: 0
+		lineageTag: 5652144b-2140-43f2-a39a-1cfbc79568b8
+		sourceLineageTag: cod_agencia
+		summarizeBy: none
+		sourceColumn: cod_agencia
+
+		annotation SummarizationSetBy = Automatic
+
+	column data_contratacao
+		dataType: string
+		lineageTag: 137e12e6-cdb9-4881-8850-b3346239634f
+		sourceLineageTag: data_contratacao
+		summarizeBy: none
+		sourceColumn: data_contratacao
+
+		annotation SummarizationSetBy = Automatic
+
+	column tipo_gerente
+		dataType: string
+		lineageTag: 91538061-bedd-4ad4-a85f-0263afc11c4d
+		sourceLineageTag: tipo_gerente
+		summarizeBy: none
+		sourceColumn: tipo_gerente
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_gerentes = entity
+		mode: directLake
+		source
+			entityName: dim_gerentes
+			expressionSource: 'DirectLake - LH_Gold'
+
