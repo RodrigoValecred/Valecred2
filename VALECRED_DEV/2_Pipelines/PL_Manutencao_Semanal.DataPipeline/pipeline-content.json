@@ -1,0 +1,86 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "86b11763-36a2-9333-4ab5-c71a363617fe",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "nome_lakehouse": {
+              "value": "LH_Bronze",
+              "type": "string"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "LH_BRONZE",
+        "dependsOn": []
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "86b11763-36a2-9333-4ab5-c71a363617fe",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "nome_lakehouse": {
+              "value": "LH_Silver",
+              "type": "string"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "LH_SILVER",
+        "dependsOn": [
+          {
+            "activity": "LH_BRONZE",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "TridentNotebook",
+        "typeProperties": {
+          "notebookId": "86b11763-36a2-9333-4ab5-c71a363617fe",
+          "workspaceId": "00000000-0000-0000-0000-000000000000",
+          "parameters": {
+            "nome_lakehouse": {
+              "value": "LH_Gold",
+              "type": "string"
+            }
+          }
+        },
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureInput": false,
+          "secureOutput": false
+        },
+        "name": "LH_GOLD",
+        "dependsOn": [
+          {
+            "activity": "LH_SILVER",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
