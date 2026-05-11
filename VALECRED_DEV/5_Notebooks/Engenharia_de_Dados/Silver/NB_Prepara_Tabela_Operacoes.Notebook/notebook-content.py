@@ -49,7 +49,7 @@ from pyspark.sql.functions import (
     row_number, col, when, lit, concat, length, regexp_replace,
     collect_list, concat_ws, upper, greatest, substring, year,
     lead, date_add, lag, max, coalesce, date_sub, array_contains, create_map, split,
-    to_date, trim, udf, pandas_udf
+    to_date, trim, udf, pandas_udf, broadcast
 )
 from pyspark.sql.types import StructType, StructField, StringType, LongType, TimestampType
 from delta.tables import *
@@ -497,8 +497,11 @@ def process_pareceres_operacoes():
     )
 
 # Join
+    # ⚡ Otimização Bolt: Adicionar `broadcast()` na tabela de dimensão
+    # 💡 O que: Usado `broadcast()` na tabela de dimensão pequena (cad_usuarios) no join.
+    # 🎯 Por que: Previne shuffle custoso de rede forçando um BroadcastHashJoin.
     df_joined = df_pareceres_filtered \
-        .join(df_usuarios, col("cgp.USUAINCLUSAO") == col("cu.CODUSUARIO")) \
+        .join(broadcast(df_usuarios), col("cgp.USUAINCLUSAO") == col("cu.CODUSUARIO")) \
         .join(df_operacoes_ref, col("cgp.CODOPERACAO") == col("to2.cod_operacao")) \
         .select(
             col("cgp.CODOPERACAO").alias("cod_operacao"),
@@ -726,7 +729,9 @@ def process_tarifas_esporadicas():
 
     # Join de Usuários (Left) & Filtra Analista
     # Nota: Usando aliases para evitar ambiguidade se USUAINCLUSAO existe em ambos (embora aqui façamos join nela)
-    df_joined = df_filtered.alias("t").join(df_usuarios.alias("u"), col("t.USUAINCLUSAO") == col("u.CODUSUARIO"), "left") \
+    # ⚡ Otimização Bolt: Adicionar `broadcast()` na tabela de dimensão pequena
+    # 💡 O que: Usado `broadcast()` na dimensão `df_usuarios`.
+    df_joined = df_filtered.alias("t").join(broadcast(df_usuarios.alias("u")), col("t.USUAINCLUSAO") == col("u.CODUSUARIO"), "left") \
         .filter((col("u.NOME") != "RONALDO DANILO UREI GOBBI") | col("u.NOME").isNull())
 
     # Selecione e transforme
