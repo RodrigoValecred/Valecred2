@@ -1,27 +1,12 @@
-1.  *Optimize `process_pareceres_clientes_esteira` in `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Cadastros.Notebook/notebook-content.py`*
-    -   Use `replace_with_git_merge_diff` to replace the chained `.withColumn` calls when setting `status_anterior`, `data_anterior`, `macroprocesso_anterior`, and `fase_anterior` with a single `.select("*", *expr_list)` operation. This will flatten the Catalyst Execution Plan and reduce compilation overhead.
-    -   Use `replace_with_git_merge_diff` to replace the chained `.withColumn` and `.withColumnRenamed` calls when setting `devolucao` and `recebida` (lines 629-637) with `.select("*", *expr_list)`
-
-2.  *Verify changes in `NB_Prepara_Tabela_Cadastros.Notebook/notebook-content.py`*
-    -   Run `git diff VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Cadastros.Notebook/notebook-content.py` to confirm the modifications were applied correctly.
-
-3.  *Optimize logic for `df_final_pareceres` flags block in `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py`*
-    -   Use `replace_with_git_merge_diff` to replace the chained `.withColumn` calls when setting `ESCROW`, `ALCADA_SPENCER`, `ALCADA_CAIO`, `ALCADA_DAIANE`, and `IS_LIMITE_PLUS` (lines 531-535) with a single `.select("*", *expr_list)` operation. This avoids sequential `Project` node generation.
-
-4.  *Verify changes in `NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py`*
-    -   Run `git diff VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Prepara_Tabela_Operacoes.Notebook/notebook-content.py` to confirm the modifications were applied correctly.
-
-5.  *Run Unit Tests*
-    -   Run tests on the modified files to make sure nothing is broken. I will use the exact bash command `export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64; export _JAVA_OPTIONS="--add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED"; for file in tests/test_*.py; do /home/jules/.local/share/pipx/venvs/pytest/bin/python -m pytest "$file"; done`.
-
-6.  *Complete pre commit steps*
-    -   Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.
-
-7.  *Submit the change*
-    -   Submit the change with `submit` using PR title "⚡ Bolt: Flatten withColumn chains in PySpark Silver Notebooks". The PR description will be:
-```
-💡 What: Replaced deeply chained `.withColumn()` calls in `process_pareceres_clientes_esteira` (Cadastros) and the flags block (Operações) with flattened `.select("*", *expr_list)` operations.
-🎯 Why: Iteratively appending columns using `.withColumn()` forces the Spark Catalyst Optimizer to generate deeply nested `Project` nodes in the logical plan. This causes massive O(N^2) compilation slowdowns (the "Plan Explosion" phenomenon) and risks StackOverflowError during DAG evaluation. Flattening to a single `.select()` resolves this overhead.
-📊 Impact: Flattens the execution DAG, substantially reducing the Catalyst logical plan compilation and optimization time for these tasks, speeding up execution and significantly lowering driver memory overhead.
-🔬 Measurement: Compare Spark UI "SQL" tab compilation times before and after. The physical execution plan will display a single unified `Project` stage instead of multiple sequential `Project` layers.
-```
+1. **Optimize DataFrame columns `.withColumnRenamed()` method calls**
+   - The files `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Gold/NB_Analise_Cliente_Especifico.Notebook/notebook-content.py` and `VALECRED_DEV/6_Machine_Learning/ML_Gerador_Score_Risco.Notebook/notebook-content.py` have repetitive calls of `.withColumnRenamed()` that can cause excessive `Project` nodes in Catalyst logical plans.
+   - Refactor these into a single list comprehension renaming approach with `.toDF()` or `.select()`, consistent with findings in `.jules/bolt.md`.
+2. **Optimize PySpark Joins with `broadcast()` for Small Dimension Tables**
+   - The file `VALECRED_DEV/5_Notebooks/Engenharia_de_Dados/Silver/NB_Silver_Carteira_PDD.Notebook/notebook-content.py` joins large fact tables against small dimension tables (`df_pdd_percent`, `df_pdd_ajustes`, `df_base_gestao`, `df_base_bordero`) without using `broadcast()`. This leads to expensive, cluster-wide network shuffles.
+   - I will modify these joins to explicitly wrap the small dimension DataFrames with `pyspark.sql.functions.broadcast()` and document this optimization.
+3. **Execute testing and code checks**
+   - After implementing the changes, I will run the required tests (including mock execution tests to ensure the changes don't break existing tests, such as `test_transform_operacoes.py` / `test_analise.py` if present) to ensure everything behaves correctly.
+4. **Complete pre-commit steps to ensure proper testing, verification, review, and reflection are done.**
+   - Run the pre-commit instructions as mandated in the requirements.
+5. **Submit a PR with the Bolt title and template**
+   - Push the fix with the title `⚡ Bolt: Optimize PySpark Broadcast Joins and Column Renaming` and the standard Bolt PR body.
