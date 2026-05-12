@@ -319,3 +319,13 @@
 | `benchmark_chunk_size.py` | `benchmark_chunk_size.py` | 📝 The Translator: Tradução de comentários do inglês para português do Brasil (pt-BR). | Changed |
 | `test_ml_gerador_score_risco.py` | `tests/test_ml_gerador_score_risco.py` | 📝 The Translator: Tradução de comentários do inglês para português do Brasil (pt-BR). | Changed |
 | `test_performance.py` | `tests/test_performance.py` | 📝 The Translator: Tradução de comentários do inglês para português do Brasil (pt-BR). | Changed |
+
+### [2026-05-11]
+
+| Component | Path | Description | Change |
+| :--- | :--- | :--- | :--- |
+| `teste_captura_automatica.Dataflow` | `VALECRED_DEV/1_Dataflows/Dataflows_Bronze/teste_captura_automatica.Dataflow/` | Adicionado novo Dataflow no ambiente Bronze com definição do tipo FastCopy para testes de captura automática. | Added |
+| `PL_Manutencao_Semanal.DataPipeline` | `VALECRED_DEV/2_Pipelines/PL_Manutencao_Semanal.DataPipeline/` | Adicionado novo Data Pipeline com atividades em cascata (`LH_BRONZE`, `LH_SILVER`, `LH_GOLD`). | Added |
+| `NB_Manutencao_Delta.Notebook` | `VALECRED_DEV/3_Lakehouses/NB_Manutencao_Delta.Notebook/` | Adicionado notebook PySpark para iterar sobre tabelas em Lakehouses (ex: `LH_Bronze`) executando comandos de manutenção Delta (`OPTIMIZE` e `VACUUM`). | Added |
+| `Time_Travel.Notebook` | `VALECRED_DEV/3_Lakehouses/Time_Travel.Notebook/` | Adicionado notebook demonstrando o uso de Time Travel (histórico, `versionAsOf`, `timestampAsOf`) na API do Delta Lake. | Added |
+| `VencidosPorGerente.SemanticModel` | `VALECRED_DEV/VencidosPorGerente.SemanticModel/` | Adicionado novo Modelo Semântico do Power BI, definindo dimensões (`dim_clientes`, `dim_gerentes`) e fatos (`fato_operacoes`, `fato_titulos`). | Added |
