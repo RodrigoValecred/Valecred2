@@ -180,7 +180,7 @@ def get_operacoes_schema(df):
 
 def transform_operacoes(df, key_columns_operacoes):
     # ⚡ Bolt: Otimizou a atualização de coluna usando withColumn diretamente na coluna existente para evitar o overhead de coluna temporária.
-    df_corrigido = df.withColumn("TTO", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449) | (col("NBORDERO") == 3045947), lit("CS")).otherwise(col("TTO")))
+    df_corrigido = df.withColumn("TTO", when(col("CODOPERACAO").isin(3042074, 6048450, 6048449) | col("NBORDERO").isin(3045947, 6046275), lit("CS")).otherwise(col("TTO")))
 
     windowSpec = Window.partitionBy([col(c) for c in key_columns_operacoes]).orderBy(col("DATAALTERACAO").desc())
     df_ranked = df_corrigido.withColumn("row_num", row_number().over(windowSpec))
