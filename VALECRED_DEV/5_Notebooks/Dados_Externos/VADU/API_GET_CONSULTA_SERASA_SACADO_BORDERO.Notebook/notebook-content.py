@@ -22,7 +22,7 @@
 
 # CELL ********************
 
-from pyspark.sql.functions import lit, current_timestamp, col
+from pyspark.sql.functions import lit, current_timestamp, col, to_json, struct
 from notebookutils import mssparkutils
 
 # 1. MAPEAMENTO DE PASTAS - Use caminhos relativos ao Lakehouse conectado
@@ -48,9 +48,6 @@ for arquivo in arquivos:
         print(f"--- Iniciando processamento de: {arquivo.name} ---")
 
         try:
-            # 2. CAPTURA DO CONTEÚDO (Aumentamos o limite para 2MB para garantir)
-            json_string = mssparkutils.fs.head(caminho_origem, 2097152) 
-            
             # 3. LEITURA NO SPARK
             df_raw = spark.read.option("multiLine", "true").json(caminho_origem)
             
@@ -59,7 +56,7 @@ for arquivo in arquivos:
             df_final = df_raw.select(
                 col("borana_id").cast("long").alias("Bordero_ID"),
                 col("sacCNPJCPF").alias("CNPJ_Sacado"),
-                lit(json_string).alias("JSON_Bruto")
+                to_json(struct("*")).alias("JSON_Bruto")
             ).withColumn("Data_Hora_Ingestao", current_timestamp())
 
             # 5. ESCRITA NA TABELA
