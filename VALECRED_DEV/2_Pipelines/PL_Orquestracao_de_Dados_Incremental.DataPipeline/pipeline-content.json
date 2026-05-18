@@ -40,7 +40,7 @@
         "description": "NB_Gold_Dim_Danfe",
         "dependsOn": [
           {
-            "activity": "Titulos",
+            "activity": "Sacados",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -64,7 +64,7 @@
         "description": "NB_Prepara_Cadastros\n",
         "dependsOn": [
           {
-            "activity": "Carrega dados brutos",
+            "activity": "Cobranca",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -112,12 +112,6 @@
         "description": "NB_Prepara_Titulos",
         "dependsOn": [
           {
-            "activity": "Cobranca",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
             "activity": "Dim Produtos",
             "dependencyConditions": [
               "Succeeded"
@@ -142,7 +136,7 @@
         "description": "NB_Prepara_Operacoes\n",
         "dependsOn": [
           {
-            "activity": "Carrega dados brutos",
+            "activity": "Esteira de Propostas",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -166,13 +160,7 @@
         "description": "Notebook_Preparacao_Silver\n",
         "dependsOn": [
           {
-            "activity": "Esteira de Propostas",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "Cobranca",
+            "activity": "Verifica Titulos Enviados ao Juridico",
             "dependencyConditions": [
               "Succeeded"
             ]
@@ -269,12 +257,6 @@
             "dependencyConditions": [
               "Succeeded"
             ]
-          },
-          {
-            "activity": "Cadastros",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
           }
         ]
       },
@@ -341,19 +323,7 @@
         "name": "NB_Curadoria_Gold",
         "dependsOn": [
           {
-            "activity": "Esteira de Propostas",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "Verifica Titulos Enviados ao Juridico",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "Observacoes_Contratos",
+            "activity": "RelatorioLimitesVencendo",
             "dependencyConditions": [
               "Succeeded"
             ]
