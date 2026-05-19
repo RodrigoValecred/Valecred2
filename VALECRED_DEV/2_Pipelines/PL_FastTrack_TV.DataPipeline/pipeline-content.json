@@ -185,7 +185,7 @@
         "typeProperties": {
           "source": {
             "type": "LakehouseTableSource",
-            "sqlReaderQuery": "SELECT \n    FORMAT(\n        COALESCE(\n            MAX(\n                CASE \n                    WHEN DATAANALISE > DATAINCLUSAO THEN DATAANALISE \n                    ELSE DATAINCLUSAO \n                END\n            ), \n            '1900-01-01 00:00:00'\n        ), \n        'yyyy-MM-ddTHH:mm:ss'\n    ) as max_id_gold \nFROM alertas_risco_tv",
+            "sqlReaderQuery": "SELECT \n    COALESCE(FORMAT(\n        MAX(\n            CASE \n                WHEN DATAANALISE > DATAINCLUSAO THEN DATAANALISE \n                ELSE DATAINCLUSAO \n            END\n        ), \n        'yyyy-MM-ddTHH:mm:ss'\n    ), '1900-01-01T00:00:00') as max_id_gold \nFROM alertas_risco_tv",
             "partitionOption": "None"
           },
           "datasetSettings": {
@@ -224,7 +224,7 @@
         "typeProperties": {
           "source": {
             "type": "MySqlSource",
-            "query": "SELECT \n    DATE_FORMAT(\n        MAX(\n            GREATEST(DATAINCLUSAO, IFNULL(DATAANALISE , DATAINCLUSAO))\n        ), \n        '%Y-%m-%dT%H:%i:%s'\n    ) as max_id_source \nFROM tab_operacoes \nWHERE (DATE(DATAANALISE) = CURDATE() OR DATAANALISE IS NULL)\n    AND TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+            "query": "SELECT \n    COALESCE(DATE_FORMAT(\n        MAX(\n            GREATEST(DATAINCLUSAO, IFNULL(DATAANALISE , DATAINCLUSAO))\n        ), \n        '%Y-%m-%dT%H:%i:%s'\n    ), '1900-01-01T00:00:00') as max_id_source \nFROM tab_operacoes \nWHERE (DATE(DATAANALISE) = CURDATE() OR DATAANALISE IS NULL)\n    AND TTO IN ('CM', 'FC', 'NO', 'GR', 'NC')\n    AND DATAINCLUSAO >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
           },
           "datasetSettings": {
             "type": "MySqlTable",
