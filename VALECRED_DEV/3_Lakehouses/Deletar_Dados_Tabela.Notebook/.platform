@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Notebook",
+    "displayName": "Deletar_Dados_Tabela"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "59154b12-462e-a54a-4ba9-60dfbf8d9277"
+  }
+}
