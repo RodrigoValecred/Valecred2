@@ -209,6 +209,37 @@ except Exception as e:
     df_hoje_ajustado = df_hoje_ajustado.withColumn("alerta_notas_sequenciais", F.lit(False))
 
 # ==============================================================================
+# 🆕 VERIFICAÇÃO DE OPERAÇÃO FORA DA PRAÇA HABITUAL
+# ==============================================================================
+try:
+    print("🔍 Verificando operações fora da praça habitual...")
+    df_clientes_limpa = spark.table("LH_Silver.staging_clientes_limpa").select("cod_cliente", F.col("cpf_cnpj").alias("cpf_cnpj_cedente")).dropDuplicates(["cod_cliente"])
+    df_enderecos = spark.table("LH_Silver.staging_enderecos_limpa").select(F.col("cpf_cnpj"), F.col("uf")).dropDuplicates(["cpf_cnpj"])
+
+    # 1. UF do Cedente
+    df_cedente_uf = df_clientes_limpa.join(df_enderecos.withColumnRenamed("cpf_cnpj", "cpf_cnpj_cedente"), "cpf_cnpj_cedente", "left") \
+        .select("cod_cliente", F.col("uf").alias("uf_cedente")).dropDuplicates(["cod_cliente"])
+
+    # 2. UF do Sacado
+    df_sacado_uf = df_enderecos.select(F.col("cpf_cnpj").alias("cpf_cnpj_sacado"), F.col("uf").alias("uf_sacado")).dropDuplicates(["cpf_cnpj_sacado"])
+
+    # 3. Join com a base de hoje
+    df_hoje_ajustado = df_hoje_ajustado.join(F.broadcast(df_cedente_uf), "cod_cliente", "left")
+    df_hoje_ajustado = df_hoje_ajustado.join(F.broadcast(df_sacado_uf), "cpf_cnpj_sacado", "left")
+
+    # 4. Criar a flag de fora da praça habitual
+    df_hoje_ajustado = df_hoje_ajustado.withColumn(
+        "is_fora_praca_habitual",
+        F.when(
+            F.col("uf_cedente").isNotNull() & F.col("uf_sacado").isNotNull() & (F.col("uf_cedente") != F.col("uf_sacado")),
+            F.lit(True)
+        ).otherwise(F.lit(False))
+    )
+except Exception as e:
+    print(f"⚠️ Não foi possível verificar operações fora da praça habitual: {e}")
+    df_hoje_ajustado = df_hoje_ajustado.withColumn("is_fora_praca_habitual", F.lit(False))
+
+# ==============================================================================
 # 🆕 BLOCO DE ENRIQUECIMENTO DE PRODUTO (O Join Mágico)
 # ==============================================================================
 # 1. Tratamento de Nulos para o Join (STTO nulo vira vazio, igual na Dimensão)
@@ -380,6 +411,7 @@ try:
             F.when(F.col("alerta_intercia_sem_limite"), -1.0)
              .when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("alerta_notas_sequenciais"), -1.0)
+             .when(F.col("is_fora_praca_habitual"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
@@ -390,6 +422,7 @@ try:
             "anomaly_score",
             F.when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("alerta_notas_sequenciais"), -1.0)
+             .when(F.col("is_fora_praca_habitual"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
@@ -411,6 +444,7 @@ except Exception as e:
             F.when(F.col("alerta_intercia_sem_limite"), -1.0)
              .when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("alerta_notas_sequenciais"), -1.0)
+             .when(F.col("is_fora_praca_habitual"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
@@ -421,6 +455,7 @@ except Exception as e:
             "anomaly_score",
             F.when(F.col("alerta_excesso_tranche"), -1.0)
              .when(F.col("alerta_notas_sequenciais"), -1.0)
+             .when(F.col("is_fora_praca_habitual"), -1.0)
              .when(F.col("is_cedente_novo"), -1.0)
              .when(F.col("is_sacado_novo"), -1.0)
              .when(F.col("pagava_em_dia_agora_atrasa") > 0, -1.0)
@@ -508,6 +543,7 @@ if "alerta_intercia_sem_limite" in df_scored.columns:
     motivo_expr = F.when(F.col("alerta_intercia_sem_limite"), F.lit("Tentativa de Intercia Sem Limite")) \
                    .when(F.col("alerta_excesso_tranche"), F.lit("Excesso na Tranche")) \
                    .when(F.col("alerta_notas_sequenciais"), F.lit("Notas Sequenciais (Risco de Fuga)")) \
+                   .when(F.col("is_fora_praca_habitual"), F.lit("Operação Fora da Praça Habitual")) \
                    .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("pagava_em_dia_agora_atrasa") > 0, F.lit("Mudança de Comportamento (Atraso)")) \
@@ -517,6 +553,7 @@ if "alerta_intercia_sem_limite" in df_scored.columns:
 else:
     motivo_expr = F.when(F.col("alerta_excesso_tranche"), F.lit("Excesso na Tranche")) \
                    .when(F.col("alerta_notas_sequenciais"), F.lit("Notas Sequenciais (Risco de Fuga)")) \
+                   .when(F.col("is_fora_praca_habitual"), F.lit("Operação Fora da Praça Habitual")) \
                    .when(F.col("is_cedente_novo"), F.lit("Primeira Operação")) \
                    .when(F.col("is_sacado_novo"), F.lit("Sem Histórico do Sacado")) \
                    .when(F.col("pagava_em_dia_agora_atrasa") > 0, F.lit("Mudança de Comportamento (Atraso)")) \
