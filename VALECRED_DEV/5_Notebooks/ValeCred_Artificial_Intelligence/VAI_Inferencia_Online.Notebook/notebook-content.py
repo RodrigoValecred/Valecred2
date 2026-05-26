@@ -101,7 +101,9 @@ rename_map = {
     "TIPO_OPERACAO": "TTO",
     "SUBTIPO_OPERACAO": "STTO",
     "CODCLIENTE": "cod_cliente",
-    "STATUSANALISE": "status_analise"
+    "STATUSANALISE": "status_analise",
+    "DATAINCLUSAO": "data_inclusao",
+    "DATAANALISE": "data_analise"
 }
 # (Ajuste os nomes "TIPO_OPERACAO" acima se na Bronze eles tiverem outro nome)
 new_columns = [rename_map.get(c, c) for c in df_hoje_clean.columns]
