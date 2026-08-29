@@ -537,7 +537,8 @@ def process_pareceres_operacoes():
         when(col("Parecer").rlike("(?i)SPENCER"), "sim").otherwise("não").alias("ALCADA_SPENCER"),
         when(col("Parecer").rlike("(?i)CAIO"), "sim").otherwise("não").alias("ALCADA_CAIO"),
         when(col("Parecer").rlike("(?i)DAIANE"), "sim").otherwise("não").alias("ALCADA_DAIANE"),
-        when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO").alias("IS_LIMITE_PLUS")
+        when(col("Parecer").rlike("(?i)#PLUS"), "SIM").otherwise("NAO").alias("IS_LIMITE_PLUS"),
+        when(col("Parecer").rlike("(?i)#BIRDBOX"), "SIM").otherwise("NÃO").alias("BIRDBOX")
     ]
     df_final_pareceres = df_cleaned.select(*exprs_flags)
 
