@@ -185,7 +185,7 @@
         "typeProperties": {
           "source": {
             "type": "LakehouseTableSource",
-            "sqlReaderQuery": "SELECT \n    FORMAT(\n        COALESCE(\n            MAX(\n                CASE \n                    WHEN DATAANALISE > DATAINCLUSAO THEN DATAANALISE \n                    ELSE DATAINCLUSAO \n                END\n            ), \n            '1900-01-01 00:00:00'\n        ), \n        'yyyy-MM-ddTHH:mm:ss'\n    ) as max_id_gold \nFROM alertas_risco_tv",
+            "sqlReaderQuery": "SELECT \n    FORMAT(\n        COALESCE(\n            MAX(\n                CASE \n                    WHEN data_analise > data_inclusao THEN data_analise \n                    ELSE data_inclusao \n                END\n            ), \n            '1900-01-01 00:00:00'\n        ), \n        'yyyy-MM-ddTHH:mm:ss'\n    ) as max_id_gold \nFROM alertas_risco_tv",
             "partitionOption": "None"
           },
           "datasetSettings": {
