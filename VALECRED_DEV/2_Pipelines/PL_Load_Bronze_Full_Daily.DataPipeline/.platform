@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataPipeline",
+    "displayName": "PL_Load_Bronze_Full_Daily",
+    "description": "Carga bruta completa di\u00e1ria, sem l\u00f3gica incremental."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "7b2aa5f7-654f-433e-9d35-2b32af9a3707"
+  }
+}
