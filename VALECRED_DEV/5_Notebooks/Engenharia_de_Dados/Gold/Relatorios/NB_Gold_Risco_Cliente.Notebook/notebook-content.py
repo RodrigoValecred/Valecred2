@@ -107,7 +107,12 @@ df_risco_aberto = df_risco_aberto.filter(col('tto_operacao').isin(produtos_clien
 
 # CELL ********************
 
-df_risco_produto = df_risco_aberto.groupBy("cod_cliente").pivot("tto_operacao").agg(sum("valor_devido")).na.fill(0)
+# ⚡ Bolt: Otimização do Pivot com Lista Explícita
+# 💡 O que: Fornecer a lista de valores (`produtos_cliente`) explicitamente na função `.pivot("tto_operacao", produtos_cliente)`.
+# 🎯 Por que: Em PySpark, chamar `.pivot("coluna")` sem a lista explícita força o otimizador Catalyst a executar um job síncrono de agregação (`.distinct().collect()`) para descobrir os valores possíveis antes de montar o Plano Lógico. Ao passar a lista que já era conhecida (filtrada na etapa anterior), evitamos totalmente esse scan pesado e degradação de performance.
+# 📊 Impacto: Economiza um job inteiro de full table scan na tabela de risco aberto.
+# 🔬 Medição: O tempo de avaliação do plano lógico da DAG cai de O(N) leitura para O(1) imediato.
+df_risco_produto = df_risco_aberto.groupBy("cod_cliente").pivot("tto_operacao", produtos_cliente).agg(sum("valor_devido")).na.fill(0)
 
 # Adicionando uma coluna de RiscoTotal que soma os valores de todas as colunas de TTO
 tto_cols = [col(c) for c in df_risco_produto.columns if c not in ['cod_cliente']]
