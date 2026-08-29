@@ -80,9 +80,16 @@ print("Tabelas carregadas com sucesso.")
 # CELL ********************
 
 # Renomeando colunas duplicadas para evitar conflitos
-df_operacoes = df_operacoes.withColumnRenamed("TTO", "TTO_OPERACAO")
-df_operacoes = df_operacoes.withColumnRenamed("CODRATING", "CODRATING_OPERACAO")
-df_cedentes = df_cedentes.withColumnRenamed("CODRATING", "CODRATING_CEDENTE")
+# ⚡ Bolt: Substituição de múltiplos withColumnRenamed por list comprehension com toDF()
+# 💡 What: Trocou cadeias iterativas de .withColumnRenamed() por projeção .toDF() usando mapeamento de dicionário.
+# 🎯 Why: Reduz o aninhamento de nós Project no plano lógico Catalyst, evitando StackOverflowError e lentidão na compilação do DAG.
+# 📊 Impact: Diminui significativamente o tempo de planejamento e compilação do DAG antes da execução física.
+# 🔬 Measurement: Observar a redução do tempo total gasto na fase de compilação Catalyst no Spark UI e o tamanho reduzido da árvore de plano lógico.
+cols_map_op = {"TTO": "TTO_OPERACAO", "CODRATING": "CODRATING_OPERACAO"}
+df_operacoes = df_operacoes.toDF(*[cols_map_op.get(c, c) for c in df_operacoes.columns])
+
+cols_map_ced = {"CODRATING": "CODRATING_CEDENTE"}
+df_cedentes = df_cedentes.toDF(*[cols_map_ced.get(c, c) for c in df_cedentes.columns])
 
 # 🧠 OTIMIZAÇÃO DE TENSOR: Predicate Pushdown e Inner Joins
 # Aplicando filtros diretamente nas tabelas fonte ANTES do join para reduzir drasticamente o volume de dados.

@@ -175,12 +175,16 @@ df_with_faixa = df_with_prazo.withColumn("faixa_pdd",
 )
 
 # 7. Join com a tabela de percentuais de PDD
-df_pdd_percent_renamed = df_pdd_percent.withColumnRenamed("mes_ano", "pdd_mes_ano") \
-                                       .withColumnRenamed("faixa", "pdd_faixa") \
-                                       .withColumnRenamed("valor", "pdd_percent_valor")
+# ⚡ Bolt: Substituição de withColumnRenamed em cadeia por toDF e uso de broadcast join
+# 💡 What: Adicionado F.broadcast() na pequena tabela dimensional de percentuais de PDD e achatamento do withColumnRenamed.
+# 🎯 Why: Pequenas tabelas dimensionais, quando não explicitamente empurradas pelo broadcast, podem acionar um SortMergeJoin. Isso requer um pesado embaralhamento (shuffle) via rede do imenso DataFrame de carteira pelos executors.
+# 📊 Impact: Elimina a etapa de shuffle, convertendo a junção para BroadcastHashJoin, resultando em menor latência e uso de memória mais eficiente no cluster.
+# 🔬 Measurement: No Spark UI (guia SQL), visualizar a conversão do nó SortMergeJoin para BroadcastHashJoin sem etapa de Exchange.
+cols_map_pdd = {"mes_ano": "pdd_mes_ano", "faixa": "pdd_faixa", "valor": "pdd_percent_valor"}
+df_pdd_percent_renamed = df_pdd_percent.toDF(*[cols_map_pdd.get(c, c) for c in df_pdd_percent.columns])
 
 df_joined_pdd = df_with_faixa.join(
-    df_pdd_percent_renamed,
+    F.broadcast(df_pdd_percent_renamed),
     (F.date_trunc('month', F.col("data_base")) == F.date_trunc('month', F.col("pdd_mes_ano"))) & 
     (F.col("faixa_pdd") == F.col("pdd_faixa")),
     "left"
@@ -193,7 +197,12 @@ df_calc_pdd = df_joined_pdd.withColumn(
 ).drop("pdd_mes_ano", "pdd_faixa", "pdd_percent_valor")
 
 # 9. Join com a tabela de ajustes de PDD
-df_joined_ajustes = df_calc_pdd.join(df_pdd_ajustes, "cpfcnpj", "left") \
+# ⚡ Bolt: Uso de broadcast join
+# 💡 What: Adicionado F.broadcast() na tabela dimensional de ajustes de PDD.
+# 🎯 Why: Evita SortMergeJoin forçando um BroadcastHashJoin.
+# 📊 Impact: Otimiza o desempenho do Join e economiza tráfego de rede no cluster.
+# 🔬 Measurement: No Spark UI, o SortMergeJoin será substituído por BroadcastHashJoin.
+df_joined_ajustes = df_calc_pdd.join(F.broadcast(df_pdd_ajustes), "cpfcnpj", "left") \
                                .na.fill(0, ["ajuste_pdd"])
 
 # 10. Calcular 'VALOR RN LIQUIDO'
@@ -219,12 +228,21 @@ df_renamed_empresas = df_with_pdd_final.withColumn("nome_da_empresa",
 )
 
 # 13. Joins para obter a 'Gestão'
+# ⚡ Bolt: Uso de broadcast join e simplificação do withColumnRenamed
+# 💡 What: Adicionado F.broadcast() nas pequenas tabelas de dimensões (gestão cedente e gestão borderô) e convertido o rename para list comprehension toDF().
+# 🎯 Why: Elimina o embaralhamento global (shuffle) forçando um BroadcastHashJoin das dimensões sobre a imensa tabela fato da carteira.
+# 📊 Impact: Acelera as junções finais sem a pesada carga de rede inter-nodes.
+# 🔬 Measurement: No Spark UI (guia SQL), os dois joins mostrarão BroadcastHashJoin em vez de SortMergeJoin ou ShuffleHashJoin.
+cols_map_gestao = {"gestao": "gestao_cedente"}
+df_base_gestao_renamed = df_base_gestao.toDF(*[cols_map_gestao.get(c, c) for c in df_base_gestao.columns])
 df_joined_gestao = df_renamed_empresas.join(
-    df_base_gestao.withColumnRenamed("gestao", "gestao_cedente"), "cpfcnpj", "left"
+    F.broadcast(df_base_gestao_renamed), "cpfcnpj", "left"
 )
 
+cols_map_bordero = {"gestao": "gestao_bordero"}
+df_base_bordero_renamed = df_base_bordero.toDF(*[cols_map_bordero.get(c, c) for c in df_base_bordero.columns])
 df_joined_bordero = df_joined_gestao.join(
-    df_base_bordero.withColumnRenamed("gestao", "gestao_bordero"),
+    F.broadcast(df_base_bordero_renamed),
     F.col("codoperacao") == F.col("bordero"),
     "left"
 )
