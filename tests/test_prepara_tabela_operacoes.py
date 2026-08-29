@@ -362,7 +362,7 @@ class TestGetOperacoesSchema(unittest.TestCase):
 
         if func_source:
             local_scope = {}
-            global_scope = {"col": mock_col}
+            global_scope = {"col": mock_col, "broadcast": lambda x: x}
             try:
                 exec(func_source, global_scope, local_scope)
                 cls.get_operacoes_schema = staticmethod(local_scope["get_operacoes_schema"])
@@ -491,6 +491,7 @@ class TestProcessIncrementalOperacoes(unittest.TestCase):
                 "coalesce": MagicMock(),
                 "lit": lambda x: x,
                 "transform_operacoes": MagicMock(),
+                "broadcast": lambda x: x,
             }
             try:
                 exec(func_source, global_scope, local_scope)
